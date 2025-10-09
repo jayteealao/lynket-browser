@@ -24,7 +24,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import arun.com.chromer.data.history.HistoryRepository
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.util.SchedulerProvider
+import arun.com.chromer.util.RxSchedulerUtils
 import rx.Observable
 import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
@@ -52,7 +52,7 @@ constructor(
              .switchMap {
                  historyRepository
                          .allItemsCursor
-                         .compose(SchedulerProvider.applyIoSchedulers())
+                         .compose(RxSchedulerUtils.applyIoSchedulers())
              }.doOnNext { loadingLiveData.postValue(false) }
              .doOnNext(historyCursorLiveData::postValue)
              .subscribe())*/
@@ -66,7 +66,7 @@ constructor(
     subs.add(
       historyRepository
         .deleteAll()
-        .compose(SchedulerProvider.applyIoSchedulers())
+        .compose(RxSchedulerUtils.applyIoSchedulers())
         .doOnNext { rows ->
           loadHistory()
           onSuccess(rows)
@@ -78,7 +78,7 @@ constructor(
     subs.add(Observable.just(website)
       .filter { webSite -> webSite?.url != null }
       .flatMap { historyRepository.delete(it!!) }
-      .compose(SchedulerProvider.applyIoSchedulers())
+      .compose(RxSchedulerUtils.applyIoSchedulers())
       .doOnError(Timber::e)
       .doOnNext { loadHistory() }
       .subscribe())

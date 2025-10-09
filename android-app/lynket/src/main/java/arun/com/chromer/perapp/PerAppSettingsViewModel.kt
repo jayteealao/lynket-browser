@@ -24,7 +24,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.common.App
-import arun.com.chromer.util.SchedulerProvider
+import arun.com.chromer.util.RxSchedulerUtils
 import rx.android.schedulers.AndroidSchedulers
 import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
@@ -58,7 +58,7 @@ constructor(private val appRepository: AppRepository) : ViewModel() {
     subs.add(loadingQueue.asObservable()
       .onBackpressureLatest()
       .doOnNext { loading(true) }
-      .concatMap { appRepository.allApps().compose(SchedulerProvider.applyIoSchedulers()) }
+      .concatMap { appRepository.allApps().compose(RxSchedulerUtils.applyIoSchedulers()) }
       .doOnNext { loading(false) }
       .subscribe({ apps ->
         Timber.d("Apps loaded ${apps.size}")
@@ -75,10 +75,10 @@ constructor(private val appRepository: AppRepository) : ViewModel() {
       .concatMap { (packageName, incognito) ->
         if (incognito) {
           appRepository.setPackageIncognito(packageName)
-            .compose(SchedulerProvider.applyIoSchedulers())
+            .compose(RxSchedulerUtils.applyIoSchedulers())
         } else {
           appRepository.removeIncognito(packageName)
-            .compose(SchedulerProvider.applyIoSchedulers())
+            .compose(RxSchedulerUtils.applyIoSchedulers())
         }
       }.observeOn(AndroidSchedulers.mainThread())
       .doOnNext { loading(false) }
@@ -99,10 +99,10 @@ constructor(private val appRepository: AppRepository) : ViewModel() {
       .concatMap { (packageName, blacklisted) ->
         if (blacklisted) {
           appRepository.setPackageBlacklisted(packageName)
-            .compose(SchedulerProvider.applyIoSchedulers())
+            .compose(RxSchedulerUtils.applyIoSchedulers())
         } else {
           appRepository.removeBlacklist(packageName)
-            .compose(SchedulerProvider.applyIoSchedulers())
+            .compose(RxSchedulerUtils.applyIoSchedulers())
         }
       }.observeOn(AndroidSchedulers.mainThread())
       .doOnNext { loading(false) }

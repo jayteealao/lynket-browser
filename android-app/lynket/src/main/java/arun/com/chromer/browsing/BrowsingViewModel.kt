@@ -33,7 +33,7 @@ import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants
-import arun.com.chromer.util.SchedulerProvider
+import arun.com.chromer.util.RxSchedulerUtils
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.compat.TaskDescriptionCompat
 import rx.Observable
@@ -74,7 +74,7 @@ constructor(
       .switchMap { url ->
         websiteObservable(url)
           .compose(Result.applyToObservable())
-          .compose(SchedulerProvider.applyIoSchedulers())
+          .compose(RxSchedulerUtils.applyIoSchedulers())
       }.subscribe({ result ->
         websiteLiveData.value = result
         if (result is Result.Success) {
@@ -106,7 +106,7 @@ constructor(
               )
             }.doOnNext(this::setTaskDescription)
             .doOnError(Timber::e)
-            .compose(SchedulerProvider.applyIoSchedulers())
+            .compose(RxSchedulerUtils.applyIoSchedulers())
         }.subscribe()
     )
   }

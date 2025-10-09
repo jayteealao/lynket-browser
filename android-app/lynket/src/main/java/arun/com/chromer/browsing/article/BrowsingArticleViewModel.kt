@@ -27,7 +27,7 @@ import arun.com.chromer.data.webarticle.WebArticleRepository
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.search.provider.SearchProvider
 import arun.com.chromer.search.provider.SearchProviders
-import arun.com.chromer.util.SchedulerProvider
+import arun.com.chromer.util.RxSchedulerUtils
 import io.reactivex.Observable
 import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
@@ -53,7 +53,7 @@ constructor(
       .concatMap {
         webArticleRepository
           .getWebArticle(it)
-          .compose(SchedulerProvider.applyIoSchedulers())
+          .compose(RxSchedulerUtils.applyIoSchedulers())
           .compose(Result.applyToObservable())
       }.subscribe { articleLiveData.value = it })
   }

@@ -24,7 +24,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.apps.model.Provider
-import arun.com.chromer.util.SchedulerProvider
+import arun.com.chromer.util.RxSchedulerUtils
 import rx.subjects.PublishSubject
 import rx.subscriptions.CompositeSubscription
 import timber.log.Timber
@@ -49,7 +49,7 @@ constructor(
       .switchMap {
         return@switchMap appRepository
           .allProviders()
-          .compose(SchedulerProvider.applyIoSchedulers())
+          .compose(RxSchedulerUtils.applyIoSchedulers())
       }.subscribe({ providers ->
         providersLiveData.value = providers
       }, Timber::e)

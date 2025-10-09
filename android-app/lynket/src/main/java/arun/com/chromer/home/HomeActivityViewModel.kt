@@ -36,9 +36,12 @@ import arun.com.chromer.settings.RxPreferences
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
 import com.jakewharton.rxrelay2.PublishRelay
-import dev.arunkumar.android.result.asResource
 import dev.arunkumar.android.rxschedulers.SchedulerProvider
-import dev.arunkumar.common.result.Resource
+import dev.arunkumar.android.rxschedulers.asResource
+import dev.arunkumar.android.rxschedulers.compose
+import dev.arunkumar.android.rxschedulers.ioToUi
+import dev.arunkumar.android.rxschedulers.poolToUi
+import dev.arunkumar.android.common.Resource
 import io.reactivex.Observable
 import javax.inject.Inject
 
@@ -119,7 +122,7 @@ constructor(
           providerReason = StringResource(0)
         )
       }
-    }.compose(schedulerProvider.poolToUi())
+    }.compose(schedulerProvider.poolToUi<CustomTabProviderInfo>())
       .untilCleared()
       .subscribe(providerInfoLiveData::setValue)
   }
