@@ -15,7 +15,7 @@ plugins {
     alias(libs.plugins.kotlinParcelize)
     alias(libs.plugins.kotlinKapt) // Will be removed after KSP migration
     alias(libs.plugins.ksp)
-    // alias(libs.plugins.hilt) // Disabled - using Dagger 2 during migration
+    alias(libs.plugins.hilt) // Phase 1.1: Enabled for modernization
     alias(libs.plugins.compose.compiler)
 }
 
@@ -26,11 +26,11 @@ android {
     defaultConfig {
         applicationId = "arun.com.chromer"
         minSdk = 24 // Android 7.0+ (Decision: Bump from 23)
-        targetSdk = 33
+        targetSdk = 35 // Phase 1.1: Updated to latest
         versionCode = 56
         versionName = "2.1.3"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "arun.com.chromer.HiltTestRunner" // Phase 1.1: Hilt test runner
 
         vectorDrawables {
             useSupportLibrary = true
@@ -136,10 +136,15 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    // Hilt Dependency Injection - Disabled during Dagger 2 → Hilt migration
-    // implementation(libs.hilt.android)
-    // kapt(libs.hilt.compiler)
-    // implementation(libs.hilt.navigation.compose)
+    // Hilt Dependency Injection - Phase 1.1: Enabled
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+
+    // Hilt Testing
+    androidTestImplementation(libs.hilt.android.testing)
+    kaptAndroidTest(libs.hilt.android.testing)
+    kaptAndroidTest(libs.hilt.compiler)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
