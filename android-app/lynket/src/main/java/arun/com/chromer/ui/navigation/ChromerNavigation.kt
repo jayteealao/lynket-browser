@@ -19,9 +19,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import arun.com.chromer.ui.browser.BrowserScreen
 import arun.com.chromer.ui.home.HomeScreen
 import arun.com.chromer.ui.history.HistoryScreen
 import arun.com.chromer.ui.settings.SettingsScreen
+import arun.com.chromer.ui.tabs.TabsScreen
 
 /**
  * Phase 3.1: Navigation setup for Lynket Browser
@@ -117,8 +119,7 @@ fun ChromerNavGraph(
 
         // Tabs Screen
         composable(Screen.Tabs.route) {
-            // TabsScreen(navController = navController)
-            PlaceholderScreen(title = "Tabs Screen")
+            TabsScreen(navController = navController)
         }
 
         // Settings Screen
@@ -136,8 +137,7 @@ fun ChromerNavGraph(
             )
         ) { backStackEntry ->
             val url = backStackEntry.arguments?.getString("url") ?: ""
-            // BrowserScreen(url = url, navController = navController)
-            PlaceholderScreen(title = "Browser: $url")
+            BrowserScreen(url = url, navController = navController)
         }
 
         // Per-App Settings with package argument
