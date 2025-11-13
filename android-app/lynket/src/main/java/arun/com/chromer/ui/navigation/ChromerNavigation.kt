@@ -19,9 +19,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import arun.com.chromer.ui.about.AboutScreen
 import arun.com.chromer.ui.browser.BrowserScreen
 import arun.com.chromer.ui.home.HomeScreen
 import arun.com.chromer.ui.history.HistoryScreen
+import arun.com.chromer.ui.providerselection.ProviderSelectionScreen
 import arun.com.chromer.ui.settings.SettingsScreen
 import arun.com.chromer.ui.tabs.TabsScreen
 
@@ -156,8 +158,7 @@ fun ChromerNavGraph(
 
         // Provider Selection Screen
         composable(Screen.ProviderSelection.route) {
-            // ProviderSelectionScreen(navController = navController)
-            PlaceholderScreen(title = "Provider Selection")
+            ProviderSelectionScreen(navController = navController)
         }
 
         // Article Screen with URL argument
@@ -182,8 +183,7 @@ fun ChromerNavGraph(
 
         // About Screen
         composable(Screen.About.route) {
-            // AboutScreen(navController = navController)
-            PlaceholderScreen(title = "About")
+            AboutScreen(navController = navController)
         }
     }
 }
