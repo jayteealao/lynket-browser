@@ -208,12 +208,13 @@ Successfully completed Phases 1-4 (ViewModel migrations) of the modernization pl
 - **HistoryFragmentViewModel** → @HiltViewModel
 - **PerAppSettingsViewModel** → @HiltViewModel
 - **TabsViewModel** → @HiltViewModel
+- **ProviderSelectionViewModel** → @HiltViewModel
 
 ### Summary
-**All 12 ViewModels now use Hilt:**
+**All 13 ViewModels now use Hilt:**
 - 5 Modern ViewModels (created with @HiltViewModel)
 - 2 Core Browsing ViewModels (migrated Phase 4.1)
-- 5 Legacy UI ViewModels (migrated Phase 4.2)
+- 6 Legacy UI ViewModels (migrated Phase 4.2-4.3)
 
 All retain RxJava temporarily (to be removed in Phase 6).
 
@@ -271,7 +272,7 @@ All retain RxJava temporarily (to be removed in Phase 6).
 ## 📋 Remaining Work
 
 ### Phase 4: Services & Background (Deferred)
-- [x] Migrate all ViewModels to Hilt (DONE - 12 ViewModels)
+- [x] Migrate all ViewModels to Hilt (DONE - 13 ViewModels, 100% coverage)
 - [ ] Modernize WebHeadService
 - [ ] Implement WorkManager for background tasks
 - [ ] Update notification system
@@ -369,8 +370,8 @@ All retain RxJava temporarily (to be removed in Phase 6).
 
 ### Completed (This Session)
 1. ✅ Complete Phase 3 core screens (8 screens)
-2. ✅ Migrate ALL ViewModels to Hilt (12 total)
-3. ✅ Document progress (this file)
+2. ✅ Migrate ALL ViewModels to Hilt (13 total, 100% coverage)
+3. ✅ Document progress (comprehensive tracking)
 4. ✅ Phase 4 ViewModel migrations complete
 
 ### Short-term (Next Session)
