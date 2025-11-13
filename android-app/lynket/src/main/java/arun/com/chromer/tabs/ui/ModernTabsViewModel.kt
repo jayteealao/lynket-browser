@@ -14,29 +14,35 @@ package arun.com.chromer.tabs.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.website.WebsiteRepository
+import arun.com.chromer.data.website.getWebsiteSuspend
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.TabsManager.Tab
+import arun.com.chromer.tabs.closeAllTabsSuspend
+import arun.com.chromer.tabs.getActiveTabsSuspend
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.rx2.await
-import kotlinx.coroutines.rx2.awaitSingle
 import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Phase 3: Modern TabsViewModel
+ * Phase 6: Modern TabsViewModel (RxJava Removed)
  *
  * Manages active browser tabs using:
  * - StateFlow for reactive state
  * - Kotlin Coroutines for async operations
- * - Legacy TabsManager integration (will be modernized later)
+ * - Suspend function extensions for legacy TabsManager
  *
  * Features:
  * - Load active tabs
  * - Close individual tabs
  * - Close all tabs
  * - Real-time updates
+ *
+ * Changes in Phase 6:
+ * - Removed RxJava interop (rx2.await, rx2.awaitSingle)
+ * - Uses suspend extension functions instead
+ * - No more RxJava dependencies in this ViewModel
  */
 @HiltViewModel
 class ModernTabsViewModel @Inject constructor(
@@ -86,15 +92,13 @@ class ModernTabsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = TabsUiState.Loading
             try {
-                // Use the legacy TabsManager (RxJava) via coroutine adapter
-                val activeTabs = tabsManager.getActiveTabs()
-                    .await() // Convert RxJava Single to suspend function
+                // Use suspend extension functions (no RxJava interop needed)
+                val activeTabs = tabsManager.getActiveTabsSuspend()
 
                 // Enrich tabs with website data
                 val enrichedTabs = activeTabs.map { tab ->
                     try {
-                        val website = websiteRepository.getWebsite(tab.url)
-                            .awaitSingle() // Convert RxJava Observable to suspend
+                        val website = websiteRepository.getWebsiteSuspend(tab.url)
                         tab.apply { this.website = website }
                     } catch (e: Exception) {
                         // If website fetch fails, return tab as-is
@@ -140,8 +144,7 @@ class ModernTabsViewModel @Inject constructor(
     fun closeAllTabs() {
         viewModelScope.launch {
             try {
-                val closedTabs = tabsManager.closeAllTabs()
-                    .await()
+                val closedTabs = tabsManager.closeAllTabsSuspend()
                 Timber.d("Closed ${closedTabs.size} tabs")
 
                 // Reload tabs after closing all

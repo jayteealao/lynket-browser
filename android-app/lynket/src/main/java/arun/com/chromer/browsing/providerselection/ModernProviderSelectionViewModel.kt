@@ -14,27 +14,32 @@ package arun.com.chromer.browsing.providerselection
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.apps.AppRepository
+import arun.com.chromer.data.apps.allProvidersSuspend
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.rx2.await
 import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Phase 3.3: Modern ProviderSelectionViewModel
+ * Phase 6: Modern ProviderSelectionViewModel (RxJava Removed)
  *
  * Manages Custom Tab provider selection with modern reactive patterns.
- * Bridges legacy RxJava AppRepository with modern StateFlow.
+ * Uses suspend function extensions for legacy AppRepository.
  *
  * Features:
  * - Load available Custom Tab providers
  * - Select provider (set as default)
  * - WebView fallback option
  * - Install provider via Play Store
+ *
+ * Changes in Phase 6:
+ * - Removed RxJava interop (rx2.await)
+ * - Uses suspend extension functions instead
+ * - No more RxJava dependencies in this ViewModel
  */
 @HiltViewModel
 class ModernProviderSelectionViewModel @Inject constructor(
@@ -76,8 +81,8 @@ class ModernProviderSelectionViewModel @Inject constructor(
             try {
                 _uiState.value = ProviderSelectionUiState.Loading
 
-                // Use RxJava-to-Coroutine adapter for legacy repository
-                val providers = appRepository.allProviders().await()
+                // Use suspend extension function (no RxJava interop needed)
+                val providers = appRepository.allProvidersSuspend()
 
                 // Get current preferences
                 val preferences = preferencesRepository.userPreferencesFlow.first()
