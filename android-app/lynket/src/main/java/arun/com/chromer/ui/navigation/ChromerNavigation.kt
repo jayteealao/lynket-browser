@@ -19,6 +19,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import arun.com.chromer.ui.home.HomeScreen
+import arun.com.chromer.ui.history.HistoryScreen
+import arun.com.chromer.ui.settings.SettingsScreen
 
 /**
  * Phase 3.1: Navigation setup for Lynket Browser
@@ -104,15 +107,12 @@ fun ChromerNavGraph(
     ) {
         // Home Screen
         composable(Screen.Home.route) {
-            // TODO: Replace with actual HomeScreen composable
-            // HomeScreen(navController = navController)
-            PlaceholderScreen(title = "Home Screen")
+            HomeScreen(navController = navController)
         }
 
         // History Screen
         composable(Screen.History.route) {
-            // HistoryScreen(navController = navController)
-            PlaceholderScreen(title = "History Screen")
+            HistoryScreen(navController = navController)
         }
 
         // Tabs Screen
@@ -123,8 +123,7 @@ fun ChromerNavGraph(
 
         // Settings Screen
         composable(Screen.Settings.route) {
-            // SettingsScreen(navController = navController)
-            PlaceholderScreen(title = "Settings Screen")
+            SettingsScreen(navController = navController)
         }
 
         // Browser Screen with URL argument
