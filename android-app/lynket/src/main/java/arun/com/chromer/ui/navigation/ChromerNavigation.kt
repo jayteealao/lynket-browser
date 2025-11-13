@@ -20,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import arun.com.chromer.ui.about.AboutScreen
+import arun.com.chromer.ui.article.ArticleScreen
 import arun.com.chromer.ui.browser.BrowserScreen
 import arun.com.chromer.ui.home.HomeScreen
 import arun.com.chromer.ui.history.HistoryScreen
@@ -171,8 +172,7 @@ fun ChromerNavGraph(
             )
         ) { backStackEntry ->
             val url = backStackEntry.arguments?.getString("url") ?: ""
-            // ArticleScreen(url = url, navController = navController)
-            PlaceholderScreen(title = "Article: $url")
+            ArticleScreen(url = url, navController = navController)
         }
 
         // Web Heads Management
