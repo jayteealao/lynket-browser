@@ -18,16 +18,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.data.common.qualifiers;
+package arun.com.chromer.shared.base
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-
-import javax.inject.Qualifier;
-
-@Qualifier
-@Documented
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Disk {
+/**
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Marker interface to define methods for showing Snackbar messages.
+ */
+interface Snackable {
+    fun snack(message: String)
+    fun snackLong(message: String)
 }

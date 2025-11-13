@@ -18,15 +18,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.shared.base;
+package arun.com.chromer.data.common.qualifiers
 
-import androidx.annotation.NonNull;
+import javax.inject.Qualifier
 
 /**
- * Marker to define methods to enable {@link com.google.android.material.snackbar.Snackbar} messages.
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Qualifier annotation for network-based dependencies.
  */
-public interface Snackable {
-  void snack(@NonNull final String message);
-
-  void snackLong(@NonNull final String message);
-}
+@Qualifier
+@MustBeDocumented
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Network

@@ -18,16 +18,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.data.apps.qualifiers;
+package arun.com.chromer.data.common.qualifiers
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import javax.inject.Qualifier
 
-import javax.inject.Qualifier;
-
+/**
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Qualifier annotation for disk-based storage dependencies.
+ */
 @Qualifier
-@Documented
-@Retention(RetentionPolicy.RUNTIME)
-public @interface System {
-}
+@MustBeDocumented
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Disk
