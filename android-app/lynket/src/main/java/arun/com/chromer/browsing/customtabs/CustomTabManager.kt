@@ -1,0 +1,173 @@
+/*
+ * Phase 7: Converted from Java to Kotlin
+ *
+ *  Lynket
+ *
+ *  Copyright (C) 2022 Arunkumar
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package arun.com.chromer.browsing.customtabs
+
+import android.content.Context
+import android.net.Uri
+import android.os.Bundle
+import androidx.browser.customtabs.CustomTabsCallback
+import androidx.browser.customtabs.CustomTabsClient
+import androidx.browser.customtabs.CustomTabsServiceConnection
+import androidx.browser.customtabs.CustomTabsSession
+import arun.com.chromer.settings.Preferences
+import timber.log.Timber
+
+/**
+ * Created by Arun on 18/12/2015.
+ * Helper class to maintain connection with custom tab provider. Responsible to connection with
+ * the service and issuing warm up and other optimizations.
+ */
+class CustomTabManager : ServiceConnectionCallback {
+    private var mCustomTabsSession: CustomTabsSession? = null
+    private var mClient: CustomTabsClient? = null
+    private var mConnection: CustomTabsServiceConnection? = null
+    private var mConnectionCallback: ConnectionCallback? = null
+    private var mNavigationCallback: NavigationCallback? = null
+
+    /**
+     * Unbinds the component from the Custom Tabs Service.
+     *
+     * @param context the component that is connected to the service.
+     */
+    fun unbindCustomTabsService(context: Context) {
+        mConnection?.let { connection ->
+            try {
+                context.unbindService(connection)
+            } catch (e: IllegalArgumentException) {
+                Timber.e("Ignored exception trying to unbind without binding first")
+            }
+        }
+        mClient = null
+        mCustomTabsSession = null
+        mConnection = null
+        Timber.d("Unbounded service!")
+    }
+
+    /**
+     * Creates or retrieves an exiting CustomTabsSession.
+     *
+     * @return a CustomTabsSession.
+     */
+    fun getSession(): CustomTabsSession? {
+        if (mClient == null) {
+            mCustomTabsSession = null
+        } else if (mCustomTabsSession == null) {
+            mCustomTabsSession = mClient?.newSession(mNavigationCallback)
+        }
+        return mCustomTabsSession
+    }
+
+    /**
+     * Register a Callback to be called when connected or disconnected from the Custom Tabs Service.
+     */
+    fun setConnectionCallback(connectionCallback: ConnectionCallback) {
+        this.mConnectionCallback = connectionCallback
+    }
+
+    /**
+     * Register a Callback to be called when Navigation occurs..
+     */
+    fun setNavigationCallback(navigationCallback: NavigationCallback) {
+        this.mNavigationCallback = navigationCallback
+    }
+
+    /**
+     * Binds the component to the Custom Tabs Service.
+     *
+     * @param context the component to be bound to the service.
+     */
+    fun bindCustomTabsService(context: Context): Boolean {
+        if (mClient != null) return false
+
+        val packageName = Preferences.get(context).customTabPackage() ?: return false
+
+        mConnection = ServiceConnection(this)
+        val ok = CustomTabsClient.bindCustomTabsService(context, packageName, mConnection!!)
+        if (ok) {
+            Timber.d("Bound successfully with %s", packageName)
+        } else {
+            Timber.d("Did not bind, something wrong")
+        }
+        return ok
+    }
+
+    fun mayLaunchUrl(uri: Uri, extras: Bundle?, otherLikelyBundles: List<Bundle>?): Boolean {
+        if (mClient == null) return false
+
+        val session = getSession() ?: return false
+
+        val ok = session.mayLaunchUrl(uri, extras, otherLikelyBundles)
+        if (ok) {
+            Timber.d("Successfully warmed up with may launch URL: %s", uri.toString())
+        } else {
+            Timber.d("May launch url was a failure for %s", uri.toString())
+        }
+        return ok
+    }
+
+    fun mayLaunchUrl(uri: Uri): Boolean {
+        return mayLaunchUrl(uri, null, null)
+    }
+
+    override fun onServiceConnected(client: CustomTabsClient) {
+        mClient = client
+        mClient?.warmup(0L)
+        mConnectionCallback?.onCustomTabsConnected()
+    }
+
+    fun requestWarmUp(): Boolean {
+        var ok = false
+        mClient?.let {
+            ok = it.warmup(0L)
+            Timber.d("Warmup status %s", ok)
+        }
+        return ok
+    }
+
+    override fun onServiceDisconnected() {
+        Timber.d("Service disconnected!")
+        mClient = null
+        mCustomTabsSession = null
+        mConnectionCallback?.onCustomTabsDisconnected()
+    }
+
+    /**
+     * A Callback for when the service is connected or disconnected. Use those callbacks to
+     * handle UI changes when the service is connected or disconnected.
+     */
+    interface ConnectionCallback {
+        /**
+         * Called when the service is connected.
+         */
+        fun onCustomTabsConnected()
+
+        /**
+         * Called when the service is disconnected.
+         */
+        fun onCustomTabsDisconnected()
+    }
+
+    open class NavigationCallback : CustomTabsCallback() {
+        override fun onNavigationEvent(navigationEvent: Int, extras: Bundle?) {
+        }
+    }
+}
