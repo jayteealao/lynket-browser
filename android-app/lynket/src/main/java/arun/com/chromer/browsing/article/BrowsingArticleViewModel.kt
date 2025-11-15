@@ -30,8 +30,8 @@ import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.search.provider.SearchProvider
 import arun.com.chromer.search.provider.SearchProviders
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.reactivex.Observable
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapMerge
@@ -72,7 +72,7 @@ constructor(
     }
   }
 
-  val selectedSearchProvider: Observable<SearchProvider> = searchProviders.selectedProvider
+  val selectedSearchProvider: Flow<SearchProvider> = searchProviders.selectedProvider
 
   fun loadArticle(url: String) {
     loadingQueue.tryEmit(url)

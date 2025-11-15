@@ -22,7 +22,6 @@ package arun.com.chromer.browsing.icons
 
 import android.graphics.Bitmap
 import arun.com.chromer.data.website.model.Website
-import io.reactivex.Single
 
 data class WebsiteIconData(
   val website: Website,
@@ -32,5 +31,5 @@ data class WebsiteIconData(
 
 interface WebsiteIconsProvider {
 
-  fun getBubbleIconAndColor(website: Website): Single<WebsiteIconData>
+  suspend fun getBubbleIconAndColor(website: Website): WebsiteIconData
 }

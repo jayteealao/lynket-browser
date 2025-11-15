@@ -38,7 +38,6 @@ import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.Utils
 import dev.arunkumar.android.common.dpToPx
-import io.reactivex.Single
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton

@@ -33,7 +33,8 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.glide.GlideApp
 import dev.arunkumar.android.common.dpToPx
-import io.reactivex.Single
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
@@ -58,20 +59,18 @@ constructor(private val application: Application) : WebsiteIconsProvider {
   // https://developer.android.com/guide/practices/ui_guidelines/icon_design_adaptive
   private val adaptiveIconOuterSize by lazy { 108.dpToPx() }
 
-  override fun getBubbleIconAndColor(website: Website): Single<WebsiteIconData> {
-    return Single.fromCallable {
-      val websiteIcon = GlideApp.with(application)
-        .asBitmap()
-        .load(website)
-        .submit(adaptiveIconOuterSize, adaptiveIconOuterSize)
-        .get()
-      val palette = Palette.from(websiteIcon).clearFilters().generate()
-      return@fromCallable WebsiteIconData(
-        website = website,
-        icon = padBitmap(websiteIcon),
-        color = ColorUtil.getBestColorFromPalette(palette)
-      )
-    }
+  override suspend fun getBubbleIconAndColor(website: Website): WebsiteIconData = withContext(Dispatchers.IO) {
+    val websiteIcon = GlideApp.with(application)
+      .asBitmap()
+      .load(website)
+      .submit(adaptiveIconOuterSize, adaptiveIconOuterSize)
+      .get()
+    val palette = Palette.from(websiteIcon).clearFilters().generate()
+    WebsiteIconData(
+      website = website,
+      icon = padBitmap(websiteIcon),
+      color = ColorUtil.getBestColorFromPalette(palette)
+    )
   }
 
   /**

@@ -25,18 +25,19 @@ import androidx.lifecycle.Lifecycle.Event.*
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.OnLifecycleEvent
-import com.jakewharton.rxrelay2.PublishRelay
 import dev.arunkumar.android.dagger.activity.PerActivity
 import dev.arunkumar.android.dagger.fragment.PerFragment
-import io.reactivex.Observable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.filter
 import javax.inject.Inject
 import javax.inject.Qualifier
 
 open class LifecycleEvents constructor(lifecycleOwner: LifecycleOwner) : LifecycleObserver {
 
-  private val lifecycleEventRelay = PublishRelay.create<Lifecycle.Event>()
+  private val lifecycleEventFlow = MutableSharedFlow<Lifecycle.Event>(extraBufferCapacity = 1)
 
-  val lifecycles: Observable<Lifecycle.Event> = lifecycleEventRelay
+  val lifecycles: Flow<Lifecycle.Event> = lifecycleEventFlow
 
   init {
     lifecycleOwner.lifecycle.addObserver(this)
@@ -44,40 +45,40 @@ open class LifecycleEvents constructor(lifecycleOwner: LifecycleOwner) : Lifecyc
 
   @OnLifecycleEvent(ON_CREATE)
   fun onCreate() {
-    lifecycleEventRelay.accept(ON_CREATE)
+    lifecycleEventFlow.tryEmit(ON_CREATE)
   }
 
   @OnLifecycleEvent(ON_RESUME)
   fun onResume() {
-    lifecycleEventRelay.accept(ON_RESUME)
+    lifecycleEventFlow.tryEmit(ON_RESUME)
   }
 
   @OnLifecycleEvent(ON_START)
   fun onStart() {
-    lifecycleEventRelay.accept(ON_START)
+    lifecycleEventFlow.tryEmit(ON_START)
   }
 
   @OnLifecycleEvent(ON_PAUSE)
   fun onPause() {
-    lifecycleEventRelay.accept(ON_PAUSE)
+    lifecycleEventFlow.tryEmit(ON_PAUSE)
   }
 
   @OnLifecycleEvent(ON_STOP)
   fun onStop() {
-    lifecycleEventRelay.accept(ON_STOP)
+    lifecycleEventFlow.tryEmit(ON_STOP)
   }
 
   @OnLifecycleEvent(ON_DESTROY)
   fun onDestroy() {
-    lifecycleEventRelay.accept(ON_DESTROY)
+    lifecycleEventFlow.tryEmit(ON_DESTROY)
   }
 
-  val created: Observable<Lifecycle.Event> = lifecycleEventRelay.filter { it == ON_CREATE }
-  val resumes: Observable<Lifecycle.Event> = lifecycleEventRelay.filter { it == ON_RESUME }
-  val starts: Observable<Lifecycle.Event> = lifecycleEventRelay.filter { it == ON_START }
-  val pauses: Observable<Lifecycle.Event> = lifecycleEventRelay.filter { it == ON_PAUSE }
-  val stops: Observable<Lifecycle.Event> = lifecycleEventRelay.filter { it == ON_STOP }
-  val destroys: Observable<Lifecycle.Event> = lifecycleEventRelay.filter { it == ON_DESTROY }
+  val created: Flow<Lifecycle.Event> = lifecycleEventFlow.filter { it == ON_CREATE }
+  val resumes: Flow<Lifecycle.Event> = lifecycleEventFlow.filter { it == ON_RESUME }
+  val starts: Flow<Lifecycle.Event> = lifecycleEventFlow.filter { it == ON_START }
+  val pauses: Flow<Lifecycle.Event> = lifecycleEventFlow.filter { it == ON_PAUSE }
+  val stops: Flow<Lifecycle.Event> = lifecycleEventFlow.filter { it == ON_STOP }
+  val destroys: Flow<Lifecycle.Event> = lifecycleEventFlow.filter { it == ON_DESTROY }
 }
 
 @Qualifier
