@@ -19,6 +19,7 @@
  */
 
 // Phase 8: Partially converted - removed CompositeSubscription from inner dialog
+// Phase 8.7: Removed unused CompositeSubscription import
 // Note: Still uses RxJava Observables from MaterialSearchView (will be converted when MaterialSearchView is migrated)
 
 package arun.com.chromer.browsing.newtab
@@ -40,7 +41,6 @@ import arun.com.chromer.extenstions.showKeyboard
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import com.afollestad.materialdialogs.MaterialDialog
-import rx.subscriptions.CompositeSubscription
 import javax.inject.Inject
 
 /**

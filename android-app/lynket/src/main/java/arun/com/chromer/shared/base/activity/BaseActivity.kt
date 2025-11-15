@@ -18,9 +18,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Phase 8: Migrated from RxJava CompositeSubscription to lifecycle-aware patterns
-// Note: CompositeSubscription kept for backward compatibility but deprecated
-// Subclasses should use lifecycleScope.launch instead
+// Phase 8.7: Converted from RxJava to Kotlin Flows/Coroutines
+// Removed deprecated CompositeSubscription - use lifecycleScope.launch instead
 
 package arun.com.chromer.shared.base.activity
 
@@ -35,13 +34,16 @@ import arun.com.chromer.shared.base.ProvidesActivityComponent
 import arun.com.chromer.util.lifecycle.ActivityLifecycleEvents
 import butterknife.ButterKnife
 import butterknife.Unbinder
-import rx.subscriptions.CompositeSubscription
 import javax.inject.Inject
 
+/**
+ * Base activity for all activities in the app.
+ *
+ * For lifecycle-aware coroutines, use:
+ * - lifecycleScope.launch { } for UI work
+ * - lifecycleScope.launch(Dispatchers.IO) { } for background work
+ */
 abstract class BaseActivity : AppCompatActivity(), ProvidesActivityComponent {
-
-  @Deprecated("Use lifecycleScope.launch instead of CompositeSubscription")
-  protected val subs = CompositeSubscription()
 
   protected var unbinder: Unbinder? = null
 
@@ -67,7 +69,6 @@ abstract class BaseActivity : AppCompatActivity(), ProvidesActivityComponent {
   }
 
   override fun onDestroy() {
-    subs.clear()
     unbinder?.unbind()
     super.onDestroy()
   }

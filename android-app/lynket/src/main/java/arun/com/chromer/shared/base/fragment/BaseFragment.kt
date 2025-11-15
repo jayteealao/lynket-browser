@@ -18,9 +18,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Phase 8: Migrated from RxJava CompositeSubscription to lifecycle-aware patterns
-// Note: CompositeSubscription kept for backward compatibility but deprecated
-// Subclasses should use lifecycleScope.launch instead
+// Phase 8.7: Converted from RxJava to Kotlin Flows/Coroutines
+// Removed deprecated CompositeSubscription - use lifecycleScope.launch instead
 
 package arun.com.chromer.shared.base.fragment
 
@@ -35,15 +34,17 @@ import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.shared.base.ProvidesActivityComponent
 import butterknife.ButterKnife
 import butterknife.Unbinder
-import rx.subscriptions.CompositeSubscription
 
 /**
- * Created by Arunkumar on 05-04-2017.
+ * Base fragment for all fragments in the app.
+ *
+ * For lifecycle-aware coroutines, use:
+ * - lifecycleScope.launch { } for fragment lifecycle
+ * - viewLifecycleOwner.lifecycleScope.launch { } for view lifecycle (preferred for UI work)
+ * - lifecycleScope.launch(Dispatchers.IO) { } for background work
  */
 abstract class BaseFragment : Fragment() {
 
-  @Deprecated("Use lifecycleScope.launch or viewLifecycleOwner.lifecycleScope.launch instead")
-  protected val subs = CompositeSubscription()
   private lateinit var fragmentComponent: FragmentComponent
   private var unbinder: Unbinder? = null
 
@@ -74,7 +75,6 @@ abstract class BaseFragment : Fragment() {
   }
 
   override fun onDestroy() {
-    subs.clear()
     unbinder?.unbind()
     super.onDestroy()
   }

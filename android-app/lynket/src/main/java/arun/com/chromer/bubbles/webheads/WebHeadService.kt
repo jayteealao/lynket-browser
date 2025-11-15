@@ -19,6 +19,7 @@
  */
 
 // Phase 7: Converted from Java to Kotlin
+// Phase 8.7: Converted from RxJava to Kotlin Flows/Coroutines
 
 package arun.com.chromer.bubbles.webheads
 
@@ -79,9 +80,18 @@ import arun.com.chromer.util.Utils
 import com.facebook.rebound.Spring
 import com.facebook.rebound.SpringConfig
 import com.facebook.rebound.SpringSystem
-import rx.android.schedulers.AndroidSchedulers
-import rx.schedulers.Schedulers
-import rx.subscriptions.CompositeSubscription
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.rx2.asFlow
 import timber.log.Timber
 import java.util.LinkedList
 import javax.inject.Inject
@@ -99,7 +109,9 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
 
     private val webHeads = LinkedHashMap<String, WebHead>()
     private val springSystem = SpringSystem.create()
-    private val subs = CompositeSubscription()
+
+    // Service-scoped coroutine scope for lifecycle-aware operations
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val localReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -203,7 +215,7 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
 
     override fun onDestroy() {
         Timber.d("Exiting webhead service")
-        subs.clear()
+        serviceScope.cancel() // Cancel all running coroutines
         WebHead.clearMasterPosition()
         removeWebHeads()
         customTabManager?.unbindCustomTabsService(this)
@@ -279,30 +291,38 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
             websiteRepository.getWebsiteReadOnly(webHeadUrl)
         }
 
-        subs.add(websiteObservable
-            .filter { it != null }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnNext { website ->
-                val webHead = webHeads[webHeadUrl]
-                if (webHead != null) {
-                    warmUp(webHead)
-                    webHead.website = website
-                    ContextActivityHelper.signalUpdated(application, webHead.website)
-                }
-            }
-            .observeOn(Schedulers.io())
-            .map { website -> websiteRepository.getWebsiteRoundIconAndColor(website) }
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ faviconColor ->
-                val webHead = webHeads[webHeadUrl]
-                if (webHead != null) {
-                    faviconColor.first?.let { webHead.setFaviconDrawable(it) }
-                    if (faviconColor.second != Constants.NO_COLOR) {
-                        webHead.setWebHeadColor(faviconColor.second)
+        // Convert RxJava Observable to Flow and collect in coroutine
+        serviceScope.launch {
+            try {
+                kotlinx.coroutines.rx2.asFlow(websiteObservable)
+                    .filter { it != null }
+                    .flowOn(Dispatchers.IO)
+                    .onEach { website ->
+                        val webHead = webHeads[webHeadUrl]
+                        if (webHead != null) {
+                            warmUp(webHead)
+                            webHead.website = website
+                            ContextActivityHelper.signalUpdated(application, webHead.website)
+                        }
                     }
-                }
-            }, Timber::e))
+                    .map { website -> websiteRepository.getWebsiteRoundIconAndColor(website) }
+                    .flowOn(Dispatchers.IO)
+                    .catch { error ->
+                        Timber.e(error)
+                    }
+                    .collect { faviconColor ->
+                        val webHead = webHeads[webHeadUrl]
+                        if (webHead != null) {
+                            faviconColor.first?.let { webHead.setFaviconDrawable(it) }
+                            if (faviconColor.second != Constants.NO_COLOR) {
+                                webHead.setWebHeadColor(faviconColor.second)
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                Timber.e(e)
+            }
+        }
     }
 
     private fun bindToCustomTabSession() {

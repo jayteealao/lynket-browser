@@ -19,6 +19,7 @@
  */
 
 // Phase 8: Partially converted - replaced CompositeSubscription with lifecycleScope
+// Phase 8.7: Removed unused CompositeSubscription import
 // Note: Still uses RxJava PublishSubject from adapter (will be fully converted when adapters are migrated)
 
 package arun.com.chromer.browsing.providerselection
@@ -56,7 +57,6 @@ import arun.com.chromer.util.glide.appicon.ApplicationIcon
 import com.afollestad.materialdialogs.MaterialDialog
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
-import rx.subscriptions.CompositeSubscription
 import javax.inject.Inject
 
 class ProviderSelectionActivity : BaseActivity() {

@@ -87,8 +87,7 @@ android {
             excludes += listOf(
                 "META-INF/AL2.0",
                 "META-INF/LGPL2.1",
-                "META-INF/licenses/**",
-                "META-INF/rxjava.properties"
+                "META-INF/licenses/**"
             )
         }
     }
@@ -214,22 +213,7 @@ dependencies {
     implementation(libs.epoxy)
     kapt(libs.epoxy.processor)
 
-    // Legacy: RxJava 1.x & 2.x
-    implementation("io.reactivex:rxjava:1.3.8")
-    implementation("io.reactivex:rxandroid:1.2.1")
-    implementation("com.jakewharton.rxbinding:rxbinding:1.0.1")
-    implementation("com.github.akarnokd:rxjava2-interop:0.13.7")
-    implementation(libs.rxjava)
-    implementation(libs.rxandroid)
-    implementation(libs.rxkotlin)
-    implementation(libs.rxrelay)
-    implementation("com.jakewharton.rxbinding3:rxbinding:3.1.0")
-    implementation("com.jakewharton.rxbinding3:rxbinding-appcompat:3.1.0")
-    implementation("com.jakewharton.rxbinding3:rxbinding-recyclerview:3.1.0")
-    implementation("com.uber.rxdogtag:rxdogtag:0.3.0")
-
-    // Legacy: RxPrefs
-    implementation("com.afollestad:rxkprefs:1.2.5")
+    // Phase 8: RxJava dependencies removed - migrated to Kotlin Coroutines/Flows
 
     // Legacy: Storage - PaperDB
     implementation("io.github.pilgr:paperdb:2.7.2")

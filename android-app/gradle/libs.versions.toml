@@ -46,12 +46,7 @@ coil = "2.7.0"
 glide = "4.14.2"
 butterknife = "10.2.3"
 epoxy = "4.6.4"
-rxjava = "2.2.21"
-rxandroid = "2.1.1"
-rxrelay = "2.1.1"
-rxbinding = "2.2.0"
-rxkotlin = "2.4.0"
-rxkprefs = "2.2.0"
+# Phase 8: RxJava versions removed - migrated to Kotlin Coroutines/Flows
 materialDrawer = "6.1.2"
 materialDialogs = "3.3.0"
 appIntro = "4.2.3"
@@ -161,11 +156,7 @@ butterknife = { group = "com.jakewharton", name = "butterknife", version.ref = "
 butterknife-compiler = { group = "com.jakewharton", name = "butterknife-compiler", version.ref = "butterknife" }
 epoxy = { group = "com.airbnb.android", name = "epoxy", version.ref = "epoxy" }
 epoxy-processor = { group = "com.airbnb.android", name = "epoxy-processor", version.ref = "epoxy" }
-rxjava = { group = "io.reactivex.rxjava2", name = "rxjava", version.ref = "rxjava" }
-rxandroid = { group = "io.reactivex.rxjava2", name = "rxandroid", version.ref = "rxandroid" }
-rxrelay = { group = "com.jakewharton.rxrelay2", name = "rxrelay", version.ref = "rxrelay" }
-rxbinding = { group = "com.jakewharton.rxbinding2", name = "rxbinding", version.ref = "rxbinding" }
-rxkotlin = { group = "io.reactivex.rxjava2", name = "rxkotlin", version.ref = "rxkotlin" }
+# Phase 8: RxJava library declarations removed - migrated to Kotlin Coroutines/Flows
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

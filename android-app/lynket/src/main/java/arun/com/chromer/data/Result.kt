@@ -18,25 +18,35 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8.7: Converted from RxJava to Kotlin Flows/Coroutines
+
 package arun.com.chromer.data
 
-import rx.Observable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
+/**
+ * Represents the result of an operation.
+ * Useful for wrapping API calls and database operations.
+ */
 sealed class Result<T> {
   data class Success<T>(val data: T?) : Result<T>()
   class Loading<T> : Result<T>()
   class Idle<T> : Result<T>()
   data class Failure<T>(val throwable: Throwable) : Result<T>()
 
-
   companion object {
-    fun <T> applyToObservable(): Observable.Transformer<T, Result<T>> {
-      return Observable.Transformer { sourceObservable ->
-        sourceObservable
-          .map { Success(it) as Result<T> }
-          .onErrorReturn { Failure(it) }
-          .startWith(Loading())
-      }
+    /**
+     * Transforms a Flow to emit Result states (Loading, Success, or Failure).
+     * Usage: sourceFlow.asResult()
+     */
+    fun <T> Flow<T>.asResult(): Flow<Result<T>> {
+      return this
+        .map { Success(it) as Result<T> }
+        .onStart { emit(Loading()) }
+        .catch { emit(Failure(it)) }
     }
   }
 }

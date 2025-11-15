@@ -18,10 +18,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8.7: Converted from RxJava to Kotlin Flows/Coroutines
+
 package arun.com.chromer.search.suggestion
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import rx.Observable
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -31,6 +37,7 @@ import java.net.URLEncoder
 /**
  * Simple Google Suggestions API implementation using HttpURLConnection.
  * Replaces the deprecated in.arunkumarsampath.suggestions library.
+ * Converted to use Kotlin Coroutines instead of RxJava.
  */
 object GoogleSuggestionsApi {
 
@@ -38,15 +45,16 @@ object GoogleSuggestionsApi {
 
   /**
    * Fetches suggestions from Google for the given query.
+   * This is a suspend function that performs network I/O on Dispatchers.IO.
    *
    * @param query The search query
    * @param maxResults Maximum number of suggestions to return (default 5)
-   * @return Observable emitting a list of suggestion strings
+   * @return List of suggestion strings
    */
-  fun getSuggestions(query: String, maxResults: Int = 5): Observable<List<String>> {
-    return Observable.fromCallable {
+  suspend fun getSuggestions(query: String, maxResults: Int = 5): List<String> =
+    withContext(Dispatchers.IO) {
       if (query.isBlank()) {
-        return@fromCallable emptyList<String>()
+        return@withContext emptyList()
       }
 
       val encodedQuery = URLEncoder.encode(query, "UTF-8")
@@ -63,7 +71,7 @@ object GoogleSuggestionsApi {
 
         val responseCode = connection.responseCode
         if (responseCode != HttpURLConnection.HTTP_OK) {
-          return@fromCallable emptyList<String>()
+          return@withContext emptyList()
         }
 
         val reader = BufferedReader(InputStreamReader(connection.inputStream))
@@ -72,7 +80,7 @@ object GoogleSuggestionsApi {
         // Parse JSON response - format is: ["query", ["suggestion1", "suggestion2", ...]]
         val jsonArray = JSONArray(response)
         if (jsonArray.length() < 2) {
-          return@fromCallable emptyList<String>()
+          return@withContext emptyList()
         }
 
         val suggestions = jsonArray.getJSONArray(1)
@@ -84,26 +92,24 @@ object GoogleSuggestionsApi {
 
         results
       } catch (e: Exception) {
-        emptyList<String>()
+        emptyList()
       } finally {
         connection?.disconnect()
       }
     }
-  }
 
   /**
-   * Returns an RxJava 1.x transformer that fetches Google suggestions.
-   * This maintains API compatibility with the old library.
+   * Flow transformer that fetches Google suggestions for each query string.
+   * Usage: queryFlow.suggestionsFlow(maxResults)
    *
    * @param maxResults Maximum number of suggestions to return
-   * @return Observable.Transformer that converts query strings to suggestion lists
+   * @return Flow transformer that converts query strings to suggestion lists
    */
-  fun suggestionsTransformer(maxResults: Int = 5): Observable.Transformer<String, List<String>> {
-    return Observable.Transformer { upstream ->
-      upstream.flatMap { query ->
-        getSuggestions(query, maxResults)
-          .onErrorReturn { emptyList() }
-      }
+  fun Flow<String>.suggestionsFlow(maxResults: Int = 5): Flow<List<String>> {
+    return this.map { query ->
+      getSuggestions(query, maxResults)
+    }.catch {
+      emit(emptyList())
     }
   }
 }

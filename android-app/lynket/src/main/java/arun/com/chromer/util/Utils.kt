@@ -19,6 +19,7 @@
  */
 
 // Phase 7: Converted from Java to Kotlin
+// Phase 8.7: Converted RxJava deleteCache() to Kotlin Coroutines
 
 package arun.com.chromer.util
 
@@ -53,10 +54,9 @@ import arun.com.chromer.browsing.customtabs.CustomTabs
 import arun.com.chromer.data.common.App
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.shared.views.IntentPickerBottomSheet
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.NotNull
-import rx.Observable
-import rx.android.schedulers.AndroidSchedulers
-import rx.schedulers.Schedulers
 import timber.log.Timber
 import java.io.File
 import java.net.URL
@@ -382,44 +382,43 @@ object Utils {
                 cm.activeNetworkInfo!!.isConnected
     }
 
-    fun deleteCache(context: Context): Observable<Boolean> {
-        return Observable.fromCallable {
-            fun delete(context: Context): Boolean {
-                var deleted = true
-                try {
-                    val internalCache = context.cacheDir
-                    if (internalCache != null && internalCache.isDirectory) {
-                        deleted = deleteDir(internalCache)
-                    }
-                    val externalCache = context.externalCacheDir
-                    if (externalCache != null && externalCache.isDirectory) {
-                        deleted = deleteDir(externalCache)
-                    }
-                } catch (e: Exception) {
-                    Timber.e(e)
-                    return false
-                }
-                return deleted
-            }
-
-            fun deleteDir(dir: File?): Boolean {
-                if (dir != null && dir.isDirectory) {
-                    val children = dir.list()
-                    for (path in children) {
-                        val success = deleteDir(File(dir, path))
-                        if (!success) {
-                            return false
-                        }
+    /**
+     * Deletes the app's cache directories.
+     * This is a suspend function that performs I/O operations on Dispatchers.IO.
+     *
+     * @param context The application context
+     * @return true if cache was successfully deleted, false otherwise
+     */
+    suspend fun deleteCache(context: Context): Boolean = withContext(Dispatchers.IO) {
+        fun deleteDir(dir: File?): Boolean {
+            if (dir != null && dir.isDirectory) {
+                val children = dir.list()
+                for (path in children) {
+                    val success = deleteDir(File(dir, path))
+                    if (!success) {
+                        return false
                     }
                 }
-                return dir?.delete() ?: false
             }
+            return dir?.delete() ?: false
+        }
 
-            delete(context.applicationContext)
-        }.subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnError { Timber.e(it) }
-            .doOnNext { result -> Timber.d("Cache deletion %b", result) }
+        try {
+            var deleted = true
+            val internalCache = context.applicationContext.cacheDir
+            if (internalCache != null && internalCache.isDirectory) {
+                deleted = deleteDir(internalCache)
+            }
+            val externalCache = context.applicationContext.externalCacheDir
+            if (externalCache != null && externalCache.isDirectory) {
+                deleted = deleted && deleteDir(externalCache)
+            }
+            Timber.d("Cache deletion %b", deleted)
+            deleted
+        } catch (e: Exception) {
+            Timber.e(e, "Error deleting cache")
+            false
+        }
     }
 
     /**
