@@ -27,7 +27,7 @@ import arun.com.chromer.settings.RxPreferences
 import dev.arunkumar.android.rxschedulers.SchedulerProvider
 import io.reactivex.Observable
 import io.reactivex.Single
-import java.util.*
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
