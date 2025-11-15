@@ -20,25 +20,107 @@
 
 package arun.com.chromer.settings
 
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
 import arun.com.chromer.search.provider.SearchProviders
 import arun.com.chromer.settings.Preferences.*
-import com.afollestad.rxkprefs.RxkPrefs
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import javax.inject.Singleton
 
 const val SEARCH_ENGINE_PREFERENCE = "search_engine_preference"
 const val NATIVE_BUBBLES_PREFERENCE = "native_bubbles_preference"
 
+@Singleton
 class RxPreferences
 @Inject
-constructor(rxPrefs: RxkPrefs) {
+constructor(@ApplicationContext context: Context) {
 
-  val customTabProviderPref by lazy { rxPrefs.string(PREFERRED_CUSTOM_TAB_PACKAGE) }
+  private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 
-  val incognitoPref by lazy { rxPrefs.boolean(FULL_INCOGNITO_MODE) }
+  val customTabProviderPref: PreferenceItem<String> by lazy {
+    PreferenceItem(prefs, PREFERRED_CUSTOM_TAB_PACKAGE, "")
+  }
 
-  val webviewPref by lazy { rxPrefs.boolean(USE_WEBVIEW_PREF) }
+  val incognitoPref: PreferenceItem<Boolean> by lazy {
+    PreferenceItem(prefs, FULL_INCOGNITO_MODE, false)
+  }
 
-  val searchEngine by lazy { rxPrefs.string(SEARCH_ENGINE_PREFERENCE, SearchProviders.GOOGLE) }
+  val webviewPref: PreferenceItem<Boolean> by lazy {
+    PreferenceItem(prefs, USE_WEBVIEW_PREF, false)
+  }
 
-  val nativeBubbles by lazy { rxPrefs.boolean(NATIVE_BUBBLES_PREFERENCE, false) }
+  val searchEngine: PreferenceItem<String> by lazy {
+    PreferenceItem(prefs, SEARCH_ENGINE_PREFERENCE, SearchProviders.GOOGLE)
+  }
+
+  val nativeBubbles: PreferenceItem<Boolean> by lazy {
+    PreferenceItem(prefs, NATIVE_BUBBLES_PREFERENCE, false)
+  }
+}
+
+/**
+ * Wrapper class for a preference item that provides Flow-based observation
+ */
+class PreferenceItem<T>(
+  private val prefs: SharedPreferences,
+  private val key: String,
+  private val defaultValue: T
+) {
+
+  /**
+   * Get the current value of the preference
+   */
+  @Suppress("UNCHECKED_CAST")
+  fun get(): T = when (defaultValue) {
+    is Boolean -> prefs.getBoolean(key, defaultValue) as T
+    is String -> prefs.getString(key, defaultValue) as T
+    is Int -> prefs.getInt(key, defaultValue) as T
+    is Long -> prefs.getLong(key, defaultValue) as T
+    is Float -> prefs.getFloat(key, defaultValue) as T
+    else -> throw IllegalArgumentException("Unsupported preference type")
+  }
+
+  /**
+   * Set the value of the preference
+   */
+  fun set(value: T) {
+    with(prefs.edit()) {
+      when (value) {
+        is Boolean -> putBoolean(key, value)
+        is String -> putString(key, value)
+        is Int -> putInt(key, value)
+        is Long -> putLong(key, value)
+        is Float -> putFloat(key, value)
+        else -> throw IllegalArgumentException("Unsupported preference type")
+      }
+      apply()
+    }
+  }
+
+  /**
+   * Observe changes to this preference as a Flow
+   */
+  fun observe(): Flow<T> = callbackFlow {
+    // Emit current value first
+    trySend(get())
+
+    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
+      if (changedKey == key) {
+        trySend(get())
+      }
+    }
+
+    prefs.registerOnSharedPreferenceChangeListener(listener)
+
+    awaitClose {
+      prefs.unregisterOnSharedPreferenceChangeListener(listener)
+    }
+  }.distinctUntilChanged()
 }

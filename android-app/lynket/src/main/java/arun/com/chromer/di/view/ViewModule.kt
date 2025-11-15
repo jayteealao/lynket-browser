@@ -21,16 +21,28 @@
 package arun.com.chromer.di.view
 
 import android.view.View
-import com.jakewharton.rxbinding3.view.detaches
 import dagger.Module
 import dagger.Provides
 import dev.arunkumar.android.dagger.view.PerView
-import io.reactivex.Observable
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 
 @Module
 object ViewModule {
   @Provides
   @PerView
   @Detaches
-  fun detaches(view: View): Observable<Unit> = view.detaches().share()
+  fun detaches(view: View): Flow<Unit> = callbackFlow {
+    val listener = object : View.OnAttachStateChangeListener {
+      override fun onViewAttachedToWindow(v: View) {}
+      override fun onViewDetachedFromWindow(v: View) {
+        trySend(Unit)
+      }
+    }
+    view.addOnAttachStateChangeListener(listener)
+    awaitClose {
+      view.removeOnAttachStateChangeListener(listener)
+    }
+  }
 }
