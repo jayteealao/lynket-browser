@@ -18,6 +18,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted from RxJava 2.x to Kotlin Coroutines
+// - Replaced RxJava firstOrError() with Flow.first()
+// - Replaced subscribeBy with lifecycleScope.launch
+// - Use suspend functions instead of Observable chains
+
 package arun.com.chromer.browsing.shareintercept
 
 import android.annotation.SuppressLint
@@ -26,6 +31,7 @@ import android.content.Intent.*
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.di.activity.ActivityComponent
@@ -34,7 +40,8 @@ import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.SafeIntent
 import arun.com.chromer.util.Utils
-import io.reactivex.rxkotlin.subscribeBy
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -77,7 +84,6 @@ class ShareInterceptActivity : BaseActivity() {
     activityComponent.inject(this)
   }
 
-  @SuppressLint("CheckResult")
   private fun findAndOpenLink(receivedText: String) {
     val urls = Utils.findURLs(receivedText)
     if (urls.isNotEmpty()) {
@@ -85,13 +91,15 @@ class ShareInterceptActivity : BaseActivity() {
       val url = urls[0]
       openLink(url)
     } else {
-      searchProviders.selectedProvider
-        .firstOrError()
-        .map { it.getSearchUrl(receivedText) }
-        .subscribeBy(
-          onSuccess = ::openLink,
-          onError = Timber::e
-        )
+      lifecycleScope.launch {
+        try {
+          val provider = searchProviders.selectedProvider.first()
+          val searchUrl = provider.getSearchUrl(receivedText)
+          openLink(searchUrl)
+        } catch (e: Exception) {
+          Timber.e(e)
+        }
+      }
     }
   }
 

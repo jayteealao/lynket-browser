@@ -75,7 +75,6 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBHEAD_COLOR
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.RxSchedulerUtils
 import arun.com.chromer.util.Utils
 import com.facebook.rebound.Spring
 import com.facebook.rebound.SpringConfig
@@ -282,7 +281,8 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
 
         subs.add(websiteObservable
             .filter { it != null }
-            .compose(RxSchedulerUtils.applyIoSchedulers())
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
             .doOnNext { website ->
                 val webHead = webHeads[webHeadUrl]
                 if (webHead != null) {

@@ -18,6 +18,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted - removed unused CompositeSubscription from inner dialog class
+
 package arun.com.chromer.shortcuts
 
 import android.app.Activity
@@ -56,7 +58,6 @@ import com.afollestad.materialdialogs.internal.MDButton
 import com.bumptech.glide.request.target.ImageViewTarget
 import com.google.android.material.textfield.TextInputLayout
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar
-import rx.subscriptions.CompositeSubscription
 
 
 class HomeScreenShortcutCreatorActivity : BrowsingActivity() {
@@ -101,8 +102,6 @@ class HomeScreenShortcutCreatorActivity : BrowsingActivity() {
     @BindView(R.id.extract_progress)
     @JvmField
     var progressBar: MaterialProgressBar? = null
-
-    val subs = CompositeSubscription()
 
     private lateinit var website: Website
 
@@ -175,7 +174,6 @@ class HomeScreenShortcutCreatorActivity : BrowsingActivity() {
     }
 
     override fun onDismiss(dialogInterface: DialogInterface) {
-      subs.clear()
       activity?.finish()
       activity = null
       unbinder.unbind()

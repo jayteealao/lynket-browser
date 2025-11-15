@@ -18,6 +18,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted from RxJava 1.x to Kotlin Coroutines
+// - Replaced Observable.create with callbackFlow
+// - Replaced subs.add() with viewLifecycleOwner.lifecycleScope.launch
+// - Converted adapter data observation to Flow
+
 package arun.com.chromer.history
 
 import android.os.Bundle
@@ -27,12 +32,18 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.LEFT
 import androidx.recyclerview.widget.ItemTouchHelper.RIGHT
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.launch
 import arun.com.chromer.databinding.FragmentHistoryBinding
 import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.settings.Preferences
@@ -47,10 +58,6 @@ import arun.com.chromer.util.Utils
 import com.afollestad.materialdialogs.MaterialDialog
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
-import rx.Emitter
-import rx.Observable
-import rx.android.schedulers.AndroidSchedulers
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
@@ -200,27 +207,30 @@ class HistoryFragment : BaseFragment(), Snackable, FabHandler {
       adapter = historyAdapter
     }
 
-    subs.add(Observable
-      .create({ emitter: Emitter<Boolean> ->
-        emitter.onNext(historyAdapter.itemCount > 0)
-        val simpleAdapterDataSetObserver = SimpleAdapterDataSetObserver {
-          emitter.onNext(historyAdapter.itemCount > 0)
-        }
-        historyAdapter.registerAdapterDataObserver(simpleAdapterDataSetObserver)
-        emitter.setCancellation {
-          historyAdapter.unregisterAdapterDataObserver(simpleAdapterDataSetObserver)
-        }
-      }, Emitter.BackpressureMode.LATEST)
-      .debounce(100, TimeUnit.MILLISECONDS)
-      .observeOn(AndroidSchedulers.mainThread())
-      .subscribe { hasItems ->
-        if (hasItems) {
-          binding.error.visibility = View.GONE
-        } else {
-          binding.error.visibility = View.VISIBLE
-        }
-      })
+    // Observe adapter changes and update error visibility
+    viewLifecycleOwner.lifecycleScope.launch {
+      callbackFlow {
+        // Emit initial state
+        trySend(historyAdapter.itemCount > 0)
 
+        val observer = SimpleAdapterDataSetObserver {
+          trySend(historyAdapter.itemCount > 0)
+        }
+        historyAdapter.registerAdapterDataObserver(observer)
+
+        awaitClose {
+          historyAdapter.unregisterAdapterDataObserver(observer)
+        }
+      }
+        .debounce(100)
+        .collect { hasItems ->
+          if (hasItems) {
+            binding.error.visibility = View.GONE
+          } else {
+            binding.error.visibility = View.VISIBLE
+          }
+        }
+    }
 
     binding.swipeRefreshLayout.apply {
       setColorSchemeColors(

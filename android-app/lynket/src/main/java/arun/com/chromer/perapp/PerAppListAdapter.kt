@@ -18,6 +18,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted from RxJava 1.x to Kotlin Coroutines
+// - Replaced PublishSubject with MutableSharedFlow
+// - Consumers should use Flow.collect() instead of Observable.subscribe()
+
 package arun.com.chromer.perapp
 
 import android.app.Activity
@@ -36,7 +40,9 @@ import com.bumptech.glide.RequestManager
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import dev.arunkumar.android.dagger.activity.PerActivity
-import rx.subjects.PublishSubject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 
 /**
@@ -52,10 +58,11 @@ internal constructor(
 
   private val iconSizeDp = 24
 
-  val incognitoSelections: PublishSubject<Pair<String, Boolean>> =
-    PublishSubject.create()
-  val blacklistSelections: PublishSubject<Pair<String, Boolean>> =
-    PublishSubject.create()
+  private val _incognitoSelections = MutableSharedFlow<Pair<String, Boolean>>(extraBufferCapacity = Int.MAX_VALUE)
+  val incognitoSelections: Flow<Pair<String, Boolean>> = _incognitoSelections.asSharedFlow()
+
+  private val _blacklistSelections = MutableSharedFlow<Pair<String, Boolean>>(extraBufferCapacity = Int.MAX_VALUE)
+  val blacklistSelections: Flow<Pair<String, Boolean>> = _blacklistSelections.asSharedFlow()
 
   private val blacklistSelected: IconicsDrawable by lazy {
     IconicsDrawable(activity).apply {
@@ -164,7 +171,7 @@ internal constructor(
           if (adapterPosition != RecyclerView.NO_POSITION) {
             val currentApp = apps[adapterPosition]
             currentApp.blackListed = !currentApp.blackListed
-            blacklistSelections.onNext(Pair(currentApp.packageName, currentApp.blackListed))
+            _blacklistSelections.tryEmit(Pair(currentApp.packageName, currentApp.blackListed))
           }
         }
       }
@@ -175,7 +182,7 @@ internal constructor(
           if (adapterPosition != RecyclerView.NO_POSITION) {
             val currentApp = apps[adapterPosition]
             currentApp.incognito = !currentApp.incognito
-            incognitoSelections.onNext(Pair(currentApp.packageName, currentApp.incognito))
+            _incognitoSelections.tryEmit(Pair(currentApp.packageName, currentApp.incognito))
           }
         }
       }

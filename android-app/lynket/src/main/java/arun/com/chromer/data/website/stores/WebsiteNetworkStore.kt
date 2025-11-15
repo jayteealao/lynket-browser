@@ -59,16 +59,15 @@ class WebsiteNetworkStore @Inject constructor(
 
     override fun getWebsite(url: String): Flow<Website?> = flow {
         try {
-            // Convert RxJava Observable to Flow and collect
-            RxParser.parseUrl(url).asFlow().collect { urlArticlePair ->
-                if (urlArticlePair.second != null) {
-                    val extractedWebsite = Website.fromArticle(urlArticlePair.second)
-                    // We preserve the original url, otherwise breaks cache.
-                    extractedWebsite.url = urlArticlePair.first
-                    emit(extractedWebsite)
-                } else {
-                    emit(Website(urlArticlePair.first))
-                }
+            // RxParser is now a suspend function
+            val urlArticlePair = RxParser.parseUrl(url)
+            if (urlArticlePair.second != null) {
+                val extractedWebsite = Website.fromArticle(urlArticlePair.second)
+                // We preserve the original url, otherwise breaks cache.
+                extractedWebsite.url = urlArticlePair.first
+                emit(extractedWebsite)
+            } else {
+                emit(Website(urlArticlePair.first))
             }
         } catch (e: Exception) {
             Timber.e(e)

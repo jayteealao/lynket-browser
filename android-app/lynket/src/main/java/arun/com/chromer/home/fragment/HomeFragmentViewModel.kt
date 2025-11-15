@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -26,15 +27,13 @@ import arun.com.chromer.data.Result
 import arun.com.chromer.data.history.HistoryRepository
 import arun.com.chromer.data.website.model.Website
 import dagger.hilt.android.lifecycle.HiltViewModel
-import rx.subjects.PublishSubject
-import rx.subscriptions.CompositeSubscription
 import javax.inject.Inject
 
 /**
  * Legacy ViewModel for HomeFragment (XML-based UI).
  *
  * Migrated to Hilt: Uses @HiltViewModel annotation for automatic ViewModel injection.
- * Retains RxJava 1.x for now (will be migrated to Flows in future phase).
+ * Converted from RxJava to Kotlin Coroutines in Phase 8.
  *
  * Note: Modern Compose UI uses ModernHomeViewModel instead.
  * Most functionality is commented out but retained for backward compatibility.
@@ -45,30 +44,21 @@ class HomeFragmentViewModel
 constructor(
   private val historyRepository: HistoryRepository
 ) : ViewModel() {
-  private val recentsLoaderSubject: PublishSubject<Int> = PublishSubject.create()
 
   val recentsResultLiveData = MutableLiveData<Result<List<Website>>>()
 
-  val subs = CompositeSubscription()
-
   init {
-    /* subs.add(recentsLoaderSubject.asObservable()
-             .onBackpressureLatest()
-             .concatMap {
-                 historyRepository
-                         .recents()
-                         .compose(Result.applyToObservable())
-                         .compose(SchedulerProvider.applyIoSchedulers())
-             }
-             .observeOn(AndroidSchedulers.mainThread())
-             .subscribe { recentsResultLiveData.postValue(it) })*/
+    /* Converted to Coroutines - functionality commented out for backward compatibility
+    viewModelScope.launch {
+      historyRepository
+        .recents()
+        .catch { e -> emit(Result.Failure(e)) }
+        .map { Result.Success(it) }
+        .collect { recentsResultLiveData.postValue(it) }
+    }*/
   }
 
   fun loadRecents() {
-    recentsLoaderSubject.onNext(0)
-  }
-
-  override fun onCleared() {
-    subs.clear()
+    // No-op - functionality commented out
   }
 }

@@ -18,6 +18,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Partially converted - replaced CompositeSubscription with lifecycleScope
+// Note: Still uses RxJava PublishSubject from adapter (will be fully converted when adapters are migrated)
+
 package arun.com.chromer.browsing.providerselection
 
 import android.annotation.TargetApi
@@ -30,8 +33,11 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import arun.com.chromer.R
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.rx2.asFlow
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.databinding.ActivityProviderSelectionBinding
 import arun.com.chromer.databinding.DialogProviderInfoBinding
@@ -111,9 +117,11 @@ class ProviderSelectionActivity : BaseActivity() {
       adapter = providersAdapter
     }
 
-    subs.apply {
-      providersAdapter.selections.subscribe { onProviderSelected(it) }
-      providersAdapter.installClicks.subscribe { onProviderInstallClicked(it) }
+    lifecycleScope.launch {
+      providersAdapter.selections.asFlow().collect { onProviderSelected(it) }
+    }
+    lifecycleScope.launch {
+      providersAdapter.installClicks.asFlow().collect { onProviderInstallClicked(it) }
     }
   }
 
@@ -184,7 +192,6 @@ class ProviderSelectionActivity : BaseActivity() {
     private val provider: Provider,
     private val preferences: Preferences
   ) : DialogInterface.OnDismissListener {
-    val subs = CompositeSubscription()
     private var dialog: MaterialDialog? = null
     private var dialogBinding: DialogProviderInfoBinding? = null
 
@@ -222,7 +229,6 @@ class ProviderSelectionActivity : BaseActivity() {
     }
 
     override fun onDismiss(dialogInterface: DialogInterface?) {
-      subs.clear()
       activity = null
       dialogBinding = null
       dialog = null

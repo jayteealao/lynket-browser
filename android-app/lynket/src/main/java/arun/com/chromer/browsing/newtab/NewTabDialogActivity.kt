@@ -18,6 +18,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Partially converted - removed CompositeSubscription from inner dialog
+// Note: Still uses RxJava Observables from MaterialSearchView (will be converted when MaterialSearchView is migrated)
+
 package arun.com.chromer.browsing.newtab
 
 import android.app.Activity
@@ -74,8 +77,6 @@ class NewTabDialogActivity : BaseActivity() {
     private var activity: Activity?
   ) : DialogInterface.OnDismissListener {
 
-    val subs = CompositeSubscription()
-
     private lateinit var dialog: MaterialDialog
     private var dialogBinding: ActivityNewTabBinding? = null
 
@@ -94,6 +95,8 @@ class NewTabDialogActivity : BaseActivity() {
       dialogBinding = ActivityNewTabBinding.bind(dialog.customView!!)
 
       dialogBinding!!.materialSearchView.apply {
+        // Note: Using RxJava Observable.subscribe() directly without CompositeSubscription
+        // These subscriptions are automatically cleaned up when the activity is destroyed via takeUntil
         searchPerforms()
           .takeUntil(lifecycleEvents.destroys)
           .subscribe { url ->
@@ -132,7 +135,6 @@ class NewTabDialogActivity : BaseActivity() {
     }
 
     override fun onDismiss(dialogInterface: DialogInterface?) {
-      subs.clear()
       activity?.finish()
       activity = null
       dialogBinding = null

@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -25,19 +26,28 @@ import arun.com.chromer.util.parser.WebsiteUtilities.headString
 import com.chimbori.crux.articles.Article
 import com.chimbori.crux.articles.ArticleExtractor
 import com.chimbori.crux.urls.CruxURL
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
-import rx.Observable
 import timber.log.Timber
 
 /**
- * Created by Arunkumar on 26-01-2017.
+ * Parser utilities for extracting article metadata and content from URLs.
+ * Converted from RxJava Observable-based API to Kotlin Coroutines suspend functions.
  */
 object RxParser {
   /**
-   * Converts the given URL to its extracted article metadata form. The extraction is not performed
-   * if the given url is not a proper web url.
+   * Parses URL to extract article metadata.
+   * The extraction is not performed if the given url is not a proper web url.
+   *
+   * @param url The URL to parse (can be null)
+   * @return Pair of URL and extracted Article (Article may be null if extraction failed)
    */
-  private val URL_TO_METADATA_MAPPER: (String) -> Pair<String, Article?> = { url: String ->
+  suspend fun parseUrl(url: String?): Pair<String, Article?> = withContext(Dispatchers.IO) {
+    if (url == null) {
+      return@withContext Pair(url, null)
+    }
+
     var article: Article? = null
     try {
       val expanded = WebsiteUtilities.unShortenUrl(url)
@@ -60,8 +70,18 @@ object RxParser {
     Pair(url, article)
   }
 
+  /**
+   * Parses URL to extract full article content including metadata.
+   * The extraction is not performed if the given url is not a proper web url.
+   *
+   * @param url The URL to parse (can be null)
+   * @return Pair of URL and extracted Article with full content (Article may be null if extraction failed)
+   */
+  suspend fun parseArticle(url: String?): Pair<String, Article?> = withContext(Dispatchers.IO) {
+    if (url == null) {
+      return@withContext Pair(url, null)
+    }
 
-  private val URL_TO_WEB_ARTICLE_PAIR_MAPPER = { url: String ->
     var article: Article? = null
     try {
       val cruxURL = CruxURL.parse(url)
@@ -79,13 +99,5 @@ object RxParser {
       Timber.e(e)
     }
     Pair(url, article)
-  }
-
-  fun parseUrl(url: String?): Observable<Pair<String, Article?>> {
-    return Observable.just<String>(url).map(URL_TO_METADATA_MAPPER)
-  }
-
-  fun parseArticle(url: String?): Observable<Pair<String, Article?>> {
-    return Observable.just<String>(url).map(URL_TO_WEB_ARTICLE_PAIR_MAPPER)
   }
 }

@@ -18,6 +18,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted from RxJava 1.x to Kotlin Coroutines
+// - Replaced PublishSubject with MutableSharedFlow
+// - Replaced Observable with Flow
+
 package arun.com.chromer.browsing.article.adapter
 
 import android.content.Intent
@@ -45,10 +49,11 @@ import com.bumptech.glide.RequestManager
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions.diskCacheStrategyOf
 import com.bumptech.glide.request.RequestOptions.placeholderOf
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
-import rx.Observable
-import rx.subjects.PublishSubject
 
 /**
  * Recycler adapter responsible for displaying the article in a recycler view. This will
@@ -70,8 +75,8 @@ internal class ArticleAdapter(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
   private var elements: Elements = Elements()
 
-  private val keywordClicks = PublishSubject.create<String>()
-  fun keywordsClicks(): Observable<String> = keywordClicks.asObservable()
+  private val _keywordClicks = MutableSharedFlow<String>(extraBufferCapacity = Int.MAX_VALUE)
+  val keywordsClicks: Flow<String> = _keywordClicks.asSharedFlow()
 
   private val manualItemsOffset: Int
     get() {
@@ -368,7 +373,7 @@ internal class ArticleAdapter(
           keywordItem.setOnClickListener {
             val position = adapterPosition
             if (position != RecyclerView.NO_POSITION) {
-              keywordClicks.onNext(keywords[position])
+              _keywordClicks.tryEmit(keywords[position])
             }
           }
           originalTextSize = Utils.pxTosp(itemView.context, keywordItem.textSize)

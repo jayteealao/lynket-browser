@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -22,23 +23,28 @@ package arun.com.chromer.browsing.article
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.Result
 import arun.com.chromer.data.webarticle.WebArticleRepository
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.search.provider.SearchProvider
 import arun.com.chromer.search.provider.SearchProviders
-import arun.com.chromer.util.RxSchedulerUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.Observable
-import rx.subjects.PublishSubject
-import rx.subscriptions.CompositeSubscription
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * A simple view model delivering a {@link Website} from repo.
+ * A simple view model delivering a WebArticle from repo.
  *
  * Migrated to Hilt: Uses @HiltViewModel annotation for automatic ViewModel injection.
- * Retains RxJava 1.x and 2.x for now (will be migrated to Flows in future phase).
+ * Converted from RxJava to Kotlin Coroutines in Phase 8.
  */
 @HiltViewModel
 class BrowsingArticleViewModel
@@ -47,27 +53,28 @@ constructor(
   private val webArticleRepository: WebArticleRepository,
   searchProviders: SearchProviders
 ) : ViewModel() {
-  private val subs = CompositeSubscription()
 
-  private val loadingQueue = PublishSubject.create<String>()
+  private val loadingQueue = MutableSharedFlow<String>(extraBufferCapacity = Int.MAX_VALUE)
 
   val articleLiveData = MutableLiveData<Result<WebArticle>>()
 
   init {
-    subs.add(loadingQueue.asObservable()
-      .concatMap {
-        webArticleRepository
-          .getWebArticle(it)
-          .compose(RxSchedulerUtils.applyIoSchedulers())
-          .compose(Result.applyToObservable())
-      }.subscribe { articleLiveData.value = it })
+    viewModelScope.launch {
+      loadingQueue
+        .flatMapMerge { url ->
+          webArticleRepository
+            .getWebArticle(url)
+            .map { Result.Success(it) as Result<WebArticle> }
+            .catch { e -> emit(Result.Failure(e)) }
+            .flowOn(Dispatchers.IO)
+        }
+        .collect { articleLiveData.value = it }
+    }
   }
 
   val selectedSearchProvider: Observable<SearchProvider> = searchProviders.selectedProvider
 
-  fun loadArticle(url: String) = loadingQueue.onNext(url)
-
-  override fun onCleared() {
-    subs.clear()
+  fun loadArticle(url: String) {
+    loadingQueue.tryEmit(url)
   }
 }

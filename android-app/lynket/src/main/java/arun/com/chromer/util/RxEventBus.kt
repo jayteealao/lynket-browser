@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flow
 /*
  *
  *  Lynket
@@ -20,31 +21,50 @@
 
 package arun.com.chromer.util
 
-import rx.Observable
-import rx.subjects.PublishSubject
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.filterIsInstance
 
 /**
- * A simple event bus built with RxJava
+ * A simple event bus built with Kotlin Flow (converted from RxJava)
+ *
+ * This class provides backward compatibility for code still using RxEventBus.
+ * New code should use the modern EventBus from arun.com.chromer.util.events package.
  */
 class RxEventBus {
 
-  private val publishSubject: PublishSubject<Any> = PublishSubject.create()
+  private val _events = MutableSharedFlow<Any>(
+    replay = 0, // Don't replay old events to new subscribers
+    extraBufferCapacity = 64, // Buffer up to 64 events
+    onBufferOverflow = BufferOverflow.DROP_OLDEST // Drop oldest if buffer full
+  )
 
   /**
    * Posts an object (usually an Event) to the bus
+   *
+   * Note: This is non-blocking. For suspend version, use emit()
    */
   fun post(event: Any) {
-    publishSubject.onNext(event)
+    _events.tryEmit(event)
   }
 
   /**
-   * Observable that will emmit everything posted to the event bus.
+   * Suspend version of post for use in coroutines
    */
-  fun events(): Observable<Any> = publishSubject.asObservable()
+  suspend fun emit(event: Any) {
+    _events.emit(event)
+  }
 
   /**
-   * Observable that only emits events of a specific class.
+   * Flow that will emit everything posted to the event bus.
+   */
+  fun events(): Flow<Any> = _events.asSharedFlow()
+
+  /**
+   * Flow that only emits events of a specific class.
    * Use this if you only want to subscribe to one type of events.
    */
-  inline fun <reified T> filteredEvents(): Observable<T> = events().ofType(T::class.java)
+  inline fun <reified T> filteredEvents(): Flow<T> = events().filterIsInstance<T>()
 }

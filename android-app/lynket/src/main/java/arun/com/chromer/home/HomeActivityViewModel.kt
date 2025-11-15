@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -22,9 +23,9 @@ package arun.com.chromer.home
 
 import android.annotation.SuppressLint
 import android.app.Application
-import androidx.annotation.CallSuper
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import arun.com.chromer.R
 import arun.com.chromer.data.history.HistoryRepository
 import arun.com.chromer.data.website.model.Website
@@ -35,23 +36,22 @@ import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.RxPreferences
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
-import com.jakewharton.rxrelay2.PublishRelay
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.arunkumar.android.rxschedulers.SchedulerProvider
-import dev.arunkumar.android.rxschedulers.asResource
-import dev.arunkumar.android.rxschedulers.compose
-import dev.arunkumar.android.rxschedulers.ioToUi
-import dev.arunkumar.android.rxschedulers.poolToUi
 import dev.arunkumar.android.common.Resource
-import io.reactivex.Observable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
  * Legacy ViewModel for HomeActivity (XML-based UI).
  *
  * Migrated to Hilt: Uses @HiltViewModel annotation for automatic ViewModel injection.
- * Retains RxJava 2.x for now (will be migrated to Flows in future phase).
+ * Converted from RxJava to Kotlin Coroutines in Phase 8.
  *
  * Note: Modern Compose UI uses ModernHomeViewModel instead.
  */
@@ -62,26 +62,12 @@ class HomeActivityViewModel
 constructor(
   @ApplicationContext private val application: Application,
   private val rxPreferences: RxPreferences,
-  private val schedulerProvider: SchedulerProvider,
   private val historyRepository: HistoryRepository,
   private val preferences: Preferences
 ) : ViewModel() {
 
   val providerInfoLiveData = MutableLiveData<CustomTabProviderInfo>()
   val recentsLiveData = MutableLiveData<Resource<List<Website>>>()
-
-  /**
-   * Relay to convert `onCleared` calls to data stream.
-   *
-   * @see onCleared
-   */
-  private val clearEventsRelay = PublishRelay.create<Int>()
-
-  /**
-   * [Observable] that emits `0` when onCleared is called.
-   */
-  @Suppress("MemberVisibilityCanBePrivate")
-  private val clearEvents: Observable<Int> = clearEventsRelay.hide()
 
   init {
     start()
@@ -93,60 +79,52 @@ constructor(
   }
 
   private fun bindRecentsInfo() {
-    historyRepository.recents()
-      .asResource()
-      .compose(schedulerProvider.ioToUi())
-      .subscribe(recentsLiveData::setValue)
+    viewModelScope.launch {
+      historyRepository.recents()
+        .map { Resource.Success(it) as Resource<List<Website>> }
+        .catch { e -> emit(Resource.Error(e)) }
+        .flowOn(Dispatchers.IO)
+        .collect { recentsLiveData.value = it }
+    }
   }
 
   private fun bindProviderInfo() {
-    Observable.combineLatest(
-      rxPreferences.customTabProviderPref.observe().map { packageName ->
-        when {
-          packageName.isEmpty() -> preferences.defaultCustomTabApp ?: ""
-          else -> packageName
+    viewModelScope.launch {
+      combine(
+        rxPreferences.customTabProviderPref.observe().map { packageName ->
+          when {
+            packageName.isEmpty() -> preferences.defaultCustomTabApp ?: ""
+            else -> packageName
+          }
+        },
+        rxPreferences.incognitoPref.observe(),
+        rxPreferences.webviewPref.observe()
+      ) { customTabProvider: String, isIncognito: Boolean, isWebView: Boolean ->
+        if (customTabProvider.isEmpty() || isIncognito || isWebView) {
+          CustomTabProviderInfo(
+            iconUri = ApplicationIcon.createUri(Constants.SYSTEM_WEBVIEW),
+            providerDescription = StringResource(
+              R.string.tab_provider_status_message_home,
+              resourceArgs = listOf(R.string.system_webview)
+            ),
+            providerReason = if (isIncognito)
+              StringResource(R.string.provider_web_view_incognito_reason)
+            else StringResource(0),
+            allowChange = !isIncognito
+          )
+        } else {
+          val appName = application.appName(customTabProvider)
+          CustomTabProviderInfo(
+            iconUri = ApplicationIcon.createUri(customTabProvider),
+            providerDescription = StringResource(
+              R.string.tab_provider_status_message_home,
+              listOf(appName)
+            ),
+            providerReason = StringResource(0)
+          )
         }
-      },
-      rxPreferences.incognitoPref.observe(),
-      rxPreferences.webviewPref.observe()
-    ) { customTabProvider: String, isIncognito: Boolean, isWebView: Boolean ->
-      if (customTabProvider.isEmpty() || isIncognito || isWebView) {
-        CustomTabProviderInfo(
-          iconUri = ApplicationIcon.createUri(Constants.SYSTEM_WEBVIEW),
-          providerDescription = StringResource(
-            R.string.tab_provider_status_message_home,
-            resourceArgs = listOf(R.string.system_webview)
-          ),
-          providerReason = if (isIncognito)
-            StringResource(R.string.provider_web_view_incognito_reason)
-          else StringResource(0),
-          allowChange = !isIncognito
-        )
-      } else {
-        val appName = application.appName(customTabProvider)
-        CustomTabProviderInfo(
-          iconUri = ApplicationIcon.createUri(customTabProvider),
-          providerDescription = StringResource(
-            R.string.tab_provider_status_message_home,
-            listOf(appName)
-          ),
-          providerReason = StringResource(0)
-        )
-      }
-    }.compose(schedulerProvider.poolToUi<CustomTabProviderInfo>())
-      .untilCleared()
-      .subscribe(providerInfoLiveData::setValue)
-  }
-
-  /**
-   * Auto terminates the current [Observable] when `onCleared` occurs.
-   */
-  protected fun <T> Observable<T>.untilCleared(): Observable<T> = compose { upstream ->
-    upstream.takeUntil(clearEvents)
-  }
-
-  @CallSuper
-  override fun onCleared() {
-    clearEventsRelay.accept(0)
+      }.flowOn(Dispatchers.Default)
+        .collect { providerInfoLiveData.value = it }
+    }
   }
 }

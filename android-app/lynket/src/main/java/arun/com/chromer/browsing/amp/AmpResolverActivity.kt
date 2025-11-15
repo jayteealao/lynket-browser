@@ -18,6 +18,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted - removed unused CompositeSubscription from inner dialog class
+
 package arun.com.chromer.browsing.amp
 
 import android.app.Activity
@@ -31,7 +33,6 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.tabs.TabsManager
 import com.afollestad.materialdialogs.MaterialDialog
-import rx.subscriptions.CompositeSubscription
 import javax.inject.Inject
 
 class AmpResolverActivity : BrowsingActivity() {
@@ -73,7 +74,6 @@ class AmpResolverActivity : BrowsingActivity() {
   inner class AmpResolverDialog(
     private var activity: Activity?
   ) : DialogInterface.OnDismissListener {
-    val subs = CompositeSubscription()
     private var dialog: MaterialDialog? = null
 
     fun show(): AmpResolverDialog {
@@ -104,7 +104,6 @@ class AmpResolverActivity : BrowsingActivity() {
     }
 
     override fun onDismiss(dialogInterface: DialogInterface?) {
-      subs.clear()
       activity?.finish()
       activity = null
       dialog = null

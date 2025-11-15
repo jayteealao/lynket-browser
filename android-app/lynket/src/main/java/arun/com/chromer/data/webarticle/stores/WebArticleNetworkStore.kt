@@ -39,8 +39,8 @@ class WebArticleNetworkStore @Inject constructor() : WebArticleStore {
 
     override suspend fun getWebArticle(url: String): WebArticle? = withContext(Dispatchers.IO) {
         try {
-            // Bridge RxJava Observable to coroutines
-            val urlArticlePair = RxParser.parseArticle(url).await()
+            // RxParser is now a suspend function
+            val urlArticlePair = RxParser.parseArticle(url)
 
             val article = urlArticlePair.second
             if (article != null) {

@@ -17,6 +17,11 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+// Phase 8: Migrated from RxJava CompositeSubscription to lifecycle-aware patterns
+// Note: CompositeSubscription kept for backward compatibility but deprecated
+// Subclasses should use lifecycleScope.launch instead
+
 package arun.com.chromer.shared.base.fragment
 
 import android.content.Context
@@ -37,6 +42,7 @@ import rx.subscriptions.CompositeSubscription
  */
 abstract class BaseFragment : Fragment() {
 
+  @Deprecated("Use lifecycleScope.launch or viewLifecycleOwner.lifecycleScope.launch instead")
   protected val subs = CompositeSubscription()
   private lateinit var fragmentComponent: FragmentComponent
   private var unbinder: Unbinder? = null

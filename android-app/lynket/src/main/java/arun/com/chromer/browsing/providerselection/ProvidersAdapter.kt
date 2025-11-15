@@ -18,6 +18,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted from RxJava 1.x to Kotlin Coroutines
+// - Replaced PublishSubject with MutableSharedFlow
+// - Consumers should use Flow.collect() instead of Observable.subscribe()
+
 package arun.com.chromer.browsing.providerselection
 
 import android.app.Activity
@@ -36,7 +40,9 @@ import butterknife.BindView
 import butterknife.ButterKnife
 import com.bumptech.glide.RequestManager
 import dev.arunkumar.android.dagger.activity.PerActivity
-import rx.subjects.PublishSubject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 
 /**
@@ -49,8 +55,11 @@ constructor(
   private val requestManager: RequestManager
 ) : RecyclerView.Adapter<ProvidersAdapter.RecentsViewHolder>() {
 
-  val installClicks: PublishSubject<Provider> = PublishSubject.create()
-  val selections: PublishSubject<Provider> = PublishSubject.create()
+  private val _installClicks = MutableSharedFlow<Provider>(extraBufferCapacity = Int.MAX_VALUE)
+  val installClicks: Flow<Provider> = _installClicks.asSharedFlow()
+
+  private val _selections = MutableSharedFlow<Provider>(extraBufferCapacity = Int.MAX_VALUE)
+  val selections: Flow<Provider> = _selections.asSharedFlow()
 
   var providers = ArrayList<Provider>()
     set(value) {
@@ -102,14 +111,14 @@ constructor(
       install!!.setOnClickListener {
         if (adapterPosition != RecyclerView.NO_POSITION) {
           val provider = providers[adapterPosition]
-          installClicks.onNext(provider)
+          _installClicks.tryEmit(provider)
         }
       }
 
       itemView.setOnClickListener {
         if (adapterPosition != RecyclerView.NO_POSITION) {
           val provider = providers[adapterPosition]
-          selections.onNext(provider)
+          _selections.tryEmit(provider)
         }
       }
     }

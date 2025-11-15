@@ -1,3 +1,4 @@
+// Phase 8: Evaluated - Keep for MaterialSearchView compatibility
 /*
  *
  *  Lynket
@@ -20,19 +21,25 @@
 
 package arun.com.chromer.util.epoxy
 
-import com.airbnb.epoxy.DiffResult
 import com.airbnb.epoxy.EpoxyController
 import com.airbnb.epoxy.EpoxyModel
-import com.airbnb.epoxy.OnModelBuildFinishedListener
 import io.reactivex.Observable
 
-fun EpoxyController.buildEvents(): Observable<DiffResult> = Observable.create { emitter ->
-  val buildListener = OnModelBuildFinishedListener { result: DiffResult ->
-    emitter.onNext(result)
-  }.also(::addModelBuildListener)
-  emitter.setCancellable { removeModelBuildListener(buildListener) }
-}
+/**
+ * RxJava 2 extension functions for Epoxy controllers.
+ *
+ * NOTE: This file uses RxJava 2 and should remain until MaterialSearchView is converted to Flow.
+ * MaterialSearchView is the primary consumer of these extensions and is heavily RxJava-based.
+ *
+ * When MaterialSearchView is converted to use Kotlin Flow, this file can be:
+ * - Converted to provide Flow-based equivalents
+ * - Removed entirely if no longer needed
+ */
 
+/**
+ * Creates an Observable that emits lists of EpoxyModels when the controller intercepts them.
+ * Used by MaterialSearchView for observing suggestion model changes.
+ */
 fun EpoxyController.intercepts(): Observable<List<EpoxyModel<*>>> = Observable.create { emitter ->
   val interceptor = EpoxyController.Interceptor { models ->
     emitter.onNext(models)

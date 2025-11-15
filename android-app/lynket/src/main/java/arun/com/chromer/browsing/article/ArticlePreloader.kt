@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -23,28 +24,59 @@ package arun.com.chromer.browsing.article
 import android.net.Uri
 import androidx.annotation.MainThread
 import arun.com.chromer.data.webarticle.WebArticleRepository
-import arun.com.chromer.util.RxSchedulerUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Phase 7: Converted from Java to Kotlin
- *
- * Preloads web articles in the background using RxJava.
+ * Preloads web articles in the background using Kotlin Coroutines.
  */
 @Singleton
 class ArticlePreloader @Inject constructor(
     private val webArticleRepository: WebArticleRepository
 ) {
+    // Use a supervisor job so failures don't cancel other preload operations
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * Preload article with callback-based API for backward compatibility.
+     *
+     * @param uri The URI of the article to preload
+     * @param listener Callback invoked on the main thread when preload completes
+     */
     fun preloadArticle(uri: Uri, listener: ArticlePreloadListener?) {
-        webArticleRepository.getWebArticle(uri.toString())
-            .compose(RxSchedulerUtils.applyIoSchedulers())
-            .doOnError { listener?.onComplete(false) }
-            .subscribe(
-                { listener?.onComplete(true) },
-                { /* Error already handled in doOnError */ }
-            )
+        scope.launch {
+            val success = try {
+                webArticleRepository.getWebArticle(uri.toString())
+                true
+            } catch (e: Exception) {
+                false
+            }
+
+            // Invoke listener on main thread
+            withContext(Dispatchers.Main) {
+                listener?.onComplete(success)
+            }
+        }
+    }
+
+    /**
+     * Preload article using suspend function API.
+     *
+     * @param uri The URI of the article to preload
+     * @return true if preload was successful, false otherwise
+     */
+    suspend fun preloadArticleSuspend(uri: Uri): Boolean = withContext(Dispatchers.IO) {
+        try {
+            webArticleRepository.getWebArticle(uri.toString())
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**
