@@ -35,14 +35,11 @@ import arun.com.chromer.tabs.TabsModule
 import arun.com.chromer.util.drawer.GlideDrawerImageLoader
 import dagger.BindsInstance
 import dagger.Component
-import dev.arunkumar.android.AppSchedulersModule
 import javax.inject.Singleton
 
 @Singleton
 @Component(
   modules = [
-    AppSchedulersModule::class,
-
     AppModule::class,
 
     HomeActivity.HomeBuilder::class,

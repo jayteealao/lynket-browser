@@ -51,6 +51,8 @@ import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import dagger.Binds
 import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoMap
 import dev.arunkumar.android.dagger.viewmodel.ViewModelKey
 import java.util.concurrent.TimeUnit
@@ -214,6 +216,7 @@ class HomeActivity : BaseActivity(), Snackable {
   }
 
   @Module
+  @InstallIn(SingletonComponent::class)
   abstract class HomeBuilder {
     @Binds
     @IntoMap
