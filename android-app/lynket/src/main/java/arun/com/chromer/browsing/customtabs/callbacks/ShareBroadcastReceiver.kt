@@ -18,33 +18,20 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.shared.base.activity;
+package arun.com.chromer.browsing.customtabs.callbacks
 
-import android.view.MenuItem;
-
-import androidx.appcompat.app.AppCompatActivity;
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import arun.com.chromer.util.Utils
 
 /**
- * Created by Arunkumar on 19-02-2017.
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * A BroadcastReceiver that handles the Action Intent from the Custom Tab and fires a Share Intent.
  */
-public abstract class SubActivity extends AppCompatActivity {
-  @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
-    if (item.getItemId() == android.R.id.home) {
-      finishWithTransition();
-      return true;
+class ShareBroadcastReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        Utils.shareText(context, intent.dataString)
     }
-    return super.onOptionsItemSelected(item);
-  }
-
-  @Override
-  public void onBackPressed() {
-    finishWithTransition();
-    super.onBackPressed();
-  }
-
-  private void finishWithTransition() {
-    finish();
-    // overridePendingTransition(R.anim.slide_in_left_medium, R.anim.slide_out_right_medium);
-  }
 }

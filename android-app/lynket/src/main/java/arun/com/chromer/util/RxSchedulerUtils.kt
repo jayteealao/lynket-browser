@@ -18,15 +18,23 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.util;
+package arun.com.chromer.util
 
-import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
+import rx.Observable
+import rx.android.schedulers.AndroidSchedulers
+import rx.schedulers.Schedulers
 
-public class RxSchedulerUtils {
-  public static <T> Observable.Transformer<T, T> applyIoSchedulers() {
-    return observable -> observable.subscribeOn(Schedulers.io())
-      .observeOn(AndroidSchedulers.mainThread());
-  }
+/**
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * RxJava scheduler utilities for legacy RxJava code.
+ * Kotlin object provides singleton pattern.
+ */
+object RxSchedulerUtils {
+    fun <T> applyIoSchedulers(): Observable.Transformer<T, T> {
+        return Observable.Transformer { observable ->
+            observable.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+        }
+    }
 }

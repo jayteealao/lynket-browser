@@ -18,21 +18,24 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.browsing.customtabs.callbacks;
+package arun.com.chromer.browsing.customtabs
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-
-import arun.com.chromer.util.Utils;
+import android.app.Service
+import android.content.Intent
+import android.os.Binder
+import android.os.IBinder
 
 /**
- * A BroadcastReceiver that handles the Action Intent from the Custom Tab and fires a Share Intent.
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Empty service used by the custom tab to bind to, raising the application's importance.
  */
-public class ShareBroadcastReceiver extends BroadcastReceiver {
+class KeepAliveService : Service() {
+    override fun onBind(intent: Intent): IBinder {
+        return sBinder
+    }
 
-  @Override
-  public void onReceive(Context context, Intent intent) {
-    Utils.shareText(context, intent.getDataString());
-  }
+    companion object {
+        private val sBinder = Binder()
+    }
 }
