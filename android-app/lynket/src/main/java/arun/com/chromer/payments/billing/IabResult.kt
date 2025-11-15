@@ -18,48 +18,39 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.payments.billing;
+package arun.com.chromer.payments.billing
 
 /**
+ * Phase 7: Converted from Java to Kotlin
+ *
  * Represents the result of an in-app billing operation.
  * A result is composed of a response code (an integer) and possibly a
  * message (String). You can get those by calling
- * {@link #getResponse} and {@link #getMessage()}, respectively. You
+ * [response] and [message], respectively. You
  * can also inquire whether a result is a success or a failure by
- * calling {@link #isSuccess()} and {@link #isFailure()}.
+ * calling [isSuccess] and [isFailure].
  */
-@SuppressWarnings("ALL")
-public class IabResult {
-  private int mResponse;
-  private String mMessage;
+@Suppress("ALL")
+class IabResult(val response: Int, message: String?) {
+    val message: String
 
-  public IabResult(int response, String message) {
-    mResponse = response;
-    if (message == null || message.trim().length() == 0) {
-      mMessage = IabHelper.getResponseDesc(response);
-    } else {
-      mMessage = message + " (response: " + IabHelper.getResponseDesc(response) + ")";
+    init {
+        this.message = if (message.isNullOrBlank()) {
+            IabHelper.getResponseDesc(response)
+        } else {
+            "$message (response: ${IabHelper.getResponseDesc(response)})"
+        }
     }
-  }
 
-  public int getResponse() {
-    return mResponse;
-  }
+    @Deprecated("Use response property", ReplaceWith("response"))
+    fun getResponse(): Int = response
 
-  public String getMessage() {
-    return mMessage;
-  }
+    @Deprecated("Use message property", ReplaceWith("message"))
+    fun getMessage(): String = message
 
-  public boolean isSuccess() {
-    return mResponse == IabHelper.BILLING_RESPONSE_RESULT_OK;
-  }
+    fun isSuccess(): Boolean = response == IabHelper.BILLING_RESPONSE_RESULT_OK
 
-  public boolean isFailure() {
-    return !isSuccess();
-  }
+    fun isFailure(): Boolean = !isSuccess()
 
-  public String toString() {
-    return "IabResult: " + getMessage();
-  }
+    override fun toString(): String = "IabResult: $message"
 }
-
