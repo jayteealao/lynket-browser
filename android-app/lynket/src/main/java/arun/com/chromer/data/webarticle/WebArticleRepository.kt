@@ -18,29 +18,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.util;
+package arun.com.chromer.data.webarticle
 
-import static android.os.Build.VERSION_CODES.LOLLIPOP;
-
-import android.annotation.TargetApi;
-import android.app.ActivityManager;
-
-import timber.log.Timber;
+import arun.com.chromer.data.webarticle.model.WebArticle
+import rx.Observable
 
 /**
- * Created by Arun on 03/09/2016.
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Repository interface for fetching web articles.
  */
-public class DocumentUtils {
-
-  @TargetApi(LOLLIPOP)
-  public static ActivityManager.RecentTaskInfo getTaskInfoFromTask(ActivityManager.AppTask task) {
-    ActivityManager.RecentTaskInfo info = null;
-    try {
-      info = task.getTaskInfo();
-    } catch (Exception e) {
-      Timber.d("Failed to retrieve task info: %s", e.toString());
-    }
-    return info;
-  }
-
+interface WebArticleRepository {
+    fun getWebArticle(url: String): Observable<WebArticle>
 }

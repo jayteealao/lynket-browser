@@ -18,21 +18,30 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.data.website.model;
+package arun.com.chromer.bubbles.webheads.ui
 
-import androidx.annotation.ColorInt;
+import com.facebook.rebound.Spring
+import arun.com.chromer.bubbles.webheads.ui.views.WebHead
 
-public class WebColor {
-  public String host;
-  @ColorInt
-  public int color;
+/**
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Contract interface for WebHead interaction callbacks.
+ */
+interface WebHeadContract {
+    fun onWebHeadClick(webHead: WebHead)
 
-  WebColor() {
+    fun onWebHeadDestroyed(webHead: WebHead, isLastWebHead: Boolean)
 
-  }
+    fun onMasterWebHeadMoved(x: Int, y: Int)
 
-  public WebColor(String host, int color) {
-    this.host = host;
-    this.color = color;
-  }
+    fun newSpring(): Spring
+
+    fun onMasterLockedToTrashy()
+
+    fun onMasterReleasedFromTrashy()
+
+    fun closeAll()
+
+    fun onMasterLongClick()
 }

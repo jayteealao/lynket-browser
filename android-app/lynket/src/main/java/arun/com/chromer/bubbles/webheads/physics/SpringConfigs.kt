@@ -18,14 +18,18 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.data.webarticle;
+package arun.com.chromer.bubbles.webheads.physics
 
-import androidx.annotation.NonNull;
+import com.facebook.rebound.SpringConfig
 
-import arun.com.chromer.data.webarticle.model.WebArticle;
-import rx.Observable;
-
-public interface WebArticleRepository {
-  @NonNull
-  Observable<WebArticle> getWebArticle(@NonNull String url);
+/**
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Spring configurations for WebHead animations.
+ * Kotlin object provides singleton pattern for constants.
+ */
+object SpringConfigs {
+    val FLING: SpringConfig = SpringConfig.fromOrigamiTensionAndFriction(50.0, 5.0)
+    val DRAG: SpringConfig = SpringConfig.fromOrigamiTensionAndFriction(0.0, 1.8)
+    val SNAP: SpringConfig = SpringConfig.fromOrigamiTensionAndFriction(100.0, 7.0)
 }

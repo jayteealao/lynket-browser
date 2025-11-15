@@ -18,13 +18,17 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.data.common;
+package arun.com.chromer.data.website.model
 
-import io.paperdb.Book;
+import androidx.annotation.ColorInt
 
 /**
- * Created by Arunkumar on 25-02-2017.
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Data class representing a website's color scheme.
+ * Kotlin data class provides automatic equals(), hashCode(), toString(), and copy().
  */
-public interface BookStore {
-  Book getBook();
-}
+data class WebColor(
+    var host: String = "",
+    @ColorInt var color: Int = 0
+)

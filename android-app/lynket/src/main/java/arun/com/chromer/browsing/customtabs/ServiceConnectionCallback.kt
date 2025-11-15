@@ -18,32 +18,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.bubbles.webheads.ui;
+package arun.com.chromer.browsing.customtabs
 
-import androidx.annotation.NonNull;
-
-import com.facebook.rebound.Spring;
-
-import arun.com.chromer.bubbles.webheads.ui.views.WebHead;
+import androidx.browser.customtabs.CustomTabsClient
 
 /**
- * Created by Arun on 08/08/2016.
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Callback for events when connecting and disconnecting from Custom Tabs Service.
  */
-public interface WebHeadContract {
-  void onWebHeadClick(@NonNull WebHead webHead);
+interface ServiceConnectionCallback {
+    /**
+     * Called when the service is connected.
+     *
+     * @param client a CustomTabsClient
+     */
+    fun onServiceConnected(client: CustomTabsClient)
 
-  void onWebHeadDestroyed(@NonNull WebHead webHead, boolean isLastWebHead);
-
-  void onMasterWebHeadMoved(int x, int y);
-
-  @NonNull
-  Spring newSpring();
-
-  void onMasterLockedToTrashy();
-
-  void onMasterReleasedFromTrashy();
-
-  void closeAll();
-
-  void onMasterLongClick();
+    /**
+     * Called when the service is disconnected.
+     */
+    fun onServiceDisconnected()
 }

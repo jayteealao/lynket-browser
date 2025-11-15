@@ -18,22 +18,17 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.util;
+package arun.com.chromer.data.webarticle
 
-import android.os.Build;
-import android.text.Html;
-import android.text.Spanned;
+import arun.com.chromer.data.webarticle.model.WebArticle
+import rx.Observable
 
-import androidx.annotation.NonNull;
-
-public class HtmlCompat {
-  public static Spanned fromHtml(@NonNull String html) {
-    final Spanned result;
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-      result = Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT);
-    } else {
-      result = Html.fromHtml(html);
-    }
-    return result;
-  }
+/**
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Store interface for web articles with get and save operations.
+ */
+interface WebArticleStore {
+    fun getWebArticle(url: String): Observable<WebArticle>
+    fun saveWebArticle(webSite: WebArticle): Observable<WebArticle>
 }

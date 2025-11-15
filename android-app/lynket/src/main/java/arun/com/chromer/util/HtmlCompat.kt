@@ -18,23 +18,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.browsing.customtabs;
+package arun.com.chromer.util
 
-import androidx.browser.customtabs.CustomTabsClient;
+import android.os.Build
+import android.text.Html
+import android.text.Spanned
 
 /**
- * Callback for events when connecting and disconnecting from Custom Tabs Service.
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Compatibility utility for HTML parsing across Android versions.
+ * Kotlin object provides singleton pattern.
  */
-public interface ServiceConnectionCallback {
-  /**
-   * Called when the service is connected.
-   *
-   * @param client a CustomTabsClient
-   */
-  void onServiceConnected(CustomTabsClient client);
-
-  /**
-   * Called when the service is disconnected.
-   */
-  void onServiceDisconnected();
+object HtmlCompat {
+    fun fromHtml(html: String): Spanned {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT)
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(html)
+        }
+    }
 }

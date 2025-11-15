@@ -18,20 +18,27 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.bubbles.webheads.physics;
+package arun.com.chromer.util
 
-import com.facebook.rebound.SpringConfig;
+import android.annotation.TargetApi
+import android.app.ActivityManager
+import android.os.Build
+import timber.log.Timber
 
 /**
- * Created by Arun on 06/08/2016.
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Utility functions for document and task management.
+ * Kotlin object provides singleton pattern.
  */
-
-public class SpringConfigs {
-  public static final SpringConfig FLING = SpringConfig.fromOrigamiTensionAndFriction(50, 5);
-  public static final SpringConfig DRAG = SpringConfig.fromOrigamiTensionAndFriction(0, 1.8);
-  public static final SpringConfig SNAP = SpringConfig.fromOrigamiTensionAndFriction(100, 7);
-
-  private SpringConfigs() {
-    throw new AssertionError("no instances");
-  }
+object DocumentUtils {
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    fun getTaskInfoFromTask(task: ActivityManager.AppTask): ActivityManager.RecentTaskInfo? {
+        return try {
+            task.taskInfo
+        } catch (e: Exception) {
+            Timber.d("Failed to retrieve task info: %s", e.toString())
+            null
+        }
+    }
 }

@@ -18,17 +18,15 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.data.webarticle;
+package arun.com.chromer.data.common
 
-import androidx.annotation.NonNull;
+import io.paperdb.Book
 
-import arun.com.chromer.data.webarticle.model.WebArticle;
-import rx.Observable;
-
-public interface WebArticleStore {
-  @NonNull
-  Observable<WebArticle> getWebArticle(@NonNull String url);
-
-  @NonNull
-  Observable<WebArticle> saveWebArticle(@NonNull WebArticle webSite);
+/**
+ * Phase 7: Converted from Java to Kotlin
+ *
+ * Interface for accessing PaperDB Book instances.
+ */
+interface BookStore {
+    fun getBook(): Book
 }
