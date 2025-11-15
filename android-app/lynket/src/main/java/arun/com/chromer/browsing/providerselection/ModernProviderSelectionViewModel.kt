@@ -14,7 +14,6 @@ package arun.com.chromer.browsing.providerselection
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.apps.AppRepository
-import arun.com.chromer.data.apps.allProvidersSuspend
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.util.events.EventBus
@@ -25,10 +24,10 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Phase 6: Modern ProviderSelectionViewModel (RxJava Removed)
+ * Phase 8: Modern ProviderSelectionViewModel (Fully Coroutines)
  *
  * Manages Custom Tab provider selection with modern reactive patterns.
- * Uses suspend function extensions for legacy AppRepository.
+ * Uses native suspend functions from AppRepository.
  *
  * Features:
  * - Load available Custom Tab providers
@@ -36,10 +35,9 @@ import javax.inject.Inject
  * - WebView fallback option
  * - Install provider via Play Store
  *
- * Changes in Phase 6:
- * - Removed RxJava interop (rx2.await)
- * - Uses suspend extension functions instead
- * - No more RxJava dependencies in this ViewModel
+ * Changes in Phase 8:
+ * - Updated to use native suspend functions from AppRepository
+ * - No extension functions needed (AppRepository now uses Coroutines directly)
  */
 @HiltViewModel
 class ModernProviderSelectionViewModel @Inject constructor(
@@ -81,8 +79,8 @@ class ModernProviderSelectionViewModel @Inject constructor(
             try {
                 _uiState.value = ProviderSelectionUiState.Loading
 
-                // Use suspend extension function (no RxJava interop needed)
-                val providers = appRepository.allProvidersSuspend()
+                // Use native suspend function from AppRepository
+                val providers = appRepository.allProviders()
 
                 // Get current preferences
                 val preferences = preferencesRepository.userPreferencesFlow.first()

@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -22,7 +23,6 @@ package arun.com.chromer.data.apps.store
 
 import android.app.Application
 import android.content.Intent
-import android.content.pm.ResolveInfo
 import arun.com.chromer.browsing.customtabs.CustomTabs.getCustomTabSupportingPackages
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.common.App
@@ -31,7 +31,12 @@ import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.Utils.getAppNameWithPackage
 import arun.com.chromer.util.glide.appicon.ApplicationIcon.Companion.createUri
-import rx.Observable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -141,68 +146,78 @@ constructor(
     )
   }
 
-  override fun getApp(packageName: String): Observable<App> = Observable.empty()
+  override suspend fun getApp(packageName: String): App {
+    throw UnsupportedOperationException("System store does not support getApp")
+  }
 
-  override fun saveApp(app: App): Observable<App> = Observable.empty()
+  override suspend fun saveApp(app: App): App {
+    throw UnsupportedOperationException("System store does not support saveApp")
+  }
 
   override fun isPackageBlacklisted(packageName: String): Boolean = false
 
-  override fun setPackageBlacklisted(packageName: String): Observable<App> = Observable.empty()
+  override suspend fun setPackageBlacklisted(packageName: String): App {
+    throw UnsupportedOperationException("System store does not support setPackageBlacklisted")
+  }
 
   override fun isPackageIncognito(packageName: String): Boolean = false
 
-  override fun setPackageIncognito(packageName: String): Observable<App> = Observable.empty()
+  override suspend fun setPackageIncognito(packageName: String): App {
+    throw UnsupportedOperationException("System store does not support setPackageIncognito")
+  }
 
-  override fun removeIncognito(packageName: String): Observable<App> = Observable.empty()
+  override suspend fun removeIncognito(packageName: String): App {
+    throw UnsupportedOperationException("System store does not support removeIncognito")
+  }
 
   override fun getPackageColorSync(packageName: String): Int = Constants.NO_COLOR
 
-  override fun getPackageColor(packageName: String): Observable<Int> =
-    Observable.just(Constants.NO_COLOR)
+  override suspend fun getPackageColor(packageName: String): Int = Constants.NO_COLOR
 
-  override fun setPackageColor(packageName: String, color: Int): Observable<App> =
-    Observable.empty()
-
-  override fun removeBlacklist(packageName: String): Observable<App> = Observable.empty()
-
-  override fun getInstalledApps(): Observable<App> {
-    val pm = application.packageManager
-    val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-    return Observable.fromCallable<List<ResolveInfo>> { pm.queryIntentActivities(intent, 0) }
-      .flatMapIterable { resolveInfos -> resolveInfos }
-      .filter { resolveInfo ->
-        resolveInfo != null && !resolveInfo.activityInfo.packageName.equals(
-          application.packageName,
-          ignoreCase = true
-        )
-      }
-      .map { resolveInfo ->
-        Utils.createApp(application, resolveInfo.activityInfo.packageName)
-      }.distinct { it.packageName }
+  override suspend fun setPackageColor(packageName: String, color: Int): App {
+    throw UnsupportedOperationException("System store does not support setPackageColor")
   }
 
-  override fun allProviders(): Observable<List<Provider>> {
-    val preLoadedProviders = Observable.from(allProviders).map { provider ->
+  override suspend fun removeBlacklist(packageName: String): App {
+    throw UnsupportedOperationException("System store does not support removeBlacklist")
+  }
+
+  override fun getInstalledApps(): Flow<App> = flow {
+    val pm = application.packageManager
+    val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+    val resolveInfos = pm.queryIntentActivities(intent, 0)
+
+    val seenPackages = mutableSetOf<String>()
+    resolveInfos.forEach { resolveInfo ->
+      if (resolveInfo != null &&
+          !resolveInfo.activityInfo.packageName.equals(application.packageName, ignoreCase = true) &&
+          seenPackages.add(resolveInfo.activityInfo.packageName)) {
+        emit(Utils.createApp(application, resolveInfo.activityInfo.packageName))
+      }
+    }
+  }.flowOn(Dispatchers.IO)
+
+  override suspend fun allProviders(): List<Provider> = withContext(Dispatchers.IO) {
+    val preLoadedProviders = allProviders.map { provider ->
       if (Utils.isPackageInstalled(application, provider.packageName)) {
         provider.iconUri = createUri(provider.packageName)
         provider.appName = getAppNameWithPackage(application, provider.packageName)
         provider.installed = true
       }
-      return@map provider
+      provider
     }
 
-    val installedProviders = Observable.defer {
-      Observable.from(getCustomTabSupportingPackages(application).map { packageName ->
-        Provider(
-          packageName,
-          getAppNameWithPackage(application, packageName),
-          createUri(packageName)
-        ).apply { installed = true }
-      })
+    val installedProviders = getCustomTabSupportingPackages(application).map { packageName ->
+      Provider(
+        packageName,
+        getAppNameWithPackage(application, packageName),
+        createUri(packageName)
+      ).apply { installed = true }
     }
-    return Observable.concat(preLoadedProviders, installedProviders)
-      .distinct { it.packageName }
-      .toSortedList { t1, t2 -> compareValues(t1.appName, t2.appName) }
+
+    (preLoadedProviders + installedProviders)
+      .distinctBy { it.packageName }
+      .sortedBy { it.appName }
   }
 }
 

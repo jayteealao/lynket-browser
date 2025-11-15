@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -18,7 +19,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Phase 7: Converted to Kotlin
 package arun.com.chromer.data.apps.store
 
 import android.app.Application
@@ -28,7 +28,11 @@ import arun.com.chromer.data.common.BookStore
 import arun.com.chromer.util.Utils
 import io.paperdb.Book
 import io.paperdb.Paper
-import rx.Observable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,100 +44,83 @@ class AppDiskStore @Inject constructor(
 
     override fun getBook(): Book = Paper.book(APP_BOOK_NAME)
 
-    override fun getApp(packageName: String): Observable<App> {
-        return Observable.fromCallable {
-            var app = Utils.createApp(application, packageName)
+    override suspend fun getApp(packageName: String): App = withContext(Dispatchers.IO) {
+        var app = Utils.createApp(application, packageName)
+        try {
+            app = getBook().read(packageName, app)
+        } catch (e: Exception) {
             try {
-                app = getBook().read(packageName, app)
-            } catch (e: Exception) {
-                try {
-                    getBook().delete(packageName)
-                } catch (ignored: Exception) {
-                }
+                getBook().delete(packageName)
+            } catch (ignored: Exception) {
             }
-            app
         }
+        app
     }
 
-    override fun saveApp(app: App): Observable<App> {
-        return Observable.just(app)
-            .flatMap { app1 ->
-                getBook().write(app1.packageName, app1)
-                Timber.d("Wrote %s to storage", app1.packageName)
-                Observable.just(app1)
-            }
+    override suspend fun saveApp(app: App): App = withContext(Dispatchers.IO) {
+        getBook().write(app.packageName, app)
+        Timber.d("Wrote %s to storage", app.packageName)
+        app
     }
 
     override fun isPackageBlacklisted(packageName: String): Boolean {
-        return getBook().contains(packageName) && getApp(packageName).toBlocking().first().blackListed
+        return getBook().contains(packageName) && runBlocking { getApp(packageName).blackListed }
     }
 
-    override fun setPackageBlacklisted(packageName: String): Observable<App> {
-        return getApp(packageName)
-            .flatMap { app ->
-                app.blackListed = true
-                app.incognito = false
-                Timber.d("Set %s as blacklisted", app.packageName)
-                saveApp(app)
-            }
+    override suspend fun setPackageBlacklisted(packageName: String): App {
+        val app = getApp(packageName)
+        app.blackListed = true
+        app.incognito = false
+        Timber.d("Set %s as blacklisted", app.packageName)
+        return saveApp(app)
     }
 
     override fun getPackageColorSync(packageName: String): Int {
-        return getApp(packageName).toBlocking().first().color
+        return runBlocking { getApp(packageName).color }
     }
 
-    override fun getPackageColor(packageName: String): Observable<Int> {
-        return getApp(packageName)
-            .map { app ->
-                Timber.d("Got %d color for %s from storage", app.color, app.packageName)
-                app.color
-            }
+    override suspend fun getPackageColor(packageName: String): Int {
+        val app = getApp(packageName)
+        Timber.d("Got %d color for %s from storage", app.color, app.packageName)
+        return app.color
     }
 
-    override fun setPackageColor(packageName: String, color: Int): Observable<App> {
-        return getApp(packageName)
-            .flatMap { app ->
-                app.color = color
-                Timber.d("Saved %d color for %s", color, app.packageName)
-                saveApp(app)
-            }
+    override suspend fun setPackageColor(packageName: String, color: Int): App {
+        val app = getApp(packageName)
+        app.color = color
+        Timber.d("Saved %d color for %s", color, app.packageName)
+        return saveApp(app)
     }
 
-    override fun removeBlacklist(packageName: String): Observable<App> {
-        return getApp(packageName)
-            .flatMap { app ->
-                app.blackListed = false
-                Timber.d("Blacklist removed %s", app.packageName)
-                saveApp(app)
-            }
+    override suspend fun removeBlacklist(packageName: String): App {
+        val app = getApp(packageName)
+        app.blackListed = false
+        Timber.d("Blacklist removed %s", app.packageName)
+        return saveApp(app)
     }
 
-    override fun removeIncognito(packageName: String): Observable<App> {
-        return getApp(packageName)
-            .flatMap { app ->
-                app.incognito = false
-                Timber.d("Incognito removed %s", app.packageName)
-                saveApp(app)
-            }
+    override suspend fun removeIncognito(packageName: String): App {
+        val app = getApp(packageName)
+        app.incognito = false
+        Timber.d("Incognito removed %s", app.packageName)
+        return saveApp(app)
     }
 
-    override fun getInstalledApps(): Observable<App> = Observable.empty()
+    override fun getInstalledApps(): Flow<App> = emptyFlow()
 
     override fun isPackageIncognito(packageName: String): Boolean {
-        return getBook().contains(packageName) && getApp(packageName).toBlocking().first().incognito
+        return getBook().contains(packageName) && runBlocking { getApp(packageName).incognito }
     }
 
-    override fun setPackageIncognito(packageName: String): Observable<App> {
-        return getApp(packageName)
-            .flatMap { app ->
-                app.incognito = true
-                app.blackListed = false
-                Timber.d("Set %s as incognito", app.packageName)
-                saveApp(app)
-            }
+    override suspend fun setPackageIncognito(packageName: String): App {
+        val app = getApp(packageName)
+        app.incognito = true
+        app.blackListed = false
+        Timber.d("Set %s as incognito", app.packageName)
+        return saveApp(app)
     }
 
-    override fun allProviders(): Observable<List<Provider>> = Observable.empty()
+    override suspend fun allProviders(): List<Provider> = emptyList()
 
     companion object {
         private const val APP_BOOK_NAME = "APPS"

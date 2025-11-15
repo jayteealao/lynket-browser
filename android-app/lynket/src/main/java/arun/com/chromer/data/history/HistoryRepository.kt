@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -23,27 +24,27 @@ package arun.com.chromer.data.history
 import androidx.lifecycle.LiveData
 import androidx.paging.PagedList
 import arun.com.chromer.data.website.model.Website
-import rx.Observable
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Created by Arunkumar on 03-03-2017.
  */
 interface HistoryRepository {
-  fun get(website: Website): Observable<Website>
+  suspend fun get(website: Website): Website?
 
-  fun insert(website: Website): Observable<Website>
+  suspend fun insert(website: Website): Website
 
-  fun update(website: Website): Observable<Website>
+  suspend fun update(website: Website): Website
 
-  fun delete(website: Website): Observable<Website>
+  suspend fun delete(website: Website): Website
 
-  fun exists(website: Website): Observable<Boolean>
+  suspend fun exists(website: Website): Boolean
 
-  fun deleteAll(): Observable<Int>
+  suspend fun deleteAll(): Int
 
-  fun recents(): io.reactivex.Observable<List<Website>>
+  fun recents(): Flow<List<Website>>
 
-  fun search(text: String): Observable<List<Website>>
+  suspend fun search(text: String): List<Website>
 
   /**
    * Load given range specified by [limit] and [offset]
@@ -52,5 +53,5 @@ interface HistoryRepository {
 
   fun pagedHistory(): LiveData<PagedList<Website>>
 
-  fun changes(): io.reactivex.Observable<Int>
+  fun changes(): Flow<Int>
 }

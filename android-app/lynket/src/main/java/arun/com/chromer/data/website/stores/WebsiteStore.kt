@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -26,23 +27,21 @@ import android.util.Pair
 import androidx.annotation.ColorInt
 import arun.com.chromer.data.website.model.WebColor
 import arun.com.chromer.data.website.model.Website
-import rx.Observable
+import kotlinx.coroutines.flow.Flow
 
 /**
- * Phase 7: Converted from Java to Kotlin
- *
  * Store interface for website data and metadata.
  */
 interface WebsiteStore {
-    fun getWebsite(url: String): Observable<Website>
+    fun getWebsite(url: String): Flow<Website?>
 
-    fun clearCache(): Observable<Void>
+    suspend fun clearCache()
 
-    fun saveWebsite(website: Website): Observable<Website>
+    suspend fun saveWebsite(website: Website): Website?
 
-    fun getWebsiteColor(url: String): Observable<WebColor>
+    suspend fun getWebsiteColor(url: String): WebColor
 
-    fun saveWebsiteColor(host: String, @ColorInt color: Int): Observable<WebColor>
+    suspend fun saveWebsiteColor(host: String, @ColorInt color: Int): WebColor
 
     fun getWebsiteIconAndColor(website: Website): Pair<Bitmap, Int>
 

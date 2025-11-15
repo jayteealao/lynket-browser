@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -26,7 +27,7 @@ import androidx.paging.PagedList
 import arun.com.chromer.data.history.paging.PagedHistoryDataSource
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
-import rx.Observable
+import kotlinx.coroutines.flow.Flow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,44 +44,41 @@ internal constructor(
   private val pagedHistoryDataSourceFactory: PagedHistoryDataSource.Factory
 ) : HistoryRepository {
 
-  override fun changes(): io.reactivex.Observable<Int> = historyStore.changes()
+  override fun changes(): Flow<Int> = historyStore.changes()
 
-  override fun get(website: Website): Observable<Website> {
-    return historyStore.get(website)
-      .doOnNext { saved ->
-        if (saved == null) {
-          Timber.d("History miss for: %s", website.url)
-        } else {
-          Timber.d("History hit for : %s", website.url)
-        }
-      }
+  override suspend fun get(website: Website): Website? {
+    val saved = historyStore.get(website)
+    if (saved == null) {
+      Timber.d("History miss for: %s", website.url)
+    } else {
+      Timber.d("History hit for : %s", website.url)
+    }
+    return saved
   }
 
-  override fun insert(website: Website): Observable<Website> {
+  override suspend fun insert(website: Website): Website {
     return if (preferences.historyDisabled()) {
-      Observable.just(website)
+      website
     } else {
-      historyStore.insert(website)
-        .doOnNext { webSite1 ->
-          if (webSite1 != null) {
-            Timber.d("Added %s to history", webSite1.url)
-          } else {
-            Timber.e("%s Did not add to history", website.url)
-          }
-        }
+      val result = historyStore.insert(website)
+      if (result != null) {
+        Timber.d("Added %s to history", result.url)
+      } else {
+        Timber.e("%s Did not add to history", website.url)
+      }
+      result ?: website
     }
   }
 
-  override fun update(website: Website): Observable<Website> {
+  override suspend fun update(website: Website): Website {
     return if (preferences.historyDisabled()) {
-      Observable.just(website)
+      website
     } else {
-      historyStore.update(website)
-        .doOnNext { saved ->
-          if (saved != null) {
-            Timber.d("Updated %s in history table", saved.url)
-          }
-        }
+      val saved = historyStore.update(website)
+      if (saved != null) {
+        Timber.d("Updated %s in history table", saved.url)
+      }
+      saved ?: website
     }
   }
 
@@ -98,13 +96,13 @@ internal constructor(
     offset: Int
   ) = historyStore.loadHistoryRange(limit, offset)
 
-  override fun delete(website: Website) = historyStore.delete(website)
+  override suspend fun delete(website: Website) = historyStore.delete(website)
 
-  override fun exists(website: Website) = historyStore.exists(website)
+  override suspend fun exists(website: Website) = historyStore.exists(website)
 
-  override fun deleteAll() = historyStore.deleteAll()
+  override suspend fun deleteAll() = historyStore.deleteAll()
 
   override fun recents() = historyStore.recents()
 
-  override fun search(text: String) = historyStore.search(text)
+  override suspend fun search(text: String) = historyStore.search(text)
 }

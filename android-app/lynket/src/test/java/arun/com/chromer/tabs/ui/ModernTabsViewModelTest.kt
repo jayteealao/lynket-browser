@@ -19,9 +19,8 @@ import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.TabsManager.Tab
 import com.google.common.truth.Truth.assertThat
 import io.mockk.*
-import io.reactivex.Observable
-import io.reactivex.Single
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -30,10 +29,10 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Phase 5: Unit tests for ModernTabsViewModel
+ * Phase 8: Unit tests for ModernTabsViewModel (Updated for Coroutines)
  *
  * Tests the ViewModel's:
- * - Tab loading with RxJava interop
+ * - Tab loading with Kotlin Coroutines
  * - UI state transitions (Loading → Success → Error)
  * - Dialog management (show/hide close all dialog)
  * - Close all tabs functionality
@@ -42,10 +41,10 @@ import org.junit.Test
  * - Website enrichment with error handling
  *
  * Uses:
- * - MockK for mocking TabsManager and WebsiteRepository
+ * - MockK for mocking TabsManager and WebsiteRepository with coEvery for suspend functions
  * - Turbine for testing StateFlow emissions
  * - Truth for assertions
- * - Coroutines Test for async operations with RxJava interop
+ * - Coroutines Test for async operations
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ModernTabsViewModelTest {
@@ -110,7 +109,7 @@ class ModernTabsViewModelTest {
     @Test
     fun `uiState starts with Loading and automatically loads tabs`() = runTest {
         // Given: TabsManager with empty tabs
-        every { tabsManager.getActiveTabs() } returns Single.just(emptyList())
+        coEvery { tabsManager.getActiveTabs() } returns emptyList()
 
         // When: ViewModel is created
         viewModel = createViewModel()
@@ -133,7 +132,7 @@ class ModernTabsViewModelTest {
     @Test
     fun `tabs StateFlow starts empty`() = runTest {
         // Given: Setup
-        every { tabsManager.getActiveTabs() } returns Single.just(emptyList())
+        coEvery { tabsManager.getActiveTabs() } returns emptyList()
 
         // When: ViewModel is created
         viewModel = createViewModel()
@@ -148,12 +147,12 @@ class ModernTabsViewModelTest {
     fun `loadTabs emits Success with tabs when successful`() = runTest {
         // Given: TabsManager with sample tabs
         val sampleTabs = createSampleTabs()
-        every { tabsManager.getActiveTabs() } returns Single.just(sampleTabs)
+        coEvery { tabsManager.getActiveTabs() } returns sampleTabs
 
         // Mock website repository for each tab
         sampleTabs.forEach { tab ->
             val website = createWebsite(tab.url, tab.title)
-            every { websiteRepository.getWebsite(tab.url) } returns Observable.just(website)
+            every { websiteRepository.getWebsite(tab.url) } returns flowOf(website)
         }
 
         // When: ViewModel is created (loadTabs called in init)
@@ -171,7 +170,7 @@ class ModernTabsViewModelTest {
     @Test
     fun `loadTabs handles TabsManager errors`() = runTest {
         // Given: TabsManager that throws error
-        every { tabsManager.getActiveTabs() } returns Single.error(RuntimeException("Tabs load failed"))
+        coEvery { tabsManager.getActiveTabs() } throws RuntimeException("Tabs load failed")
 
         // When: ViewModel is created
         viewModel = createViewModel()
@@ -188,15 +187,15 @@ class ModernTabsViewModelTest {
     fun `loadTabs handles website enrichment errors gracefully`() = runTest {
         // Given: Tabs that succeed but website fetch fails for one
         val sampleTabs = createSampleTabs()
-        every { tabsManager.getActiveTabs() } returns Single.just(sampleTabs)
+        coEvery { tabsManager.getActiveTabs() } returns sampleTabs
 
         // First tab succeeds, second fails, third succeeds
         every { websiteRepository.getWebsite("https://example.com") } returns
-            Observable.just(createWebsite("https://example.com", "Example"))
-        every { websiteRepository.getWebsite("https://test.com") } returns
-            Observable.error(RuntimeException("Website fetch failed"))
+            flowOf(createWebsite("https://example.com", "Example"))
+        every { websiteRepository.getWebsite("https://test.com") } throws
+            RuntimeException("Website fetch failed")
         every { websiteRepository.getWebsite("https://demo.com") } returns
-            Observable.just(createWebsite("https://demo.com", "Demo"))
+            flowOf(createWebsite("https://demo.com", "Demo"))
 
         // When: ViewModel is created
         viewModel = createViewModel()
@@ -213,10 +212,10 @@ class ModernTabsViewModelTest {
     fun `loadTabs transitions from Loading to Success`() = runTest {
         // Given: TabsManager with tabs
         val sampleTabs = createSampleTabs()
-        every { tabsManager.getActiveTabs() } returns Single.just(sampleTabs)
+        coEvery { tabsManager.getActiveTabs() } returns sampleTabs
         sampleTabs.forEach { tab ->
             every { websiteRepository.getWebsite(tab.url) } returns
-                Observable.just(createWebsite(tab.url, tab.title))
+                flowOf(createWebsite(tab.url, tab.title))
         }
 
         // When: Creating ViewModel and observing state transitions
@@ -239,10 +238,9 @@ class ModernTabsViewModelTest {
     @Test
     fun `manual loadTabs call reloads tabs`() = runTest {
         // Given: ViewModel with initial empty tabs
-        every { tabsManager.getActiveTabs() } returns Single.just(emptyList()) andThen
-            Single.just(createSampleTabs())
+        coEvery { tabsManager.getActiveTabs() } returnsMany listOf(emptyList(), createSampleTabs())
         every { websiteRepository.getWebsite(any()) } returns
-            Observable.just(createWebsite("https://example.com", "Example"))
+            flowOf(createWebsite("https://example.com", "Example"))
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -266,10 +264,10 @@ class ModernTabsViewModelTest {
     fun `showCloseAllDialog sets dialog flag when in Success state`() = runTest {
         // Given: ViewModel in Success state
         val sampleTabs = createSampleTabs()
-        every { tabsManager.getActiveTabs() } returns Single.just(sampleTabs)
+        coEvery { tabsManager.getActiveTabs() } returns sampleTabs
         sampleTabs.forEach { tab ->
             every { websiteRepository.getWebsite(tab.url) } returns
-                Observable.just(createWebsite(tab.url, tab.title))
+                flowOf(createWebsite(tab.url, tab.title))
         }
 
         viewModel = createViewModel()
@@ -290,10 +288,10 @@ class ModernTabsViewModelTest {
     fun `hideCloseAllDialog clears dialog flag when in Success state`() = runTest {
         // Given: ViewModel with dialog shown
         val sampleTabs = createSampleTabs()
-        every { tabsManager.getActiveTabs() } returns Single.just(sampleTabs)
+        coEvery { tabsManager.getActiveTabs() } returns sampleTabs
         sampleTabs.forEach { tab ->
             every { websiteRepository.getWebsite(tab.url) } returns
-                Observable.just(createWebsite(tab.url, tab.title))
+                flowOf(createWebsite(tab.url, tab.title))
         }
 
         viewModel = createViewModel()
@@ -314,7 +312,7 @@ class ModernTabsViewModelTest {
     @Test
     fun `showCloseAllDialog does nothing when in Loading state`() = runTest {
         // Given: ViewModel that stays in Loading (slow tabs load)
-        every { tabsManager.getActiveTabs() } returns Single.never() // Never completes
+        coEvery { tabsManager.getActiveTabs() } coAnswers { kotlinx.coroutines.delay(Long.MAX_VALUE); emptyList() } // Never completes
 
         viewModel = createViewModel()
 
@@ -332,7 +330,7 @@ class ModernTabsViewModelTest {
     @Test
     fun `hideCloseAllDialog does nothing when in Error state`() = runTest {
         // Given: ViewModel in Error state
-        every { tabsManager.getActiveTabs() } returns Single.error(RuntimeException("Error"))
+        coEvery { tabsManager.getActiveTabs() } throws RuntimeException("Error")
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -354,12 +352,11 @@ class ModernTabsViewModelTest {
     fun `closeAllTabs closes tabs and reloads`() = runTest {
         // Given: ViewModel with tabs
         val sampleTabs = createSampleTabs()
-        every { tabsManager.getActiveTabs() } returns Single.just(sampleTabs) andThen
-            Single.just(emptyList()) // After closing
-        every { tabsManager.closeAllTabs() } returns Single.just(sampleTabs)
+        coEvery { tabsManager.getActiveTabs() } returnsMany listOf(sampleTabs, emptyList()) // After closing
+        coEvery { tabsManager.closeAllTabs() } returns sampleTabs
         sampleTabs.forEach { tab ->
             every { websiteRepository.getWebsite(tab.url) } returns
-                Observable.just(createWebsite(tab.url, tab.title))
+                flowOf(createWebsite(tab.url, tab.title))
         }
 
         viewModel = createViewModel()
@@ -385,11 +382,11 @@ class ModernTabsViewModelTest {
     fun `closeAllTabs handles errors gracefully`() = runTest {
         // Given: ViewModel with tabs
         val sampleTabs = createSampleTabs()
-        every { tabsManager.getActiveTabs() } returns Single.just(sampleTabs)
-        every { tabsManager.closeAllTabs() } returns Single.error(RuntimeException("Close failed"))
+        coEvery { tabsManager.getActiveTabs() } returns sampleTabs
+        coEvery { tabsManager.closeAllTabs() } throws RuntimeException("Close failed")
         sampleTabs.forEach { tab ->
             every { websiteRepository.getWebsite(tab.url) } returns
-                Observable.just(createWebsite(tab.url, tab.title))
+                flowOf(createWebsite(tab.url, tab.title))
         }
 
         viewModel = createViewModel()
@@ -410,10 +407,9 @@ class ModernTabsViewModelTest {
     @Test
     fun `refresh calls loadTabs`() = runTest {
         // Given: ViewModel with tabs
-        every { tabsManager.getActiveTabs() } returns Single.just(emptyList()) andThen
-            Single.just(createSampleTabs())
+        coEvery { tabsManager.getActiveTabs() } returnsMany listOf(emptyList(), createSampleTabs())
         every { websiteRepository.getWebsite(any()) } returns
-            Observable.just(createWebsite("https://example.com", "Example"))
+            flowOf(createWebsite("https://example.com", "Example"))
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -432,10 +428,10 @@ class ModernTabsViewModelTest {
     fun `getTabCount returns correct count in Success state`() = runTest {
         // Given: ViewModel with 3 tabs
         val sampleTabs = createSampleTabs()
-        every { tabsManager.getActiveTabs() } returns Single.just(sampleTabs)
+        coEvery { tabsManager.getActiveTabs() } returns sampleTabs
         sampleTabs.forEach { tab ->
             every { websiteRepository.getWebsite(tab.url) } returns
-                Observable.just(createWebsite(tab.url, tab.title))
+                flowOf(createWebsite(tab.url, tab.title))
         }
 
         viewModel = createViewModel()
@@ -451,7 +447,7 @@ class ModernTabsViewModelTest {
     @Test
     fun `getTabCount returns 0 in Loading state`() = runTest {
         // Given: ViewModel in Loading state
-        every { tabsManager.getActiveTabs() } returns Single.never()
+        coEvery { tabsManager.getActiveTabs() } coAnswers { kotlinx.coroutines.delay(Long.MAX_VALUE); emptyList() }
 
         viewModel = createViewModel()
 
@@ -465,7 +461,7 @@ class ModernTabsViewModelTest {
     @Test
     fun `getTabCount returns 0 in Error state`() = runTest {
         // Given: ViewModel in Error state
-        every { tabsManager.getActiveTabs() } returns Single.error(RuntimeException("Error"))
+        coEvery { tabsManager.getActiveTabs() } throws RuntimeException("Error")
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -480,7 +476,7 @@ class ModernTabsViewModelTest {
     @Test
     fun `getTabCount returns 0 when no tabs`() = runTest {
         // Given: ViewModel with empty tabs
-        every { tabsManager.getActiveTabs() } returns Single.just(emptyList())
+        coEvery { tabsManager.getActiveTabs() } returns emptyList()
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -498,10 +494,10 @@ class ModernTabsViewModelTest {
     fun `uiState emits all state transitions`() = runTest {
         // Given: ViewModel setup
         val sampleTabs = createSampleTabs()
-        every { tabsManager.getActiveTabs() } returns Single.just(sampleTabs)
+        coEvery { tabsManager.getActiveTabs() } returns sampleTabs
         sampleTabs.forEach { tab ->
             every { websiteRepository.getWebsite(tab.url) } returns
-                Observable.just(createWebsite(tab.url, tab.title))
+                flowOf(createWebsite(tab.url, tab.title))
         }
 
         // When: Creating ViewModel and observing all state changes

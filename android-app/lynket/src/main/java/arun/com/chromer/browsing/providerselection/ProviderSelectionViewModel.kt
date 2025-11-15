@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -20,14 +21,15 @@
 
 package arun.com.chromer.browsing.providerselection
 
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.apps.model.Provider
-import arun.com.chromer.util.RxSchedulerUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
-import rx.subjects.PublishSubject
-import rx.subscriptions.CompositeSubscription
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -35,7 +37,7 @@ import javax.inject.Inject
  * Legacy ViewModel for ProviderSelectionActivity (XML-based UI).
  *
  * Migrated to Hilt: Uses @HiltViewModel annotation for automatic ViewModel injection.
- * Retains RxJava 1.x for now (will be migrated to Flows in future phase).
+ * Converted to Kotlin Coroutines and StateFlow.
  *
  * Note: Modern Compose UI uses ModernProviderSelectionViewModel instead.
  */
@@ -45,29 +47,18 @@ class ProviderSelectionViewModel
 constructor(
   private val appRepository: AppRepository
 ) : ViewModel() {
-  val subs = CompositeSubscription()
 
-  private val loadingQueue = PublishSubject.create<Int>()
-
-  val providersLiveData = MutableLiveData<List<Provider>>()
-
-  init {
-    subs.add(loadingQueue.asObservable()
-      .switchMap {
-        return@switchMap appRepository
-          .allProviders()
-          .compose(RxSchedulerUtils.applyIoSchedulers())
-      }.subscribe({ providers ->
-        providersLiveData.value = providers
-      }, Timber::e)
-    )
-  }
+  private val _providersState = MutableStateFlow<List<Provider>>(emptyList())
+  val providersState: StateFlow<List<Provider>> = _providersState.asStateFlow()
 
   fun loadProviders() {
-    loadingQueue.onNext(0)
-  }
-
-  override fun onCleared() {
-    subs.clear()
+    viewModelScope.launch {
+      try {
+        val providers = appRepository.allProviders()
+        _providersState.value = providers
+      } catch (e: Exception) {
+        Timber.e(e)
+      }
+    }
   }
 }

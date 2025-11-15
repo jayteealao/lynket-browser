@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -28,7 +29,9 @@ import arun.com.chromer.data.apps.store.AppStore
 import arun.com.chromer.data.common.App
 import arun.com.chromer.data.common.qualifiers.Disk
 import arun.com.chromer.shared.Constants
-import rx.Observable
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,34 +44,33 @@ class DefaultAppRepository
   @param:System private val systemStore: AppStore
 ) : AppRepository {
 
-  override fun getApp(packageName: String): Observable<App> {
+  override suspend fun getApp(packageName: String): App {
     return diskStore.getApp(packageName)
   }
 
-  override fun saveApp(app: App): Observable<App> {
+  override suspend fun saveApp(app: App): App {
     return diskStore.saveApp(app)
   }
 
-  override fun getPackageColor(packageName: String): Observable<Int> {
-    return diskStore.getPackageColor(packageName)
-      .doOnNext { integer ->
-        if (integer == Constants.NO_COLOR) {
-          Timber.d("Color not found, starting extraction.")
-          AppColorExtractorJob.enqueueWork(
-            application,
-            AppColorExtractorJob::class.java,
-            AppColorExtractorJob.JOB_ID,
-            Intent().putExtra(Constants.EXTRA_PACKAGE_NAME, packageName)
-          )
-        }
-      }
+  override suspend fun getPackageColor(packageName: String): Int {
+    val color = diskStore.getPackageColor(packageName)
+    if (color == Constants.NO_COLOR) {
+      Timber.d("Color not found, starting extraction.")
+      AppColorExtractorJob.enqueueWork(
+        application,
+        AppColorExtractorJob::class.java,
+        AppColorExtractorJob.JOB_ID,
+        Intent().putExtra(Constants.EXTRA_PACKAGE_NAME, packageName)
+      )
+    }
+    return color
   }
 
-  override fun setPackageColor(packageName: String, color: Int): Observable<App> {
+  override suspend fun setPackageColor(packageName: String, color: Int): App {
     return diskStore.setPackageColor(packageName, color)
   }
 
-  override fun removeBlacklist(packageName: String): Observable<App> {
+  override suspend fun removeBlacklist(packageName: String): App {
     return diskStore.removeBlacklist(packageName)
   }
 
@@ -76,27 +78,27 @@ class DefaultAppRepository
     return diskStore.isPackageBlacklisted(packageName)
   }
 
-  override fun setPackageBlacklisted(packageName: String): Observable<App> {
+  override suspend fun setPackageBlacklisted(packageName: String): App {
     return diskStore.setPackageBlacklisted(packageName)
   }
 
   override fun getPackageColorSync(packageName: String): Int {
-    return getPackageColor(packageName).toBlocking().first()
+    return runBlocking { getPackageColor(packageName) }
   }
 
   override fun isPackageIncognito(packageName: String): Boolean {
     return diskStore.isPackageIncognito(packageName)
   }
 
-  override fun setPackageIncognito(packageName: String): Observable<App> {
+  override suspend fun setPackageIncognito(packageName: String): App {
     return diskStore.setPackageIncognito(packageName)
   }
 
-  override fun removeIncognito(packageName: String): Observable<App> {
+  override suspend fun removeIncognito(packageName: String): App {
     return diskStore.removeIncognito(packageName)
   }
 
-  override fun allApps(): Observable<List<App>> {
+  override suspend fun allApps(): List<App> {
     val appComparator = App.PerAppListComparator()
     return systemStore.getInstalledApps()
       .map { app ->
@@ -104,8 +106,9 @@ class DefaultAppRepository
         app.incognito = diskStore.isPackageIncognito(app.packageName)
         app
       }
-      .toSortedList { app1, app2 -> appComparator.compare(app1, app2) }
+      .toList()
+      .sortedWith(appComparator)
   }
 
-  override fun allProviders() = systemStore.allProviders()
+  override suspend fun allProviders() = systemStore.allProviders()
 }

@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -20,15 +21,15 @@
 
 package arun.com.chromer.history
 
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.history.HistoryRepository
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.util.RxSchedulerUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
-import rx.Observable
-import rx.subjects.PublishSubject
-import rx.subscriptions.CompositeSubscription
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -36,7 +37,7 @@ import javax.inject.Inject
  * Legacy ViewModel for HistoryFragment (XML-based UI).
  *
  * Migrated to Hilt: Uses @HiltViewModel annotation for automatic ViewModel injection.
- * Retains RxJava 1.x for now (will be migrated to Flows in future phase).
+ * Converted to Kotlin Coroutines and StateFlow.
  *
  * Note: Modern Compose UI uses ModernHistoryViewModel instead.
  */
@@ -47,51 +48,38 @@ constructor(
   private val historyRepository: HistoryRepository
 ) : ViewModel() {
 
-  val loadingLiveData = MutableLiveData<Boolean>()
+  private val _loadingState = MutableStateFlow(false)
+  val loadingState: StateFlow<Boolean> = _loadingState.asStateFlow()
+
   var historyPagedListLiveData = historyRepository.pagedHistory()
 
-  private val loaderSubject: PublishSubject<Int> = PublishSubject.create()
-  val subs = CompositeSubscription()
-
-  init {
-    /* subs.add(loaderSubject
-             .doOnNext { loadingLiveData.postValue(true) }
-             .switchMap {
-                 historyRepository
-                         .allItemsCursor
-                         .compose(RxSchedulerUtils.applyIoSchedulers())
-             }.doOnNext { loadingLiveData.postValue(false) }
-             .doOnNext(historyCursorLiveData::postValue)
-             .subscribe())*/
-  }
-
   fun loadHistory() {
-    loaderSubject.onNext(0)
+    // Currently using pagedHistory LiveData, so no additional loading needed
+    // This method is kept for compatibility with existing code
   }
 
   fun deleteAll(onSuccess: (rows: Int) -> Unit) {
-    subs.add(
-      historyRepository
-        .deleteAll()
-        .compose(RxSchedulerUtils.applyIoSchedulers())
-        .doOnNext { rows ->
-          loadHistory()
-          onSuccess(rows)
-        }.subscribe()
-    )
+    viewModelScope.launch {
+      try {
+        val rows = historyRepository.deleteAll()
+        loadHistory()
+        onSuccess(rows)
+      } catch (e: Exception) {
+        Timber.e(e)
+      }
+    }
   }
 
   fun deleteHistory(website: Website?) {
-    subs.add(Observable.just(website)
-      .filter { webSite -> webSite?.url != null }
-      .flatMap { historyRepository.delete(it!!) }
-      .compose(RxSchedulerUtils.applyIoSchedulers())
-      .doOnError(Timber::e)
-      .doOnNext { loadHistory() }
-      .subscribe())
-  }
-
-  override fun onCleared() {
-    subs.clear()
+    viewModelScope.launch {
+      try {
+        if (website?.url != null) {
+          historyRepository.delete(website)
+          loadHistory()
+        }
+      } catch (e: Exception) {
+        Timber.e(e)
+      }
+    }
   }
 }

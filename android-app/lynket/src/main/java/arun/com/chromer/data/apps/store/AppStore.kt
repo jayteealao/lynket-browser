@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -23,33 +24,33 @@ package arun.com.chromer.data.apps.store
 import androidx.annotation.ColorInt
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.common.App
-import rx.Observable
+import kotlinx.coroutines.flow.Flow
 
 interface AppStore {
-  fun getApp(packageName: String): Observable<App>
+  suspend fun getApp(packageName: String): App
 
-  fun saveApp(app: App): Observable<App>
+  suspend fun saveApp(app: App): App
 
   fun isPackageBlacklisted(packageName: String): Boolean
 
-  fun setPackageBlacklisted(packageName: String): Observable<App>
+  suspend fun setPackageBlacklisted(packageName: String): App
 
   fun isPackageIncognito(packageName: String): Boolean
 
-  fun setPackageIncognito(packageName: String): Observable<App>
+  suspend fun setPackageIncognito(packageName: String): App
 
-  fun removeIncognito(packageName: String): Observable<App>
+  suspend fun removeIncognito(packageName: String): App
 
   @ColorInt
   fun getPackageColorSync(packageName: String): Int
 
-  fun getPackageColor(packageName: String): Observable<Int>
+  suspend fun getPackageColor(packageName: String): Int
 
-  fun setPackageColor(packageName: String, color: Int): Observable<App>
+  suspend fun setPackageColor(packageName: String, color: Int): App
 
-  fun removeBlacklist(packageName: String): Observable<App>
+  suspend fun removeBlacklist(packageName: String): App
 
-  fun getInstalledApps(): Observable<App>
+  fun getInstalledApps(): Flow<App>
 
-  fun allProviders(): Observable<List<Provider>>
+  suspend fun allProviders(): List<Provider>
 }

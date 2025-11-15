@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -18,7 +19,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Phase 7: Converted to Kotlin
 package arun.com.chromer.data.website.stores
 
 import android.app.Application
@@ -34,11 +34,15 @@ import arun.com.chromer.data.website.model.WebColor
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.ColorUtil
-import arun.com.chromer.util.RxSchedulerUtils
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.glide.GlideApp
 import arun.com.chromer.util.parser.RxParser
-import rx.Observable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.rx2.asFlow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -53,29 +57,42 @@ class WebsiteNetworkStore @Inject constructor(
 
     private val context: Context = application.applicationContext
 
-    override fun getWebsite(url: String): Observable<Website> {
-        return RxParser.parseUrl(url)
-            .flatMap { urlArticlePair ->
+    override fun getWebsite(url: String): Flow<Website?> = flow {
+        try {
+            // Convert RxJava Observable to Flow and collect
+            RxParser.parseUrl(url).asFlow().collect { urlArticlePair ->
                 if (urlArticlePair.second != null) {
                     val extractedWebsite = Website.fromArticle(urlArticlePair.second)
                     // We preserve the original url, otherwise breaks cache.
                     extractedWebsite.url = urlArticlePair.first
-                    Observable.just(extractedWebsite)
+                    emit(extractedWebsite)
                 } else {
-                    Observable.just(Website(urlArticlePair.first))
+                    emit(Website(urlArticlePair.first))
                 }
             }
-            .compose(RxSchedulerUtils.applyIoSchedulers())
+        } catch (e: Exception) {
+            Timber.e(e)
+            emit(null)
+        }
+    }.flowOn(Dispatchers.IO)
+
+    override suspend fun clearCache() {
+        // No-op for network store
     }
 
-    override fun clearCache(): Observable<Void> = Observable.empty()
+    override suspend fun saveWebsite(website: Website): Website? {
+        // No-op for network store
+        return null
+    }
 
-    override fun saveWebsite(website: Website): Observable<Website> = Observable.empty()
+    override suspend fun getWebsiteColor(url: String): WebColor {
+        // No-op for network store - returns default
+        return WebColor("", Constants.NO_COLOR)
+    }
 
-    override fun getWebsiteColor(url: String): Observable<WebColor> = Observable.empty()
-
-    override fun saveWebsiteColor(host: String, @ColorInt color: Int): Observable<WebColor> {
-        return Observable.empty()
+    override suspend fun saveWebsiteColor(host: String, @ColorInt color: Int): WebColor {
+        // No-op for network store - returns default
+        return WebColor(host, Constants.NO_COLOR)
     }
 
     override fun getWebsiteIconAndColor(website: Website): Pair<Bitmap, Int> {

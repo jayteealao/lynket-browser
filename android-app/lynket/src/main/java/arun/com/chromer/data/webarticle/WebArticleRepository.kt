@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -21,7 +22,7 @@
 package arun.com.chromer.data.webarticle
 
 import arun.com.chromer.data.webarticle.model.WebArticle
-import rx.Observable
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Phase 7: Converted from Java to Kotlin
@@ -29,5 +30,5 @@ import rx.Observable
  * Repository interface for fetching web articles.
  */
 interface WebArticleRepository {
-    fun getWebArticle(url: String): Observable<WebArticle>
+    fun getWebArticle(url: String): Flow<WebArticle>
 }

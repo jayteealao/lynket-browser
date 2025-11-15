@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -31,9 +32,19 @@ import arun.com.chromer.data.website.model.WebColor
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.data.website.stores.WebsiteStore
 import arun.com.chromer.shared.Constants.NO_COLOR
-import arun.com.chromer.util.RxSchedulerUtils
-import rx.Observable
-import rx.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.rx2.asFlow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -50,86 +61,130 @@ internal constructor(
   private val historyRepository: HistoryRepository
 ) : WebsiteRepository {
 
-  override fun getWebsite(url: String): Observable<Website> {
-    val cache = cacheStore.getWebsite(url)
-      .doOnNext { webSite ->
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+  override fun getWebsite(url: String): Flow<Website> = flow {
+    // Try cache first
+    cacheStore.getWebsite(url)
+      .onEach { webSite ->
         if (webSite != null) {
-          historyRepository.insert(webSite).subscribe()
+          scope.launch {
+            historyRepository.insert(webSite).asFlow().collect {}
+          }
         }
       }
+      .filterNotNull()
+      .collect {
+        emit(it)
+        return@flow
+      }
 
-    val history = historyRepository.get(Website(url))
-      .doOnNext { webSite ->
+    // Try history
+    historyRepository.get(Website(url))
+      .asFlow()
+      .onEach { webSite ->
         if (webSite != null) {
-          historyRepository.insert(webSite).subscribe()
+          scope.launch {
+            historyRepository.insert(webSite).asFlow().collect {}
+          }
         }
       }
-
-
-    val remote = webNetworkStore.getWebsite(url)
-      .filter { webSite -> webSite != null }
-      .doOnNext { webSite ->
-        cacheStore.saveWebsite(webSite).subscribe()
-        historyRepository.insert(webSite).subscribe()
+      .filterNotNull()
+      .collect {
+        emit(it)
+        return@flow
       }
 
+    // Try remote
+    webNetworkStore.getWebsite(url)
+      .filterNotNull()
+      .onEach { webSite ->
+        scope.launch {
+          cacheStore.saveWebsite(webSite)
+          historyRepository.insert(webSite).asFlow().collect {}
+        }
+      }
+      .collect {
+        emit(it)
+        return@flow
+      }
 
-    return Observable.concat(cache, history, remote)
-      .first { webSite -> webSite != null }
-      .doOnError { Timber.e(it) }
-      .onErrorReturn { throwable ->
-        Timber.e(throwable)
-        Website(url)
-      }.compose(RxSchedulerUtils.applyIoSchedulers())
-  }
+    // If nothing found, emit default
+    emit(Website(url))
+  }.catch { throwable ->
+    Timber.e(throwable)
+    emit(Website(url))
+  }.flowOn(Dispatchers.IO)
 
+  override fun getWebsiteReadOnly(url: String): Flow<Website> = flow {
+    // Try cache first
+    cacheStore.getWebsite(url)
+      .filterNotNull()
+      .collect {
+        emit(it)
+        return@flow
+      }
 
-  override fun getWebsiteReadOnly(url: String): Observable<Website> {
-    val cache = cacheStore.getWebsite(url)
-    val history = historyRepository.get(Website(url))
-    val remote = webNetworkStore.getWebsite(url)
-      .filter { webSite -> webSite != null }
-      .doOnNext { webSite -> cacheStore.saveWebsite(webSite).subscribe() }
-    return Observable.concat(cache, history, remote)
-      .first { webSite -> webSite != null }
-      .doOnError { Timber.e(it) }
-      .onErrorReturn { throwable ->
-        Timber.e(throwable)
-        Website(url)
-      }.compose(RxSchedulerUtils.applyIoSchedulers())
-  }
+    // Try history
+    historyRepository.get(Website(url))
+      .asFlow()
+      .filterNotNull()
+      .collect {
+        emit(it)
+        return@flow
+      }
+
+    // Try remote
+    webNetworkStore.getWebsite(url)
+      .filterNotNull()
+      .onEach { webSite ->
+        scope.launch {
+          cacheStore.saveWebsite(webSite)
+        }
+      }
+      .collect {
+        emit(it)
+        return@flow
+      }
+
+    // If nothing found, emit default
+    emit(Website(url))
+  }.catch { throwable ->
+    Timber.e(throwable)
+    emit(Website(url))
+  }.flowOn(Dispatchers.IO)
 
   override fun getWebsiteColorSync(url: String): Int {
-    return cacheStore.getWebsiteColor(url)
-      .map { webColor ->
-        if (webColor.color == NO_COLOR) {
-          saveWebColor(url).subscribe()
+    return runBlocking {
+      val webColor = cacheStore.getWebsiteColor(url)
+      if (webColor.color == NO_COLOR) {
+        scope.launch {
+          saveWebColor(url)
         }
-        webColor
-      }.toBlocking()
-      .first()
-      .color
-  }
-
-  override fun saveWebColor(url: String): Observable<WebColor> {
-    return getWebsiteReadOnly(url)
-      .observeOn(Schedulers.io())
-      .flatMap { webSite ->
-        if (webSite != null) {
-          if (webSite.themeColor() != NO_COLOR) {
-            val color = webSite.themeColor()
-            cacheStore.saveWebsiteColor(Uri.parse(webSite.url).host!!, color)
-          } else {
-            val color = getWebsiteIconAndColor(webSite).second
-            if (color != NO_COLOR) {
-              cacheStore.saveWebsiteColor(Uri.parse(webSite.url).host!!, color)
-            } else Observable.empty()
-          }
-        } else Observable.empty()
       }
+      webColor.color
+    }
   }
 
-  override fun clearCache(): Observable<Void> = cacheStore.clearCache()
+  override suspend fun saveWebColor(url: String): WebColor {
+    val webSite = getWebsiteReadOnly(url).first()
+
+    return if (webSite.themeColor() != NO_COLOR) {
+      val color = webSite.themeColor()
+      cacheStore.saveWebsiteColor(Uri.parse(webSite.url).host!!, color)
+    } else {
+      val color = getWebsiteIconAndColor(webSite).second
+      if (color != NO_COLOR) {
+        cacheStore.saveWebsiteColor(Uri.parse(webSite.url).host!!, color)
+      } else {
+        WebColor("", NO_COLOR)
+      }
+    }
+  }
+
+  override suspend fun clearCache() {
+    cacheStore.clearCache()
+  }
 
   override fun getWebsiteIconAndColor(website: Website): Pair<Bitmap, Int> {
     return webNetworkStore.getWebsiteIconAndColor(website)

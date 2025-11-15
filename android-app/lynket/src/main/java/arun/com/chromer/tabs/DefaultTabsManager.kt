@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -63,12 +64,11 @@ import arun.com.chromer.util.Utils
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.Theme
 import arun.com.chromer.shared.ServiceManager
-import dev.arunkumar.android.rxschedulers.SchedulerProvider
-import dev.arunkumar.android.rxschedulers.compose
-import dev.arunkumar.android.rxschedulers.poolToUi
-import dev.arunkumar.android.rxschedulers.poolToUiCompletable
-import io.reactivex.Completable
-import rx.Single
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -85,9 +85,10 @@ constructor(
   private val backgroundLoadingStrategyFactory: BackgroundLoadingStrategyFactory,
   private val rxEventBus: RxEventBus,
   private val floatingBubbleFactory: FloatingBubbleFactory,
-  private val rxPreferences: RxPreferences,
-  private val schedulerProvider: SchedulerProvider
+  private val rxPreferences: RxPreferences
 ) : TabsManager {
+
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
   override fun openUrl(
     context: Context,
@@ -98,19 +99,20 @@ constructor(
     fromAmp: Boolean,
     incognito: Boolean
   ) {
-    openUrlInternal(
-      context,
-      website,
-      fromApp,
-      fromWebHeads,
-      fromNewTab,
-      fromAmp,
-      incognito
-    ).subscribeOn(schedulerProvider.pool)
-      .subscribe()
+    scope.launch(Dispatchers.IO) {
+      openUrlInternal(
+        context,
+        website,
+        fromApp,
+        fromWebHeads,
+        fromNewTab,
+        fromAmp,
+        incognito
+      )
+    }
   }
 
-  private fun openUrlInternal(
+  private suspend fun openUrlInternal(
     context: Context,
     website: Website,
     fromApp: Boolean = true,
@@ -118,7 +120,7 @@ constructor(
     fromNewTab: Boolean = false,
     fromAmp: Boolean = false,
     incognito: Boolean = false
-  ): Completable = Completable.fromAction {
+  ) {
     // Clear non browsing activities if it was external intent.
     if (!fromApp) {
       clearNonBrowsingActivities()
@@ -126,13 +128,13 @@ constructor(
     // Open in web heads mode if we this command did not come from web heads.
     if ((preferences.webHeads() || rxPreferences.nativeBubbles.get()) && !fromWebHeads) {
       openWebHeads(context, website = website, fromMinimize = fromAmp, incognito = incognito)
-      return@fromAction
+      return
     }
 
     // Check if already an instance for this URL is there in our tasks
     if (reOrderTabByUrl(context, website)) {
       // Just bring it to front
-      return@fromAction
+      return
     }
 
     // Check if we should try to find AMP version of incoming url.
@@ -145,7 +147,7 @@ constructor(
           fromNewTab = fromNewTab,
           incognito = incognito
         )
-        return@fromAction
+        return
       } else if (!fromWebHeads) {
         // Open a proxy activity, attempt an extraction then open the AMP url if exists.
         val ampResolver = Intent(context, AmpResolverActivity::class.java).apply {
@@ -158,14 +160,14 @@ constructor(
           }
         }
         context.startActivity(ampResolver)
-        return@fromAction
+        return
       }
     }
 
     if (preferences.articleMode()) {
       // Launch article mode
       openArticle(context, website, incognito = incognito)
-      return@fromAction
+      return
     }
     // If everything failed then launch normally in browsing activity.
     openBrowsingTab(context, website, fromNewTab = fromNewTab, incognito = incognito)
@@ -248,39 +250,42 @@ constructor(
     }
   }
 
-  override fun processIncomingIntent(
+  override suspend fun processIncomingIntent(
     activity: Activity,
     intent: Intent
-  ): Completable = io.reactivex.Single
-    .fromCallable<Pair<String, Boolean>> {
-      // Safety check against malicious intents
-      val safeIntent = SafeIntent(intent)
-      val url = safeIntent.dataString
-      var proceed = true
-      // The first thing to check is if we should blacklist.
-      if (preferences.perAppSettings()) {
-        val lastApp = appDetectionManager.nonFilteredPackage
-        if (lastApp.isNotEmpty()) {
-          if (appRepository.isPackageBlacklisted(lastApp)) {
-            doBlacklistAction(activity, safeIntent)
-            proceed = false
-          } else if (appRepository.isPackageIncognito(lastApp)) {
-            doIncognitoAction(activity, url)
-            proceed = false
+  ) {
+    try {
+      withContext(Dispatchers.IO) {
+        // Safety check against malicious intents
+        val safeIntent = SafeIntent(intent)
+        val url = safeIntent.dataString
+        var proceed = true
+        // The first thing to check is if we should blacklist.
+        if (preferences.perAppSettings()) {
+          val lastApp = appDetectionManager.nonFilteredPackage
+          if (lastApp.isNotEmpty()) {
+            if (appRepository.isPackageBlacklisted(lastApp)) {
+              withContext(Dispatchers.Main) {
+                doBlacklistAction(activity, safeIntent)
+              }
+              proceed = false
+            } else if (appRepository.isPackageIncognito(lastApp)) {
+              withContext(Dispatchers.Main) {
+                doIncognitoAction(activity, url)
+              }
+              proceed = false
+            }
           }
         }
+
+        if (proceed) {
+          openUrlInternal(activity, Website(url), fromApp = false)
+        }
       }
-      url to proceed
-    }.flatMapCompletable { (url, proceed) ->
-      if (proceed) {
-        openUrlInternal(activity, Website(url), fromApp = false)
-      } else {
-        Completable.complete()
-      }
+    } catch (e: Exception) {
+      Timber.e(e, "Critical error when processing incoming intent")
     }
-    .doOnError { Timber.e(it, "Critical error when processing incoming intent") }
-    .onErrorComplete()
-    .compose(schedulerProvider.poolToUiCompletable())
+  }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   override fun openArticle(
@@ -424,11 +429,11 @@ constructor(
 
   @SuppressLint("NewApi")
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-  override fun getActiveTabs(): Single<List<TabsManager.Tab>> {
-    return Single.create { emitter ->
+  override suspend fun getActiveTabs(): List<TabsManager.Tab> {
+    return withContext(Dispatchers.IO) {
       try {
         val am = application.getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        emitter.onSuccess((am.appTasks ?: emptyList<ActivityManager.AppTask>())
+        (am.appTasks ?: emptyList<ActivityManager.AppTask>())
           .asSequence()
           .map(DocumentUtils::getTaskInfoFromTask)
           .filterNotNull()
@@ -440,23 +445,23 @@ constructor(
             val type = getTabType(it.baseIntent.component!!.className)
             TabsManager.Tab(url, type)
           }.filter { it.type != OTHER }
-          .toMutableList())
+          .toMutableList()
       } catch (e: Exception) {
-        emitter.onError(e)
+        Timber.e(e, "Error getting active tabs")
+        emptyList()
       }
     }
   }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-  override fun closeAllTabs(): Single<List<TabsManager.Tab>> {
-    return getActiveTabs()
-      .toObservable()
-      .flatMapIterable { it }
-      .map {
-        finishTabByUrl(application, Website(it.url), listOf(it.getTargetActivityName()))
-        it
-      }.toList()
-      .toSingle()
+  override suspend fun closeAllTabs(): List<TabsManager.Tab> {
+    return withContext(Dispatchers.IO) {
+      val tabs = getActiveTabs()
+      tabs.forEach { tab ->
+        finishTabByUrl(application, Website(tab.url), listOf(tab.getTargetActivityName()))
+      }
+      tabs
+    }
   }
 
   /**

@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -24,7 +25,9 @@ package arun.com.chromer.data.webarticle.stores
 import arun.com.chromer.data.webarticle.WebArticleStore
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.util.parser.RxParser
-import rx.Observable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.rx2.await
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,34 +37,38 @@ import javax.inject.Singleton
 @Singleton
 class WebArticleNetworkStore @Inject constructor() : WebArticleStore {
 
-    override fun getWebArticle(url: String): Observable<WebArticle> {
-        return RxParser.parseArticle(url)
-            .flatMap { urlArticlePair ->
-                if (urlArticlePair.second != null) {
-                    Observable.just(WebArticle.fromArticle(urlArticlePair.second))
-                } else {
-                    Observable.just(null)
-                }
-            }
-            .map { webArticle ->
-                if (webArticle != null) {
-                    // Clean up all the empty strings.
-                    val rawElements = webArticle.elements
-                    if (rawElements != null) {
-                        val iterator = rawElements.iterator()
-                        while (iterator.hasNext()) {
-                            val element = iterator.next()
-                            if (element.text().isEmpty()) {
-                                iterator.remove()
-                            }
+    override suspend fun getWebArticle(url: String): WebArticle? = withContext(Dispatchers.IO) {
+        try {
+            // Bridge RxJava Observable to coroutines
+            val urlArticlePair = RxParser.parseArticle(url).await()
+
+            val article = urlArticlePair.second
+            if (article != null) {
+                val webArticle = WebArticle.fromArticle(article)
+
+                // Clean up all the empty strings.
+                val rawElements = webArticle.elements
+                if (rawElements != null) {
+                    val iterator = rawElements.iterator()
+                    while (iterator.hasNext()) {
+                        val element = iterator.next()
+                        if (element.text().isEmpty()) {
+                            iterator.remove()
                         }
                     }
                 }
+
                 webArticle
+            } else {
+                null
             }
+        } catch (e: Exception) {
+            null
+        }
     }
 
-    override fun saveWebArticle(webSite: WebArticle): Observable<WebArticle> {
-        return Observable.empty()
+    override suspend fun saveWebArticle(webSite: WebArticle): WebArticle {
+        // Network store doesn't save
+        return webSite
     }
 }

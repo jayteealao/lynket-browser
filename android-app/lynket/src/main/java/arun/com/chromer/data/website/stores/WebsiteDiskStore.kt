@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -18,7 +19,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Phase 7: Converted to Kotlin
 package arun.com.chromer.data.website.stores
 
 import android.app.Application
@@ -35,7 +35,11 @@ import arun.com.chromer.shared.Constants.NO_COLOR
 import `in`.arunkumarsampath.diskcache.ParcelDiskCache
 import io.paperdb.Book
 import io.paperdb.Paper
-import rx.Observable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.IOException
 import javax.inject.Inject
@@ -67,62 +71,64 @@ class WebsiteDiskStore @Inject constructor(
 
     override fun getBook(): Book = Paper.book(THEME_COLOR_BOOK)
 
-    override fun getWebsite(url: String): Observable<Website> {
-        return Observable.fromCallable {
-            try {
-                webSiteDiskCache?.get(url.trim())
-            } catch (e: Exception) {
-                Timber.e(e)
-                null
-            }
-        }.doOnNext { webSite ->
-            if (webSite == null) {
-                Timber.d("Cache miss for: %s", url)
-            } else {
-                Timber.d("Cache hit for : %s", url)
-            }
-        }
-    }
-
-    override fun clearCache(): Observable<Void> {
-        return Observable.fromCallable {
-            webSiteDiskCache?.clear()
+    override fun getWebsite(url: String): Flow<Website?> = flow {
+        val webSite = try {
+            webSiteDiskCache?.get(url.trim())
+        } catch (e: Exception) {
+            Timber.e(e)
             null
         }
+
+        if (webSite == null) {
+            Timber.d("Cache miss for: %s", url)
+        } else {
+            Timber.d("Cache hit for : %s", url)
+        }
+
+        emit(webSite)
+    }.flowOn(Dispatchers.IO)
+
+    override suspend fun clearCache() {
+        withContext(Dispatchers.IO) {
+            webSiteDiskCache?.clear()
+        }
     }
 
-    override fun saveWebsite(website: Website): Observable<Website> {
-        return Observable.fromCallable {
-            try {
+    override suspend fun saveWebsite(website: Website): Website? {
+        return withContext(Dispatchers.IO) {
+            val result = try {
                 webSiteDiskCache?.set(website.url, website)
             } catch (e: Exception) {
                 Timber.e(e)
                 null
             }
-        }.doOnNext { webSite1 ->
-            if (webSite1 != null) {
-                Timber.d("Put %s to cache", webSite1.url)
+
+            if (result != null) {
+                Timber.d("Put %s to cache", result.url)
             }
+
+            result
         }
     }
 
-    override fun getWebsiteColor(url: String): Observable<WebColor> {
-        return Observable.fromCallable {
-            try {
+    override suspend fun getWebsiteColor(url: String): WebColor {
+        return withContext(Dispatchers.IO) {
+            val webColor = try {
                 getBook().read<WebColor>(Uri.parse(url).host)
             } catch (e: Exception) {
                 Timber.e(e)
                 null
             }
-        }.map { webColor ->
+
             webColor ?: WebColor(Uri.parse(url).host, NO_COLOR)
         }
     }
 
-    override fun saveWebsiteColor(host: String, @ColorInt color: Int): Observable<WebColor> {
-        return Observable.fromCallable {
+    override suspend fun saveWebsiteColor(host: String, @ColorInt color: Int): WebColor {
+        return withContext(Dispatchers.IO) {
             try {
                 getBook().write(host, WebColor(host, color)).read<WebColor>(host)
+                    ?: WebColor(host, NO_COLOR)
             } catch (e: Exception) {
                 Timber.e(e)
                 WebColor(host, NO_COLOR)

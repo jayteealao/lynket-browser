@@ -24,13 +24,14 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
+import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
 import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.finishAndRemoveTaskCompat
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.SafeIntent
-import io.reactivex.rxkotlin.subscribeBy
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @SuppressLint("GoogleAppIndexingApiWarning")
@@ -48,8 +49,10 @@ class BrowserInterceptActivity : BaseActivity() {
         invalidLink()
         return
       }
-      defaultTabsManager.processIncomingIntent(this, intent)
-        .subscribeBy(onComplete = { finishAndRemoveTaskCompat() })
+      lifecycleScope.launch {
+        defaultTabsManager.processIncomingIntent(this@BrowserInterceptActivity, intent)
+        finishAndRemoveTaskCompat()
+      }
     } ?: run {
       finishAndRemoveTaskCompat()
     }

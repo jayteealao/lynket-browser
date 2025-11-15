@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -28,8 +29,6 @@ import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.data.website.model.Website
-import io.reactivex.Completable
-import rx.Single
 
 /**
  * Helper class to manage tabs opened by Lynket. Responsible for managing Lynket's task stack.
@@ -109,7 +108,7 @@ interface TabsManager {
   /**
    * Closes all browsing tabs present in our process.
    */
-  fun closeAllTabs(): Single<List<Tab>>
+  suspend fun closeAllTabs(): List<Tab>
 
   /**
    * Returns true if it is determined that we already have any of our browsing activity has opened
@@ -144,7 +143,7 @@ interface TabsManager {
    * Processes incoming intent from preferably external apps (could be us too) and then figures out
    * how to handle the intent and launch a new url.
    */
-  fun processIncomingIntent(activity: Activity, intent: Intent): Completable
+  suspend fun processIncomingIntent(activity: Activity, intent: Intent)
 
   /**
    * Opens the given {@param url} irrespective of whether web heads is on.
@@ -175,7 +174,7 @@ interface TabsManager {
   /**
    * Get active tabs serving an url.
    */
-  fun getActiveTabs(): Single<List<Tab>>
+  suspend fun getActiveTabs(): List<Tab>
 
   /**
    * Show tabs activity

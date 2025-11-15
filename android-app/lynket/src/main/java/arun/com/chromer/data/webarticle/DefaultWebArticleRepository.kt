@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -23,7 +24,10 @@ package arun.com.chromer.data.webarticle
 import arun.com.chromer.data.common.qualifiers.Disk
 import arun.com.chromer.data.common.qualifiers.Network
 import arun.com.chromer.data.webarticle.model.WebArticle
-import rx.Observable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,23 +44,23 @@ class DefaultWebArticleRepository @Inject constructor(
     @Disk private val articleCacheStore: WebArticleStore
 ) : WebArticleRepository {
 
-    override fun getWebArticle(url: String): Observable<WebArticle> {
-        return articleCacheStore.getWebArticle(url)
-            .flatMap { webArticle ->
-                if (webArticle == null) {
-                    Timber.d("Cache miss for %s", url)
-                    articleNetworkStore.getWebArticle(url)
-                        .flatMap { networkWebArticle ->
-                            if (networkWebArticle != null) {
-                                articleCacheStore.saveWebArticle(networkWebArticle)
-                            } else {
-                                Observable.just(null)
-                            }
-                        }
-                } else {
-                    Timber.d("Cache hit for %s", url)
-                    Observable.just(webArticle)
-                }
+    override fun getWebArticle(url: String): Flow<WebArticle> = flow {
+        // Try to get from cache first
+        val cachedArticle = articleCacheStore.getWebArticle(url)
+
+        if (cachedArticle != null) {
+            Timber.d("Cache hit for %s", url)
+            emit(cachedArticle)
+        } else {
+            Timber.d("Cache miss for %s", url)
+            // Fetch from network
+            val networkArticle = articleNetworkStore.getWebArticle(url)
+
+            if (networkArticle != null) {
+                // Save to cache and emit
+                val savedArticle = articleCacheStore.saveWebArticle(networkArticle)
+                emit(savedArticle)
             }
-    }
+        }
+    }.flowOn(Dispatchers.IO)
 }

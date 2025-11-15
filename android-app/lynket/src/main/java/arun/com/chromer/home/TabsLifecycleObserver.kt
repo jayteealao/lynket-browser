@@ -29,9 +29,9 @@ import dev.arunkumar.android.dagger.activity.PerActivity
 import dev.arunkumar.android.rxschedulers.SchedulerProvider
 import dev.arunkumar.android.rxschedulers.poolToUi
 import hu.akarnokd.rxjava.interop.RxJavaInterop.toV2Observable
-import hu.akarnokd.rxjava.interop.RxJavaInterop.toV2Single
 import io.reactivex.Observable
 import io.reactivex.rxkotlin.toObservable
+import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -47,8 +47,10 @@ constructor(
 ) : LifecycleEvents(lifecycleOwner) {
   fun activeTabs(): Observable<List<TabsManager.Tab>> = starts.flatMap {
     Observable.interval(750, TimeUnit.MILLISECONDS)
-      .flatMapSingle { toV2Single(tabsManager.getActiveTabs()) }
-      .startWith(toV2Single(tabsManager.getActiveTabs()).toObservable())
+      .flatMapSingle {
+        io.reactivex.Single.fromCallable { runBlocking { tabsManager.getActiveTabs() } }
+      }
+      .startWith(io.reactivex.Single.fromCallable { runBlocking { tabsManager.getActiveTabs() } }.toObservable())
       .distinctUntilChanged()
       .switchMap { tabs ->
         tabs.toObservable()

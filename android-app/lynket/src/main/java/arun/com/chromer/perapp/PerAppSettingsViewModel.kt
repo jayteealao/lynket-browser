@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -20,15 +21,19 @@
 
 package arun.com.chromer.perapp
 
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.common.App
-import arun.com.chromer.util.RxSchedulerUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
-import rx.android.schedulers.AndroidSchedulers
-import rx.subjects.PublishSubject
-import rx.subscriptions.CompositeSubscription
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -36,7 +41,7 @@ import javax.inject.Inject
  * ViewModel for Per-App Settings screen.
  *
  * Migrated to Hilt: Uses @HiltViewModel annotation for automatic ViewModel injection.
- * Retains RxJava 1.x for now (will be migrated to Flows in future phase).
+ * Converted to Kotlin Coroutines and StateFlow.
  *
  * Manages per-app settings for blacklist and incognito mode.
  */
@@ -44,101 +49,83 @@ import javax.inject.Inject
 class PerAppSettingsViewModel
 @Inject
 constructor(private val appRepository: AppRepository) : ViewModel() {
-  private val subs = CompositeSubscription()
 
-  private val loadingQueue = PublishSubject.create<Int>()
-  private val blacklistQueue = PublishSubject.create<Pair<String, Boolean>>()
-  private val incognitoQueue = PublishSubject.create<Pair<String, Boolean>>()
+  private val _loadingState = MutableStateFlow(false)
+  val loadingState: StateFlow<Boolean> = _loadingState.asStateFlow()
 
-  val loadingLiveData = MutableLiveData<Boolean>()
-  val appsLiveData = MutableLiveData<List<App>>()
-  val appLiveData = MutableLiveData<Pair<Int, App>>()
+  private val _appsState = MutableStateFlow<List<App>>(emptyList())
+  val appsState: StateFlow<List<App>> = _appsState.asStateFlow()
 
-  init {
-    initAppsLoader()
-    initIncognitoSub()
-    initBlacklistSub()
-  }
+  private val _appUpdateChannel = Channel<Pair<Int, App>>(Channel.BUFFERED)
+  val appUpdateFlow = _appUpdateChannel.receiveAsFlow()
 
-  private fun initAppsLoader() {
-    subs.add(loadingQueue.asObservable()
-      .onBackpressureLatest()
-      .doOnNext { loading(true) }
-      .concatMap { appRepository.allApps().compose(RxSchedulerUtils.applyIoSchedulers()) }
-      .doOnNext { loading(false) }
-      .subscribe({ apps ->
+  private val operationMutex = Mutex()
+
+  fun loadApps() {
+    viewModelScope.launch {
+      try {
+        _loadingState.value = true
+        val apps = appRepository.allApps()
         Timber.d("Apps loaded ${apps.size}")
-        appsLiveData.value = apps
-      }, Timber::e)
-    )
-  }
-
-  private fun initIncognitoSub() {
-    subs.add(incognitoQueue.asObservable()
-      .onBackpressureLatest()
-      .filter { !loadingLiveData.value!! }
-      .doOnNext { loading(true) }
-      .concatMap { (packageName, incognito) ->
-        if (incognito) {
-          appRepository.setPackageIncognito(packageName)
-            .compose(RxSchedulerUtils.applyIoSchedulers())
-        } else {
-          appRepository.removeIncognito(packageName)
-            .compose(RxSchedulerUtils.applyIoSchedulers())
-        }
-      }.observeOn(AndroidSchedulers.mainThread())
-      .doOnNext { loading(false) }
-      .map { app ->
-        Pair(
-          appsLiveData.value!!.indexOfFirst { it.packageName == app.packageName },
-          app
-        )
+        _appsState.value = apps
+        _loadingState.value = false
+      } catch (e: Exception) {
+        _loadingState.value = false
+        Timber.e(e)
       }
-      .subscribe { appLiveData.value = it })
-  }
-
-  private fun initBlacklistSub() {
-    subs.add(blacklistQueue.asObservable()
-      .onBackpressureLatest()
-      .filter { !loadingLiveData.value!! }
-      .doOnNext { loading(true) }
-      .concatMap { (packageName, blacklisted) ->
-        if (blacklisted) {
-          appRepository.setPackageBlacklisted(packageName)
-            .compose(RxSchedulerUtils.applyIoSchedulers())
-        } else {
-          appRepository.removeBlacklist(packageName)
-            .compose(RxSchedulerUtils.applyIoSchedulers())
-        }
-      }.observeOn(AndroidSchedulers.mainThread())
-      .doOnNext { loading(false) }
-      .map { app ->
-        Pair(
-          appsLiveData.value!!.indexOfFirst { it.packageName == app.packageName },
-          app
-        )
-      }
-      .subscribe { appLiveData.value = it })
+    }
   }
 
   fun incognito(selections: Pair<String, Boolean>) {
-    incognitoQueue.onNext(selections)
+    viewModelScope.launch {
+      operationMutex.withLock {
+        if (_loadingState.value) return@launch
+
+        try {
+          _loadingState.value = true
+          val (packageName, incognito) = selections
+
+          val app = if (incognito) {
+            appRepository.setPackageIncognito(packageName)
+          } else {
+            appRepository.removeIncognito(packageName)
+          }
+
+          val index = _appsState.value.indexOfFirst { it.packageName == app.packageName }
+          _appUpdateChannel.send(Pair(index, app))
+          _loadingState.value = false
+        } catch (e: Exception) {
+          _loadingState.value = false
+          Timber.e(e)
+        }
+      }
+    }
   }
 
   fun blacklist(selections: Pair<String, Boolean>) {
-    blacklistQueue.onNext(selections)
-  }
+    viewModelScope.launch {
+      operationMutex.withLock {
+        if (_loadingState.value) return@launch
 
-  fun loadApps() {
-    loadingQueue.onNext(0)
-  }
+        try {
+          _loadingState.value = true
+          val (packageName, blacklisted) = selections
 
-  private fun loading(loading: Boolean) {
-    loadingLiveData.postValue(loading)
-  }
+          val app = if (blacklisted) {
+            appRepository.setPackageBlacklisted(packageName)
+          } else {
+            appRepository.removeBlacklist(packageName)
+          }
 
-  override fun onCleared() {
-    subs.clear()
+          val index = _appsState.value.indexOfFirst { it.packageName == app.packageName }
+          _appUpdateChannel.send(Pair(index, app))
+          _loadingState.value = false
+        } catch (e: Exception) {
+          _loadingState.value = false
+          Timber.e(e)
+        }
+      }
+    }
   }
 }
 

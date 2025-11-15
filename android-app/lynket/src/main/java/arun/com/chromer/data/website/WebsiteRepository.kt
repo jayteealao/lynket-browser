@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -23,10 +24,9 @@ package arun.com.chromer.data.website
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.util.Pair
-
 import arun.com.chromer.data.website.model.WebColor
 import arun.com.chromer.data.website.model.Website
-import rx.Observable
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Interface definition of Website repository which is responsible for providing
@@ -34,15 +34,15 @@ import rx.Observable
  * Will use a combination of disk cache and network parsing to provide requested website's data.
  */
 interface WebsiteRepository {
-  fun getWebsite(url: String): Observable<Website>
+  fun getWebsite(url: String): Flow<Website>
 
-  fun getWebsiteReadOnly(url: String): Observable<Website>
+  fun getWebsiteReadOnly(url: String): Flow<Website>
 
   fun getWebsiteColorSync(url: String): Int
 
-  fun saveWebColor(url: String): Observable<WebColor>
+  suspend fun saveWebColor(url: String): WebColor
 
-  fun clearCache(): Observable<Void>
+  suspend fun clearCache()
 
   fun getWebsiteIconAndColor(website: Website): Pair<Bitmap, Int>
 

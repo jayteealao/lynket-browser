@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -25,7 +26,8 @@ import android.app.Application
 import arun.com.chromer.data.webarticle.WebArticleStore
 import arun.com.chromer.data.webarticle.model.WebArticle
 import `in`.arunkumarsampath.diskcache.ParcelDiskCache
-import rx.Observable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.IOException
 import javax.inject.Inject
@@ -55,23 +57,20 @@ class WebArticleCacheStore @Inject constructor(
         }
     }
 
-    override fun getWebArticle(url: String): Observable<WebArticle> {
-        return Observable.fromCallable {
-            try {
-                webSiteDiskCache?.get(url.trim())
-            } catch (e: Exception) {
-                null
-            }
+    override suspend fun getWebArticle(url: String): WebArticle? = withContext(Dispatchers.IO) {
+        try {
+            webSiteDiskCache?.get(url.trim())
+        } catch (e: Exception) {
+            null
         }
     }
 
-    override fun saveWebArticle(webSite: WebArticle): Observable<WebArticle> {
-        return Observable.fromCallable {
-            try {
-                webSiteDiskCache?.set(webSite.url, webSite) ?: webSite
-            } catch (e: Exception) {
-                webSite
-            }
+    override suspend fun saveWebArticle(webSite: WebArticle): WebArticle = withContext(Dispatchers.IO) {
+        try {
+            webSiteDiskCache?.set(webSite.url, webSite)
+            webSite
+        } catch (e: Exception) {
+            webSite
         }
     }
 

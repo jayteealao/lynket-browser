@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -20,15 +21,15 @@
 
 package arun.com.chromer.tabs.ui
 
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.tabs.TabsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import rx.android.schedulers.AndroidSchedulers
-import rx.schedulers.Schedulers
-import rx.subjects.PublishSubject
-import rx.subscriptions.CompositeSubscription
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -36,7 +37,7 @@ import javax.inject.Inject
  * Legacy ViewModel for Tabs UI (XML-based).
  *
  * Migrated to Hilt: Uses @HiltViewModel annotation for automatic ViewModel injection.
- * Retains RxJava 1.x for now (will be migrated to Flows in future phase).
+ * Converted to Kotlin Coroutines and StateFlow.
  *
  * Note: Modern Compose UI uses ModernTabsViewModel instead.
  */
@@ -47,54 +48,47 @@ constructor(
   private val tabsManager: TabsManager,
   private val websiteRepository: WebsiteRepository
 ) : ViewModel() {
-  val loadingLiveData = MutableLiveData<Boolean>()
-  val tabsData = MutableLiveData<MutableList<TabsManager.Tab>>()
+  private val _loadingState = MutableStateFlow(false)
+  val loadingState: StateFlow<Boolean> = _loadingState.asStateFlow()
 
-  private val loaderSubject: PublishSubject<Int> = PublishSubject.create()
-  val subs = CompositeSubscription()
-
-  init {
-    subs.add(loaderSubject
-      .asObservable()
-      .doOnNext { loadingLiveData.value = true }
-      .switchMap { _ ->
-        tabsManager.getActiveTabs()
-          .onErrorReturn { emptyList() }
-          .subscribeOn(Schedulers.io())
-          .toObservable()
-          .concatMapIterable { it }
-          .concatMap { tab ->
-            websiteRepository.getWebsiteReadOnly(tab.url)
-              .map { website ->
-                tab.apply {
-                  this.website = website
-                }
-              }
-          }.toList()
-          .observeOn(AndroidSchedulers.mainThread())
-          .doOnNext { tabs ->
-            loadingLiveData.value = false
-            tabsData.value = tabs
-          }
-      }.subscribe()
-    )
-  }
-
+  private val _tabsData = MutableStateFlow<List<TabsManager.Tab>>(emptyList())
+  val tabsData: StateFlow<List<TabsManager.Tab>> = _tabsData.asStateFlow()
 
   fun loadTabs() {
-    loaderSubject.onNext(0)
+    viewModelScope.launch {
+      try {
+        _loadingState.value = true
+
+        val activeTabs = try {
+          tabsManager.getActiveTabs()
+        } catch (e: Exception) {
+          emptyList()
+        }
+
+        val tabsWithWebsites = activeTabs.map { tab ->
+          val website = websiteRepository.getWebsiteReadOnly(tab.url)
+          tab.apply {
+            this.website = website
+          }
+        }
+
+        _tabsData.value = tabsWithWebsites
+        _loadingState.value = false
+      } catch (e: Exception) {
+        _loadingState.value = false
+        Timber.e(e)
+      }
+    }
   }
 
   fun clearAllTabs() {
-    subs.add(tabsManager.closeAllTabs()
-      .subscribeOn(Schedulers.io())
-      .observeOn(AndroidSchedulers.mainThread())
-      .doOnSuccess { loadTabs() }
-      .doOnError(Timber::e)
-      .subscribe())
-  }
-
-  override fun onCleared() {
-    subs.clear()
+    viewModelScope.launch {
+      try {
+        tabsManager.closeAllTabs()
+        loadTabs()
+      } catch (e: Exception) {
+        Timber.e(e)
+      }
+    }
   }
 }

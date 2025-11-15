@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -29,8 +30,13 @@ import androidx.lifecycle.MutableLiveData
 import androidx.paging.PagedList
 import arun.com.chromer.data.history.model.HistoryTable.*
 import arun.com.chromer.data.website.model.Website
-import com.jakewharton.rxrelay2.PublishRelay
-import rx.Observable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -52,18 +58,13 @@ internal constructor(application: Application) : SQLiteOpenHelper(
 
   private val isOpen @Synchronized get() = ::database.isInitialized && database.isOpen
 
-  private val changesRelay = PublishRelay.create<Int>()
+  private val changesFlow = MutableSharedFlow<Int>(replay = 0)
 
-  override fun changes(): io.reactivex.Observable<Int> = changesRelay.hide()
+  override fun changes(): Flow<Int> = changesFlow.asSharedFlow()
 
-  private fun <T> changesTransformer() = Observable.Transformer<T, T> { upstream ->
-    upstream.map {
-      changesRelay.accept(0)
-      it
-    }
+  private suspend fun broadcastChanges() {
+    changesFlow.emit(0)
   }
-
-  private fun <T> Observable<T>.broadcastChanges(): Observable<T> = compose(changesTransformer())
 
   override fun onCreate(db: SQLiteDatabase) {
     db.execSQL(DATABASE_CREATE)
@@ -88,125 +89,121 @@ internal constructor(application: Application) : SQLiteOpenHelper(
     }
   }
 
-  override fun get(website: Website): Observable<Website> {
-    return Observable.fromCallable {
-      open()
-      val cursor =
-        database.rawQuery("SELECT * FROM $TABLE_NAME WHERE $COLUMN_URL=?", arrayOf(website.url))
-      when {
-        cursor == null -> return@fromCallable null
-        cursor.count == 0 -> {
-          cursor.close()
-          return@fromCallable null
-        }
-        else -> {
-          cursor.moveToFirst()
-          val savedSite = Website.fromCursor(cursor)
-          cursor.close()
-          return@fromCallable savedSite
-        }
+  override suspend fun get(website: Website): Website? = withContext(Dispatchers.IO) {
+    open()
+    val cursor =
+      database.rawQuery("SELECT * FROM $TABLE_NAME WHERE $COLUMN_URL=?", arrayOf(website.url))
+    when {
+      cursor == null -> null
+      cursor.count == 0 -> {
+        cursor.close()
+        null
+      }
+      else -> {
+        cursor.moveToFirst()
+        val savedSite = Website.fromCursor(cursor)
+        cursor.close()
+        savedSite
       }
     }
   }
 
-  override fun insert(website: Website): Observable<Website> {
-    return exists(website)
-      .flatMap<Website> { exists ->
-        if (exists!!) {
-          return@flatMap update(website)
-        } else {
-          val values = ContentValues()
-          values.put(COLUMN_URL, website.url)
-          values.put(COLUMN_TITLE, website.title)
-          values.put(COLUMN_FAVICON, website.faviconUrl)
-          values.put(COLUMN_CANONICAL, website.canonicalUrl)
-          values.put(COLUMN_COLOR, website.themeColor)
-          values.put(COLUMN_AMP, website.ampUrl)
-          values.put(COLUMN_BOOKMARKED, website.bookmarked)
-          values.put(COLUMN_CREATED_AT, System.currentTimeMillis())
-          values.put(COLUMN_VISITED, 1)
-          return@flatMap if (database.insert(TABLE_NAME, null, values) != -1L) {
-            Observable.just(website)
-          } else {
-            Observable.just(null)
-          }
-        }
-      }.broadcastChanges()
-  }
-
-  override fun update(website: Website): Observable<Website> {
-    return get(website).flatMap { saved ->
-      if (saved != null) {
-        val values = ContentValues()
-        values.put(COLUMN_URL, saved.url)
-        values.put(COLUMN_TITLE, saved.title)
-        values.put(COLUMN_FAVICON, saved.faviconUrl)
-        values.put(COLUMN_CANONICAL, saved.canonicalUrl)
-        values.put(COLUMN_COLOR, saved.themeColor)
-        values.put(COLUMN_AMP, saved.ampUrl)
-        values.put(COLUMN_BOOKMARKED, saved.bookmarked)
-        values.put(COLUMN_CREATED_AT, System.currentTimeMillis())
-        values.put(COLUMN_VISITED, ++saved.count)
-
-        val whereClause = "$COLUMN_URL=?"
-        val whereArgs = arrayOf(saved.url)
-
-        if (database.update(TABLE_NAME, values, whereClause, whereArgs) > 0) {
-          Timber.d("Updated %s in db", website.url)
-          return@flatMap Observable.just(saved)
-        } else {
-          Timber.e("Update failed for %s", website.url)
-          return@flatMap Observable.just(website)
-        }
+  override suspend fun insert(website: Website): Website = withContext(Dispatchers.IO) {
+    val exists = exists(website)
+    val result = if (exists) {
+      update(website)
+    } else {
+      val values = ContentValues()
+      values.put(COLUMN_URL, website.url)
+      values.put(COLUMN_TITLE, website.title)
+      values.put(COLUMN_FAVICON, website.faviconUrl)
+      values.put(COLUMN_CANONICAL, website.canonicalUrl)
+      values.put(COLUMN_COLOR, website.themeColor)
+      values.put(COLUMN_AMP, website.ampUrl)
+      values.put(COLUMN_BOOKMARKED, website.bookmarked)
+      values.put(COLUMN_CREATED_AT, System.currentTimeMillis())
+      values.put(COLUMN_VISITED, 1)
+      if (database.insert(TABLE_NAME, null, values) != -1L) {
+        website
       } else {
-        return@flatMap Observable.just(website)
+        website
       }
-    }.broadcastChanges()
+    }
+    broadcastChanges()
+    result
   }
 
-  override fun delete(website: Website): Observable<Website> {
-    return Observable.fromCallable {
-      open()
+  override suspend fun update(website: Website): Website = withContext(Dispatchers.IO) {
+    val saved = get(website)
+    val result = if (saved != null) {
+      val values = ContentValues()
+      values.put(COLUMN_URL, saved.url)
+      values.put(COLUMN_TITLE, saved.title)
+      values.put(COLUMN_FAVICON, saved.faviconUrl)
+      values.put(COLUMN_CANONICAL, saved.canonicalUrl)
+      values.put(COLUMN_COLOR, saved.themeColor)
+      values.put(COLUMN_AMP, saved.ampUrl)
+      values.put(COLUMN_BOOKMARKED, saved.bookmarked)
+      values.put(COLUMN_CREATED_AT, System.currentTimeMillis())
+      values.put(COLUMN_VISITED, ++saved.count)
+
       val whereClause = "$COLUMN_URL=?"
-      val whereArgs = arrayOf(website.url)
-      if (database.delete(TABLE_NAME, whereClause, whereArgs) > 0) {
-        Timber.d("Deletion successful for %s", website.url)
+      val whereArgs = arrayOf(saved.url)
+
+      if (database.update(TABLE_NAME, values, whereClause, whereArgs) > 0) {
+        Timber.d("Updated %s in db", website.url)
+        saved
       } else {
-        Timber.e("Deletion failed for %s", website.url)
+        Timber.e("Update failed for %s", website.url)
+        website
       }
+    } else {
       website
-    }.broadcastChanges()
-  }
-
-  override fun exists(website: Website): Observable<Boolean> {
-    return Observable.fromCallable {
-      open()
-      val selection = " $COLUMN_URL=?"
-      val selectionArgs = arrayOf(website.url)
-      val cursor = database.query(
-        TABLE_NAME,
-        ALL_COLUMN_PROJECTION,
-        selection,
-        selectionArgs, null, null, null
-      )
-      var exists = false
-      if (cursor != null && cursor.count > 0) {
-        exists = true
-      }
-      cursor?.close()
-      exists
     }
+    broadcastChanges()
+    result
   }
 
-  override fun deleteAll(): Observable<Int> {
-    return Observable.fromCallable {
-      open()
-      database.delete(TABLE_NAME, "1", null)
-    }.broadcastChanges()
+  override suspend fun delete(website: Website): Website = withContext(Dispatchers.IO) {
+    open()
+    val whereClause = "$COLUMN_URL=?"
+    val whereArgs = arrayOf(website.url)
+    if (database.delete(TABLE_NAME, whereClause, whereArgs) > 0) {
+      Timber.d("Deletion successful for %s", website.url)
+    } else {
+      Timber.e("Deletion failed for %s", website.url)
+    }
+    broadcastChanges()
+    website
   }
 
-  override fun recents(): io.reactivex.Observable<List<Website>> {
-    val recentObservable = io.reactivex.Observable.fromCallable<List<Website>> {
+  override suspend fun exists(website: Website): Boolean = withContext(Dispatchers.IO) {
+    open()
+    val selection = " $COLUMN_URL=?"
+    val selectionArgs = arrayOf(website.url)
+    val cursor = database.query(
+      TABLE_NAME,
+      ALL_COLUMN_PROJECTION,
+      selection,
+      selectionArgs, null, null, null
+    )
+    var exists = false
+    if (cursor != null && cursor.count > 0) {
+      exists = true
+    }
+    cursor?.close()
+    exists
+  }
+
+  override suspend fun deleteAll(): Int = withContext(Dispatchers.IO) {
+    open()
+    val count = database.delete(TABLE_NAME, "1", null)
+    broadcastChanges()
+    count
+  }
+
+  override fun recents(): Flow<List<Website>> = flow {
+    suspend fun loadRecents(): List<Website> = withContext(Dispatchers.IO) {
       open()
       val websites = ArrayList<Website>()
       database.query(
@@ -225,30 +222,31 @@ internal constructor(application: Application) : SQLiteOpenHelper(
       }
       websites
     }
-    return changes().switchMap { recentObservable }.startWith(recentObservable)
+
+    changes().onStart { emit(0) }.collect {
+      emit(loadRecents())
+    }
   }
 
-  override fun search(text: String): Observable<List<Website>> {
-    return Observable.fromCallable {
-      open()
-      val websites = ArrayList<Website>()
-      database.query(
-        true,
-        TABLE_NAME,
-        ALL_COLUMN_PROJECTION,
-        "($COLUMN_URL like '%$text%' OR $COLUMN_TITLE like '%$text%')",
-        null,
-        null,
-        null,
-        ORDER_BY_TIME_DESC,
-        "5"
-      )?.use { cursor ->
-        while (cursor.moveToNext()) {
-          websites.add(Website.fromCursor(cursor))
-        }
+  override suspend fun search(text: String): List<Website> = withContext(Dispatchers.IO) {
+    open()
+    val websites = ArrayList<Website>()
+    database.query(
+      true,
+      TABLE_NAME,
+      ALL_COLUMN_PROJECTION,
+      "($COLUMN_URL like '%$text%' OR $COLUMN_TITLE like '%$text%')",
+      null,
+      null,
+      null,
+      ORDER_BY_TIME_DESC,
+      "5"
+    )?.use { cursor ->
+      while (cursor.moveToNext()) {
+        websites.add(Website.fromCursor(cursor))
       }
-      websites
     }
+    websites
   }
 
   override fun loadHistoryRange(limit: Int, offset: Int): List<Website> {

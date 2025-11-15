@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Flows/Coroutines
 /*
  *
  *  Lynket
@@ -21,7 +22,6 @@
 package arun.com.chromer.data.webarticle
 
 import arun.com.chromer.data.webarticle.model.WebArticle
-import rx.Observable
 
 /**
  * Phase 7: Converted from Java to Kotlin
@@ -29,6 +29,6 @@ import rx.Observable
  * Store interface for web articles with get and save operations.
  */
 interface WebArticleStore {
-    fun getWebArticle(url: String): Observable<WebArticle>
-    fun saveWebArticle(webSite: WebArticle): Observable<WebArticle>
+    suspend fun getWebArticle(url: String): WebArticle?
+    suspend fun saveWebArticle(webSite: WebArticle): WebArticle
 }
