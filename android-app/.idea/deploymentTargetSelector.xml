@@ -2,10 +2,10 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="lynket-playground">
+      <SelectionState runConfigName="lynket">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="lynket">
+      <SelectionState runConfigName="lynket-playground">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>
