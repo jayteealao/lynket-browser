@@ -28,9 +28,10 @@ import arun.com.chromer.di.viewmodel.ViewModelModule
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.viemodel.ViewModelFactory
-import com.afollestad.rxkprefs.rxkPrefs
 import dagger.Module
 import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 import dev.arunkumar.android.dagger.viewmodel.DefaultViewModelsBuilder
 import javax.inject.Singleton
 
@@ -40,15 +41,12 @@ import javax.inject.Singleton
     DefaultViewModelsBuilder::class
   ]
 )
+@InstallIn(SingletonComponent::class)
 open class AppModule {
   @Provides
   @Singleton
   internal fun providesPreferences(application: Application): Preferences =
     Preferences.get(application)
-
-  @Provides
-  @Singleton
-  internal fun providersRxkprefs(application: Application) = rxkPrefs(application)
 
   @Provides
   @Singleton

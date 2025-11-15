@@ -21,6 +21,9 @@ package arun.com.chromer.di.fragment
 
 import androidx.fragment.app.Fragment
 import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.android.components.FragmentComponent
 
 @Module
+@InstallIn(FragmentComponent::class)
 class FragmentModule(private val fragment: Fragment)

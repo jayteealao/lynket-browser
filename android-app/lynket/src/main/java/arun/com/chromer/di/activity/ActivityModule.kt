@@ -25,10 +25,13 @@ import arun.com.chromer.util.glide.GlideApp
 import arun.com.chromer.util.lifecycle.ActivityLifecycle
 import com.bumptech.glide.RequestManager
 import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.android.components.ActivityComponent
 import dagger.Provides
 import dev.arunkumar.android.dagger.activity.PerActivity
 
 @Module
+@InstallIn(ActivityComponent::class)
 class ActivityModule {
   @Provides
   fun glideRequests(activity: Activity): RequestManager {

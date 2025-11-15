@@ -31,9 +31,12 @@ import arun.com.chromer.tabs.ui.TabsViewModel
 import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoMap
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 import dev.arunkumar.android.dagger.viewmodel.ViewModelKey
 
 @Module
+@InstallIn(SingletonComponent::class)
 abstract class ViewModelModule {
   @Binds
   @IntoMap

@@ -44,9 +44,12 @@ import arun.com.chromer.data.website.stores.WebsiteNetworkStore
 import arun.com.chromer.data.website.stores.WebsiteStore
 import dagger.Binds
 import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
+@InstallIn(SingletonComponent::class)
 abstract class DataModule {
 
   @Disk

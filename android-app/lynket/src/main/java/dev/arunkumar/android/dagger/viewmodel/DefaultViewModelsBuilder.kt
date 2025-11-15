@@ -20,10 +20,13 @@
 package dev.arunkumar.android.dagger.viewmodel
 
 import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 
 /**
  * Dagger module for providing default ViewModels.
  * This is a marker module that can be included to enable ViewModel injection.
  */
 @Module
+@InstallIn(SingletonComponent::class)
 abstract class DefaultViewModelsBuilder
