@@ -235,7 +235,8 @@ dependencies {
     implementation("androidx.palette:palette-ktx:1.0.0")
     implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
     implementation("androidx.sqlite:sqlite-ktx:2.0.1")
-    implementation("androidx.fragment:fragment-ktx:1.0.0")
+    implementation("androidx.fragment:fragment-ktx:1.6.2") // Updated for viewModels() delegate
+    implementation("androidx.activity:activity-ktx:1.8.0") // Added for Activities viewModels() delegate
 
     // Legacy: Paging 2.x (will be migrated to Paging 3)
     implementation("androidx.paging:paging-runtime-ktx:2.1.2")
