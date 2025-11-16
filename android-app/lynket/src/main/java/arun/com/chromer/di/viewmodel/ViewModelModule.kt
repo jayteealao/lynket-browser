@@ -20,56 +20,19 @@
 
 package arun.com.chromer.di.viewmodel
 
-import androidx.lifecycle.ViewModel
-import arun.com.chromer.browsing.BrowsingViewModel
-import arun.com.chromer.browsing.article.BrowsingArticleViewModel
-import arun.com.chromer.browsing.providerselection.ProviderSelectionViewModel
-import arun.com.chromer.history.HistoryFragmentViewModel
-import arun.com.chromer.home.fragment.HomeFragmentViewModel
-import arun.com.chromer.perapp.PerAppSettingsViewModel
-import arun.com.chromer.tabs.ui.TabsViewModel
-import dagger.Binds
 import dagger.Module
-import dagger.multibindings.IntoMap
 import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import dev.arunkumar.android.dagger.viewmodel.ViewModelKey
+import dagger.hilt.android.components.ViewModelComponent
 
+/**
+ * Hilt ViewModelComponent module.
+ *
+ * All ViewModels now use @HiltViewModel and are automatically bound by Hilt.
+ * This module exists but is empty - Hilt handles all ViewModel injection automatically.
+ *
+ * Legacy note: Removed all @Binds methods. ViewModels with @HiltViewModel are
+ * automatically registered by Hilt and don't need manual binding.
+ */
 @Module
-@InstallIn(SingletonComponent::class)
-abstract class ViewModelModule {
-  @Binds
-  @IntoMap
-  @ViewModelKey(BrowsingViewModel::class)
-  internal abstract fun bindBrowsingViewModel(viewModel: BrowsingViewModel): ViewModel
-
-  @Binds
-  @IntoMap
-  @ViewModelKey(TabsViewModel::class)
-  internal abstract fun tabsViewModel(viewModel: TabsViewModel): ViewModel
-
-  @Binds
-  @IntoMap
-  @ViewModelKey(HomeFragmentViewModel::class)
-  internal abstract fun homeFragmentViewModel(viewModel: HomeFragmentViewModel): ViewModel
-
-  @Binds
-  @IntoMap
-  @ViewModelKey(HistoryFragmentViewModel::class)
-  internal abstract fun historyFragmentViewModel(viewModel: HistoryFragmentViewModel): ViewModel
-
-  @Binds
-  @IntoMap
-  @ViewModelKey(BrowsingArticleViewModel::class)
-  internal abstract fun bindArticleBrowsingViewModel(viewModel: BrowsingArticleViewModel): ViewModel
-
-  @Binds
-  @IntoMap
-  @ViewModelKey(PerAppSettingsViewModel::class)
-  internal abstract fun perAppSettingViewModel(viewModel: PerAppSettingsViewModel): ViewModel
-
-  @Binds
-  @IntoMap
-  @ViewModelKey(ProviderSelectionViewModel::class)
-  internal abstract fun providerSelectionViewModel(viewModel: ProviderSelectionViewModel): ViewModel
-}
+@InstallIn(ViewModelComponent::class)
+object ViewModelModule

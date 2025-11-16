@@ -37,6 +37,7 @@ import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.compat.TaskDescriptionCompat
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -53,8 +54,10 @@ import javax.inject.Inject
 /**
  * A simple view model delivering a Website from repo and handling related tasks.
  * Converted from RxJava to Kotlin Coroutines in Phase 8.
+ * Uses @HiltViewModel for automatic Hilt injection.
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+@HiltViewModel
 class BrowsingViewModel
 @Inject
 constructor(

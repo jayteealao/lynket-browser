@@ -23,9 +23,8 @@ package arun.com.chromer.home
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.viewModels
 import androidx.core.view.postDelayed
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.SimpleItemAnimator
 import arun.com.chromer.R
 import arun.com.chromer.about.changelog.Changelog
@@ -49,18 +48,15 @@ import com.google.android.material.snackbar.Snackbar
 import com.jakewharton.rxbinding3.view.clicks
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import dagger.multibindings.IntoMap
-import dev.arunkumar.android.dagger.viewmodel.ViewModelKey
+import dagger.hilt.android.AndroidEntryPoint
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @SuppressLint("CheckResult")
+@AndroidEntryPoint
 class HomeActivity : BaseActivity(), Snackable {
   private lateinit var binding: ActivityMainBinding
+
   @Inject
   lateinit var tabsManager: TabsManager
 
@@ -70,12 +66,7 @@ class HomeActivity : BaseActivity(), Snackable {
   @Inject
   lateinit var tabsManger: TabsManager
 
-  @Inject
-  lateinit var viewModelFactory: ViewModelProvider.Factory
-
-  private val homeActivityViewModel: HomeActivityViewModel by lazy {
-    ViewModelProvider(this, viewModelFactory)[HomeActivityViewModel::class.java]
-  }
+  private val homeActivityViewModel: HomeActivityViewModel by viewModels()
 
   override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
@@ -213,14 +204,5 @@ class HomeActivity : BaseActivity(), Snackable {
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     super.onActivityResult(requestCode, resultCode, data)
     binding.materialSearchView.onActivityResult(requestCode, resultCode, data)
-  }
-
-  @Module
-  @InstallIn(SingletonComponent::class)
-  abstract class HomeBuilder {
-    @Binds
-    @IntoMap
-    @ViewModelKey(HomeActivityViewModel::class)
-    abstract fun bindHomeViewModel(viewModel: HomeActivityViewModel): ViewModel
   }
 }

@@ -41,7 +41,6 @@ import javax.inject.Singleton
 @Component(
   modules = [
     AppModule::class,
-    HomeActivity.HomeBuilder::class,
     TabsModule::class,
     DataModule::class
   ]
