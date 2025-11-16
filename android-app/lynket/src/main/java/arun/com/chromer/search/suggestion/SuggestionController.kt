@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 package arun.com.chromer.search.suggestion
 
 import android.app.Activity
@@ -35,13 +36,14 @@ import arun.com.chromer.shared.epxoy.model.spaceLayout
 import arun.com.chromer.shared.epxoy.model.websiteLayout
 import arun.com.chromer.tabs.TabsManager
 import com.airbnb.epoxy.AsyncEpoxyController
-import com.jakewharton.rxrelay2.PublishRelay
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import dev.arunkumar.android.dagger.view.PerView
 import dev.arunkumar.android.epoxy.TotalSpanOverride
 import dev.arunkumar.android.common.dpToPx
-import io.reactivex.Observable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 
 @PerView
@@ -52,13 +54,13 @@ constructor(
   private val tabsManager: TabsManager
 ) : AsyncEpoxyController() {
 
-  private val suggestionsClicksRelay = PublishRelay.create<SuggestionItem>()
-  private val suggestionLongClickRelay = PublishRelay.create<SuggestionItem>()
-  private val searchProviderRelay = PublishRelay.create<SearchProvider>()
+  private val suggestionsClicksFlow = MutableSharedFlow<SuggestionItem>(extraBufferCapacity = 1)
+  private val suggestionLongClickFlow = MutableSharedFlow<SuggestionItem>(extraBufferCapacity = 1)
+  private val searchProviderFlow = MutableSharedFlow<SearchProvider>(extraBufferCapacity = 1)
 
-  val suggestionClicks: Observable<SuggestionItem> = suggestionsClicksRelay.hide()
-  val suggestionLongClicks: Observable<SuggestionItem> = suggestionLongClickRelay.hide()
-  val searchProviderClicks: Observable<SearchProvider> = searchProviderRelay.hide()
+  val suggestionClicks: Flow<SuggestionItem> = suggestionsClicksFlow.asSharedFlow()
+  val suggestionLongClicks: Flow<SuggestionItem> = suggestionLongClickFlow.asSharedFlow()
+  val searchProviderClicks: Flow<SearchProvider> = searchProviderFlow.asSharedFlow()
 
   private val searchIcon: Drawable by lazy {
     IconicsDrawable(activity)
@@ -129,7 +131,7 @@ constructor(
           searchProvider(searchProvider)
           spanSizeOverride { _, _, _ -> 2 }
           onClick { _ ->
-            this@SuggestionController.searchProviderRelay.accept(searchProvider)
+            this@SuggestionController.searchProviderFlow.tryEmit(searchProvider)
             this@SuggestionController.showSearchProviders = false
           }
         }
@@ -157,10 +159,10 @@ constructor(
         searchIcon(this@SuggestionController.searchIcon)
         spanSizeOverride(TotalSpanOverride)
         onClickListener { _ ->
-          this@SuggestionController.suggestionsClicksRelay.accept(suggestion)
+          this@SuggestionController.suggestionsClicksFlow.tryEmit(suggestion)
         }
         onLongClickListener { _ ->
-          this@SuggestionController.suggestionLongClickRelay.accept(suggestion)
+          this@SuggestionController.suggestionLongClickFlow.tryEmit(suggestion)
           return@onLongClickListener true
         }
       }
@@ -201,10 +203,10 @@ constructor(
         spanSizeOverride(TotalSpanOverride)
         query(this@SuggestionController.query)
         onClickListener { _ ->
-          this@SuggestionController.suggestionsClicksRelay.accept(suggestion)
+          this@SuggestionController.suggestionsClicksFlow.tryEmit(suggestion)
         }
         onLongClickListener { _ ->
-          this@SuggestionController.suggestionLongClickRelay.accept(suggestion)
+          this@SuggestionController.suggestionLongClickFlow.tryEmit(suggestion)
           return@onLongClickListener true
         }
       }

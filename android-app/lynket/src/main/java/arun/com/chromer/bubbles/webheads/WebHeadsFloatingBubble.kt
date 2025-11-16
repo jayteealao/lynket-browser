@@ -24,12 +24,13 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.os.Handler
+import android.os.Looper
 import androidx.core.content.ContextCompat
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.*
 import arun.com.chromer.util.Utils
-import dev.arunkumar.android.rxschedulers.SchedulerProvider
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -38,9 +39,10 @@ import javax.inject.Singleton
 class WebHeadsFloatingBubble
 @Inject
 constructor(
-  private val application: Application,
-  private val schedulerProvider: SchedulerProvider
+  private val application: Application
 ) : FloatingBubble {
+
+  private val mainHandler = Handler(Looper.getMainLooper())
 
   override fun openBubble(
     website: Website,
@@ -61,7 +63,7 @@ constructor(
         }
         ContextCompat.startForegroundService(ctx, webHeadLauncher)
       } else {
-        schedulerProvider.ui.scheduleDirect {
+        mainHandler.post {
           Utils.openDrawOverlaySettings(ctx)
         }
       }

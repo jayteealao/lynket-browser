@@ -1,3 +1,4 @@
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -20,7 +21,6 @@
 
 package arun.com.chromer.search.view
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Activity.RESULT_OK
 import android.content.Context
@@ -29,13 +29,17 @@ import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.speech.RecognizerIntent.EXTRA_RESULTS
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.View
 import android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView.VERTICAL
@@ -54,22 +58,14 @@ import arun.com.chromer.util.Utils
 import arun.com.chromer.util.animations.spring
 import arun.com.chromer.util.epoxy.intercepts
 import arun.com.chromer.util.glide.GlideApp
-import com.jakewharton.rxbinding3.view.clicks
-import com.jakewharton.rxbinding3.view.focusChanges
-import com.jakewharton.rxbinding3.widget.editorActionEvents
-import com.jakewharton.rxbinding3.widget.textChanges
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
-import dev.arunkumar.android.rxschedulers.SchedulerProvider
-import dev.arunkumar.android.rxschedulers.compose
-import dev.arunkumar.android.rxschedulers.poolToUi
-import io.reactivex.Observable
-import io.reactivex.subjects.BehaviorSubject
-import io.reactivex.subjects.PublishSubject
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.*
 import timber.log.Timber
 import javax.inject.Inject
 
-@SuppressLint("CheckResult")
 class MaterialSearchView
 @JvmOverloads
 constructor(
@@ -79,6 +75,7 @@ constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
   private var viewComponent: ViewComponent? = null
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
   private val binding: WidgetMaterialSearchViewBinding = WidgetMaterialSearchViewBinding.inflate(
     LayoutInflater.from(context),
@@ -112,40 +109,46 @@ constructor(
   lateinit var searchPresenter: SearchPresenter
 
   @Inject
-  lateinit var schedulerProvider: SchedulerProvider
-
-  @Inject
   lateinit var suggestionController: SuggestionController
 
   @Inject
   @Detaches
-  lateinit var viewDetaches: Observable<Unit>
+  lateinit var viewDetaches: Flow<Unit>
 
-  private val voiceSearchFailed = PublishSubject.create<Any>()
-  private val searchPerformed = PublishSubject.create<String>()
-  private val focusChanges = BehaviorSubject.createDefault(false)
+  private val voiceSearchFailedFlow = MutableSharedFlow<Any>(extraBufferCapacity = 1)
+  private val searchPerformedFlow = MutableSharedFlow<String>(extraBufferCapacity = 1)
+  private val focusChangesState = MutableStateFlow(false)
 
   private val searchQuery get() = if (binding.msvEditText.text == null) "" else binding.msvEditText.text.toString()
 
-  private val searchTermChanges by lazy {
-    binding.msvEditText.textChanges()
-      .skipInitialValue()
-      .takeUntil(viewDetaches)
-      .share()
+  private val searchTermChanges: Flow<CharSequence> by lazy {
+    binding.msvEditText.textChangesFlow()
+      .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
+  }
+
+  private val leftIconClicks: Flow<Unit> by lazy {
+    binding.msvLeftIcon.clicksFlow()
+      .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 0)
   }
 
   val editText: EditText get() = binding.msvEditText
 
-  fun voiceSearchFailed(): Observable<Any> = voiceSearchFailed.hide()
+  fun voiceSearchFailed(): Flow<Any> = voiceSearchFailedFlow.asSharedFlow()
 
-  fun searchPerforms(): Observable<String> = searchPerformed
-    .hide()
-    .switchMap(searchPresenter::getSearchUrl)
+  fun searchPerforms(): Flow<String> = searchPerformedFlow.asSharedFlow()
+    .flatMapLatest { query ->
+      flow {
+        val url = searchPresenter.getSearchUrl(query)
+        emit(url)
+      }
+    }
 
-  private val leftIconClicks by lazy { binding.msvLeftIcon.clicks().share() }
+  fun focusChanges(): Flow<Boolean> = focusChangesState.asStateFlow()
+
+  fun menuClicks(): Flow<Unit> = leftIconClicks
+    .filter { focusChangesState.value == false }
 
   init {
-
     if (context is ProvidesActivityComponent) {
       viewComponent = context
         .activityComponent
@@ -161,7 +164,6 @@ constructor(
     }
   }
 
-
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
     setOnClickListener { if (!binding.msvEditText.hasFocus()) gainFocus() }
@@ -169,14 +171,25 @@ constructor(
     setupLeftIcon()
     setupVoiceIcon()
 
-    binding.msvClearIcon.clicks().subscribe { binding.msvEditText.text = null }
+    scope.launch {
+      binding.msvClearIcon.clicksFlow().collect {
+        binding.msvEditText.text = null
+      }
+    }
 
     setupSuggestionController()
     setupPresenter()
+
+    // Cancel scope when view detaches
+    scope.launch {
+      viewDetaches.first()
+      scope.cancel()
+    }
   }
 
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
+    scope.cancel()
     viewComponent = null
   }
 
@@ -186,12 +199,10 @@ constructor(
 
   override fun hasFocus() = binding.msvEditText.hasFocus() && super.hasFocus()
 
-  fun focusChanges(): Observable<Boolean> = focusChanges.hide()
-
   fun gainFocus() {
     handleIconsState()
     setFocusedColor()
-    focusChanges.onNext(true)
+    focusChangesState.value = true
   }
 
   fun loseFocus(endAction: (() -> Unit)? = null) {
@@ -199,16 +210,12 @@ constructor(
     binding.msvEditText.text = null
     hideKeyboard()
     hideSuggestions()
-    focusChanges.onNext(false)
+    focusChangesState.value = false
     handleIconsState()
     endAction?.invoke()
   }
 
   override fun setOnClickListener(onClickListener: OnClickListener?) = Unit
-
-  fun menuClicks(): Observable<Unit> = leftIconClicks
-    .filter { focusChanges.value == false }
-    .share()
 
   fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     if (requestCode == REQUEST_CODE_VOICE) {
@@ -234,26 +241,31 @@ constructor(
     }
     binding.msvLeftIcon.run {
       setImageDrawable(menuIcon)
-      leftIconClicks
-        .filter { focusChanges.value == true }
-        .takeUntil(viewDetaches).subscribe {
-          suggestionController.showSearchProviders = true
-        }
-      Observable.combineLatest(
-        focusChanges,
-        searchPresenter.selectedSearchProvider
-      ) { hasFocus, searchProvider ->
-        if (hasFocus) {
-          CompositeIconResource(uri = searchProvider.iconUri)
-        } else {
-          CompositeIconResource(drawable = menuIcon)
-        }
-      }.compose(schedulerProvider.poolToUi())
-        .takeUntil(viewDetaches)
-        .subscribe { iconResource -> iconResource.apply(this) }
+      scope.launch {
+        leftIconClicks
+          .filter { focusChangesState.value == true }
+          .collect {
+            suggestionController.showSearchProviders = true
+          }
+      }
+      scope.launch {
+        combine(
+          focusChangesState,
+          searchPresenter.selectedSearchProvider
+        ) { hasFocus, searchProvider ->
+          if (hasFocus) {
+            CompositeIconResource(uri = searchProvider.iconUri)
+          } else {
+            CompositeIconResource(drawable = menuIcon)
+          }
+        }.flowOn(Dispatchers.Default)
+          .collect { iconResource -> iconResource.apply(this@run) }
+      }
     }
-    searchTermChanges.subscribe {
-      suggestionController.showSearchProviders = false
+    scope.launch {
+      searchTermChanges.collect {
+        suggestionController.showSearchProviders = false
+      }
     }
   }
 
@@ -271,7 +283,7 @@ constructor(
               REQUEST_CODE_VOICE
             )
           } else {
-            voiceSearchFailed.onNext(Any())
+            voiceSearchFailedFlow.tryEmit(Any())
           }
         }
       }
@@ -280,24 +292,25 @@ constructor(
 
   private fun setupEditText() {
     binding.msvEditText.run {
-      focusChanges()
-        .takeUntil(viewDetaches)
-        .subscribe { hasFocus ->
-          if (hasFocus) {
-            gainFocus()
-          } else {
-            loseFocus()
+      scope.launch {
+        focusChangesFlow()
+          .collect { hasFocus ->
+            if (hasFocus) {
+              gainFocus()
+            } else {
+              loseFocus()
+            }
           }
-        }
-      editorActionEvents { event -> event.actionId == IME_ACTION_SEARCH }
-        .map { searchQuery }
-        .observeOn(schedulerProvider.ui)
-        .takeUntil(viewDetaches)
-        .subscribe(::searchPerformed)
-      searchTermChanges
-        .takeUntil(viewDetaches)
-        .observeOn(schedulerProvider.ui)
-        .subscribe { handleIconsState() }
+      }
+      scope.launch {
+        editorActionFlow { actionId == IME_ACTION_SEARCH }
+          .map { searchQuery }
+          .collect(::searchPerformed)
+      }
+      scope.launch {
+        searchTermChanges
+          .collect { handleIconsState() }
+      }
     }
   }
 
@@ -305,51 +318,52 @@ constructor(
     searchPresenter.run {
       registerSearch(searchTermChanges.map { it.toString() })
 
-      suggestions.takeUntil(viewDetaches)
-        .observeOn(schedulerProvider.ui)
-        .subscribe(::setSuggestions)
+      scope.launch {
+        suggestions.collect(::setSuggestions)
+      }
 
-      searchEngines.takeUntil(viewDetaches)
-        .observeOn(schedulerProvider.ui)
-        .subscribe { searchProviders ->
+      scope.launch {
+        searchEngines.collect { searchProviders ->
           suggestionController.searchProviders = searchProviders
         }
+      }
 
       registerSearchProviderClicks(suggestionController.searchProviderClicks)
     }
   }
 
   private fun setupSuggestionController() {
-    suggestionController.intercepts()
-      .map { it.isEmpty() }
-      .observeOn(schedulerProvider.ui)
-      .takeUntil(viewDetaches)
-      .subscribe { isEmpty ->
-        binding.searchSuggestions.gone(isEmpty)
-        if (!isEmpty) {
-          binding.searchSuggestions.scrollToPosition(0)
+    scope.launch {
+      suggestionController.intercepts()
+        .map { it.isEmpty() }
+        .collect { isEmpty ->
+          binding.searchSuggestions.gone(isEmpty)
+          if (!isEmpty) {
+            binding.searchSuggestions.scrollToPosition(0)
+          }
         }
-      }
+    }
 
-    suggestionController.suggestionClicks
-      .observeOn(schedulerProvider.pool)
-      .map { suggestionItem ->
-        when (suggestionItem) {
-          is HistorySuggestionItem -> suggestionItem.subTitle
-          else -> suggestionItem.title
-        } ?: ""
-      }.filter { it.isNotEmpty() }
-      .observeOn(schedulerProvider.ui)
-      .takeUntil(viewDetaches)
-      .subscribe(::searchPerformed)
+    scope.launch {
+      suggestionController.suggestionClicks
+        .map { suggestionItem ->
+          when (suggestionItem) {
+            is HistorySuggestionItem -> suggestionItem.subTitle
+            else -> suggestionItem.title
+          } ?: ""
+        }.filter { it.isNotEmpty() }
+        .flowOn(Dispatchers.Default)
+        .collect(::searchPerformed)
+    }
 
-    suggestionController.suggestionLongClicks
-      .filter { it.title.isNotEmpty() }
-      .takeUntil(viewDetaches)
-      .subscribe {
-        binding.msvEditText.setText(it.title)
-        binding.msvEditText.setSelection(it.title.length)
-      }
+    scope.launch {
+      suggestionController.suggestionLongClicks
+        .filter { it.title.isNotEmpty() }
+        .collect {
+          binding.msvEditText.setText(it.title)
+          binding.msvEditText.setSelection(it.title.length)
+        }
+    }
   }
 
   private fun clearFocus(endAction: (() -> Unit)?) {
@@ -358,7 +372,6 @@ constructor(
     view?.clearFocus()
     super.clearFocus()
   }
-
 
   private fun hideKeyboard() {
     (context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(
@@ -398,7 +411,7 @@ constructor(
 
   private fun searchPerformed(searchQuery: String) {
     Timber.d("Search performed : $searchQuery")
-    clearFocus { searchPerformed.onNext(searchQuery) }
+    clearFocus { searchPerformedFlow.tryEmit(searchQuery) }
   }
 
   private fun hideSuggestions() {
@@ -413,5 +426,48 @@ constructor(
       GOOGLE -> suggestionController.googleSuggestions = suggestion
       HISTORY -> suggestionController.historySuggestions = suggestion
     }
+  }
+
+  // Flow extensions for view events
+  private fun View.clicksFlow(): Flow<Unit> = callbackFlow {
+    val listener = View.OnClickListener { trySend(Unit) }
+    setOnClickListener(listener)
+    awaitClose { setOnClickListener(null) }
+  }
+
+  private fun TextView.textChangesFlow(): Flow<CharSequence> = callbackFlow {
+    // Send initial value
+    trySend(text ?: "")
+
+    val watcher = object : TextWatcher {
+      override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+      override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+        trySend(s ?: "")
+      }
+      override fun afterTextChanged(s: Editable?) {}
+    }
+    addTextChangedListener(watcher)
+    awaitClose { removeTextChangedListener(watcher) }
+  }.drop(1) // Skip initial value
+
+  private fun View.focusChangesFlow(): Flow<Boolean> = callbackFlow {
+    val listener = View.OnFocusChangeListener { _, hasFocus ->
+      trySend(hasFocus)
+    }
+    onFocusChangeListener = listener
+    awaitClose { onFocusChangeListener = null }
+  }
+
+  private fun TextView.editorActionFlow(predicate: (Int) -> Boolean): Flow<Int> = callbackFlow {
+    val listener = TextView.OnEditorActionListener { _, actionId, _ ->
+      if (predicate(actionId)) {
+        trySend(actionId)
+        true
+      } else {
+        false
+      }
+    }
+    setOnEditorActionListener(listener)
+    awaitClose { setOnEditorActionListener(null) }
   }
 }

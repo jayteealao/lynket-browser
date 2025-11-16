@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 package arun.com.chromer.search.suggestion
 
 import android.app.Application
@@ -28,14 +29,9 @@ import arun.com.chromer.search.suggestion.items.SuggestionItem.*
 import arun.com.chromer.search.suggestion.items.SuggestionType
 import arun.com.chromer.search.suggestion.items.SuggestionType.*
 import arun.com.chromer.util.Utils
-import dev.arunkumar.android.rxschedulers.SchedulerProvider
-import hu.akarnokd.rxjava.interop.RxJavaInterop.toV2Flowable
-import hu.akarnokd.rxjava.interop.RxJavaInterop.toV2Transformer
-import io.reactivex.Flowable
-import io.reactivex.FlowableTransformer
-import io.reactivex.functions.Function
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.*
 import timber.log.Timber
-import java.util.concurrent.TimeUnit.MILLISECONDS
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,121 +43,102 @@ class SuggestionsEngine
 @Inject
 constructor(
   private var application: Application,
-  private val historyRepository: HistoryRepository,
-  private val schedulerProvider: SchedulerProvider
+  private val historyRepository: HistoryRepository
 ) {
   private val suggestionsDebounce = 200L
 
   /**
    * Trims and filters empty strings in stream.
    */
-  private fun emptyStringFilter(): FlowableTransformer<String, String> {
-    return FlowableTransformer { stringObservable ->
-      stringObservable
-        .map { it.trim { query -> query <= ' ' } }
-        .filter { s -> s.isNotEmpty() }
-    }
-  }
+  private fun Flow<String>.emptyStringFilter(): Flow<String> = this
+    .map { it.trim { query -> query <= ' ' } }
+    .filter { it.isNotEmpty() }
 
-  private fun deviceSuggestions() = Flowable
-    .fromCallable {
-      Utils.getClipBoardText(application) ?: ""
-    }.subscribeOn(schedulerProvider.ui)
-    .subscribeOn(schedulerProvider.pool)
-    .map { copiedText ->
-      if (copiedText.isEmpty()) {
-        emptyList()
-      } else {
-        val fullCopiedText = CopySuggestionItem(
-          copiedText.trim(),
-          application.getString(R.string.text_you_copied)
-        )
-        val extractedLinks = Utils.findURLs(copiedText)
-          .map {
-            CopySuggestionItem(it, application.getString(R.string.link_you_copied))
-          }.toMutableList()
-        extractedLinks.apply {
-          add(fullCopiedText)
-        }.distinctBy { it.title.trim() }
+  private fun deviceSuggestions(): Flow<List<SuggestionItem>> = flow {
+    val copiedText = Utils.getClipBoardText(application) ?: ""
+    if (copiedText.isEmpty()) {
+      emit(emptyList())
+    } else {
+      val fullCopiedText = CopySuggestionItem(
+        copiedText.trim(),
+        application.getString(R.string.text_you_copied)
+      )
+      val extractedLinks = Utils.findURLs(copiedText)
+        .map {
+          CopySuggestionItem(it, application.getString(R.string.link_you_copied))
+        }.toMutableList()
+      extractedLinks.apply {
+        add(fullCopiedText)
       }
+      emit(extractedLinks.distinctBy { it.title.trim() })
     }
+  }.flowOn(Dispatchers.Main)
 
   /**
-   * Converts a stream of strings into stream of list of suggestions items collated from device'c
+   * Converts a stream of strings into stream of list of suggestions items collated from device's
    * clipboard, history and google suggestions.
    */
-  fun suggestionsTransformer(): FlowableTransformer<String, Pair<SuggestionType, List<SuggestionItem>>> {
-    return FlowableTransformer { upstream ->
-      upstream
-        .observeOn(schedulerProvider.pool)
-        .compose(emptyStringFilter())
-        .switchMap { query ->
-          val deviceSuggestions = deviceSuggestions().map { COPY to it }
-          val googleSuggestions = Flowable.just(query)
-            .observeOn(schedulerProvider.io)
-            .compose(googleTransformer())
+  fun Flow<String>.suggestionsTransformer(): Flow<Pair<SuggestionType, List<SuggestionItem>>> =
+    this.emptyStringFilter()
+      .flatMapLatest { query ->
+        merge(
+          deviceSuggestions().map { COPY to it },
+          flow { emit(query) }
+            .googleTransformer()
             .map { GOOGLE to it }
-            .observeOn(schedulerProvider.pool)
-          val historySuggestions = Flowable.just(query)
-            .compose(historyTransformer())
+            .flowOn(Dispatchers.IO),
+          flow { emit(query) }
+            .historyTransformer()
             .map { HISTORY to it }
-          Flowable.mergeArray(
-            deviceSuggestions,
-            googleSuggestions,
-            historySuggestions
-          )
-        }
-    }
-  }
+        )
+      }
+      .flowOn(Dispatchers.Default)
 
   /**
-   * A function selector that transforms a source [Flowable] emitted from a [suggestionsTransformer]
+   * A function selector that transforms a source Flow emitted from a suggestionsTransformer
    * such that each [SuggestionType] and its [List] of [SuggestionItem]s are unique.
    */
-  fun distinctSuggestionsPublishSelector() = Function<
-    Flowable<Pair<SuggestionType, List<SuggestionItem>>>,
-    Flowable<Pair<SuggestionType, List<SuggestionItem>>>
-    > { source ->
-    Flowable.mergeArray(
-      source.filter { it.first == COPY }.distinctUntilChanged(),
-      source.filter { it.first == GOOGLE }.distinctUntilChanged(),
-      source.filter { it.first == HISTORY }.distinctUntilChanged()
+  fun Flow<Pair<SuggestionType, List<SuggestionItem>>>.distinctSuggestionsPublish(): Flow<Pair<SuggestionType, List<SuggestionItem>>> =
+    merge(
+      this.filter { it.first == COPY }.distinctUntilChanged(),
+      this.filter { it.first == GOOGLE }.distinctUntilChanged(),
+      this.filter { it.first == HISTORY }.distinctUntilChanged()
     )
-  }
 
   /**
-   * Fetches suggestions from Google and converts it to {@link GoogleSuggestionItem}
+   * Fetches suggestions from Google and converts it to GoogleSuggestionItem
    */
-  private fun googleTransformer(): FlowableTransformer<String, List<SuggestionItem>> {
-    return FlowableTransformer { upstream ->
-      if (!Utils.isOnline(application)) {
-        Flowable.just(emptyList())
-      } else upstream
-        .compose(toV2Transformer(GoogleSuggestionsApi.suggestionsTransformer(5)))
-        .doOnError(Timber::e)
-        .map<List<SuggestionItem>> {
-          it.map { query -> GoogleSuggestionItem(query) }
-        }.onErrorReturn { emptyList() }
+  private fun Flow<String>.googleTransformer(): Flow<List<SuggestionItem>> {
+    return if (!Utils.isOnline(application)) {
+      flowOf(emptyList())
+    } else {
+      this.flatMapLatest { query ->
+        flow {
+          val suggestions = GoogleSuggestionsApi.getSuggestions(query, 5)
+          emit(suggestions.map { GoogleSuggestionItem(it) })
+        }.catch { e ->
+          Timber.e(e)
+          emit(emptyList())
+        }
+      }
     }
   }
 
   /**
    * Fetches matching items from History database and converts them to list of suggestions.
    */
-  private fun historyTransformer(): FlowableTransformer<String, List<SuggestionItem>> {
-    return FlowableTransformer { upstream ->
-      upstream.debounce(suggestionsDebounce, MILLISECONDS)
-        .switchMap { toV2Flowable(historyRepository.search(it)) }
-        .map<List<SuggestionItem>> { suggestions ->
-          suggestions.asSequence()
-            .map { website ->
-              HistorySuggestionItem(
-                website,
-                website.safeLabel(),
-                website.url
-              )
-            }.take(4).toList()
-        }.onErrorReturn { emptyList() }
-    }
-  }
+  private fun Flow<String>.historyTransformer(): Flow<List<SuggestionItem>> =
+    this.debounce(suggestionsDebounce)
+      .flatMapLatest { query -> historyRepository.search(query) }
+      .map { suggestions ->
+        suggestions.asSequence()
+          .map { website ->
+            HistorySuggestionItem(
+              website,
+              website.safeLabel(),
+              website.url
+            )
+          }.take(4).toList()
+      }
+      .catch { emit(emptyList()) }
 }

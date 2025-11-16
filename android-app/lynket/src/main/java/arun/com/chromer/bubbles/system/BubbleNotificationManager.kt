@@ -38,6 +38,8 @@ import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.Utils
 import dev.arunkumar.android.common.dpToPx
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -98,74 +100,79 @@ constructor(
     notificationManager.notify(BUBBLE_NOTIFICATION_GROUP.hashCode(), bubblesSummaryNotification)
   }
 
-  fun showBubbles(bubbleData: BubbleLoadData): Single<BubbleLoadData> = Single.fromCallable {
-    createNotificationChannel()
-    val context = bubbleData.contextRef.get() ?: application
-    val website = bubbleData.website
+  suspend fun showBubbles(bubbleData: BubbleLoadData): BubbleLoadData = try {
+    withContext(Dispatchers.IO) {
+      createNotificationChannel()
+      val context = bubbleData.contextRef.get() ?: application
+      val website = bubbleData.website
 
-    // Bubbles require FLAG_MUTABLE on Android 12+ because they need to update the intent
-    val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-    } else {
-      PendingIntent.FLAG_UPDATE_CURRENT
-    }
-    val bubbleIntent = PendingIntent.getActivity(
-      context,
-      website.url.hashCode(),
-      Intent(context, EmbeddableWebViewActivity::class.java).apply {
-        data = Uri.parse(website.url)
-      },
-      flags
-    )
+      // Bubbles require FLAG_MUTABLE on Android 12+ because they need to update the intent
+      val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+      } else {
+        PendingIntent.FLAG_UPDATE_CURRENT
+      }
+      val bubbleIntent = PendingIntent.getActivity(
+        context,
+        website.url.hashCode(),
+        Intent(context, EmbeddableWebViewActivity::class.java).apply {
+          data = Uri.parse(website.url)
+        },
+        flags
+      )
 
-    val bubbleIcon: Icon = bubbleData.icon
-      ?.let(Icon::createWithAdaptiveBitmap)
-      ?: bubbleData.fallbackIcon()
+      val bubbleIcon: Icon = bubbleData.icon
+        ?.let(Icon::createWithAdaptiveBitmap)
+        ?: bubbleData.fallbackIcon()
 
-    val displayHeight = (application.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-      .defaultDisplay
-      .let { display -> Point().apply(display::getSize).y }
+      val displayHeight = (application.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
+        .defaultDisplay
+        .let { display -> Point().apply(display::getSize).y }
 
-    val bubbleNotification = notification(context, BUBBLE_NOTIFICATION_CHANNEL_ID) {
-      setContentTitle(website.safeLabel())
-      setContentText(website.preferredUrl())
-      setGroup(BUBBLE_NOTIFICATION_GROUP)
+      val bubbleNotification = notification(context, BUBBLE_NOTIFICATION_CHANNEL_ID) {
+        setContentTitle(website.safeLabel())
+        setContentText(website.preferredUrl())
+        setGroup(BUBBLE_NOTIFICATION_GROUP)
 
-      setAllowSystemGeneratedContextualActions(true)
-      bubbleData.color.takeIf { it != Constants.NO_COLOR }?.let(::setColor)
+        setAllowSystemGeneratedContextualActions(true)
+        bubbleData.color.takeIf { it != Constants.NO_COLOR }?.let(::setColor)
 
-      setColorized(true)
-      setLocalOnly(true)
+        setColorized(true)
+        setLocalOnly(true)
 
-      setOngoing(false) // TODO Register a broadcast receiver and call notificationManager.cancel
-      setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
-      setLargeIcon(bubbleIcon)
+        setOngoing(false) // TODO Register a broadcast receiver and call notificationManager.cancel
+        setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
+        setLargeIcon(bubbleIcon)
 
-      bubbleMetadata {
-        setIcon(bubbleIcon)
-        setIcon(bubbleIcon)
-        setIntent(bubbleIntent)
-        setAutoExpandBubble(false)
-        setSuppressNotification(true)
-        setDesiredHeight(Utils.pxToDp((displayHeight * 0.8).toInt()))
+        bubbleMetadata {
+          setIcon(bubbleIcon)
+          setIcon(bubbleIcon)
+          setIntent(bubbleIntent)
+          setAutoExpandBubble(false)
+          setSuppressNotification(true)
+          setDesiredHeight(Utils.pxToDp((displayHeight * 0.8).toInt()))
+        }
+
+        // Required when targeting 10
+        // https://developer.android.com/guide/topics/ui/bubbles#when_bubbles_appear
+        setCategory(Notification.CATEGORY_CALL)
+        style = Notification.MessagingStyle(addPerson {
+          setBot(true)
+          setIcon(bubbleIcon)
+          setName(website.safeLabel())
+          setImportant(true)
+        })
       }
 
-      // Required when targeting 10
-      // https://developer.android.com/guide/topics/ui/bubbles#when_bubbles_appear
-      setCategory(Notification.CATEGORY_CALL)
-      style = Notification.MessagingStyle(addPerson {
-        setBot(true)
-        setIcon(bubbleIcon)
-        setName(website.safeLabel())
-        setImportant(true)
-      })
+      updateGroupSummaryNotification(bubbleData.color)
+
+      notificationManager.notify(website.url.hashCode(), bubbleNotification)
+      bubbleData
     }
-
-    updateGroupSummaryNotification(bubbleData.color)
-
-    notificationManager.notify(website.url.hashCode(), bubbleNotification)
+  } catch (e: Exception) {
+    Timber.e(e)
     bubbleData
-  }.doOnError(Timber::e).onErrorReturnItem(bubbleData)
+  }
 
 
   private fun BubbleLoadData.fallbackIcon(): Icon = if (color != Constants.NO_COLOR) {

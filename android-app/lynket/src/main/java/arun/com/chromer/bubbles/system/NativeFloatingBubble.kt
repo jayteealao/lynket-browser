@@ -20,7 +20,6 @@
 
 package arun.com.chromer.bubbles.system
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
@@ -30,15 +29,18 @@ import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
-import com.jakewharton.rxrelay2.PublishRelay
-import dev.arunkumar.android.rxschedulers.SchedulerProvider
-import hu.akarnokd.rxjava.interop.RxJavaInterop
-import io.reactivex.BackpressureStrategy.BUFFER
-import io.reactivex.Flowable
-import io.reactivex.rxkotlin.subscribeBy
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.lang.ref.WeakReference
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -53,24 +55,32 @@ data class BubbleLoadData(
 )
 
 @RequiresApi(Build.VERSION_CODES.Q)
-@SuppressLint("CheckResult")
 @Singleton
 class NativeFloatingBubble
 @Inject
 constructor(
-  private val schedulerProvider: SchedulerProvider,
   private val websiteRepository: WebsiteRepository,
   private val bubbleNotificationManager: BubbleNotificationManager,
   private val websiteIconsProvider: WebsiteIconsProvider
 ) : FloatingBubble {
 
-  private val loadQueue = PublishRelay.create<BubbleLoadData>()
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+  private val loadQueue = MutableSharedFlow<BubbleLoadData>(extraBufferCapacity = Int.MAX_VALUE)
 
   init {
-    loadQueue.toFlowable(BUFFER)
-      .observeOn(schedulerProvider.pool)
-      .flatMap(::showBubble)
-      .subscribeBy(onError = Timber::e)
+    scope.launch {
+      loadQueue
+        .mapNotNull { bubbleData ->
+          try {
+            showBubble(bubbleData)
+          } catch (e: Exception) {
+            Timber.e(e)
+            null
+          }
+        }
+        .flowOn(Dispatchers.IO)
+        .collect { /* Process bubbles */ }
+    }
   }
 
   override fun openBubble(
@@ -80,35 +90,44 @@ constructor(
     incognito: Boolean,
     context: Context?,
     color: Int
-  ) = loadQueue.accept(
-    BubbleLoadData(
-      website = website,
-      fromMinimize = fromMinimize,
-      fromAmp = fromAmp,
-      incognito = incognito,
-      contextRef = WeakReference(context),
-      color = color
+  ) {
+    loadQueue.tryEmit(
+      BubbleLoadData(
+        website = website,
+        fromMinimize = fromMinimize,
+        fromAmp = fromAmp,
+        incognito = incognito,
+        contextRef = WeakReference(context),
+        color = color
+      )
     )
-  )
+  }
 
-  private fun showBubble(bubbleLoadData: BubbleLoadData): Flowable<BubbleLoadData> {
-    return bubbleNotificationManager.showBubbles(bubbleLoadData)
-      .delay(1, TimeUnit.SECONDS, schedulerProvider.pool) // Avoid notification throttling
-      .toFlowable()
-      .flatMap { bubbleData ->
-        RxJavaInterop.toV2Flowable(websiteRepository.getWebsite(bubbleData.website.url))
-          .subscribeOn(schedulerProvider.io)
-          .observeOn(schedulerProvider.pool)
-          .flatMapSingle { website ->
-            websiteIconsProvider.getBubbleIconAndColor(website)
-              .map { iconData ->
-                bubbleData.copy(
-                  website = website,
-                  icon = iconData.icon,
-                  color = iconData.color
-                )
-              }
-          }.onErrorReturnItem(bubbleData)
-      }.flatMapSingle(bubbleNotificationManager::showBubbles)
+  private suspend fun showBubble(bubbleLoadData: BubbleLoadData): BubbleLoadData {
+    // Show initial bubble
+    val initialBubble = bubbleNotificationManager.showBubbles(bubbleLoadData)
+
+    // Avoid notification throttling
+    delay(1000)
+
+    // Fetch website details and icon
+    val updatedBubble = try {
+      val website = websiteRepository.getWebsite(initialBubble.website.url)
+        .firstOrNull() ?: initialBubble.website
+
+      val iconData = websiteIconsProvider.getBubbleIconAndColor(website)
+
+      initialBubble.copy(
+        website = website,
+        icon = iconData.icon,
+        color = iconData.color
+      )
+    } catch (e: Exception) {
+      Timber.e(e)
+      initialBubble
+    }
+
+    // Show updated bubble with icon and color
+    return bubbleNotificationManager.showBubbles(updatedBubble)
   }
 }

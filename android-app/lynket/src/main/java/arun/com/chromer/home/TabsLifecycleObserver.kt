@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 package arun.com.chromer.home
 
 import androidx.lifecycle.LifecycleOwner
@@ -26,13 +27,15 @@ import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.lifecycle.ActivityLifecycle
 import arun.com.chromer.util.lifecycle.LifecycleEvents
 import dev.arunkumar.android.dagger.activity.PerActivity
-import dev.arunkumar.android.rxschedulers.SchedulerProvider
-import dev.arunkumar.android.rxschedulers.poolToUi
-import hu.akarnokd.rxjava.interop.RxJavaInterop.toV2Observable
-import io.reactivex.Observable
-import io.reactivex.rxkotlin.toObservable
-import kotlinx.coroutines.runBlocking
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 
 @PerActivity
@@ -42,32 +45,33 @@ constructor(
   @ActivityLifecycle
   lifecycleOwner: LifecycleOwner,
   private val tabsManager: TabsManager,
-  private val schedulerProvider: SchedulerProvider,
   private val websiteRepository: WebsiteRepository
 ) : LifecycleEvents(lifecycleOwner) {
-  fun activeTabs(): Observable<List<TabsManager.Tab>> = starts.flatMap {
-    Observable.interval(750, TimeUnit.MILLISECONDS)
-      .flatMapSingle {
-        io.reactivex.Single.fromCallable { runBlocking { tabsManager.getActiveTabs() } }
+  fun activeTabs(): Flow<List<TabsManager.Tab>> = starts.flatMapLatest {
+    flow {
+      // Emit immediately, then every 750ms
+      emit(tabsManager.getActiveTabs())
+      while (true) {
+        delay(750)
+        emit(tabsManager.getActiveTabs())
       }
-      .startWith(io.reactivex.Single.fromCallable { runBlocking { tabsManager.getActiveTabs() } }.toObservable())
+    }
       .distinctUntilChanged()
-      .switchMap { tabs ->
-        tabs.toObservable()
-          .flatMap { tab ->
-            toV2Observable(websiteRepository.getWebsiteReadOnly(tab.url)
-              .map { website -> tab.copy(website = website) })
-              .sorted { o1, o2 ->
-                val createdAt = o1.website?.createdAt ?: 0
-                val createdAt2 = o2.website?.createdAt ?: 0
-                createdAt.compareTo(createdAt2)
-              }
-          }.toList()
-          .toObservable()
-          .startWith(tabs)
-          .debounce(200, TimeUnit.MILLISECONDS)
+      .flatMapLatest { tabs ->
+        flow {
+          // Emit raw tabs first
+          emit(tabs)
+
+          // Process and enrich tabs with website data
+          val enrichedTabs = tabs.map { tab ->
+            val website = websiteRepository.getWebsiteReadOnly(tab.url).firstOrNull()
+            tab.copy(website = website)
+          }.sortedBy { it.website?.createdAt ?: 0 }
+
+          // Emit enriched tabs
+          emit(enrichedTabs)
+        }.debounce(200)
       }
-      .takeUntil(stops)
-      .compose(schedulerProvider.poolToUi())
+      .flowOn(Dispatchers.IO)
   }
 }

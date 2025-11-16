@@ -18,9 +18,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 8: Converted from RxJava to Kotlin Coroutines
 package arun.com.chromer.search.view
 
-import android.annotation.SuppressLint
 import arun.com.chromer.di.view.Detaches
 import arun.com.chromer.search.provider.SearchProvider
 import arun.com.chromer.search.provider.SearchProviders
@@ -28,14 +28,10 @@ import arun.com.chromer.search.suggestion.SuggestionsEngine
 import arun.com.chromer.search.suggestion.items.SuggestionItem
 import arun.com.chromer.search.suggestion.items.SuggestionType
 import arun.com.chromer.settings.RxPreferences
-import com.jakewharton.rxrelay2.PublishRelay
 import dev.arunkumar.android.dagger.view.PerView
-import dev.arunkumar.android.rxschedulers.SchedulerProvider
-import io.reactivex.BackpressureStrategy.LATEST
-import io.reactivex.Flowable
-import io.reactivex.Observable
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import timber.log.Timber
-import java.util.concurrent.TimeUnit.MILLISECONDS
 import javax.inject.Inject
 
 data class SuggestionResult(
@@ -44,54 +40,62 @@ data class SuggestionResult(
   val suggestions: List<SuggestionItem>
 )
 
-@SuppressLint("CheckResult")
 @PerView
 class SearchPresenter
 @Inject
 constructor(
   private val suggestionsEngine: SuggestionsEngine,
-  private val schedulerProvider: SchedulerProvider,
   @param:Detaches
-  private val detaches: Observable<Unit>,
+  private val detaches: Flow<Unit>,
   searchProviders: SearchProviders,
   private val rxPreferences: RxPreferences
 ) {
-  private val suggestionsSubject = PublishRelay.create<SuggestionResult>()
-  val suggestions: Observable<SuggestionResult> = suggestionsSubject.hide()
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-  fun registerSearch(queryObservable: Observable<String>) {
-    queryObservable
-      .toFlowable(LATEST)
-      .debounce(200, MILLISECONDS, schedulerProvider.pool)
-      .doOnNext { Timber.d(it) }
-      .flatMap { query ->
-        Flowable.just(query)
-          .compose(suggestionsEngine.suggestionsTransformer())
-          .publish(suggestionsEngine.distinctSuggestionsPublishSelector())
-          .map { SuggestionResult(query, it.first, it.second) }
-      }.takeUntil(detaches.toFlowable(LATEST))
-      .subscribe(suggestionsSubject::accept)
+  private val suggestionsFlow = MutableSharedFlow<SuggestionResult>(extraBufferCapacity = 1)
+  val suggestions: Flow<SuggestionResult> = suggestionsFlow.asSharedFlow()
+
+  init {
+    // Cancel scope when view detaches
+    scope.launch {
+      detaches.first()
+      scope.cancel()
+    }
   }
 
-  fun registerSearchProviderClicks(searchProviderClicks: Observable<SearchProvider>) {
-    searchProviderClicks
-      .observeOn(schedulerProvider.pool)
-      .map { it.name }
-      .observeOn(schedulerProvider.ui)
-      .takeUntil(detaches)
-      .subscribe(rxPreferences.searchEngine)
+  fun registerSearch(queryFlow: Flow<String>) {
+    scope.launch {
+      queryFlow
+        .debounce(200)
+        .onEach { Timber.d(it) }
+        .flatMapLatest { query ->
+          with(suggestionsEngine) {
+            flow { emit(query) }
+              .suggestionsTransformer()
+              .distinctSuggestionsPublish()
+              .map { SuggestionResult(query, it.first, it.second) }
+          }
+        }
+        .flowOn(Dispatchers.Default)
+        .collect { suggestionsFlow.tryEmit(it) }
+    }
   }
 
-  val searchEngines: Observable<List<SearchProvider>> = searchProviders
-    .availableProviders
-    .toObservable()
-    .subscribeOn(schedulerProvider.pool)
-    .share()
+  fun registerSearchProviderClicks(searchProviderClicks: Flow<SearchProvider>) {
+    scope.launch {
+      searchProviderClicks
+        .map { it.name }
+        .flowOn(Dispatchers.Default)
+        .collect { rxPreferences.searchEngine.set(it) }
+    }
+  }
 
-  val selectedSearchProvider: Observable<SearchProvider> = searchProviders.selectedProvider
+  val searchEngines: Flow<List<SearchProvider>> = flowOf(searchProviders.availableProviders)
+    .shareIn(scope, SharingStarted.Lazily, replay = 1)
 
-  fun getSearchUrl(searchUrl: String): Observable<String> {
-    return selectedSearchProvider.take(1)
-      .map { provider -> provider.getSearchUrl(searchUrl) }
+  val selectedSearchProvider: Flow<SearchProvider> = searchProviders.selectedProvider
+
+  suspend fun getSearchUrl(searchUrl: String): String {
+    return selectedSearchProvider.first().getSearchUrl(searchUrl)
   }
 }
