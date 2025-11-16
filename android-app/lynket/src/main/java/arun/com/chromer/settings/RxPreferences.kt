@@ -20,12 +20,11 @@
 
 package arun.com.chromer.settings
 
-import android.content.Context
+import android.app.Application
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import arun.com.chromer.search.provider.SearchProviders
 import arun.com.chromer.settings.Preferences.*
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -40,9 +39,9 @@ const val NATIVE_BUBBLES_PREFERENCE = "native_bubbles_preference"
 @Singleton
 class RxPreferences
 @Inject
-constructor(@ApplicationContext context: Context) {
+constructor(application: Application) {
 
-  private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+  private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(application)
 
   val customTabProviderPref: PreferenceItem<String> by lazy {
     PreferenceItem(prefs, PREFERRED_CUSTOM_TAB_PACKAGE, "")
