@@ -24,8 +24,8 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
+import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProvider
 import arun.com.chromer.R
 import arun.com.chromer.data.Result
 import arun.com.chromer.data.website.model.Website
@@ -36,6 +36,7 @@ import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.Utils
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 const val EXTRA_CURRENT_LOADING_URL = "EXTRA_CURRENT_LOADING_URL"
@@ -43,6 +44,7 @@ const val EXTRA_CURRENT_LOADING_URL = "EXTRA_CURRENT_LOADING_URL"
 /**
  * Class definition for activity that shows a webpage.
  */
+@AndroidEntryPoint
 abstract class BrowsingActivity : BaseActivity() {
   @Inject
   lateinit var rxEventBus: RxEventBus
@@ -50,12 +52,7 @@ abstract class BrowsingActivity : BaseActivity() {
   @Inject
   lateinit var preferences: Preferences
 
-  @Inject
-  lateinit var viewModelFactory: ViewModelProvider.Factory
-
-  protected val browsingViewModel: BrowsingViewModel by lazy {
-    ViewModelProvider(this, viewModelFactory)[BrowsingViewModel::class.java]
-  }
+  protected val browsingViewModel: BrowsingViewModel by viewModels()
 
   var website: Website? = null
   var incognito: Boolean = false

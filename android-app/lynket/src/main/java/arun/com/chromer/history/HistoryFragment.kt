@@ -30,9 +30,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProviders
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.LEFT
 import androidx.recyclerview.widget.ItemTouchHelper.RIGHT
@@ -58,18 +59,17 @@ import arun.com.chromer.util.Utils
 import com.afollestad.materialdialogs.MaterialDialog
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
  * Created by arunk on 07-04-2017.
  */
+@AndroidEntryPoint
 class HistoryFragment : BaseFragment(), Snackable, FabHandler {
 
   private var _binding: FragmentHistoryBinding? = null
   private val binding get() = _binding!!
-
-  @Inject
-  lateinit var viewModelFactory: ViewModelProvider.Factory
 
   override val layoutRes: Int get() = R.layout.fragment_history
 
@@ -82,7 +82,7 @@ class HistoryFragment : BaseFragment(), Snackable, FabHandler {
   @Inject
   lateinit var historyAdapter: HistoryAdapter
 
-  private lateinit var viewModel: HistoryFragmentViewModel
+  private val viewModel: HistoryFragmentViewModel by viewModels()
 
   private val incognitoImg: IconicsDrawable by lazy {
     IconicsDrawable(requireActivity())
@@ -150,15 +150,17 @@ class HistoryFragment : BaseFragment(), Snackable, FabHandler {
 
   override fun onActivityCreated(savedInstanceState: Bundle?) {
     super.onActivityCreated(savedInstanceState)
-    viewModel =
-      ViewModelProviders.of(this, viewModelFactory).get(HistoryFragmentViewModel::class.java)
     observeViewModel()
   }
 
   private fun observeViewModel() {
     val owner = viewLifecycleOwner
     viewModel.apply {
-      loadingLiveData.observe(owner) { loading(it!!) }
+      viewLifecycleOwner.lifecycleScope.launch {
+        viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+          loadingState.collect { loading(it) }
+        }
+      }
       historyPagedListLiveData.observe(owner) { historyAdapter.submitList(it) }
     }
     loadHistory()

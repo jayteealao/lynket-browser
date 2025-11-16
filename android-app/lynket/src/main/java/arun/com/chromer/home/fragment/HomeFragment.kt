@@ -26,8 +26,7 @@ import android.os.Handler
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProviders
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import arun.com.chromer.R
 import arun.com.chromer.browsing.providerselection.ProviderSelectionActivity
@@ -51,11 +50,13 @@ import arun.com.chromer.util.glide.GlideApp
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
  * Created by Arunkumar on 07-04-2017.
  */
+@AndroidEntryPoint
 class HomeFragment : BaseFragment(), Snackable {
   private var _binding: FragmentHomeBinding? = null
   private val binding get() = _binding!!
@@ -66,12 +67,9 @@ class HomeFragment : BaseFragment(), Snackable {
   lateinit var rxEventBus: RxEventBus
 
   @Inject
-  lateinit var viewModelFactory: ViewModelProvider.Factory
-
-  @Inject
   lateinit var preferences: Preferences
 
-  private lateinit var homeFragmentViewModel: HomeFragmentViewModel
+  private val homeFragmentViewModel: HomeFragmentViewModel by viewModels()
 
   override fun inject(fragmentComponent: FragmentComponent) = fragmentComponent.inject(this)
 
@@ -104,8 +102,6 @@ class HomeFragment : BaseFragment(), Snackable {
 
   override fun onActivityCreated(savedInstanceState: Bundle?) {
     super.onActivityCreated(savedInstanceState)
-    homeFragmentViewModel =
-      ViewModelProviders.of(this, viewModelFactory).get(HomeFragmentViewModel::class.java)
     observeViewModel()
   }
 

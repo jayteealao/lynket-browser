@@ -32,8 +32,7 @@ import android.os.Bundle
 import android.view.MenuItem
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProviders
+import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import arun.com.chromer.R
@@ -57,12 +56,12 @@ import arun.com.chromer.util.glide.appicon.ApplicationIcon
 import com.afollestad.materialdialogs.MaterialDialog
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class ProviderSelectionActivity : BaseActivity() {
   private lateinit var binding: ActivityProviderSelectionBinding
-  @Inject
-  lateinit var viewModelFactory: ViewModelProvider.Factory
 
   @Inject
   lateinit var rxEventBus: RxEventBus
@@ -73,7 +72,7 @@ class ProviderSelectionActivity : BaseActivity() {
   @Inject
   lateinit var providersAdapter: ProvidersAdapter
 
-  private lateinit var providerSelectionViewModel: ProviderSelectionViewModel
+  private val providerSelectionViewModel: ProviderSelectionViewModel by viewModels()
 
   private var providerDialog: ProviderDialog? = null
 
@@ -143,20 +142,18 @@ class ProviderSelectionActivity : BaseActivity() {
   }
 
   private fun observeViewModel(savedInstanceState: Bundle?) {
-    providerSelectionViewModel = ViewModelProviders.of(this, viewModelFactory)
-      .get(ProviderSelectionViewModel::class.java)
-      .apply {
-        providersLiveData.watch(
-          this@ProviderSelectionActivity
-        ) { value ->
-          providersAdapter.providers = value as ArrayList<Provider>
-        }
-
-
-        if (savedInstanceState == null) {
-          loadProviders()
-        }
+    providerSelectionViewModel.apply {
+      providersState.watch(
+        this@ProviderSelectionActivity
+      ) { value ->
+        providersAdapter.providers = value as ArrayList<Provider>
       }
+
+
+      if (savedInstanceState == null) {
+        loadProviders()
+      }
+    }
   }
 
   @TargetApi(Build.VERSION_CODES.M)

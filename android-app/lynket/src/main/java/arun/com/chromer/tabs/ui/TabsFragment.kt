@@ -24,9 +24,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProviders
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.ItemTouchHelper
+import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.ItemTouchHelper.LEFT
 import androidx.recyclerview.widget.ItemTouchHelper.RIGHT
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -43,11 +46,13 @@ import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.glide.GlideApp
 import com.afollestad.materialdialogs.MaterialDialog
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
  * Created by arunk on 20-12-2017.
  */
+@AndroidEntryPoint
 class TabsFragment : BaseFragment(), FabHandler {
 
   private var _binding: FragmentTabsBinding? = null
@@ -56,10 +61,7 @@ class TabsFragment : BaseFragment(), FabHandler {
   @Inject
   lateinit var tabsManager: TabsManager
 
-  @Inject
-  lateinit var viewModelFactory: ViewModelProvider.Factory
-
-  private var tabsViewModel: TabsViewModel? = null
+  private val tabsViewModel: TabsViewModel by viewModels()
 
   lateinit var tabsAdapter: TabsAdapter
 
@@ -104,18 +106,25 @@ class TabsFragment : BaseFragment(), FabHandler {
 
   override fun onActivityCreated(savedInstanceState: Bundle?) {
     super.onActivityCreated(savedInstanceState)
-    tabsViewModel = ViewModelProviders.of(this, viewModelFactory).get(TabsViewModel::class.java)
     observeViewModel()
   }
 
   private fun observeViewModel() {
-    tabsViewModel?.apply {
-      loadingLiveData.observe(viewLifecycleOwner, { loading ->
-        showLoading(loading!!)
-      })
-      tabsData.observe(viewLifecycleOwner, {
-        setTabs(it!!)
-      })
+    tabsViewModel.apply {
+      viewLifecycleOwner.lifecycleScope.launch {
+        viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+          launch {
+            loadingState.collect { loading ->
+              showLoading(loading)
+            }
+          }
+          launch {
+            tabsData.collect { tabs ->
+              setTabs(tabs)
+            }
+          }
+        }
+      }
     }
   }
 
