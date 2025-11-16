@@ -27,10 +27,10 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.annotation.ColorInt
 import androidx.appcompat.app.AppCompatDelegate.*
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.transition.TransitionManager
@@ -67,7 +67,7 @@ class ArticleActivity : BrowsingActivity() {
   private lateinit var binding: ActivityArticleModeBinding
   override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
-  private lateinit var browsingArticleViewModel: BrowsingArticleViewModel
+  private val browsingArticleViewModel: BrowsingArticleViewModel by viewModels()
 
   private var url: String? = null
 
@@ -133,8 +133,6 @@ class ArticleActivity : BrowsingActivity() {
   }
 
   private fun observeViewModel() {
-    browsingArticleViewModel =
-      ViewModelProviders.of(this, viewModelFactory).get(BrowsingArticleViewModel::class.java)
     browsingArticleViewModel.articleLiveData.watch(this) { result ->
       when (result) {
         is Result.Success -> {
