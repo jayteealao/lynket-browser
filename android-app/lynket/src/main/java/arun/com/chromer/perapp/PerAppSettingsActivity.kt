@@ -28,10 +28,14 @@ import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.CompoundButton
+import androidx.activity.viewModels
 import androidx.appcompat.widget.SwitchCompat
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.SimpleItemAnimator
+import kotlinx.coroutines.launch
 import arun.com.chromer.R
 import arun.com.chromer.databinding.AcitivtyPerAppsBinding
 import arun.com.chromer.di.activity.ActivityComponent
@@ -41,11 +45,12 @@ import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.util.ServiceManager
 import arun.com.chromer.util.Utils
-import arun.com.chromer.util.viemodel.ViewModelFactory
 import com.afollestad.materialdialogs.MaterialDialog
 import com.google.android.material.snackbar.Snackbar
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class PerAppSettingsActivity : BaseActivity(), CompoundButton.OnCheckedChangeListener, Snackable {
   private lateinit var binding: AcitivtyPerAppsBinding
   @Inject
@@ -54,10 +59,7 @@ class PerAppSettingsActivity : BaseActivity(), CompoundButton.OnCheckedChangeLis
   @Inject
   lateinit var perAppListAdapter: PerAppListAdapter
 
-  @Inject
-  lateinit var viewModelFactory: ViewModelFactory
-
-  private lateinit var perAppViewModel: PerAppSettingsViewModel
+  private val perAppViewModel: PerAppSettingsViewModel by viewModels()
 
   override fun inject(activityComponent: ActivityComponent) {
     activityComponent.inject(this)
@@ -84,16 +86,23 @@ class PerAppSettingsActivity : BaseActivity(), CompoundButton.OnCheckedChangeLis
 
 
   private fun observeViewModel() {
-    val owner = this@PerAppSettingsActivity
-    perAppViewModel =
-      ViewModelProviders.of(owner, viewModelFactory).get(PerAppSettingsViewModel::class.java)
     perAppViewModel.apply {
-      loadingLiveData.watch(owner) { loading(it!!) }
-      appsLiveData.watch(owner) { apps ->
-        perAppListAdapter.setApps(apps!!)
-      }
-      appLiveData.watch(owner) { appIndexPair ->
-        perAppListAdapter.setApp(appIndexPair!!.first, appIndexPair.second)
+      lifecycleScope.launch {
+        repeatOnLifecycle(Lifecycle.State.STARTED) {
+          launch {
+            loadingState.collect { loading(it) }
+          }
+          launch {
+            appsState.collect { apps ->
+              perAppListAdapter.setApps(apps)
+            }
+          }
+          launch {
+            appUpdateFlow.collect { appIndexPair ->
+              perAppListAdapter.setApp(appIndexPair.first, appIndexPair.second)
+            }
+          }
+        }
       }
     }
 
