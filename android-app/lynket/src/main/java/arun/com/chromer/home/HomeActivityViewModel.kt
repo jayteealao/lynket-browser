@@ -36,8 +36,6 @@ import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.RxPreferences
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.arunkumar.android.common.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
@@ -49,18 +47,15 @@ import javax.inject.Inject
 
 /**
  * Legacy ViewModel for HomeActivity (XML-based UI).
- *
- * Migrated to Hilt: Uses @HiltViewModel annotation for automatic ViewModel injection.
  * Converted from RxJava to Kotlin Coroutines in Phase 8.
  *
  * Note: Modern Compose UI uses ModernHomeViewModel instead.
  */
 @SuppressLint("CheckResource")
-@HiltViewModel
 class HomeActivityViewModel
 @Inject
 constructor(
-  @ApplicationContext private val application: Application,
+  private val application: Application,
   private val rxPreferences: RxPreferences,
   private val historyRepository: HistoryRepository,
   private val preferences: Preferences

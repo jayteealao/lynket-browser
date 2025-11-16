@@ -37,6 +37,7 @@ import javax.inject.Singleton
 
 @Module(
   includes = [
+    ViewModelModule::class,
     DefaultViewModelsBuilder::class
   ]
 )
