@@ -91,7 +91,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.rx2.asFlow
 import timber.log.Timber
 import java.util.LinkedList
 import javax.inject.Inject
@@ -291,10 +290,10 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
             websiteRepository.getWebsiteReadOnly(webHeadUrl)
         }
 
-        // Convert RxJava Observable to Flow and collect in coroutine
+        // Collect the Flow in coroutine
         serviceScope.launch {
             try {
-                kotlinx.coroutines.rx2.asFlow(websiteObservable)
+                websiteObservable
                     .filter { it != null }
                     .flowOn(Dispatchers.IO)
                     .onEach { website ->

@@ -171,7 +171,7 @@ class BrowsingOptionsActivity : BaseActivity(), Snackable,
         }
     }
 
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
         if (Preferences.WEB_HEAD_ENABLED.equals(key, ignoreCase = true)) {
             showHideErrorView()
         }

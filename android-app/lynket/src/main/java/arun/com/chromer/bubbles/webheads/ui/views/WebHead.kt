@@ -633,5 +633,12 @@ class WebHead(
 
         private var MINIMUM_HORIZONTAL_FLING_VELOCITY = 0
         private var movementTracker: MovementTracker? = null
+
+        /**
+         * Clears the master position tracking when the service is destroyed.
+         */
+        fun clearMasterPosition() {
+            movementTracker = null
+        }
     }
 }
