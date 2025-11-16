@@ -303,7 +303,7 @@ constructor(
           }
       }
       scope.launch {
-        editorActionFlow { actionId == IME_ACTION_SEARCH }
+        editorActionFlow { it == IME_ACTION_SEARCH }
           .map { searchQuery }
           .collect(::searchPerformed)
       }

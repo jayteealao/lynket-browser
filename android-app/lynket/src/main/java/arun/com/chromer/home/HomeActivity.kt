@@ -45,7 +45,8 @@ import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tips.TipsActivity
 import arun.com.chromer.util.RxEventBus
 import com.google.android.material.snackbar.Snackbar
-import com.jakewharton.rxbinding3.view.clicks
+// TODO: Phase 8 Migration - Remove RxJava imports after migration
+// import com.jakewharton.rxbinding3.view.clicks
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import dagger.hilt.android.AndroidEntryPoint
@@ -112,7 +113,9 @@ class HomeActivity : BaseActivity(), Snackable {
   }
 
   private fun setupEventListeners() {
-    subs.add(rxEventBus.filteredEvents<TabsManager.FinishRoot>().subscribe { finish() })
+    // TODO: Phase 8 Migration - Convert RxJava event bus to Flow
+    // Use lifecycleScope.launch { rxEventBus.filteredEventsFlow<TabsManager.FinishRoot>().collect { finish() } }
+    // subs.add(rxEventBus.filteredEvents<TabsManager.FinishRoot>().subscribe { finish() })
     binding.settingsIcon.setOnClickListener {
       startActivity(Intent(this, SettingsGroupActivity::class.java))
     }
@@ -123,9 +126,11 @@ class HomeActivity : BaseActivity(), Snackable {
 
   override fun onStart() {
     super.onStart()
-    tabsLifecycleObserver.activeTabs().subscribe { tabs ->
-      homeFeedController.tabs = tabs
-    }
+    // TODO: Phase 8 Migration - Convert activeTabs() Observable to Flow
+    // Use lifecycleScope.launch { tabsLifecycleObserver.activeTabsFlow().collect { tabs -> ... } }
+    // tabsLifecycleObserver.activeTabs().subscribe { tabs ->
+    //   homeFeedController.tabs = tabs
+    // }
   }
 
   private fun setupFeed() {
@@ -146,6 +151,11 @@ class HomeActivity : BaseActivity(), Snackable {
 
   private fun setupSearchBar() {
     binding.materialSearchView.apply {
+      // TODO: Phase 8 Migration - Convert MaterialSearchView RxJava to Flow
+      // All these methods (voiceSearchFailed, searchPerforms, focusChanges, menuClicks)
+      // return RxJava Observables and need to be migrated to Flow
+      // Use lifecycleScope.launch { searchPerformsFlow().collect { ... } }
+      /*
       // Handle voice item failed
       voiceSearchFailed()
         .takeUntil(lifecycleEvents.destroys)
@@ -161,10 +171,12 @@ class HomeActivity : BaseActivity(), Snackable {
             tabsManager.openUrl(this@HomeActivity, Website(url))
           }
         }
+      */
 
       // No focus initially
       clearFocus()
 
+      /*
       // Handle focus changes
       focusChanges()
         .takeUntil(lifecycleEvents.destroys)
@@ -187,6 +199,7 @@ class HomeActivity : BaseActivity(), Snackable {
         .subscribe {
           HomeBottomSheet().show(supportFragmentManager, "home-bottom-shher")
         }
+      */
     }
   }
 

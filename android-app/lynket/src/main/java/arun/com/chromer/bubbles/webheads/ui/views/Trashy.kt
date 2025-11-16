@@ -167,6 +167,9 @@ class Trashy private constructor(
         return centrePoint!!
     }
 
+    val centerCoordinates: IntArray
+        get() = getCenterCoordinates()
+
     private fun initCentreCoords() {
         val offset = adaptWidth / 2
         val rX = windowParams!!.x + offset
@@ -284,7 +287,8 @@ class Trashy private constructor(
     }
 
     companion object {
-        const val MAGNETISM_THRESHOLD = 120.0 * Utils.DENSITY
+        @JvmField
+        val MAGNETISM_THRESHOLD = 120.0 * android.content.res.Resources.getSystem().displayMetrics.density
 
         private var windowManager: WindowManager? = null
         private var INSTANCE: Trashy? = null

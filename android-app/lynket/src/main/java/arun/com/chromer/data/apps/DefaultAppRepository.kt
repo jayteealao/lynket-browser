@@ -56,7 +56,7 @@ class DefaultAppRepository
     val color = diskStore.getPackageColor(packageName)
     if (color == Constants.NO_COLOR) {
       Timber.d("Color not found, starting extraction.")
-      AppColorExtractorJob.enqueueWork(
+      androidx.core.app.JobIntentService.enqueueWork(
         application,
         AppColorExtractorJob::class.java,
         AppColorExtractorJob.JOB_ID,

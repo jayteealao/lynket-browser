@@ -29,7 +29,9 @@ import android.os.Looper
 import androidx.core.content.ContextCompat
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.shared.Constants.*
+import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_AMP
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
+import arun.com.chromer.shared.Constants.EXTRA_KEY_MINIMIZE
 import arun.com.chromer.util.Utils
 import javax.inject.Inject
 import javax.inject.Singleton

@@ -24,7 +24,9 @@ import android.app.Application
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import arun.com.chromer.search.provider.SearchProviders
-import arun.com.chromer.settings.Preferences.*
+import arun.com.chromer.settings.Preferences.FULL_INCOGNITO_MODE
+import arun.com.chromer.settings.Preferences.PREFERRED_CUSTOM_TAB_PACKAGE
+import arun.com.chromer.settings.Preferences.USE_WEBVIEW_PREF
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

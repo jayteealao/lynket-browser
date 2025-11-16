@@ -79,8 +79,8 @@ class WebHeadOptionsFragment : BasePreferenceFragment() {
   }
 
   private fun init() {
-    closeOnOpen = findPreference(WEB_HEAD_CLOSE_ON_OPEN)
-    aggressiveLoading = findPreference(AGGRESSIVE_LOADING)
+    closeOnOpen = findPreference<IconCheckboxPreference>(WEB_HEAD_CLOSE_ON_OPEN)
+    aggressiveLoading = findPreference<IconCheckboxPreference>(AGGRESSIVE_LOADING)
   }
 
   private fun setIcons() {

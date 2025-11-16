@@ -178,11 +178,11 @@ class ElasticDragDismissFrameLayout @JvmOverloads constructor(
         callbacks?.add(listener)
     }
 
-    fun isEnabled(): Boolean {
+    override fun isEnabled(): Boolean {
         return enabled
     }
 
-    fun setEnabled(enabled: Boolean) {
+    override fun setEnabled(enabled: Boolean) {
         this.enabled = enabled
     }
 

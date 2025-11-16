@@ -106,6 +106,10 @@ class PerAppSettingsActivity : BaseActivity(), CompoundButton.OnCheckedChangeLis
       }
     }
 
+    // TODO: RxJava code - needs migration to Kotlin Flow
+    // The blacklistSelections and incognitoSelections from adapter need to be converted to Flow
+    // For now, this functionality is disabled until PerAppListAdapter is migrated
+    /*
     subs.apply {
       add(perAppListAdapter.blacklistSelections.subscribe { selections ->
         perAppViewModel.blacklist(selections)
@@ -114,6 +118,7 @@ class PerAppSettingsActivity : BaseActivity(), CompoundButton.OnCheckedChangeLis
         perAppViewModel.incognito(selections)
       })
     }
+    */
   }
 
   override fun onPostCreate(savedInstanceState: Bundle?) {

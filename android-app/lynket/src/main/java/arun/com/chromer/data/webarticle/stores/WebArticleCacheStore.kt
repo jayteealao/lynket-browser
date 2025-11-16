@@ -77,6 +77,6 @@ class WebArticleCacheStore @Inject constructor(
     companion object {
         private const val TAG = "WebArticleCacheStore"
         // Cache size, currently set at 30 MB.
-        private const val DISK_CACHE_SIZE = 1024 * 1024 * 30
+        private const val DISK_CACHE_SIZE = 1024 * 1024 * 30L
     }
 }

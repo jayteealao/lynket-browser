@@ -54,7 +54,9 @@ internal class BrowsingModeAdapter @Inject constructor(
 ) : RecyclerView.Adapter<BrowsingModeAdapter.BrowsingModeViewHolder>() {
 
   private val settingsItems: MutableList<String> = ArrayList()
-  private var browsingModeClickListener: BrowsingModeClickListener = BrowsingModeClickListener { _, _ -> }
+  private var browsingModeClickListener: BrowsingModeClickListener = object : BrowsingModeClickListener {
+    override fun onModeClicked(position: Int, view: View) {}
+  }
 
   init {
     setHasStableIds(true)
@@ -98,7 +100,9 @@ internal class BrowsingModeAdapter @Inject constructor(
   }
 
   fun cleanUp() {
-    browsingModeClickListener = BrowsingModeClickListener { _, _ -> }
+    browsingModeClickListener = object : BrowsingModeClickListener {
+      override fun onModeClicked(position: Int, view: View) {}
+    }
     settingsItems.clear()
   }
 

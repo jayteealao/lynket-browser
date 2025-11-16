@@ -95,7 +95,7 @@ class AboutFragment : Fragment() {
       viewType: Int
     ) = ItemHolder(
       FragmentAboutListItemTemplateBinding.inflate(
-        LayoutInflater.from(activity),
+        LayoutInflater.from(requireActivity()),
         parent,
         false
       )
@@ -176,7 +176,7 @@ class AboutFragment : Fragment() {
       override fun onClick(view: View) {
         when (adapterPosition) {
           0 -> return
-          1 -> Changelog.show(activity)
+          1 -> Changelog.show(requireActivity())
           2 -> {
             val twitterIntent = Intent(
               Intent.ACTION_VIEW,
@@ -218,7 +218,7 @@ class AboutFragment : Fragment() {
     ): ItemHolder {
       return ItemHolder(
         FragmentAboutListItemTemplateBinding.inflate(
-          LayoutInflater.from(activity),
+          LayoutInflater.from(requireActivity()),
           parent,
           false
         )
@@ -337,7 +337,7 @@ class AboutFragment : Fragment() {
     ): ItemHolder {
       return ItemHolder(
         FragmentAboutListItemTemplateBinding.inflate(
-          LayoutInflater.from(activity),
+          LayoutInflater.from(requireActivity()),
           parent,
           false
         )

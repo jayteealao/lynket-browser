@@ -45,7 +45,9 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.history.HistoryActivity
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.Preferences.*
+import arun.com.chromer.settings.Preferences.PREFERRED_ACTION_BROWSER
+import arun.com.chromer.settings.Preferences.PREFERRED_ACTION_FAV_SHARE
+import arun.com.chromer.settings.Preferences.PREFERRED_ACTION_GEN_SHARE
 import arun.com.chromer.shortcuts.HomeScreenShortcutCreatorActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.Utils

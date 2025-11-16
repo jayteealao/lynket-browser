@@ -95,6 +95,11 @@ class NewTabDialogActivity : BaseActivity() {
       dialogBinding = ActivityNewTabBinding.bind(dialog.customView!!)
 
       dialogBinding!!.materialSearchView.apply {
+        // TODO: Phase 8 Migration Complete - Convert MaterialSearchView RxJava to Flow
+        // MaterialSearchView still uses RxJava Observables internally
+        // Once MaterialSearchView is migrated to Flow, use:
+        // lifecycleScope.launch { searchPerformsFlow().collect { url -> launchUrl(url) } }
+        /*
         // Note: Using RxJava Observable.subscribe() directly without CompositeSubscription
         // These subscriptions are automatically cleaned up when the activity is destroyed via takeUntil
         searchPerforms()
@@ -107,6 +112,7 @@ class NewTabDialogActivity : BaseActivity() {
           .subscribe {
             Toast.makeText(activity, R.string.no_voice_rec_apps, Toast.LENGTH_SHORT).show()
           }
+        */
         post {
           gainFocus()
           editText.requestFocus()

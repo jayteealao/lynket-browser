@@ -87,7 +87,7 @@ class ModernProviderSelectionViewModel @Inject constructor(
 
                 _uiState.value = ProviderSelectionUiState.Success(
                     providers = providers,
-                    selectedPackage = preferences.customTabPackage,
+                    selectedPackage = preferences.preferredCustomTabPackage,
                     usingWebView = preferences.useWebView
                 )
 

@@ -29,6 +29,7 @@ import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color.WHITE
@@ -253,21 +254,25 @@ class CustomTabs @Inject constructor(
         val act = activity ?: return
         when (Preferences.get(act).preferredAction()) {
             PREFERRED_ACTION_BROWSER -> {
-                val pakage = Preferences.get(act).secondaryBrowserPackage()
+                val pakage = Preferences.get(act).secondaryBrowserPackage() ?: ""
                 if (Utils.isPackageInstalled(act, pakage)) {
                     val icon = getAppIconBitmap(pakage)
-                    val intent = Intent(act, SecondaryBrowserReceiver::class.java)
-                    val openBrowserPending = PendingIntent.getBroadcast(act, 0, intent, getPendingIntentFlags())
-                    builder!!.setActionButton(icon, act.getString(R.string.choose_secondary_browser), openBrowserPending)
+                    icon?.let {
+                        val intent = Intent(act, SecondaryBrowserReceiver::class.java)
+                        val openBrowserPending = PendingIntent.getBroadcast(act, 0, intent, getPendingIntentFlags())
+                        builder!!.setActionButton(it, act.getString(R.string.choose_secondary_browser), openBrowserPending)
+                    }
                 }
             }
             PREFERRED_ACTION_FAV_SHARE -> {
-                val pakage = Preferences.get(act).favSharePackage()
+                val pakage = Preferences.get(act).favSharePackage() ?: ""
                 if (Utils.isPackageInstalled(act, pakage)) {
                     val icon = getAppIconBitmap(pakage)
-                    val intent = Intent(act, FavShareBroadcastReceiver::class.java)
-                    val favSharePending = PendingIntent.getBroadcast(act, 0, intent, getPendingIntentFlags())
-                    builder!!.setActionButton(icon, act.getString(R.string.fav_share_app), favSharePending)
+                    icon?.let {
+                        val intent = Intent(act, FavShareBroadcastReceiver::class.java)
+                        val favSharePending = PendingIntent.getBroadcast(act, 0, intent, getPendingIntentFlags())
+                        builder!!.setActionButton(it, act.getString(R.string.fav_share_app), favSharePending)
+                    }
                 }
             }
             PREFERRED_ACTION_GEN_SHARE -> {
@@ -335,9 +340,9 @@ class CustomTabs @Inject constructor(
         val act = activity ?: return
         when (Preferences.get(act).preferredAction()) {
             PREFERRED_ACTION_BROWSER -> {
-                val pkg = Preferences.get(act).favSharePackage()
+                val pkg = Preferences.get(act).favSharePackage() ?: ""
                 if (Utils.isPackageInstalled(act, pkg)) {
-                    val app = Utils.getAppNameWithPackage(act, pkg)
+                    val app = Utils.getAppNameWithPackage(act, pkg) ?: ""
                     val label = String.format(act.getString(R.string.share_with), app)
                     val shareIntent = Intent(act, FavShareBroadcastReceiver::class.java)
                     val pendingShareIntent = PendingIntent.getBroadcast(act, 0, shareIntent, getPendingIntentFlags())
@@ -345,10 +350,10 @@ class CustomTabs @Inject constructor(
                 }
             }
             PREFERRED_ACTION_FAV_SHARE -> {
-                val pkg = Preferences.get(act).secondaryBrowserPackage()
+                val pkg = Preferences.get(act).secondaryBrowserPackage() ?: ""
                 if (Utils.isPackageInstalled(act, pkg)) {
                     if (!pkg.equals(STABLE_PACKAGE, ignoreCase = true)) {
-                        val app = Utils.getAppNameWithPackage(act, pkg)
+                        val app = Utils.getAppNameWithPackage(act, pkg) ?: ""
                         val label = String.format(act.getString(R.string.open_in_browser), app)
                         val browseIntent = Intent(act, SecondaryBrowserReceiver::class.java)
                         val pendingBrowseIntent = PendingIntent.getBroadcast(act, 0, browseIntent, getPendingIntentFlags())
@@ -383,7 +388,7 @@ class CustomTabs @Inject constructor(
                 val chromeReceiver = Intent(act, OpenInChromeReceiver::class.java)
                 val openChromePending = PendingIntent.getBroadcast(act, 0, chromeReceiver, getPendingIntentFlags())
 
-                val app = Utils.getAppNameWithPackage(act, customTabPkg)
+                val app = Utils.getAppNameWithPackage(act, customTabPkg) ?: ""
                 val label = String.format(act.getString(R.string.open_in_browser), app)
                 builder!!.addMenuItem(label, openChromePending)
             }
@@ -432,7 +437,7 @@ class CustomTabs @Inject constructor(
         try {
             val drawable: Drawable = act.packageManager.getApplicationIcon(packageName)
             val appIcon = Utils.drawableToBitmap(drawable)
-            return Utils.scale(appIcon, Utils.dpToPx(24.0), true)
+            return Utils.scale(appIcon, Utils.dpToPx(24.0).toFloat(), true)
         } catch (e: Exception) {
             Timber.e("App icon fetching for %s failed", packageName)
         }
@@ -449,8 +454,19 @@ class CustomTabs @Inject constructor(
                     customTabPackage.equals(LOCAL_PACKAGE, ignoreCase = true))
         ) {
             try {
-                val packageInfo = act.packageManager.getPackageInfo(customTabPackage, 0)
-                return packageInfo.versionName.split(".")[0].toInt()
+                val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    act.packageManager.getPackageInfo(customTabPackage, PackageManager.PackageInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    act.packageManager.getPackageInfo(customTabPackage, 0)
+                }
+                val versionName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo.longVersionCode.toString()
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo.versionName
+                }
+                return versionName?.split(".")?.getOrNull(0)?.toIntOrNull() ?: -1
             } catch (e: Exception) {
                 return -1
             }

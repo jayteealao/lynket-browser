@@ -29,7 +29,9 @@ import androidx.annotation.ColorInt
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.ColorUtil
-import arun.com.chromer.util.Utils.*
+import arun.com.chromer.util.Utils.dpToPx
+import arun.com.chromer.util.Utils.getFirstLetter
+import arun.com.chromer.util.Utils.isValidFavicon
 import arun.com.chromer.util.glide.GlideApp
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.Options

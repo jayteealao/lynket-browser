@@ -31,7 +31,9 @@ import arun.com.chromer.data.Result
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.extenstions.observeUntilOnDestroy
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.shared.Constants.*
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
+import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
+import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.RxEventBus
@@ -75,6 +77,11 @@ abstract class BrowsingActivity : BaseActivity() {
   open fun getCurrentUrl(): String = intent.dataString!!
 
   private fun setupMinimize() {
+    // TODO: Phase 8 Migration - Convert RxJava to Coroutines/Flow
+    // This code uses RxJava (rxEventBus, filter, subscribe) which needs to be migrated to:
+    // lifecycleScope.launch { rxEventBus.filteredEventsFlow<TabsManager.MinimizeEvent>().collect { ... } }
+    // Currently blocked by rxEventBus migration
+    /*
     subs.add(rxEventBus
       .filteredEvents<TabsManager.MinimizeEvent>()
       .filter { event ->
@@ -85,6 +92,7 @@ abstract class BrowsingActivity : BaseActivity() {
           moveTaskToBack(true)
         }
       })
+    */
   }
 
   private fun observeViewModel(savedInstanceState: Bundle?) {

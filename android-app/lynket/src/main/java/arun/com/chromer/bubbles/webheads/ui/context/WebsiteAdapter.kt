@@ -46,7 +46,7 @@ internal class WebsiteAdapter(
 ) : RecyclerView.Adapter<WebsiteAdapter.WebSiteHolder>() {
 
     private val context: Context = context.applicationContext
-    private val websites = ArrayList<Website>()
+    val websites = ArrayList<Website>()
 
     init {
         setHasStableIds(true)

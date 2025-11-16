@@ -47,7 +47,7 @@ class AppDiskStore @Inject constructor(
     override suspend fun getApp(packageName: String): App = withContext(Dispatchers.IO) {
         var app = Utils.createApp(application, packageName)
         try {
-            app = getBook().read(packageName, app)
+            app = getBook().read(packageName, app) ?: app
         } catch (e: Exception) {
             try {
                 getBook().delete(packageName)

@@ -56,7 +56,7 @@ class ArticlePreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
   }
 
   private fun init() {
-    spawnLocation = findPreference(ARTICLE_THEME)
+    spawnLocation = findPreference<IconListPreference>(ARTICLE_THEME)
   }
 
   private fun setIcons() {

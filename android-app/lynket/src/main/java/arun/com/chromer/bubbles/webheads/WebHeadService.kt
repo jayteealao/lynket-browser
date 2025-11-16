@@ -301,8 +301,8 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
                         val webHead = webHeads[webHeadUrl]
                         if (webHead != null) {
                             warmUp(webHead)
-                            webHead.website = website
-                            ContextActivityHelper.signalUpdated(application, webHead.website)
+                            webHead.setWebsite(website)
+                            ContextActivityHelper.signalUpdated(application, webHead.getWebsite())
                         }
                     }
                     .map { website -> websiteRepository.getWebsiteRoundIconAndColor(website) }
@@ -343,9 +343,9 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
     private fun warmUp(webHead: WebHead) {
         if (!Preferences.get(this).aggressiveLoading()) {
             if (customTabConnected) {
-                preLoadUrl(webHead.unShortenedUrl)
+                preLoadUrl(webHead.getUnShortenedUrl())
             } else {
-                deferPreload(webHead.unShortenedUrl)
+                deferPreload(webHead.getUnShortenedUrl())
             }
         }
     }
@@ -415,15 +415,15 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
 
         for (webHead in webHeads.values) {
             if (webHead != null) {
-                if (webHead.isMaster) {
-                    springChain2D?.setMasterSprings(webHead.xSpring, webHead.ySpring)
+                if (webHead.isMaster()) {
+                    springChain2D?.setMasterSprings(webHead.getXSpring(), webHead.getYSpring())
                 } else {
                     if (shouldQueue(index)) {
                         webHead.setInQueue(true)
                     } else {
                         webHead.setInQueue(false)
                         webHead.setSpringConfig(SpringConfig.fromOrigamiTensionAndFriction(90.0, (9 + springChainIndex * 5).toDouble()))
-                        springChain2D?.addSlaveSprings(webHead.xSpring, webHead.ySpring)
+                        springChain2D?.addSlaveSprings(webHead.getXSpring(), webHead.getYSpring())
                     }
                     springChainIndex--
                 }
@@ -434,7 +434,7 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
     }
 
     override fun onWebHeadClick(webHead: WebHead) {
-        tabsManager.openUrl(this, webHead.website, true, true, false, webHead.isFromAmp, webHead.isIncognito)
+        tabsManager.openUrl(this, webHead.getWebsite(), true, true, false, webHead.isFromAmp(), webHead.isIncognito())
 
         if (Preferences.get(this).webHeadsCloseOnOpen()) {
             webHead.destroySelf(true)
@@ -444,7 +444,7 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
 
     override fun onWebHeadDestroyed(webHead: WebHead, isLastWebHead: Boolean) {
         webHead.setMaster(false)
-        webHeads.remove(webHead.url)
+        webHeads.remove(webHead.getUrl())
         if (isLastWebHead) {
             Trashy.get(this).destroyAnimator { stopService() }
         } else {
@@ -453,7 +453,7 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
                 preLoadUrl("")
             }
         }
-        ContextActivityHelper.signalDeleted(this, webHead.website)
+        ContextActivityHelper.signalDeleted(this, webHead.getWebsite())
     }
 
     override fun onMasterWebHeadMoved(x: Int, y: Int) {
@@ -487,7 +487,7 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
             val key = it.previous()
             val webHead = webHeads[key]
             if (webHead != null) {
-                websites.add(webHead.website)
+                websites.add(webHead.getWebsite())
             }
         }
         ContextActivityHelper.open(this, websites)

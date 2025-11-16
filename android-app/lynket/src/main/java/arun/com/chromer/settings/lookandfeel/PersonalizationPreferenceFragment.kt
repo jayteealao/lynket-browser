@@ -117,14 +117,14 @@ class PersonalizationPreferenceFragment : BasePreferenceFragment(), SharedPrefer
   }
 
   private fun init() {
-    dynamicColorPreference = findPreference(DYNAMIC_COLOR)
-    coloredToolbarPreference = findPreference(TOOLBAR_COLOR_PREF)
-    toolbarColorPreference = findPreference(TOOLBAR_COLOR)
-    preferredActionPreference = findPreference(PREFERRED_ACTION)
-    openingAnimationPreference = findPreference(ANIMATION_TYPE)
-    animationSpeedPreference = findPreference(ANIMATION_SPEED)
-    dynamicAppPreference = findPreference(DYNAMIC_COLOR_APP)
-    dynamicWebPreference = findPreference(DYNAMIC_COLOR_WEB)
+    dynamicColorPreference = findPreference<IconSwitchPreference>(DYNAMIC_COLOR)
+    coloredToolbarPreference = findPreference<IconSwitchPreference>(TOOLBAR_COLOR_PREF)
+    toolbarColorPreference = findPreference<ColorPreference>(TOOLBAR_COLOR)
+    preferredActionPreference = findPreference<IconListPreference>(PREFERRED_ACTION)
+    openingAnimationPreference = findPreference<IconListPreference>(ANIMATION_TYPE)
+    animationSpeedPreference = findPreference<IconListPreference>(ANIMATION_SPEED)
+    dynamicAppPreference = findPreference<SubCheckBoxPreference>(DYNAMIC_COLOR_APP)
+    dynamicWebPreference = findPreference<SubCheckBoxPreference>(DYNAMIC_COLOR_WEB)
   }
 
   private fun setupIcons() {

@@ -92,9 +92,9 @@ class WebHeadPreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
   }
 
   private fun init() {
-    webHeadColor = findPreference(WEB_HEADS_COLOR)
-    spawnLocation = findPreference(WEB_HEAD_SPAWN_LOCATION)
-    webHeadSize = findPreference(WEB_HEAD_SIZE)
+    webHeadColor = findPreference<ColorPreference>(WEB_HEADS_COLOR)
+    spawnLocation = findPreference<IconListPreference>(WEB_HEAD_SPAWN_LOCATION)
+    webHeadSize = findPreference<IconListPreference>(WEB_HEAD_SIZE)
   }
 
   private fun setIcons() {

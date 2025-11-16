@@ -93,7 +93,7 @@ class AppColorExtractorJob : JobIntentService() {
             // Create dummy theme
             val tempTheme = resources.newTheme()
             // Need the theme id to apply the theme, so let's get it.
-            val themeId = packageManager.getPackageInfo(packageName, GET_META_DATA).applicationInfo.theme
+            val themeId = packageManager?.getPackageInfo(packageName, GET_META_DATA)?.applicationInfo?.theme ?: return -1
             // Apply the theme
             tempTheme.applyStyle(themeId, false)
             // Attempt to get styled values now
@@ -149,7 +149,13 @@ class AppColorExtractorJob : JobIntentService() {
     }
 
     private fun saveColorToDb(packageName: String, @ColorInt extractedColor: Int) {
-        appRepository.setPackageColor(packageName, extractedColor).subscribe()
+        try {
+            kotlinx.coroutines.runBlocking {
+                appRepository.setPackageColor(packageName, extractedColor)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to save color to DB")
+        }
     }
 
     companion object {

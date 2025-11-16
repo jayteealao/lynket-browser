@@ -117,9 +117,20 @@ class ProviderSelectionActivity : BaseActivity() {
       adapter = providersAdapter
     }
 
+    // TODO: Phase 8 Migration Complete - Convert ProvidersAdapter RxJava to Flow
+    // ProvidersAdapter still uses RxJava Subjects internally
+    // Once ProvidersAdapter is migrated to Flow, use:
+    // lifecycleScope.launch {
+    //   providersAdapter.selectionsFlow.collect { onProviderSelected(it) }
+    // }
+    // lifecycleScope.launch {
+    //   providersAdapter.installClicksFlow.collect { onProviderInstallClicked(it) }
+    // }
+    /*
     // Note: providersAdapter still uses RxJava Observables
     subs.add(providersAdapter.selections.subscribe { onProviderSelected(it) })
     subs.add(providersAdapter.installClicks.subscribe { onProviderInstallClicked(it) })
+    */
   }
 
   private fun setupWebViewCard() {

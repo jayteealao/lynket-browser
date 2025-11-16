@@ -29,7 +29,8 @@ import arun.com.chromer.di.app.DaggerAppComponent
 import arun.com.chromer.util.ServiceManager
 import com.airbnb.epoxy.EpoxyController
 import com.mikepenz.materialdrawer.util.DrawerImageLoader
-import com.uber.rxdogtag.RxDogTag
+// TODO: RxDogTag removed - no longer needed as RxJava is being phased out
+// import com.uber.rxdogtag.RxDogTag
 import dagger.hilt.android.HiltAndroidApp
 import io.paperdb.Paper
 import timber.log.Timber
@@ -55,7 +56,8 @@ open class Lynket : Application() {
     Paper.init(this)
 
     if (BuildConfig.DEBUG) {
-      RxDogTag.install()
+      // TODO: RxDogTag removed - no longer needed as RxJava is being phased out
+      // RxDogTag.install()
       Timber.plant(Timber.DebugTree())
     }
     ServiceManager.takeCareOfServices(applicationContext)

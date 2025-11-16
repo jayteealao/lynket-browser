@@ -75,6 +75,9 @@ class WebHeadContextActivity : BaseActivity(), WebsiteAdapter.WebSiteAdapterList
 
     private lateinit var websitesAdapter: WebsiteAdapter
 
+    override val layoutRes: Int
+        get() = R.layout.activity_web_head_context
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ButterKnife.bind(this)
@@ -93,8 +96,6 @@ class WebHeadContextActivity : BaseActivity(), WebsiteAdapter.WebSiteAdapterList
 
         registerEventsReceiver()
     }
-
-    override fun getLayoutRes(): Int = R.layout.activity_web_head_context
 
     private fun registerEventsReceiver() {
         val filter = IntentFilter().apply {

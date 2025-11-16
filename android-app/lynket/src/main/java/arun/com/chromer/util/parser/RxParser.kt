@@ -54,7 +54,7 @@ object RxParser {
       val candidateUrl = CruxURL.parse(expanded)
       if (candidateUrl.resolveRedirects().isLikelyArticle) {
         // We only need the head tag for meta data.
-        var webSiteString = headString(candidateUrl.toString())
+        var webSiteString: String? = headString(candidateUrl.toString())
         article = ArticleExtractor
           .with(expanded, webSiteString)
           .extractMetadata()

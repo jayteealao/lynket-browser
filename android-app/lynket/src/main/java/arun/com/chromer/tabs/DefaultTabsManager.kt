@@ -56,7 +56,10 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.extenstions.isPackageInstalled
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.RxPreferences
-import arun.com.chromer.shared.Constants.*
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
+import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
+import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
+import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.tabs.ui.TabsActivity
 import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.SafeIntent
@@ -469,7 +472,7 @@ constructor(
    */
   @ColorInt
   private fun customizedWebsiteColor(website: Website): Int {
-    if (preferences.isColoredToolbar) {
+    if (preferences.isColoredToolbar()) {
       if (preferences.dynamicToolbar()) {
         var appColor = NO_COLOR
         var websiteColor = NO_COLOR

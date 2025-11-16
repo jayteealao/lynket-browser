@@ -23,7 +23,7 @@ package arun.com.chromer.data.apps.store
 
 import android.app.Application
 import android.content.Intent
-import arun.com.chromer.browsing.customtabs.CustomTabs.getCustomTabSupportingPackages
+import arun.com.chromer.browsing.customtabs.CustomTabs
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.common.App
 import arun.com.chromer.extenstions.toUri
@@ -207,7 +207,7 @@ constructor(
       provider
     }
 
-    val installedProviders = getCustomTabSupportingPackages(application).map { packageName ->
+    val installedProviders = CustomTabs.getCustomTabSupportingPackages(application).map { packageName ->
       Provider(
         packageName,
         getAppNameWithPackage(application, packageName),

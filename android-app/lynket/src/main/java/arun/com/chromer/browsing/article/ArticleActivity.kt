@@ -51,16 +51,20 @@ import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.extenstions.watch
 import arun.com.chromer.search.provider.SearchProviders
-import arun.com.chromer.settings.Preferences.*
+import arun.com.chromer.settings.Preferences
+import arun.com.chromer.settings.Preferences.THEME_BLACK
+import arun.com.chromer.settings.Preferences.THEME_DARK
+import arun.com.chromer.settings.Preferences.THEME_LIGHT
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
 import com.afollestad.materialdialogs.MaterialDialog
 import com.bumptech.glide.RequestManager
-import com.jakewharton.rxbinding.widget.RxSeekBar
+// TODO: Phase 8 Migration - Remove RxJava imports after migration
+// import com.jakewharton.rxbinding.widget.RxSeekBar
+// import hu.akarnokd.rxjava.interop.RxJavaInterop
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
-import hu.akarnokd.rxjava.interop.RxJavaInterop
 import javax.inject.Inject
 
 class ArticleActivity : BrowsingActivity() {
@@ -200,7 +204,8 @@ class ArticleActivity : BrowsingActivity() {
   }
 
   private fun onArticleLoaded(webArticle: WebArticle) {
-    if (webArticle.elements != null && webArticle.elements.size >= MIN_NUM_ELEMENTS) {
+    val elements = webArticle.elements
+    if (elements != null && elements.size >= MIN_NUM_ELEMENTS) {
       renderArticle(webArticle)
     } else {
       onArticleLoadingFailed()
@@ -240,6 +245,18 @@ class ArticleActivity : BrowsingActivity() {
     binding.textSizeDismiss.setImageDrawable(dismissIcon)
     binding.textSizeDismiss.setOnClickListener { onTextSizeDismiss() }
     binding.textSizeSeekbar.progress = preferences.articleTextSizeIncrement()
+    // TODO: Phase 8 Migration - Convert RxSeekBar to SeekBar.OnSeekBarChangeListener
+    // Replace RxSeekBar with standard Android listener:
+    // binding.textSizeSeekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+    //   override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+    //     if (fromUser && ::articleAdapter.isInitialized) {
+    //       articleAdapter.textSizeIncrementSp = progress
+    //     }
+    //   }
+    //   override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+    //   override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+    // })
+    /*
     subs.add(RxSeekBar
       .changes(binding.textSizeSeekbar)
       .skip(1)
@@ -250,6 +267,7 @@ class ArticleActivity : BrowsingActivity() {
           }
         }
       })
+    */
   }
 
   private fun setupTheme() {
@@ -308,6 +326,10 @@ class ArticleActivity : BrowsingActivity() {
       preferences.articleTextSizeIncrement()
     ).apply {
       setElements(webArticle.elements)
+      // TODO: Phase 8 Migration - Convert RxJava keyword clicks to Flow
+      // Use lifecycleScope.launch { keywordsClicksFlow().collect { key -> ... } }
+      // Requires migrating ArticleAdapter.keywordsClicks() to Flow
+      /*
       RxJavaInterop.toV2Observable(keywordsClicks())
         .switchMap { key ->
           browsingArticleViewModel
@@ -317,6 +339,7 @@ class ArticleActivity : BrowsingActivity() {
         .subscribe { url ->
           tabsManager.openUrl(this@ArticleActivity, Website(url))
         }
+      */
     }
     binding.recyclerView.apply {
       layoutManager = LinearLayoutManager(this@ArticleActivity)

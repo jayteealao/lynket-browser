@@ -60,9 +60,8 @@ class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeCli
   @Inject
   lateinit var tabsManager: TabsManager
 
-  override fun getLayoutRes(): Int {
-    return R.layout.activity_browsing_mode
-  }
+  override val layoutRes: Int
+    get() = R.layout.activity_browsing_mode
 
   override fun inject(activityComponent: ActivityComponent) {
     activityComponent.inject(this)

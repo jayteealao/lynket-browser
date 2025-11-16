@@ -83,10 +83,8 @@ object DataStoreModule {
             migrations = listOf(
                 // Migrate ALL keys from SharedPreferences to DataStore
                 SharedPreferencesMigration(
-                    context = context,
-                    sharedPreferencesName = PreferenceManager.getDefaultSharedPreferencesName(context),
-                    // Migrate all keys (don't specify keysToMigrate to migrate everything)
-                    shouldRunMigration = { true }
+                    context,
+                    PreferenceManager.getDefaultSharedPreferencesName(context)
                 )
             ),
             scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),

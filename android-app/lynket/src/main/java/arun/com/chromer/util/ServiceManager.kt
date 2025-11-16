@@ -45,7 +45,7 @@ object ServiceManager {
     }
 
     private fun shouldRunAppDetection(context: Context): Boolean {
-        return Preferences.get(context).isAppBasedToolbar || Preferences.get(context).perAppSettings()
+        return Preferences.get(context).isAppBasedToolbar() || Preferences.get(context).perAppSettings()
     }
 
     fun startAppDetectionService(context: Context) {

@@ -200,8 +200,13 @@ class HomeFragment : BaseFragment(), Snackable {
       }, 200)
     }
 
+    // TODO: RxJava code - needs migration to Kotlin Flow
+    // The RxEventBus needs to be converted to Flow-based event bus
+    // For now, this functionality is disabled
+    /*
     subs.add(rxEventBus
       .filteredEvents<BrowsingOptionsActivity.ProviderChanged>()
       .subscribe { setupProviderCard() })
+    */
   }
 }

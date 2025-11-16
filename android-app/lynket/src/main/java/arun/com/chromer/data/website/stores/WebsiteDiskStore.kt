@@ -127,8 +127,9 @@ class WebsiteDiskStore @Inject constructor(
     override suspend fun saveWebsiteColor(host: String, @ColorInt color: Int): WebColor {
         return withContext(Dispatchers.IO) {
             try {
-                getBook().write(host, WebColor(host, color)).read<WebColor>(host)
-                    ?: WebColor(host, NO_COLOR)
+                val webColor = WebColor(host, color)
+                getBook().write(host, webColor)
+                getBook().read<WebColor>(host) ?: webColor
             } catch (e: Exception) {
                 Timber.e(e)
                 WebColor(host, NO_COLOR)
@@ -152,7 +153,7 @@ class WebsiteDiskStore @Inject constructor(
         val EMPTY_ICON_COLOR_PAIR: Pair<Bitmap, Int> = Pair(null, Constants.NO_COLOR)
         val EMPTY_DRAWABLE_PAIR: Pair<Drawable, Int> = Pair(null, Constants.NO_COLOR)
         // Cache size, currently set at 30 MB.
-        private const val DISK_CACHE_SIZE = 1024 * 1024 * 30
+        private const val DISK_CACHE_SIZE = 1024 * 1024 * 30L
         private const val THEME_COLOR_BOOK = "THEME_COLOR_BOOK"
     }
 }

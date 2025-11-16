@@ -65,7 +65,7 @@ internal constructor(
 
   override fun getWebsite(url: String): Flow<Website> = flow {
     // Try cache first
-    cacheStore.getWebsite(url)
+    val cacheResult = cacheStore.getWebsite(url)
       .onEach { webSite ->
         if (webSite != null) {
           scope.launch {
@@ -74,13 +74,15 @@ internal constructor(
         }
       }
       .filterNotNull()
-      .collect {
-        emit(it)
-        return@flow
-      }
+      .firstOrNull()
+
+    if (cacheResult != null) {
+      emit(cacheResult)
+      return@flow
+    }
 
     // Try history
-    historyRepository.get(Website(url))
+    val historyResult = historyRepository.get(Website(url))
       .asFlow()
       .onEach { webSite ->
         if (webSite != null) {
@@ -90,13 +92,15 @@ internal constructor(
         }
       }
       .filterNotNull()
-      .collect {
-        emit(it)
-        return@flow
-      }
+      .firstOrNull()
+
+    if (historyResult != null) {
+      emit(historyResult)
+      return@flow
+    }
 
     // Try remote
-    webNetworkStore.getWebsite(url)
+    val remoteResult = webNetworkStore.getWebsite(url)
       .filterNotNull()
       .onEach { webSite ->
         scope.launch {
@@ -104,10 +108,12 @@ internal constructor(
           historyRepository.insert(webSite).asFlow().collect {}
         }
       }
-      .collect {
-        emit(it)
-        return@flow
-      }
+      .firstOrNull()
+
+    if (remoteResult != null) {
+      emit(remoteResult)
+      return@flow
+    }
 
     // If nothing found, emit default
     emit(Website(url))
@@ -118,34 +124,40 @@ internal constructor(
 
   override fun getWebsiteReadOnly(url: String): Flow<Website> = flow {
     // Try cache first
-    cacheStore.getWebsite(url)
+    val cacheResult = cacheStore.getWebsite(url)
       .filterNotNull()
-      .collect {
-        emit(it)
-        return@flow
-      }
+      .firstOrNull()
+
+    if (cacheResult != null) {
+      emit(cacheResult)
+      return@flow
+    }
 
     // Try history
-    historyRepository.get(Website(url))
+    val historyResult = historyRepository.get(Website(url))
       .asFlow()
       .filterNotNull()
-      .collect {
-        emit(it)
-        return@flow
-      }
+      .firstOrNull()
+
+    if (historyResult != null) {
+      emit(historyResult)
+      return@flow
+    }
 
     // Try remote
-    webNetworkStore.getWebsite(url)
+    val remoteResult = webNetworkStore.getWebsite(url)
       .filterNotNull()
       .onEach { webSite ->
         scope.launch {
           cacheStore.saveWebsite(webSite)
         }
       }
-      .collect {
-        emit(it)
-        return@flow
-      }
+      .firstOrNull()
+
+    if (remoteResult != null) {
+      emit(remoteResult)
+      return@flow
+    }
 
     // If nothing found, emit default
     emit(Website(url))

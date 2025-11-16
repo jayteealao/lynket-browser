@@ -11,6 +11,7 @@
 
 package arun.com.chromer.ui.navigation
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -207,50 +208,49 @@ private fun PlaceholderScreen(title: String) {
 
 /**
  * Navigation extensions for type-safe navigation
+ *
+ * Note: These are extension functions on NavController (not NavHostController)
+ * so they can be used from any Composable that receives a NavController parameter.
  */
-fun NavHostController.navigateToHome() {
+fun androidx.navigation.NavController.navigateToHome() {
     navigate(Screen.Home.route) {
         popUpTo(Screen.Home.route) { inclusive = true }
     }
 }
 
-fun NavHostController.navigateToHistory() {
+fun androidx.navigation.NavController.navigateToHistory() {
     navigate(Screen.History.route)
 }
 
-fun NavHostController.navigateToTabs() {
+fun androidx.navigation.NavController.navigateToTabs() {
     navigate(Screen.Tabs.route)
 }
 
-fun NavHostController.navigateToSettings() {
+fun androidx.navigation.NavController.navigateToSettings() {
     navigate(Screen.Settings.route)
 }
 
-fun NavHostController.navigateToBrowser(url: String) {
+fun androidx.navigation.NavController.navigateToBrowser(url: String) {
     navigate(Screen.Browser.createRoute(url))
 }
 
-fun NavHostController.navigateToPerAppSettings(packageName: String) {
+fun androidx.navigation.NavController.navigateToPerAppSettings(packageName: String) {
     navigate(Screen.PerAppSettings.createRoute(packageName))
 }
 
-fun NavHostController.navigateToProviderSelection() {
+fun androidx.navigation.NavController.navigateToProviderSelection() {
     navigate(Screen.ProviderSelection.route)
 }
 
-fun NavHostController.navigateToArticle(url: String) {
+fun androidx.navigation.NavController.navigateToArticle(url: String) {
     navigate(Screen.Article.createRoute(url))
 }
 
-fun NavHostController.navigateToWebHeads() {
+fun androidx.navigation.NavController.navigateToWebHeads() {
     navigate(Screen.WebHeads.route)
 }
 
-fun NavHostController.navigateToAbout() {
+fun androidx.navigation.NavController.navigateToAbout() {
     navigate(Screen.About.route)
 }
 
-// Missing import helper
-private fun Modifier.fillMaxSize(): Modifier = this.then(
-    androidx.compose.foundation.layout.fillMaxSize()
-)

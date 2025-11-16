@@ -45,8 +45,8 @@ class BottomBarPreferenceFragment : BasePreferenceFragment(),
 
 
   private fun setupBottomBarPreference() {
-    val bottomBarPreference = findPreference(BOTTOM_BAR_ENABLED) as SwitchPreference
-    bottomBarPreference.icon = IconicsDrawable(requireContext())
+    val bottomBarPreference = findPreference<SwitchPreference>(BOTTOM_BAR_ENABLED)
+    bottomBarPreference?.icon = IconicsDrawable(requireContext())
       .icon(CommunityMaterial.Icon.cmd_more)
       .color(ContextCompat.getColor(requireContext(), R.color.material_dark_light))
       .sizeDp(24)
@@ -54,12 +54,12 @@ class BottomBarPreferenceFragment : BasePreferenceFragment(),
 
 
   private fun setupMinimizePreference() {
-    with(findPreference(MINIMIZE_BEHAVIOR_PREFERENCE) as IconListPreference) {
-      icon = IconicsDrawable(requireContext())
+    findPreference<IconListPreference>(MINIMIZE_BEHAVIOR_PREFERENCE)?.let {
+      it.icon = IconicsDrawable(requireContext())
         .icon(CommunityMaterial.Icon.cmd_arrow_down)
         .color(ContextCompat.getColor(requireContext(), R.color.material_dark_light))
         .sizeDp(24)
-      isVisible = Utils.isLollipopAbove()
+      it.isVisible = Utils.isLollipopAbove()
     }
     updatePreferenceSummary(MINIMIZE_BEHAVIOR_PREFERENCE)
   }

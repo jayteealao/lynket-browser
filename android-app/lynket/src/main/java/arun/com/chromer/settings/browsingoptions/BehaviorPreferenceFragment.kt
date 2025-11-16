@@ -73,7 +73,7 @@ class BehaviorPreferenceFragment : BasePreferenceFragment() {
   }
 
   private fun setupMergeTabsPreference() {
-    mergeTabsPreference = findPreference(MERGE_TABS_AND_APPS)
+    mergeTabsPreference = findPreference<IconSwitchPreference>(MERGE_TABS_AND_APPS)
     mergeTabsPreference?.let {
       val recentImg = IconicsDrawable(requireActivity())
         .icon(CommunityMaterial.Icon.cmd_animation)

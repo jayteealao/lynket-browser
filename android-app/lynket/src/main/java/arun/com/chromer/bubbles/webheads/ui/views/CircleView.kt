@@ -74,6 +74,16 @@ open class CircleView @JvmOverloads constructor(
         )
     }
 
+    @get:ColorInt
+    @set:ColorInt
+    var color: Int
+        get() = mColor
+        set(value) {
+            mColor = value
+            mBgPaint.color = value
+            invalidate()
+        }
+
     @ColorInt
     fun getColor(): Int {
         return mColor

@@ -42,7 +42,9 @@ internal class SettingsGroupAdapter(context: Context) :
 
   private val context: Context = context.applicationContext
   private val settingsItems: MutableList<String> = ArrayList()
-  private var groupItemClickListener: GroupItemClickListener = GroupItemClickListener { _, _ -> }
+  private var groupItemClickListener: GroupItemClickListener = object : GroupItemClickListener {
+    override fun onGroupItemClicked(position: Int, view: View) {}
+  }
 
   init {
     setHasStableIds(true)
@@ -79,7 +81,9 @@ internal class SettingsGroupAdapter(context: Context) :
   }
 
   fun cleanUp() {
-    groupItemClickListener = GroupItemClickListener { _, _ -> }
+    groupItemClickListener = object : GroupItemClickListener {
+      override fun onGroupItemClicked(position: Int, view: View) {}
+    }
     settingsItems.clear()
   }
 
