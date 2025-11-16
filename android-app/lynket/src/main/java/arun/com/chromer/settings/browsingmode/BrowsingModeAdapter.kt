@@ -106,11 +106,11 @@ class BrowsingModeAdapter @Inject constructor(
     settingsItems.clear()
   }
 
-  internal interface BrowsingModeClickListener {
+  interface BrowsingModeClickListener {
     fun onModeClicked(position: Int, view: View)
   }
 
-  internal class BrowsingModeViewHolder(
+  class BrowsingModeViewHolder(
     itemView: View,
     private val rxPreferences: RxPreferences
   ) : RecyclerView.ViewHolder(itemView) {
