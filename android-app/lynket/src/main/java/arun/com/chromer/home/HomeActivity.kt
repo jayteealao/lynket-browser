@@ -58,13 +58,10 @@ class HomeActivity : BaseActivity(), Snackable {
   private lateinit var binding: ActivityMainBinding
 
   @Inject
-  lateinit var tabsManager: TabsManager
-
-  @Inject
   lateinit var rxEventBus: RxEventBus
 
   @Inject
-  lateinit var tabsManger: TabsManager
+  lateinit var tabsManager: TabsManager
 
   private val homeActivityViewModel: HomeActivityViewModel by viewModels()
 
@@ -161,7 +158,7 @@ class HomeActivity : BaseActivity(), Snackable {
         .takeUntil(lifecycleEvents.destroys)
         .subscribe { url ->
           postDelayed(150) {
-            tabsManger.openUrl(this@HomeActivity, Website(url))
+            tabsManager.openUrl(this@HomeActivity, Website(url))
           }
         }
 
