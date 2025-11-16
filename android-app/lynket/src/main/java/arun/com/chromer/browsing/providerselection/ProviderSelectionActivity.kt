@@ -34,10 +34,11 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.GridLayoutManager
-import arun.com.chromer.R
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.rx2.asFlow
+import arun.com.chromer.R
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.databinding.ActivityProviderSelectionBinding
 import arun.com.chromer.databinding.DialogProviderInfoBinding
@@ -116,12 +117,9 @@ class ProviderSelectionActivity : BaseActivity() {
       adapter = providersAdapter
     }
 
-    lifecycleScope.launch {
-      providersAdapter.selections.asFlow().collect { onProviderSelected(it) }
-    }
-    lifecycleScope.launch {
-      providersAdapter.installClicks.asFlow().collect { onProviderInstallClicked(it) }
-    }
+    // Note: providersAdapter still uses RxJava Observables
+    subs.add(providersAdapter.selections.subscribe { onProviderSelected(it) })
+    subs.add(providersAdapter.installClicks.subscribe { onProviderInstallClicked(it) })
   }
 
   private fun setupWebViewCard() {
@@ -143,12 +141,13 @@ class ProviderSelectionActivity : BaseActivity() {
 
   private fun observeViewModel(savedInstanceState: Bundle?) {
     providerSelectionViewModel.apply {
-      providersState.watch(
-        this@ProviderSelectionActivity
-      ) { value ->
-        providersAdapter.providers = value as ArrayList<Provider>
+      lifecycleScope.launch {
+        repeatOnLifecycle(Lifecycle.State.STARTED) {
+          providersState.collect { providers ->
+            providersAdapter.providers = providers as ArrayList<Provider>
+          }
+        }
       }
-
 
       if (savedInstanceState == null) {
         loadProviders()
