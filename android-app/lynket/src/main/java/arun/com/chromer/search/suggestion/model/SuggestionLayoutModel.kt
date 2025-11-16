@@ -64,7 +64,7 @@ abstract class SuggestionLayoutModel :
   override fun bind(holder: ViewHolder) {
     super.bind(holder)
     holder.apply {
-      binding.suggestionsText.text = suggestionItem.title.toSpannable().makeMatchingBold(query)
+      binding.suggestionsText.text = suggestionItem.title.makeMatchingBold(query)
       when (suggestionItem.type) {
         COPY -> binding.suggestionIcon.setImageDrawable(copyIcon)
         GOOGLE -> binding.suggestionIcon.setImageDrawable(searchIcon)

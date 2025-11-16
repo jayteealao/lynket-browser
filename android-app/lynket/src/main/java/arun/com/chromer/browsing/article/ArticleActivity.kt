@@ -325,7 +325,7 @@ class ArticleActivity : BrowsingActivity() {
       requestManager,
       preferences.articleTextSizeIncrement()
     ).apply {
-      setElements(webArticle.elements)
+      webArticle.elements?.let { setElements(it) }
       // TODO: Phase 8 Migration - Convert RxJava keyword clicks to Flow
       // Use lifecycleScope.launch { keywordsClicksFlow().collect { key -> ... } }
       // Requires migrating ArticleAdapter.keywordsClicks() to Flow

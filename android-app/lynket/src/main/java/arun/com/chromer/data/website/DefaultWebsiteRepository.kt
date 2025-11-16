@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
@@ -180,14 +181,15 @@ internal constructor(
 
   override suspend fun saveWebColor(url: String): WebColor {
     val webSite = getWebsiteReadOnly(url).first()
+    val host = Uri.parse(webSite.url).host ?: ""
 
     return if (webSite.themeColor() != NO_COLOR) {
       val color = webSite.themeColor()
-      cacheStore.saveWebsiteColor(Uri.parse(webSite.url).host!!, color)
+      cacheStore.saveWebsiteColor(host, color)
     } else {
       val color = getWebsiteIconAndColor(webSite).second
       if (color != NO_COLOR) {
-        cacheStore.saveWebsiteColor(Uri.parse(webSite.url).host!!, color)
+        cacheStore.saveWebsiteColor(host, color)
       } else {
         WebColor("", NO_COLOR)
       }

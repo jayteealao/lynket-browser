@@ -113,14 +113,15 @@ class WebsiteDiskStore @Inject constructor(
 
     override suspend fun getWebsiteColor(url: String): WebColor {
         return withContext(Dispatchers.IO) {
+            val host = Uri.parse(url).host ?: ""
             val webColor = try {
-                getBook().read<WebColor>(Uri.parse(url).host)
+                getBook().read<WebColor>(host)
             } catch (e: Exception) {
                 Timber.e(e)
                 null
             }
 
-            webColor ?: WebColor(Uri.parse(url).host, NO_COLOR)
+            webColor ?: WebColor(host, NO_COLOR)
         }
     }
 

@@ -40,7 +40,7 @@ class OpenInChromeReceiver : BroadcastReceiver() {
             val customTabPkg = Preferences.get(context).customTabPackage()
             if (Utils.isPackageInstalled(context, customTabPkg)) {
                 val chromeIntentExplicit = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                val componentName = Utils.getBrowserComponentForPackage(context, customTabPkg)
+                val componentName = Utils.getBrowserComponentForPackage(context, customTabPkg ?: "")
                 if (componentName != null) {
                     chromeIntentExplicit.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     chromeIntentExplicit.component = componentName

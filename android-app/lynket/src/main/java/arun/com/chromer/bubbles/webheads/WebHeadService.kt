@@ -572,7 +572,7 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
 
         @JvmStatic
         fun getTabSession(): CustomTabsSession? {
-            return customTabManager?.session
+            return customTabManager?.getSession()
         }
     }
 }

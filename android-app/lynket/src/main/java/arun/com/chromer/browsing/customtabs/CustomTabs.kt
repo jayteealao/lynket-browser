@@ -388,7 +388,7 @@ class CustomTabs @Inject constructor(
                 val chromeReceiver = Intent(act, OpenInChromeReceiver::class.java)
                 val openChromePending = PendingIntent.getBroadcast(act, 0, chromeReceiver, getPendingIntentFlags())
 
-                val app = Utils.getAppNameWithPackage(act, customTabPkg) ?: ""
+                val app = Utils.getAppNameWithPackage(act, customTabPkg ?: "") ?: ""
                 val label = String.format(act.getString(R.string.open_in_browser), app)
                 builder!!.addMenuItem(label, openChromePending)
             }
@@ -455,18 +455,18 @@ class CustomTabs @Inject constructor(
         ) {
             try {
                 val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    act.packageManager.getPackageInfo(customTabPackage, PackageManager.PackageInfoFlags.of(0))
+                    act.packageManager.getPackageInfo(customTabPackage!!, PackageManager.PackageInfoFlags.of(0))
                 } else {
                     @Suppress("DEPRECATION")
-                    act.packageManager.getPackageInfo(customTabPackage, 0)
+                    act.packageManager.getPackageInfo(customTabPackage!!, 0)
                 }
                 val versionName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     packageInfo.longVersionCode.toString()
                 } else {
                     @Suppress("DEPRECATION")
-                    packageInfo.versionName
+                    packageInfo.versionName ?: ""
                 }
-                return versionName?.split(".")?.getOrNull(0)?.toIntOrNull() ?: -1
+                return versionName.split(".").getOrNull(0)?.toIntOrNull() ?: -1
             } catch (e: Exception) {
                 return -1
             }

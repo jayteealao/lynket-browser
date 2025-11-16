@@ -48,7 +48,7 @@ import javax.inject.Inject
  * Created by Arunkumar on 19-02-2017.
  */
 @PerActivity
-internal class BrowsingModeAdapter @Inject constructor(
+class BrowsingModeAdapter @Inject constructor(
   application: Application,
   private val rxPreferences: RxPreferences
 ) : RecyclerView.Adapter<BrowsingModeAdapter.BrowsingModeViewHolder>() {

@@ -56,7 +56,7 @@ abstract class WebsiteLayoutModel : KotlinEpoxyModelWithHolder<WebsiteLayoutMode
 
   override fun bind(holder: ViewHolder) {
     holder.binding.apply {
-      label.text = website.safeLabel().toSpannable().makeMatchingBold(query)
+      label.text = website.safeLabel().makeMatchingBold(query)
       root.setOnClickListener {
         tabsManager.openUrl(root.context, website)
       }

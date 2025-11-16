@@ -41,7 +41,7 @@ class FavShareBroadcastReceiver : BroadcastReceiver() {
             val openAppIntent = Intent(Intent.ACTION_SEND).apply {
                 putExtra(Intent.EXTRA_TEXT, url)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                component = ComponentName.unflattenFromString(Preferences.get(context).favShareComponent())
+                component = ComponentName.unflattenFromString(Preferences.get(context).favShareComponent() ?: "")
             }
             try {
                 context.startActivity(openAppIntent)

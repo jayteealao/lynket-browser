@@ -61,8 +61,9 @@ class WebsiteNetworkStore @Inject constructor(
         try {
             // RxParser is now a suspend function
             val urlArticlePair = RxParser.parseUrl(url)
-            if (urlArticlePair.second != null) {
-                val extractedWebsite = Website.fromArticle(urlArticlePair.second)
+            val article = urlArticlePair.second
+            if (article != null) {
+                val extractedWebsite = Website.fromArticle(article)
                 // We preserve the original url, otherwise breaks cache.
                 extractedWebsite.url = urlArticlePair.first
                 emit(extractedWebsite)

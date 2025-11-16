@@ -78,7 +78,7 @@ class ModernHomeViewModel @Inject constructor(
         HomeUiState.Success(
             recentWebsites = recents,
             providerInfo = providerInfo
-        )
+        ) as HomeUiState  // Explicitly cast to supertype to allow Error emission in catch
     }
         .catch { exception ->
             Timber.e(exception, "Error loading home screen data")

@@ -261,7 +261,7 @@ constructor(
       withContext(Dispatchers.IO) {
         // Safety check against malicious intents
         val safeIntent = SafeIntent(intent)
-        val url = safeIntent.dataString
+        val url = safeIntent.dataString ?: return@withContext
         var proceed = true
         // The first thing to check is if we should blacklist.
         if (preferences.perAppSettings()) {

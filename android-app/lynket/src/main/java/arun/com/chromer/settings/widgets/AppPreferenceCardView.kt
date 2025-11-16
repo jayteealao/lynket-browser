@@ -144,7 +144,7 @@ class AppPreferenceCardView @JvmOverloads constructor(
     if (Utils.isPackageInstalled(context, appPackage)) {
       icon.scaleType = ImageView.ScaleType.FIT_CENTER
       GlideApp.with(context)
-        .load(ApplicationIcon.createUri(appPackage))
+        .load(ApplicationIcon.createUri(appPackage ?: ""))
         .fitCenter()
         .listener(object : RequestListener<android.graphics.drawable.Drawable> {
           override fun onLoadFailed(

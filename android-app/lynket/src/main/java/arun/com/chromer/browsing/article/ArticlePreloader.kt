@@ -81,8 +81,9 @@ class ArticlePreloader @Inject constructor(
 
     /**
      * Listener for article preload completion.
+     * Marked as 'fun interface' to enable SAM conversion for lambda usage.
      */
-    interface ArticlePreloadListener {
+    fun interface ArticlePreloadListener {
         /**
          * Called when preload process has been completed. Can rely on [success] to know
          * whether it was success or not.
