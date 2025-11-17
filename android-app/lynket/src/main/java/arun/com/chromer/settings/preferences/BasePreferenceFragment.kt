@@ -57,7 +57,7 @@ abstract class BasePreferenceFragment : PreferenceFragmentCompat(), SharedPrefer
 
   protected fun enableDisablePreference(enabled: Boolean, vararg preferenceKeys: String) {
     for (preferenceKey in preferenceKeys) {
-      val preference = findPreference<Preference>(preferenceKey)
+      val preference = findPreference(preferenceKey) as? Preference
       preference?.isEnabled = enabled
     }
   }
@@ -65,7 +65,7 @@ abstract class BasePreferenceFragment : PreferenceFragmentCompat(), SharedPrefer
   protected fun updatePreferenceSummary(vararg preferenceKeys: String?) {
     for (key in preferenceKeys) {
       key?.let {
-        val preference = preferenceScreen.findPreference<Preference>(it)
+        val preference = preferenceScreen.findPreference(it) as? Preference
         when (preference) {
           is ListPreference -> {
             preference.summary = preference.entry
