@@ -24,9 +24,7 @@ import android.app.Application
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import arun.com.chromer.search.provider.SearchProviders
-import arun.com.chromer.settings.Preferences.FULL_INCOGNITO_MODE
-import arun.com.chromer.settings.Preferences.PREFERRED_CUSTOM_TAB_PACKAGE
-import arun.com.chromer.settings.Preferences.USE_WEBVIEW_PREF
+import arun.com.chromer.settings.Preferences
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -46,15 +44,15 @@ constructor(application: Application) {
   private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(application)
 
   val customTabProviderPref: PreferenceItem<String> by lazy {
-    PreferenceItem(prefs, PREFERRED_CUSTOM_TAB_PACKAGE, "")
+    PreferenceItem(prefs, Preferences.PREFERRED_CUSTOM_TAB_PACKAGE, "")
   }
 
   val incognitoPref: PreferenceItem<Boolean> by lazy {
-    PreferenceItem(prefs, FULL_INCOGNITO_MODE, false)
+    PreferenceItem(prefs, Preferences.FULL_INCOGNITO_MODE, false)
   }
 
   val webviewPref: PreferenceItem<Boolean> by lazy {
-    PreferenceItem(prefs, USE_WEBVIEW_PREF, false)
+    PreferenceItem(prefs, Preferences.USE_WEBVIEW_PREF, false)
   }
 
   val searchEngine: PreferenceItem<String> by lazy {
