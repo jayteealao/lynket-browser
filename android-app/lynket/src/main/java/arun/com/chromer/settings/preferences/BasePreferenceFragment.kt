@@ -65,7 +65,7 @@ abstract class BasePreferenceFragment : PreferenceFragmentCompat(), SharedPrefer
   protected fun updatePreferenceSummary(vararg preferenceKeys: String?) {
     for (key in preferenceKeys) {
       key?.let {
-        val preference = preferenceScreen.findPreference(it) as? Preference
+        val preference = preferenceScreen.findPreference(it)
         when (preference) {
           is ListPreference -> {
             preference.summary = preference.entry
