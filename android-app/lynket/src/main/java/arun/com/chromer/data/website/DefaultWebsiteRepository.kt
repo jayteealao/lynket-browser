@@ -45,7 +45,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.rx2.asFlow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -70,7 +69,7 @@ internal constructor(
       .onEach { webSite ->
         if (webSite != null) {
           scope.launch {
-            historyRepository.insert(webSite).asFlow().collect {}
+            historyRepository.insert(webSite)
           }
         }
       }
@@ -84,18 +83,11 @@ internal constructor(
 
     // Try history
     val historyResult = historyRepository.get(Website(url))
-      .asFlow()
-      .onEach { webSite ->
-        if (webSite != null) {
-          scope.launch {
-            historyRepository.insert(webSite).asFlow().collect {}
-          }
-        }
-      }
-      .filterNotNull()
-      .firstOrNull()
 
     if (historyResult != null) {
+      scope.launch {
+        historyRepository.insert(historyResult)
+      }
       emit(historyResult)
       return@flow
     }
@@ -106,7 +98,7 @@ internal constructor(
       .onEach { webSite ->
         scope.launch {
           cacheStore.saveWebsite(webSite)
-          historyRepository.insert(webSite).asFlow().collect {}
+          historyRepository.insert(webSite)
         }
       }
       .firstOrNull()
@@ -136,9 +128,6 @@ internal constructor(
 
     // Try history
     val historyResult = historyRepository.get(Website(url))
-      .asFlow()
-      .filterNotNull()
-      .firstOrNull()
 
     if (historyResult != null) {
       emit(historyResult)
