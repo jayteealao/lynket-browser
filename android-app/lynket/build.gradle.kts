@@ -148,6 +148,7 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.rx2) // RxJava interop for migration
 
     // Room Database
     implementation(libs.androidx.room.runtime)
