@@ -52,9 +52,6 @@ import arun.com.chromer.extenstions.show
 import arun.com.chromer.extenstions.watch
 import arun.com.chromer.search.provider.SearchProviders
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.Preferences.THEME_BLACK
-import arun.com.chromer.settings.Preferences.THEME_DARK
-import arun.com.chromer.settings.Preferences.THEME_LIGHT
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
@@ -272,8 +269,8 @@ class ArticleActivity : BrowsingActivity() {
 
   private fun setupTheme() {
     when (preferences.articleTheme()) {
-      THEME_BLACK -> handleBlackTheme()
-      THEME_DARK -> setNavigationBarColor(
+      Preferences.THEME_BLACK -> handleBlackTheme()
+      Preferences.THEME_DARK -> setNavigationBarColor(
         ContextCompat.getColor(
           this,
           R.color.article_windowBackground
@@ -301,7 +298,7 @@ class ArticleActivity : BrowsingActivity() {
   }
 
   private fun canUseAsAccentColor(primaryColor: Int): Boolean {
-    val isDark = preferences.articleTheme() != THEME_LIGHT
+    val isDark = preferences.articleTheme() != Preferences.THEME_LIGHT
     return if (isDark) {
       !ColorUtil.shouldUseLightForegroundOnBackground(primaryColor)
     } else {
@@ -312,8 +309,8 @@ class ArticleActivity : BrowsingActivity() {
 
   private fun readCustomizations() {
     when (preferences.articleTheme()) {
-      THEME_LIGHT -> delegate.localNightMode = MODE_NIGHT_NO
-      THEME_DARK, THEME_BLACK -> delegate.localNightMode = MODE_NIGHT_YES
+      Preferences.THEME_LIGHT -> delegate.localNightMode = MODE_NIGHT_NO
+      Preferences.THEME_DARK, Preferences.THEME_BLACK -> delegate.localNightMode = MODE_NIGHT_YES
       else -> delegate.localNightMode = MODE_NIGHT_AUTO_BATTERY
     }
   }
