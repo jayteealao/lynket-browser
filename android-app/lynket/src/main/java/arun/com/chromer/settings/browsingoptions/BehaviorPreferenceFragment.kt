@@ -29,9 +29,6 @@ import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.perapp.PerAppSettingsActivity
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.Preferences.AGGRESSIVE_LOADING
-import arun.com.chromer.settings.Preferences.MERGE_TABS_AND_APPS
-import arun.com.chromer.settings.Preferences.PER_APP_PREFERENCE_DUMMY
 import arun.com.chromer.settings.preferences.BasePreferenceFragment
 import arun.com.chromer.settings.widgets.IconSwitchPreference
 import arun.com.chromer.util.Utils
@@ -54,7 +51,7 @@ class BehaviorPreferenceFragment : BasePreferenceFragment() {
   }
 
   private fun setupBlacklistPreference() {
-    val perAppSettingsPreference = findPreference<IconSwitchPreference>(PER_APP_PREFERENCE_DUMMY)
+    val perAppSettingsPreference = findPreference<IconSwitchPreference>(Preferences.PER_APP_PREFERENCE_DUMMY)
     perAppSettingsPreference?.let {
       val recentImg = IconicsDrawable(requireActivity())
         .icon(CommunityMaterial.Icon.cmd_filter_variant)
@@ -73,7 +70,7 @@ class BehaviorPreferenceFragment : BasePreferenceFragment() {
   }
 
   private fun setupMergeTabsPreference() {
-    mergeTabsPreference = findPreference<IconSwitchPreference>(MERGE_TABS_AND_APPS)
+    mergeTabsPreference = findPreference<IconSwitchPreference>(Preferences.MERGE_TABS_AND_APPS)
     mergeTabsPreference?.let {
       val recentImg = IconicsDrawable(requireActivity())
         .icon(CommunityMaterial.Icon.cmd_animation)
@@ -102,7 +99,7 @@ class BehaviorPreferenceFragment : BasePreferenceFragment() {
   }
 
   override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
-    if (key.equals(AGGRESSIVE_LOADING, ignoreCase = true)) {
+    if (key.equals(Preferences.AGGRESSIVE_LOADING, ignoreCase = true)) {
       if (Preferences.get(requireContext()).aggressiveLoading()) {
         mergeTabsPreference?.isChecked = true
       }

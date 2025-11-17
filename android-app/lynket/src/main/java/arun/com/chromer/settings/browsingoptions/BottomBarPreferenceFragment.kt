@@ -25,8 +25,7 @@ import android.os.Bundle
 import androidx.core.content.ContextCompat
 import androidx.preference.SwitchPreference
 import arun.com.chromer.R
-import arun.com.chromer.settings.Preferences.BOTTOM_BAR_ENABLED
-import arun.com.chromer.settings.Preferences.MINIMIZE_BEHAVIOR_PREFERENCE
+import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.preferences.BasePreferenceFragment
 import arun.com.chromer.settings.widgets.IconListPreference
 import arun.com.chromer.util.Utils
@@ -45,7 +44,7 @@ class BottomBarPreferenceFragment : BasePreferenceFragment(),
 
 
   private fun setupBottomBarPreference() {
-    val bottomBarPreference = findPreference<SwitchPreference>(BOTTOM_BAR_ENABLED)
+    val bottomBarPreference = findPreference<SwitchPreference>(Preferences.BOTTOM_BAR_ENABLED)
     bottomBarPreference?.icon = IconicsDrawable(requireContext())
       .icon(CommunityMaterial.Icon.cmd_more)
       .color(ContextCompat.getColor(requireContext(), R.color.material_dark_light))
@@ -54,14 +53,14 @@ class BottomBarPreferenceFragment : BasePreferenceFragment(),
 
 
   private fun setupMinimizePreference() {
-    findPreference<IconListPreference>(MINIMIZE_BEHAVIOR_PREFERENCE)?.let {
+    findPreference<IconListPreference>(Preferences.MINIMIZE_BEHAVIOR_PREFERENCE)?.let {
       it.icon = IconicsDrawable(requireContext())
         .icon(CommunityMaterial.Icon.cmd_arrow_down)
         .color(ContextCompat.getColor(requireContext(), R.color.material_dark_light))
         .sizeDp(24)
       it.isVisible = Utils.isLollipopAbove()
     }
-    updatePreferenceSummary(MINIMIZE_BEHAVIOR_PREFERENCE)
+    updatePreferenceSummary(Preferences.MINIMIZE_BEHAVIOR_PREFERENCE)
   }
 
   override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
