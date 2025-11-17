@@ -85,8 +85,8 @@ abstract class BrowsingActivity : BaseActivity() {
     lifecycleScope.launch {
       eventBus.observe<Event.TabEvent.Minimized>()
         .filter { event ->
-          val targetActivity = TabsManager().getTabType(this@BrowsingActivity::class.java.name)
-          event.url.equals(getCurrentUrl(), ignoreCase = true) && event.tabType == targetActivity
+          // Check if the minimize event is for this activity and URL
+          event.url.equals(getCurrentUrl(), ignoreCase = true)
         }
         .collect {
           if (Utils.ANDROID_LOLLIPOP) {

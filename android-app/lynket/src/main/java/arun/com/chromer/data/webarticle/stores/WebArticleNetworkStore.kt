@@ -26,7 +26,6 @@ import arun.com.chromer.data.webarticle.WebArticleStore
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.util.parser.RxParser
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.rx2.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton

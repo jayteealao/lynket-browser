@@ -39,10 +39,8 @@ import arun.com.chromer.util.glide.GlideApp
 import arun.com.chromer.util.parser.RxParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.rx2.asFlow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
