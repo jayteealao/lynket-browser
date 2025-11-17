@@ -29,13 +29,13 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.WidgetWebsiteGridItemBinding
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.glide.GlideApp
-import dev.arunkumar.android.dagger.fragment.PerFragment
+import dagger.hilt.android.scopes.FragmentScoped
 import javax.inject.Inject
 
 /**
  * Created by arunk on 07-03-2017.
  */
-@PerFragment
+@FragmentScoped
 class RecentsAdapter
 @Inject
 constructor(val tabsManager: TabsManager) :

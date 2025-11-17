@@ -27,9 +27,9 @@ import arun.com.chromer.intro.fragments.*
 import arun.com.chromer.tabs.ui.TabsFragment
 import dagger.BindsInstance
 import dagger.Subcomponent
-import dev.arunkumar.android.dagger.fragment.PerFragment
+import dagger.hilt.android.scopes.FragmentScoped
 
-@PerFragment
+@FragmentScoped
 @Subcomponent(modules = [FragmentModule::class])
 interface FragmentComponent {
 

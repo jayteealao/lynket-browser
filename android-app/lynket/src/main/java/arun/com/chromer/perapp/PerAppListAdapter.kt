@@ -39,7 +39,7 @@ import butterknife.ButterKnife
 import com.bumptech.glide.RequestManager
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
-import dev.arunkumar.android.dagger.activity.PerActivity
+import dagger.hilt.android.scopes.ActivityScoped
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -48,7 +48,7 @@ import javax.inject.Inject
 /**
  * Created by Arun on 24/01/2016.
  */
-@PerActivity
+@ActivityScoped
 class PerAppListAdapter @Inject
 internal constructor(
   private val activity: Activity,

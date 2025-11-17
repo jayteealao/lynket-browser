@@ -53,7 +53,7 @@ import arun.com.chromer.util.Utils.shareText
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
-import dev.arunkumar.android.dagger.activity.PerActivity
+import dagger.hilt.android.scopes.ActivityScoped
 import javax.inject.Inject
 
 
@@ -61,7 +61,7 @@ import javax.inject.Inject
  * Created by arunk on 28-01-2018.
  * Delegate to handle common menu functionality across browsing activities.
  */
-@PerActivity
+@ActivityScoped
 class MenuDelegate @Inject constructor(
   val activity: Activity,
   val tabsManager: TabsManager,

@@ -39,7 +39,7 @@ import arun.com.chromer.util.glide.GlideApp
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.bumptech.glide.RequestManager
-import dev.arunkumar.android.dagger.activity.PerActivity
+import dagger.hilt.android.scopes.ActivityScoped
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -48,7 +48,7 @@ import javax.inject.Inject
 /**
  * Created by arunk on 07-03-2017.
  */
-@PerActivity
+@ActivityScoped
 class ProvidersAdapter @Inject
 constructor(
   private val activity: Activity,

@@ -41,13 +41,13 @@ import butterknife.BindView
 import butterknife.ButterKnife
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
-import dev.arunkumar.android.dagger.activity.PerActivity
+import dagger.hilt.android.scopes.ActivityScoped
 import javax.inject.Inject
 
 /**
  * Created by Arunkumar on 19-02-2017.
  */
-@PerActivity
+@ActivityScoped
 class BrowsingModeAdapter @Inject constructor(
   application: Application,
   private val rxPreferences: RxPreferences

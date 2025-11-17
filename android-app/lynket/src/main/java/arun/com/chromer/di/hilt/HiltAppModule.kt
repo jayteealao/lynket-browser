@@ -34,11 +34,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object HiltAppModule {
 
-    @Provides
-    @Singleton
-    fun provideApplication(@ApplicationContext context: Context): Application {
-        return context.applicationContext as Application
-    }
+    // Note: Application is automatically provided by Hilt, no need to provide it manually
 
     /**
      * Provides IO dispatcher for background operations

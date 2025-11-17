@@ -25,8 +25,8 @@ import androidx.lifecycle.Lifecycle.Event.*
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.OnLifecycleEvent
-import dev.arunkumar.android.dagger.activity.PerActivity
-import dev.arunkumar.android.dagger.fragment.PerFragment
+import dagger.hilt.android.scopes.ActivityScoped
+import dagger.hilt.android.scopes.FragmentScoped
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.filter
@@ -87,12 +87,12 @@ annotation class ActivityLifecycle
 @Qualifier
 annotation class FragmentLifcecycle
 
-@PerActivity
+@ActivityScoped
 class ActivityLifecycleEvents
 @Inject
 constructor(@ActivityLifecycle lifecycleOwner: LifecycleOwner) : LifecycleEvents(lifecycleOwner)
 
-@PerFragment
+@FragmentScoped
 class FragmentLifecycle
 @Inject
 constructor(@FragmentLifcecycle lifecycleOwner: LifecycleOwner) : LifecycleEvents(lifecycleOwner)

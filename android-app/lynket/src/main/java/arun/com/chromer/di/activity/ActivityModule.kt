@@ -28,7 +28,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ActivityComponent
 import dagger.Provides
-import dev.arunkumar.android.dagger.activity.PerActivity
+import dagger.hilt.android.scopes.ActivityScoped
 
 @Module
 @InstallIn(ActivityComponent::class)
@@ -39,7 +39,7 @@ class ActivityModule {
   }
 
   @Provides
-  @PerActivity
+  @ActivityScoped
   @ActivityLifecycle
   fun owner(activity: Activity) = activity as LifecycleOwner
 }

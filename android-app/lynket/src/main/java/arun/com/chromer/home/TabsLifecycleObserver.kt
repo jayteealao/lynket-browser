@@ -26,7 +26,7 @@ import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.lifecycle.ActivityLifecycle
 import arun.com.chromer.util.lifecycle.LifecycleEvents
-import dev.arunkumar.android.dagger.activity.PerActivity
+import dagger.hilt.android.scopes.ActivityScoped
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -38,7 +38,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 
-@PerActivity
+@ActivityScoped
 class TabsLifecycleObserver
 @Inject
 constructor(

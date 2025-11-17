@@ -45,9 +45,9 @@ import arun.com.chromer.tabs.ui.TabsActivity
 import arun.com.chromer.tips.TipsActivity
 import dagger.BindsInstance
 import dagger.Subcomponent
-import dev.arunkumar.android.dagger.activity.PerActivity
+import dagger.hilt.android.scopes.ActivityScoped
 
-@PerActivity
+@ActivityScoped
 @Subcomponent(modules = [(ActivityModule::class)])
 interface ActivityComponent {
   fun customTabs(): CustomTabs

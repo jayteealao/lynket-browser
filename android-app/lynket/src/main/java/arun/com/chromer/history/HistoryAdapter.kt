@@ -36,13 +36,13 @@ import arun.com.chromer.tabs.TabsManager
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.bumptech.glide.RequestManager
-import dev.arunkumar.android.dagger.fragment.PerFragment
+import dagger.hilt.android.scopes.FragmentScoped
 import javax.inject.Inject
 
 /**
  * History adapter to render paged [Website] items.
  */
-@PerFragment
+@FragmentScoped
 class HistoryAdapter
 @Inject
 constructor(
