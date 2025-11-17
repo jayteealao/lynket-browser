@@ -129,9 +129,11 @@ constructor(
    */
   private fun Flow<String>.historyTransformer(): Flow<List<SuggestionItem>> =
     this.debounce(suggestionsDebounce)
-      .flatMapLatest { query -> historyRepository.search(query) }
-      .map { suggestions ->
-        suggestions.asSequence()
+      .flatMapLatest { query ->
+        flow { emit(historyRepository.search(query)) }
+      }
+      .map { websites ->
+        websites.asSequence()
           .map { website ->
             HistorySuggestionItem(
               website,
