@@ -45,9 +45,6 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.history.HistoryActivity
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.Preferences.PREFERRED_ACTION_BROWSER
-import arun.com.chromer.settings.Preferences.PREFERRED_ACTION_FAV_SHARE
-import arun.com.chromer.settings.Preferences.PREFERRED_ACTION_GEN_SHARE
 import arun.com.chromer.shortcuts.HomeScreenShortcutCreatorActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.Utils
@@ -127,7 +124,7 @@ class MenuDelegate @Inject constructor(
   fun prepareOptionsMenu(menu: Menu): Boolean {
     val actionButton = menu.findItem(R.id.menu_action_button)
     when (preferences.preferredAction()) {
-      PREFERRED_ACTION_BROWSER -> {
+      Preferences.PREFERRED_ACTION_BROWSER -> {
         val secondaryBrowserPackage = preferences.secondaryBrowserPackage()
         if (isPackageInstalled(activity, secondaryBrowserPackage)) {
           actionButton.setTitle(R.string.choose_secondary_browser)
@@ -142,7 +139,7 @@ class MenuDelegate @Inject constructor(
           actionButton.isVisible = false
         }
       }
-      PREFERRED_ACTION_FAV_SHARE -> {
+      Preferences.PREFERRED_ACTION_FAV_SHARE -> {
         val favSharePackage = preferences.favSharePackage()
         if (isPackageInstalled(activity, favSharePackage)) {
           actionButton.setTitle(R.string.fav_share_app)
@@ -156,7 +153,7 @@ class MenuDelegate @Inject constructor(
           actionButton.isVisible = false
         }
       }
-      PREFERRED_ACTION_GEN_SHARE -> {
+      Preferences.PREFERRED_ACTION_GEN_SHARE -> {
         actionButton.icon = IconicsDrawable(activity).apply {
           icon(CommunityMaterial.Icon.cmd_share_variant)
           color(Color.WHITE)
@@ -207,19 +204,19 @@ class MenuDelegate @Inject constructor(
         incognito = incognito
       )
       R.id.menu_action_button -> when (preferences.preferredAction()) {
-        PREFERRED_ACTION_BROWSER -> activity.sendBroadcast(
+        Preferences.PREFERRED_ACTION_BROWSER -> activity.sendBroadcast(
           Intent(
             activity,
             SecondaryBrowserReceiver::class.java
           ).setData(currentUri)
         )
-        PREFERRED_ACTION_FAV_SHARE -> activity.sendBroadcast(
+        Preferences.PREFERRED_ACTION_FAV_SHARE -> activity.sendBroadcast(
           Intent(
             activity,
             FavShareBroadcastReceiver::class.java
           ).setData(currentUri)
         )
-        PREFERRED_ACTION_GEN_SHARE -> shareUrl()
+        Preferences.PREFERRED_ACTION_GEN_SHARE -> shareUrl()
       }
       R.id.menu_copy_link -> activity.sendBroadcast(
         Intent(

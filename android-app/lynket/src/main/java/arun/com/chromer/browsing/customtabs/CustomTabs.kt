@@ -58,11 +58,6 @@ import arun.com.chromer.browsing.optionspopup.ChromerOptionsActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.bubbles.webheads.WebHeadService
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.Preferences.ANIMATION_MEDIUM
-import arun.com.chromer.settings.Preferences.ANIMATION_SHORT
-import arun.com.chromer.settings.Preferences.PREFERRED_ACTION_BROWSER
-import arun.com.chromer.settings.Preferences.PREFERRED_ACTION_FAV_SHARE
-import arun.com.chromer.settings.Preferences.PREFERRED_ACTION_GEN_SHARE
 import arun.com.chromer.shared.Constants.EXTRA_KEY_ORIGINAL_URL
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.util.Utils
@@ -213,7 +208,7 @@ class CustomTabs @Inject constructor(
             var start = intArrayOf()
             var exit = intArrayOf()
             when (speed) {
-                ANIMATION_MEDIUM -> {
+                Preferences.ANIMATION_MEDIUM -> {
                     when (type) {
                         1 -> {
                             start = intArrayOf(R.anim.slide_in_right_medium, R.anim.slide_out_left_medium)
@@ -225,7 +220,7 @@ class CustomTabs @Inject constructor(
                         }
                     }
                 }
-                ANIMATION_SHORT -> {
+                Preferences.ANIMATION_SHORT -> {
                     when (type) {
                         1 -> {
                             start = intArrayOf(R.anim.slide_in_right, R.anim.slide_out_left)
@@ -253,7 +248,7 @@ class CustomTabs @Inject constructor(
         assertBuilderInitialized()
         val act = activity ?: return
         when (Preferences.get(act).preferredAction()) {
-            PREFERRED_ACTION_BROWSER -> {
+            Preferences.PREFERRED_ACTION_BROWSER -> {
                 val pakage = Preferences.get(act).secondaryBrowserPackage() ?: ""
                 if (Utils.isPackageInstalled(act, pakage)) {
                     val icon = getAppIconBitmap(pakage)
@@ -264,7 +259,7 @@ class CustomTabs @Inject constructor(
                     }
                 }
             }
-            PREFERRED_ACTION_FAV_SHARE -> {
+            Preferences.PREFERRED_ACTION_FAV_SHARE -> {
                 val pakage = Preferences.get(act).favSharePackage() ?: ""
                 if (Utils.isPackageInstalled(act, pakage)) {
                     val icon = getAppIconBitmap(pakage)
@@ -275,7 +270,7 @@ class CustomTabs @Inject constructor(
                     }
                 }
             }
-            PREFERRED_ACTION_GEN_SHARE -> {
+            Preferences.PREFERRED_ACTION_GEN_SHARE -> {
                 val shareIcon = IconicsDrawable(act)
                     .icon(CommunityMaterial.Icon.cmd_share_variant)
                     .color(WHITE)
@@ -339,7 +334,7 @@ class CustomTabs @Inject constructor(
         assertBuilderInitialized()
         val act = activity ?: return
         when (Preferences.get(act).preferredAction()) {
-            PREFERRED_ACTION_BROWSER -> {
+            Preferences.PREFERRED_ACTION_BROWSER -> {
                 val pkg = Preferences.get(act).favSharePackage() ?: ""
                 if (Utils.isPackageInstalled(act, pkg)) {
                     val app = Utils.getAppNameWithPackage(act, pkg) ?: ""
@@ -349,7 +344,7 @@ class CustomTabs @Inject constructor(
                     builder!!.addMenuItem(label, pendingShareIntent)
                 }
             }
-            PREFERRED_ACTION_FAV_SHARE -> {
+            Preferences.PREFERRED_ACTION_FAV_SHARE -> {
                 val pkg = Preferences.get(act).secondaryBrowserPackage() ?: ""
                 if (Utils.isPackageInstalled(act, pkg)) {
                     if (!pkg.equals(STABLE_PACKAGE, ignoreCase = true)) {
