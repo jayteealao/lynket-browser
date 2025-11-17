@@ -26,7 +26,6 @@ import arun.com.chromer.browsing.icons.DefaultWebsiteIconsProvider
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.di.viewmodel.ViewModelModule
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.viemodel.ViewModelFactory
 import dagger.Module
 import dagger.Provides
@@ -47,9 +46,8 @@ open class AppModule {
   internal fun providesPreferences(application: Application): Preferences =
     Preferences.get(application)
 
-  @Provides
-  @Singleton
-  internal fun rxEventBus(): RxEventBus = RxEventBus()
+  // Phase 8: RxEventBus removed - migrated to modern EventBus (arun.com.chromer.util.events.EventBus)
+  // EventBus is now provided by Hilt @Singleton annotation
 
   @Provides
   @Singleton

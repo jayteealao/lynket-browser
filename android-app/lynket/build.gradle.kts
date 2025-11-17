@@ -148,7 +148,7 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.coroutines.rx2) // RxJava interop for migration
+    // Phase 8: RxJava interop removed - migration complete
 
     // Room Database
     implementation(libs.androidx.room.runtime)

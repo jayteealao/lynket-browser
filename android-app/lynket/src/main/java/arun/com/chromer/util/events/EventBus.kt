@@ -137,6 +137,10 @@ sealed interface Event {
         data class Removed(val url: String) : TabEvent
         data class Updated(val url: String) : TabEvent
         data object AllClosed : TabEvent
+        /** Event for minimizing a tab */
+        data class Minimized(val url: String, val tabType: Int) : TabEvent
+        /** Event for closing non-browsing activities */
+        data object FinishNonBrowsingActivities : TabEvent
     }
 
     /**
@@ -165,6 +169,8 @@ sealed interface Event {
         data object Changed : SettingsEvent
         data class ThemeChanged(val isDark: Boolean) : SettingsEvent
         data class WebHeadsToggled(val enabled: Boolean) : SettingsEvent
+        /** Event when browser provider is changed */
+        data object ProviderChanged : SettingsEvent
     }
 
     /**

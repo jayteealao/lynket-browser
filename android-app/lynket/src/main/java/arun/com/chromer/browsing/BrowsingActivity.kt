@@ -36,9 +36,13 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.events.EventBus
+import arun.com.chromer.util.events.Event
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.filter
 import javax.inject.Inject
 
 const val EXTRA_CURRENT_LOADING_URL = "EXTRA_CURRENT_LOADING_URL"
@@ -49,7 +53,7 @@ const val EXTRA_CURRENT_LOADING_URL = "EXTRA_CURRENT_LOADING_URL"
 @AndroidEntryPoint
 abstract class BrowsingActivity : BaseActivity() {
   @Inject
-  lateinit var rxEventBus: RxEventBus
+  lateinit var eventBus: EventBus
 
   @Inject
   lateinit var preferences: Preferences
@@ -77,22 +81,19 @@ abstract class BrowsingActivity : BaseActivity() {
   open fun getCurrentUrl(): String = intent.dataString!!
 
   private fun setupMinimize() {
-    // TODO: Phase 8 Migration - Convert RxJava to Coroutines/Flow
-    // This code uses RxJava (rxEventBus, filter, subscribe) which needs to be migrated to:
-    // lifecycleScope.launch { rxEventBus.filteredEventsFlow<TabsManager.MinimizeEvent>().collect { ... } }
-    // Currently blocked by rxEventBus migration
-    /*
-    subs.add(rxEventBus
-      .filteredEvents<TabsManager.MinimizeEvent>()
-      .filter { event ->
-        event.tab.url.equals(getCurrentUrl(), ignoreCase = true)
-            && event.tab.getTargetActivityName() == this::class.java.name
-      }.subscribe {
-        if (Utils.ANDROID_LOLLIPOP) {
-          moveTaskToBack(true)
+    // Phase 8: Migrated from RxJava to Kotlin Flow
+    lifecycleScope.launch {
+      eventBus.observe<Event.TabEvent.Minimized>()
+        .filter { event ->
+          val targetActivity = TabsManager().getTabType(this@BrowsingActivity::class.java.name)
+          event.url.equals(getCurrentUrl(), ignoreCase = true) && event.tabType == targetActivity
         }
-      })
-    */
+        .collect {
+          if (Utils.ANDROID_LOLLIPOP) {
+            moveTaskToBack(true)
+          }
+        }
+    }
   }
 
   private fun observeViewModel(savedInstanceState: Bundle?) {

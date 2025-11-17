@@ -61,9 +61,10 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.tabs.ui.TabsActivity
-import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.SafeIntent
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.events.EventBus
+import arun.com.chromer.util.events.Event
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.Theme
 import arun.com.chromer.shared.ServiceManager
@@ -86,7 +87,7 @@ constructor(
   private val appRepository: AppRepository,
   private val websiteRepository: WebsiteRepository,
   private val backgroundLoadingStrategyFactory: BackgroundLoadingStrategyFactory,
-  private val rxEventBus: RxEventBus,
+  private val eventBus: EventBus,
   private val floatingBubbleFactory: FloatingBubbleFactory,
   private val rxPreferences: RxPreferences
 ) : TabsManager {
@@ -246,7 +247,7 @@ constructor(
   }
 
   override fun minimizeTabByUrl(url: String, fromClass: String, incognito: Boolean) {
-    rxEventBus.post(TabsManager.MinimizeEvent(TabsManager.Tab(url, getTabType(fromClass))))
+    eventBus.tryEmit(Event.TabEvent.Minimized(url, getTabType(fromClass)))
     if (preferences.webHeads() || rxPreferences.nativeBubbles.get() || preferences.minimizeToWebHead()) {
       // When minimizing, don't try to handle aggressive loading cases.
       openWebHeads(application, website = Website(url), fromMinimize = true, incognito = incognito)
@@ -420,7 +421,7 @@ constructor(
   }
 
   override fun clearNonBrowsingActivities() {
-    rxEventBus.post(TabsManager.FinishRoot())
+    eventBus.tryEmit(Event.TabEvent.FinishNonBrowsingActivities)
   }
 
   override fun showTabsActivity() {

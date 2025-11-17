@@ -50,8 +50,9 @@ import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.browsingoptions.BrowsingOptionsActivity
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.shared.base.activity.BaseActivity
-import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.events.EventBus
+import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.glide.GlideApp
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
 import com.afollestad.materialdialogs.MaterialDialog
@@ -65,7 +66,7 @@ class ProviderSelectionActivity : BaseActivity() {
   private lateinit var binding: ActivityProviderSelectionBinding
 
   @Inject
-  lateinit var rxEventBus: RxEventBus
+  lateinit var eventBus: EventBus
 
   @Inject
   lateinit var preferences: Preferences
@@ -243,6 +244,6 @@ class ProviderSelectionActivity : BaseActivity() {
   }
 
   private fun notifyProviderChanged() {
-    rxEventBus.post(BrowsingOptionsActivity.ProviderChanged())
+    eventBus.tryEmit(Event.SettingsEvent.ProviderChanged)
   }
 }

@@ -43,23 +43,22 @@ import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tips.TipsActivity
-import arun.com.chromer.util.RxEventBus
+import arun.com.chromer.util.events.EventBus
+import arun.com.chromer.util.events.Event
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
-// TODO: Phase 8 Migration - Remove RxJava imports after migration
-// import com.jakewharton.rxbinding3.view.clicks
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import dagger.hilt.android.AndroidEntryPoint
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@SuppressLint("CheckResult")
 @AndroidEntryPoint
 class HomeActivity : BaseActivity(), Snackable {
   private lateinit var binding: ActivityMainBinding
 
   @Inject
-  lateinit var rxEventBus: RxEventBus
+  lateinit var eventBus: EventBus
 
   @Inject
   lateinit var tabsManager: TabsManager
@@ -113,9 +112,14 @@ class HomeActivity : BaseActivity(), Snackable {
   }
 
   private fun setupEventListeners() {
-    // TODO: Phase 8 Migration - Convert RxJava event bus to Flow
-    // Use lifecycleScope.launch { rxEventBus.filteredEventsFlow<TabsManager.FinishRoot>().collect { finish() } }
-    // subs.add(rxEventBus.filteredEvents<TabsManager.FinishRoot>().subscribe { finish() })
+    // Phase 8: Migrated from RxJava to Kotlin Flow
+    lifecycleScope.launch {
+      eventBus.observe<Event.TabEvent.FinishNonBrowsingActivities>()
+        .collect {
+          finish()
+        }
+    }
+
     binding.settingsIcon.setOnClickListener {
       startActivity(Intent(this, SettingsGroupActivity::class.java))
     }

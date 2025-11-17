@@ -48,7 +48,6 @@ import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.shared.views.IntentPickerBottomSheet
 import arun.com.chromer.util.HtmlCompat
-import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.Utils
 import com.google.android.material.snackbar.Snackbar
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
@@ -73,8 +72,7 @@ class BrowsingOptionsActivity : BaseActivity(), Snackable,
     private lateinit var favSharePreferenceView: AppPreferenceCardView
     private lateinit var errorView: TextView
 
-    @Inject
-    lateinit var eventBus: RxEventBus
+    // Phase 8: Removed rxEventBus injection (unused, modern EventBus available via Event.SettingsEvent.ProviderChanged)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

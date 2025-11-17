@@ -53,9 +53,10 @@ import arun.com.chromer.shared.FabHandler
 import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.util.HtmlCompat.fromHtml
-import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.SimpleAdapterDataSetObserver
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.events.EventBus
+import arun.com.chromer.util.events.Event
 import com.afollestad.materialdialogs.MaterialDialog
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
@@ -77,7 +78,7 @@ class HistoryFragment : BaseFragment(), Snackable, FabHandler {
   lateinit var preferences: Preferences
 
   @Inject
-  lateinit var rxEventBus: RxEventBus
+  lateinit var eventBus: EventBus
 
   @Inject
   lateinit var historyAdapter: HistoryAdapter
@@ -186,7 +187,7 @@ class HistoryFragment : BaseFragment(), Snackable, FabHandler {
         binding.historySwitch.isChecked = false
         binding.fullIncognitoModeSwitch.postDelayed({ showIncognitoDialogExplanation() }, 200)
       }
-      rxEventBus.post(BrowsingOptionsActivity.ProviderChanged())
+      eventBus.tryEmit(Event.SettingsEvent.ProviderChanged)
     }
   }
 

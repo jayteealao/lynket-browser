@@ -45,7 +45,6 @@ import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tips.TipsActivity
 import arun.com.chromer.util.HtmlCompat
-import arun.com.chromer.util.RxEventBus
 import arun.com.chromer.util.glide.GlideApp
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
@@ -63,8 +62,7 @@ class HomeFragment : BaseFragment(), Snackable {
   @Inject
   lateinit var recentsAdapter: RecentsAdapter
 
-  @Inject
-  lateinit var rxEventBus: RxEventBus
+  // Phase 8: Removed rxEventBus injection (unused, modern EventBus available)
 
   @Inject
   lateinit var preferences: Preferences
