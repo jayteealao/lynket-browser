@@ -160,6 +160,7 @@ class Trashy private constructor(
     private val adaptWidth: Int
         get() = maxOf(width, RemoveHeadCircle.sizePx)
 
+    @get:JvmName("getCenterCoordinatesInternal")
     val centerCoordinates: IntArray
         get() {
             if (centrePoint == null) {
@@ -167,6 +168,9 @@ class Trashy private constructor(
             }
             return centrePoint!!
         }
+
+    // Public delegation method
+    fun getCenterCoordinates(): IntArray = centerCoordinates
 
     private fun initCentreCoords() {
         val offset = adaptWidth / 2

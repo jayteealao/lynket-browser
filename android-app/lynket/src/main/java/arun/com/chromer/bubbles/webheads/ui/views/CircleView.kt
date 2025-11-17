@@ -74,6 +74,8 @@ open class CircleView @JvmOverloads constructor(
         )
     }
 
+    @get:JvmName("getColorInternal")
+    @set:JvmName("setColorInternal")
     @get:ColorInt
     @set:ColorInt
     var color: Int
@@ -83,4 +85,12 @@ open class CircleView @JvmOverloads constructor(
             mBgPaint.color = value
             invalidate()
         }
+
+    // Public delegation methods
+    @ColorInt
+    fun getColor(): Int = color
+
+    fun setColor(@ColorInt value: Int) {
+        color = value
+    }
 }

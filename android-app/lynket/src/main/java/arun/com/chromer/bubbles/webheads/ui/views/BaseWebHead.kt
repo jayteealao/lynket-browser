@@ -88,6 +88,8 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
     @BindView(R.id.badge)
     protected lateinit var badgeView: TextView
 
+    @get:JvmName("getWebsiteInternal")
+    @set:JvmName("setWebsiteInternal")
     protected var website: Website = Website().apply { this.url = this@BaseWebHead.url }
         set(value) {
             field = value
@@ -100,6 +102,9 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
     lateinit var contentRoot: FrameLayout
     var userManuallyMoved = false
     var destroyed = false
+
+    @get:JvmName("getMasterInternal")
+    @set:JvmName("setMasterInternal")
     var master = false
         set(value) {
             field = value
@@ -112,6 +117,9 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
             }
             onMasterChanged(value)
         }
+
+    @get:JvmName("getInQueueInternal")
+    @set:JvmName("setInQueueInternal")
     var inQueue = false
         set(value) {
             field = value
@@ -122,6 +130,8 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
             }
         }
 
+    @get:JvmName("getWebHeadColorInternal")
+    @set:JvmName("setWebHeadColorInternal")
     @ColorInt
     var webHeadColor = 0
         set(value) {
@@ -372,6 +382,27 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
         badgeDrawable?.badgeColor = badgeColor
         badgeDrawable?.textColor = getForegroundWhiteOrBlack(badgeColor)
         badgeView.invalidate()
+    }
+
+    // Public delegation methods for external access
+    fun isMaster(): Boolean = master
+
+    fun setMaster(value: Boolean) {
+        master = value
+    }
+
+    fun setInQueue(value: Boolean) {
+        inQueue = value
+    }
+
+    fun getWebsite(): Website = website
+
+    fun setWebsite(value: Website) {
+        website = value
+    }
+
+    fun setWebHeadColor(@ColorInt color: Int) {
+        webHeadColor = color
     }
 
     fun getUrl(): String = url
