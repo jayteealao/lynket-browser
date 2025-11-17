@@ -51,7 +51,7 @@ class BehaviorPreferenceFragment : BasePreferenceFragment() {
   }
 
   private fun setupBlacklistPreference() {
-    val perAppSettingsPreference = findPreference<IconSwitchPreference>(Preferences.PER_APP_PREFERENCE_DUMMY)
+    val perAppSettingsPreference = findPreference(Preferences.PER_APP_PREFERENCE_DUMMY) as? IconSwitchPreference
     perAppSettingsPreference?.let {
       val recentImg = IconicsDrawable(requireActivity())
         .icon(CommunityMaterial.Icon.cmd_filter_variant)
@@ -70,7 +70,7 @@ class BehaviorPreferenceFragment : BasePreferenceFragment() {
   }
 
   private fun setupMergeTabsPreference() {
-    mergeTabsPreference = findPreference<IconSwitchPreference>(Preferences.MERGE_TABS_AND_APPS)
+    mergeTabsPreference = findPreference(Preferences.MERGE_TABS_AND_APPS) as? IconSwitchPreference
     mergeTabsPreference?.let {
       val recentImg = IconicsDrawable(requireActivity())
         .icon(CommunityMaterial.Icon.cmd_animation)

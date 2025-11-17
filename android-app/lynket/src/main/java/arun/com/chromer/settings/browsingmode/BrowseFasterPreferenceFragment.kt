@@ -44,7 +44,7 @@ class BrowseFasterPreferenceFragment : BasePreferenceFragment(), SharedPreferenc
   }
 
   private fun setupArticlePreference() {
-    val articleModePreference = findPreference<IconSwitchPreference>(Preferences.ARTICLE_MODE)
+    val articleModePreference = findPreference(Preferences.ARTICLE_MODE) as? IconSwitchPreference
     articleModePreference?.let {
       val articleImg = IconicsDrawable(requireActivity())
         .icon(CommunityMaterial.Icon.cmd_file_document)
@@ -60,7 +60,7 @@ class BrowseFasterPreferenceFragment : BasePreferenceFragment(), SharedPreferenc
   }
 
   private fun setupAmpPreference() {
-    val ampModePreference = findPreference<IconSwitchPreference>(Preferences.AMP_MODE)
+    val ampModePreference = findPreference(Preferences.AMP_MODE) as? IconSwitchPreference
     ampModePreference?.let {
       it.setIcon(R.drawable.ic_action_amp_icon)
       it.setOnPreferenceChangeListener { _, newValue ->
