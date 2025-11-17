@@ -89,6 +89,9 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
     protected lateinit var badgeView: TextView
 
     protected var website: Website = Website().apply { this.url = this@BaseWebHead.url }
+        set(value) {
+            field = value
+        }
     protected var spawnCoordSet = false
 
     var deleteColor = NO_COLOR
@@ -98,10 +101,32 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
     var userManuallyMoved = false
     var destroyed = false
     var master = false
+        set(value) {
+            field = value
+            if (!value) {
+                badgeView.visibility = View.INVISIBLE
+            } else {
+                badgeView.visibility = View.VISIBLE
+                badgeDrawable?.number = WEB_HEAD_COUNT
+                inQueue = false
+            }
+            onMasterChanged(value)
+        }
     var inQueue = false
+        set(value) {
+            field = value
+            visibility = if (value) {
+                View.GONE
+            } else {
+                View.VISIBLE
+            }
+        }
 
     @ColorInt
     var webHeadColor = 0
+        set(value) {
+            getRevealAnimator(value).start()
+        }
 
     private var fromNewTab = false
 
@@ -342,10 +367,6 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
         }
     }
 
-    fun setWebHeadColor(@ColorInt webHeadColor: Int) {
-        getRevealAnimator(webHeadColor).start()
-    }
-
     fun updateBadgeColors(@ColorInt webHeadColor: Int) {
         val badgeColor = ColorUtil.getClosestAccentColor(webHeadColor)
         badgeDrawable?.badgeColor = badgeColor
@@ -403,29 +424,6 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
         }
     }
 
-    fun isMaster(): Boolean = master
-
-    fun setMaster(master: Boolean) {
-        this.master = master
-        if (!master) {
-            badgeView.visibility = View.INVISIBLE
-        } else {
-            badgeView.visibility = View.VISIBLE
-            badgeDrawable?.number = WEB_HEAD_COUNT
-            setInQueue(false)
-        }
-        onMasterChanged(master)
-    }
-
-    fun setInQueue(inQueue: Boolean) {
-        this.inQueue = inQueue
-        visibility = if (inQueue) {
-            View.GONE
-        } else {
-            View.VISIBLE
-        }
-    }
-
     private fun createWindowParams(): WindowManager.LayoutParams {
         return if (Utils.ANDROID_OREO) {
             WindowManager.LayoutParams(
@@ -449,12 +447,6 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
                 PixelFormat.TRANSLUCENT
             )
         }
-    }
-
-    fun getWebsite(): Website = website
-
-    fun setWebsite(website: Website) {
-        this.website = website
     }
 
     class ScreenBounds(dispWidth: Int, dispHeight: Int, webHeadWidth: Int) {

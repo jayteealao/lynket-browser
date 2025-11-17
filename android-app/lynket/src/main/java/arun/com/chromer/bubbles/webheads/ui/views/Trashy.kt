@@ -160,15 +160,13 @@ class Trashy private constructor(
     private val adaptWidth: Int
         get() = maxOf(width, RemoveHeadCircle.sizePx)
 
-    fun getCenterCoordinates(): IntArray {
-        if (centrePoint == null) {
-            initCentreCoords()
-        }
-        return centrePoint!!
-    }
-
     val centerCoordinates: IntArray
-        get() = getCenterCoordinates()
+        get() {
+            if (centrePoint == null) {
+                initCentreCoords()
+            }
+            return centrePoint!!
+        }
 
     private fun initCentreCoords() {
         val offset = adaptWidth / 2
