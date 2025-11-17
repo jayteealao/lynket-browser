@@ -26,8 +26,6 @@ import android.os.Bundle
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.Preferences.ARTICLE_THEME
-import arun.com.chromer.settings.Preferences.WEB_HEAD_ENABLED
 import arun.com.chromer.settings.preferences.BasePreferenceFragment
 import arun.com.chromer.settings.widgets.IconListPreference
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
@@ -35,7 +33,7 @@ import com.mikepenz.iconics.IconicsDrawable
 
 class ArticlePreferenceFragment : BasePreferenceFragment(), SharedPreferences.OnSharedPreferenceChangeListener {
 
-  private val SUMMARY_GROUP = arrayOf(ARTICLE_THEME)
+  private val SUMMARY_GROUP = arrayOf(Preferences.ARTICLE_THEME)
   private var spawnLocation: IconListPreference? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,7 +54,7 @@ class ArticlePreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
   }
 
   private fun init() {
-    spawnLocation = findPreference<IconListPreference>(ARTICLE_THEME)
+    spawnLocation = findPreference(Preferences.ARTICLE_THEME) as? IconListPreference
   }
 
   private fun setIcons() {
@@ -68,7 +66,7 @@ class ArticlePreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
   }
 
   private fun updatePreferenceStates(key: String?) {
-    if (key.equals(WEB_HEAD_ENABLED, ignoreCase = true)) {
+    if (key.equals(Preferences.WEB_HEAD_ENABLED, ignoreCase = true)) {
       val articleMode = Preferences.get(requireContext()).articleMode()
       enableDisablePreference(articleMode, *SUMMARY_GROUP)
     }

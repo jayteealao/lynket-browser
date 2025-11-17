@@ -26,13 +26,6 @@ import android.os.Bundle
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.Preferences.AGGRESSIVE_LOADING
-import arun.com.chromer.settings.Preferences.MERGE_TABS_AND_APPS
-import arun.com.chromer.settings.Preferences.WEB_HEADS_COLOR
-import arun.com.chromer.settings.Preferences.WEB_HEAD_CLOSE_ON_OPEN
-import arun.com.chromer.settings.Preferences.WEB_HEAD_ENABLED
-import arun.com.chromer.settings.Preferences.WEB_HEAD_SIZE
-import arun.com.chromer.settings.Preferences.WEB_HEAD_SPAWN_LOCATION
 import arun.com.chromer.settings.preferences.BasePreferenceFragment
 import arun.com.chromer.settings.widgets.IconCheckboxPreference
 import arun.com.chromer.util.Utils
@@ -43,9 +36,9 @@ import com.mikepenz.iconics.IconicsDrawable
 class WebHeadOptionsFragment : BasePreferenceFragment() {
 
   private val SUMMARY_GROUP = arrayOf(
-    WEB_HEAD_SPAWN_LOCATION,
-    WEB_HEADS_COLOR,
-    WEB_HEAD_SIZE
+    Preferences.WEB_HEAD_SPAWN_LOCATION,
+    Preferences.WEB_HEADS_COLOR,
+    Preferences.WEB_HEAD_SIZE
   )
 
   private var closeOnOpen: IconCheckboxPreference? = null
@@ -61,7 +54,7 @@ class WebHeadOptionsFragment : BasePreferenceFragment() {
 
   override fun onResume() {
     super.onResume()
-    updatePreferenceStates(WEB_HEAD_ENABLED)
+    updatePreferenceStates(Preferences.WEB_HEAD_ENABLED)
     updatePreferenceSummary(*SUMMARY_GROUP)
     if (!Utils.isLollipopAbove()) {
       aggressiveLoading?.isVisible = false
@@ -71,7 +64,7 @@ class WebHeadOptionsFragment : BasePreferenceFragment() {
   override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
     updatePreferenceStates(key)
     updatePreferenceSummary(key)
-    if (key.equals(MERGE_TABS_AND_APPS, ignoreCase = true)) {
+    if (key.equals(Preferences.MERGE_TABS_AND_APPS, ignoreCase = true)) {
       if (!Preferences.get(requireContext()).mergeTabs()) {
         aggressiveLoading?.isChecked = false
       }
@@ -79,8 +72,8 @@ class WebHeadOptionsFragment : BasePreferenceFragment() {
   }
 
   private fun init() {
-    closeOnOpen = findPreference<IconCheckboxPreference>(WEB_HEAD_CLOSE_ON_OPEN)
-    aggressiveLoading = findPreference<IconCheckboxPreference>(AGGRESSIVE_LOADING)
+    closeOnOpen = findPreference(Preferences.WEB_HEAD_CLOSE_ON_OPEN) as? IconCheckboxPreference
+    aggressiveLoading = findPreference(Preferences.AGGRESSIVE_LOADING) as? IconCheckboxPreference
   }
 
   private fun setIcons() {
@@ -110,9 +103,9 @@ class WebHeadOptionsFragment : BasePreferenceFragment() {
   }
 
   private fun updatePreferenceStates(key: String?) {
-    if (key.equals(WEB_HEAD_ENABLED, ignoreCase = true)) {
+    if (key.equals(Preferences.WEB_HEAD_ENABLED, ignoreCase = true)) {
       val webHeadsEnabled = Preferences.get(requireContext()).webHeads()
-      enableDisablePreference(webHeadsEnabled, WEB_HEAD_CLOSE_ON_OPEN, AGGRESSIVE_LOADING)
+      enableDisablePreference(webHeadsEnabled, Preferences.WEB_HEAD_CLOSE_ON_OPEN, Preferences.AGGRESSIVE_LOADING)
     }
   }
 

@@ -30,10 +30,6 @@ import android.os.Bundle
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.Preferences.WEB_HEADS_COLOR
-import arun.com.chromer.settings.Preferences.WEB_HEAD_ENABLED
-import arun.com.chromer.settings.Preferences.WEB_HEAD_SIZE
-import arun.com.chromer.settings.Preferences.WEB_HEAD_SPAWN_LOCATION
 import arun.com.chromer.settings.preferences.BasePreferenceFragment
 import arun.com.chromer.settings.widgets.ColorPreference
 import arun.com.chromer.settings.widgets.IconListPreference
@@ -46,9 +42,9 @@ import com.mikepenz.iconics.IconicsDrawable
 class WebHeadPreferenceFragment : BasePreferenceFragment(), SharedPreferences.OnSharedPreferenceChangeListener {
 
   private val SUMMARY_GROUP = arrayOf(
-    WEB_HEAD_SPAWN_LOCATION,
-    WEB_HEADS_COLOR,
-    WEB_HEAD_SIZE
+    Preferences.WEB_HEAD_SPAWN_LOCATION,
+    Preferences.WEB_HEADS_COLOR,
+    Preferences.WEB_HEAD_SIZE
   )
 
   private val webHeadColorFilter = IntentFilter(Constants.ACTION_WEBHEAD_COLOR_SET)
@@ -56,7 +52,7 @@ class WebHeadPreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
     override fun onReceive(context: Context, intent: Intent) {
       val selectedColor = intent.getIntExtra(EXTRA_KEY_WEBHEAD_COLOR, 0)
       if (selectedColor != 0) {
-        val preference = findPreference<ColorPreference>(WEB_HEADS_COLOR)
+        val preference = findPreference(Preferences.WEB_HEADS_COLOR) as? ColorPreference
         preference?.setColor(selectedColor)
       }
     }
@@ -77,7 +73,7 @@ class WebHeadPreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
   override fun onResume() {
     super.onResume()
     registerReceiver(colorSelectionReceiver, webHeadColorFilter)
-    updatePreferenceStates(WEB_HEAD_ENABLED)
+    updatePreferenceStates(Preferences.WEB_HEAD_ENABLED)
     updatePreferenceSummary(*SUMMARY_GROUP)
   }
 
@@ -92,9 +88,9 @@ class WebHeadPreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
   }
 
   private fun init() {
-    webHeadColor = findPreference<ColorPreference>(WEB_HEADS_COLOR)
-    spawnLocation = findPreference<IconListPreference>(WEB_HEAD_SPAWN_LOCATION)
-    webHeadSize = findPreference<IconListPreference>(WEB_HEAD_SIZE)
+    webHeadColor = findPreference(Preferences.WEB_HEADS_COLOR) as? ColorPreference
+    spawnLocation = findPreference(Preferences.WEB_HEAD_SPAWN_LOCATION) as? IconListPreference
+    webHeadSize = findPreference(Preferences.WEB_HEAD_SIZE) as? IconListPreference
   }
 
   private fun setIcons() {
@@ -127,7 +123,7 @@ class WebHeadPreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
   }
 
   private fun updatePreferenceStates(key: String?) {
-    if (key.equals(WEB_HEAD_ENABLED, ignoreCase = true)) {
+    if (key.equals(Preferences.WEB_HEAD_ENABLED, ignoreCase = true)) {
       val webHeadsEnabled = Preferences.get(requireContext()).webHeads()
       enableDisablePreference(webHeadsEnabled, *SUMMARY_GROUP)
     }

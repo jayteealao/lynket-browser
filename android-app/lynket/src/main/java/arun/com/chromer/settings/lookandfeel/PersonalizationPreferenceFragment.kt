@@ -34,14 +34,6 @@ import androidx.core.content.ContextCompat
 import androidx.preference.SwitchPreference
 import arun.com.chromer.R
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.Preferences.ANIMATION_SPEED
-import arun.com.chromer.settings.Preferences.ANIMATION_TYPE
-import arun.com.chromer.settings.Preferences.DYNAMIC_COLOR
-import arun.com.chromer.settings.Preferences.DYNAMIC_COLOR_APP
-import arun.com.chromer.settings.Preferences.DYNAMIC_COLOR_WEB
-import arun.com.chromer.settings.Preferences.PREFERRED_ACTION
-import arun.com.chromer.settings.Preferences.TOOLBAR_COLOR
-import arun.com.chromer.settings.Preferences.TOOLBAR_COLOR_PREF
 import arun.com.chromer.settings.preferences.BasePreferenceFragment
 import arun.com.chromer.settings.widgets.ColorPreference
 import arun.com.chromer.settings.widgets.IconListPreference
@@ -60,10 +52,10 @@ import com.mikepenz.iconics.IconicsDrawable
 class PersonalizationPreferenceFragment : BasePreferenceFragment(), SharedPreferences.OnSharedPreferenceChangeListener {
 
   private val SUMMARY_GROUP = arrayOf(
-    ANIMATION_SPEED,
-    ANIMATION_TYPE,
-    PREFERRED_ACTION,
-    TOOLBAR_COLOR
+    Preferences.ANIMATION_SPEED,
+    Preferences.ANIMATION_TYPE,
+    Preferences.PREFERRED_ACTION,
+    Preferences.TOOLBAR_COLOR
   )
 
   private val toolbarColorSetFilter = IntentFilter(ACTION_TOOLBAR_COLOR_SET)
@@ -71,7 +63,7 @@ class PersonalizationPreferenceFragment : BasePreferenceFragment(), SharedPrefer
     override fun onReceive(context: Context, intent: Intent) {
       val selectedColor = intent.getIntExtra(EXTRA_KEY_TOOLBAR_COLOR, NO_COLOR)
       if (selectedColor != NO_COLOR) {
-        val preference = findPreference<ColorPreference>(TOOLBAR_COLOR)
+        val preference = findPreference(Preferences.TOOLBAR_COLOR) as? ColorPreference
         preference?.setColor(selectedColor)
       }
     }
@@ -100,9 +92,9 @@ class PersonalizationPreferenceFragment : BasePreferenceFragment(), SharedPrefer
   override fun onResume() {
     super.onResume()
     registerReceiver(colorSelectionReceiver, toolbarColorSetFilter)
-    updatePreferenceStates(TOOLBAR_COLOR_PREF)
-    updatePreferenceStates(ANIMATION_TYPE)
-    updatePreferenceStates(DYNAMIC_COLOR)
+    updatePreferenceStates(Preferences.TOOLBAR_COLOR_PREF)
+    updatePreferenceStates(Preferences.ANIMATION_TYPE)
+    updatePreferenceStates(Preferences.DYNAMIC_COLOR)
     updatePreferenceSummary(*SUMMARY_GROUP)
   }
 
@@ -117,14 +109,14 @@ class PersonalizationPreferenceFragment : BasePreferenceFragment(), SharedPrefer
   }
 
   private fun init() {
-    dynamicColorPreference = findPreference<IconSwitchPreference>(DYNAMIC_COLOR)
-    coloredToolbarPreference = findPreference<IconSwitchPreference>(TOOLBAR_COLOR_PREF)
-    toolbarColorPreference = findPreference<ColorPreference>(TOOLBAR_COLOR)
-    preferredActionPreference = findPreference<IconListPreference>(PREFERRED_ACTION)
-    openingAnimationPreference = findPreference<IconListPreference>(ANIMATION_TYPE)
-    animationSpeedPreference = findPreference<IconListPreference>(ANIMATION_SPEED)
-    dynamicAppPreference = findPreference<SubCheckBoxPreference>(DYNAMIC_COLOR_APP)
-    dynamicWebPreference = findPreference<SubCheckBoxPreference>(DYNAMIC_COLOR_WEB)
+    dynamicColorPreference = findPreference(Preferences.DYNAMIC_COLOR) as? IconSwitchPreference
+    coloredToolbarPreference = findPreference(Preferences.TOOLBAR_COLOR_PREF) as? IconSwitchPreference
+    toolbarColorPreference = findPreference(Preferences.TOOLBAR_COLOR) as? ColorPreference
+    preferredActionPreference = findPreference(Preferences.PREFERRED_ACTION) as? IconListPreference
+    openingAnimationPreference = findPreference(Preferences.ANIMATION_TYPE) as? IconListPreference
+    animationSpeedPreference = findPreference(Preferences.ANIMATION_SPEED) as? IconListPreference
+    dynamicAppPreference = findPreference(Preferences.DYNAMIC_COLOR_APP) as? SubCheckBoxPreference
+    dynamicWebPreference = findPreference(Preferences.DYNAMIC_COLOR_WEB) as? SubCheckBoxPreference
   }
 
   private fun setupIcons() {
@@ -153,18 +145,18 @@ class PersonalizationPreferenceFragment : BasePreferenceFragment(), SharedPrefer
   }
 
   private fun updatePreferenceStates(key: String?) {
-    if (key.equals(TOOLBAR_COLOR_PREF, ignoreCase = true)) {
+    if (key.equals(Preferences.TOOLBAR_COLOR_PREF, ignoreCase = true)) {
       val coloredToolbar = Preferences.get(requireContext()).isColoredToolbar()
-      enableDisablePreference(coloredToolbar, TOOLBAR_COLOR, DYNAMIC_COLOR)
+      enableDisablePreference(coloredToolbar, Preferences.TOOLBAR_COLOR, Preferences.DYNAMIC_COLOR)
       if (!coloredToolbar) {
         dynamicColorPreference?.isChecked = false
       }
-    } else if (key.equals(ANIMATION_TYPE, ignoreCase = true)) {
+    } else if (key.equals(Preferences.ANIMATION_TYPE, ignoreCase = true)) {
       val animationEnabled = Preferences.get(requireContext()).isAnimationEnabled()
-      enableDisablePreference(animationEnabled, ANIMATION_SPEED)
-    } else if (key.equals(DYNAMIC_COLOR, ignoreCase = true) ||
-      key.equals(DYNAMIC_COLOR_APP, ignoreCase = true) ||
-      key.equals(DYNAMIC_COLOR_WEB, ignoreCase = true)
+      enableDisablePreference(animationEnabled, Preferences.ANIMATION_SPEED)
+    } else if (key.equals(Preferences.DYNAMIC_COLOR, ignoreCase = true) ||
+      key.equals(Preferences.DYNAMIC_COLOR_APP, ignoreCase = true) ||
+      key.equals(Preferences.DYNAMIC_COLOR_WEB, ignoreCase = true)
     ) {
       val dynamicColor = Preferences.get(requireContext()).dynamicToolbar()
       if (!dynamicColor) {
@@ -176,7 +168,7 @@ class PersonalizationPreferenceFragment : BasePreferenceFragment(), SharedPrefer
         dynamicAppPreference?.isVisible = true
         dynamicWebPreference?.isVisible = true
       }
-      if (key.equals(DYNAMIC_COLOR_APP, ignoreCase = true)) {
+      if (key.equals(Preferences.DYNAMIC_COLOR_APP, ignoreCase = true)) {
         if (!Utils.canReadUsageStats(requireActivity())) {
           requestUsagePermission()
         }
