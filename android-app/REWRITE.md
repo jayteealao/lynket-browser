@@ -793,7 +793,7 @@ interface FlowUseCase<in Params, out Result> {
 | Step 4: Simple Screens | ✅ Complete | 100% |
 | Step 5: Core Browsing | ✅ Complete | 100% |
 | Step 6: Advanced Features | ✅ Complete | 100% |
-| Step 7: Complex Features | ⏳ Pending | 0% |
+| Step 7: Complex Features | ✅ Complete | 100% |
 | Step 8: Supporting Features | ⏳ Pending | 0% |
 | Step 9: Dependency Cleanup | ⏳ Pending | 0% |
 | Step 10: Code Cleanup | ⏳ Pending | 0% |
@@ -807,7 +807,7 @@ interface FlowUseCase<in Params, out Result> {
 | XML Layouts Removed | 89 | 0 | 0% |
 | RxJava Usages Removed | 342 | 342 | 100% ✅ |
 | Butterknife Removed | 83 | 0 | 0% |
-| Screens Migrated | 56 | 12 | 21% |
+| Screens Migrated | 56 | 17 | 30% |
 | Repositories Migrated | 5 | 5 | 100% ✅ |
 | PaperDB Removed | 1 | 1 | 100% ✅ |
 | Test Coverage | >70% | TBD | TBD |
@@ -1041,7 +1041,90 @@ interface FlowUseCase<in Params, out Result> {
 - All features use Material3 design system
 - Clean reading experience maintained
 
-**Next Step**: Phase 7 - Complex Features (Settings, Per-app settings, WebHeads)
+---
+
+### Phase 7: Complex Features ✅ COMPLETE (2025-01-18)
+
+**Objective**: Migrate complex settings and configuration screens
+
+**Completed Screens** (5 of 5):
+1. ✅ **SettingsGroupActivity** → SettingsGroupActivityCompose + SettingsScreen
+   - Main settings navigation screen
+   - Categories: Browsing Mode, Look & Feel, Browsing Options
+   - Default browser card (shown when not default)
+   - Intent navigation to sub-settings activities
+   - Material3 ListItem components
+   - Files: `/ui/screens/SettingsScreen.kt` + `/settings/SettingsGroupActivityCompose.kt`
+
+2. ✅ **PerAppSettingsActivity** → PerAppSettingsActivityCompose
+   - Per-app configuration screen with full functionality
+   - Apps list with package icons (via Coil)
+   - Usage stats permission handling with AlertDialog
+   - Expandable app items showing blacklist/incognito settings
+   - Switch toggles for per-app blacklist and incognito mode
+   - ViewModel integration with Flow state management
+   - Real-time updates via appUpdateFlow
+   - Requires usage access permission
+   - Files: `/perapp/PerAppSettingsActivityCompose.kt`
+
+3. ✅ **BrowsingModeActivity** → BrowsingModeActivityCompose + BrowsingModeScreen
+   - Browsing mode selection (Custom Tabs, Web Heads, Native Bubbles)
+   - Radio button selection UI
+   - Overlay permission handling for Web Heads
+   - Native Bubbles guide dialog with link to documentation
+   - ServiceManager integration for mode changes
+   - Files: `/settings/browsingmode/BrowsingModeActivityCompose.kt`
+
+4. ✅ **LookAndFeelActivity** → LookAndFeelActivityCompose + LookAndFeelScreen
+   - Appearance and theme settings
+   - App theme selection (Light/Dark/Auto)
+   - Dynamic theme toggle (Material You)
+   - Toolbar customization (colored toolbar, hide on scroll)
+   - Article reader theme selection
+   - Web Heads appearance settings (conditional on mode)
+   - Notice card when Web Heads disabled
+   - Files: `/settings/lookandfeel/LookAndFeelActivityCompose.kt`
+
+5. ✅ **BrowsingOptionsActivity** → BrowsingOptionsActivityCompose + BrowsingOptionsScreen
+   - Browsing behavior configuration
+   - Provider selection (Custom Tabs, Secondary Browser, Favorite Share App)
+   - Opening behavior: Prefetch, Aggressive Loading, AMP mode, Open in Background
+   - Bottom bar toggle with action explanations
+   - Bottom bar actions card (New Tab, Share, Article icons)
+   - Notice card when Web Heads disabled
+   - Files: `/settings/browsingoptions/BrowsingOptionsActivityCompose.kt`
+
+**Advanced Patterns Established**:
+- ✅ **Expandable list items** (per-app settings with collapse/expand)
+- ✅ **Permission dialogs** (usage stats, overlay permissions)
+- ✅ **Section headers** (grouped settings with visual separation)
+- ✅ **Switch preferences** (toggle settings with descriptions)
+- ✅ **Notice cards** (contextual error/warning messages)
+- ✅ **Radio button groups** (single selection from multiple options)
+- ✅ **Conditional UI** (show/hide based on settings state)
+- ✅ **Settings navigation** (hierarchical settings structure)
+- ✅ **Real-time state updates** (Flow-based app list updates)
+
+**Files Created**:
+- `/ui/screens/SettingsScreen.kt` (180+ lines)
+- `/settings/SettingsGroupActivityCompose.kt`
+- `/perapp/PerAppSettingsActivityCompose.kt` (340+ lines)
+- `/settings/browsingmode/BrowsingModeActivityCompose.kt` (250+ lines)
+- `/settings/lookandfeel/LookAndFeelActivityCompose.kt` (260+ lines)
+- `/settings/browsingoptions/BrowsingOptionsActivityCompose.kt` (330+ lines)
+
+**Migration Summary**:
+- 100% of settings screens migrated (5/5)
+- All settings use Material3 design system
+- Permission handling fully integrated
+- Per-app settings fully functional with database integration
+- Hierarchical navigation preserved
+- All preference toggles working with Preferences class
+- Notice/warning cards for user guidance
+
+**WebHeads Note**: WebHeadService remains legacy due to window overlay requirements. The service uses traditional Android View system for floating windows, which is more compatible than Compose for system overlays. Settings screens control WebHeads via Preferences.
+
+**Next Step**: Phase 8 - Supporting Features (Intro screens, Quick Settings Tiles, Remaining screens)
 
 ---
 
