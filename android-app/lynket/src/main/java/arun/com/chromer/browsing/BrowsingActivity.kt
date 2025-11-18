@@ -89,9 +89,7 @@ abstract class BrowsingActivity : BaseActivity() {
           event.url.equals(getCurrentUrl(), ignoreCase = true)
         }
         .collect {
-          if (Utils.ANDROID_LOLLIPOP) {
-            moveTaskToBack(true)
-          }
+          moveTaskToBack(true)
         }
     }
   }
@@ -114,10 +112,8 @@ abstract class BrowsingActivity : BaseActivity() {
         onToolbarColorSet(color)
       }
 
-      if (Utils.ANDROID_LOLLIPOP) {
-        activityDescription.observeUntilOnDestroy(this@BrowsingActivity) { task ->
-          setTaskDescription(task)
-        }
+      activityDescription.observeUntilOnDestroy(this@BrowsingActivity) { task ->
+        setTaskDescription(task)
       }
     }
 
