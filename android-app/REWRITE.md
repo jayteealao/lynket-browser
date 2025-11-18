@@ -788,9 +788,9 @@ interface FlowUseCase<in Params, out Result> {
 |-------|--------|----------|
 | Step 0: Foundation | ✅ Complete | 100% |
 | Step 1: Architecture Setup | ✅ Complete | 100% |
-| Step 2: Foundation Code | ⏳ In Progress | 60% |
+| Step 2: Foundation Code | ✅ Complete | 100% |
 | Step 3: Data Layer | ✅ Complete | 100% |
-| Step 4: Simple Screens | ⏳ Pending | 0% |
+| Step 4: Simple Screens | ⏳ In Progress | 60% |
 | Step 5: Core Browsing | ⏳ Pending | 0% |
 | Step 6: Advanced Features | ⏳ Pending | 0% |
 | Step 7: Complex Features | ⏳ Pending | 0% |
@@ -807,7 +807,7 @@ interface FlowUseCase<in Params, out Result> {
 | XML Layouts Removed | 89 | 0 | 0% |
 | RxJava Usages Removed | 342 | 342 | 100% ✅ |
 | Butterknife Removed | 83 | 0 | 0% |
-| Screens Migrated | 56 | 0 | 0% |
+| Screens Migrated | 56 | 3 | 5% |
 | Repositories Migrated | 5 | 5 | 100% ✅ |
 | PaperDB Removed | 1 | 1 | 100% ✅ |
 | Test Coverage | >70% | TBD | TBD |
@@ -846,6 +846,66 @@ interface FlowUseCase<in Params, out Result> {
 - Zero PaperDB dependencies
 
 **Next Step**: Phase 4 - Simple Screen Migrations
+
+---
+
+### Phase 4: Simple Screen Migrations ⏳ IN PROGRESS (2025-01-18)
+
+**Objective**: Migrate 5 simple screens to establish Compose patterns and workflow
+
+**Completed Screens** (3 of 5):
+1. ✅ **TipsActivity** → TipsActivityCompose
+   - Created TipsScreen.kt with LazyColumn of tip cards
+   - Using Material3 components (TopAppBar, Card)
+   - Image loading with Coil
+   - File: `/ui/screens/TipsScreen.kt` + `/tips/TipsActivityCompose.kt`
+
+2. ✅ **OpenIntentWithActivity** → OpenIntentWithActivityCompose
+   - Created OpenIntentWithScreen.kt with ModalBottomSheet
+   - App selection list with icons
+   - Material3 bottom sheet component
+   - File: `/ui/screens/OpenIntentWithScreen.kt` + `/browsing/openwith/OpenIntentWithActivityCompose.kt`
+
+3. ✅ **AmpResolverActivity** → AmpResolverActivityCompose
+   - Created AmpResolverScreen.kt with AlertDialog
+   - State management: Loading/Found/NotFound
+   - Integration with BrowsingViewModel
+   - File: `/ui/screens/AmpResolverScreen.kt` + `/browsing/amp/AmpResolverActivityCompose.kt`
+
+**Deferred Screens** (2 of 5):
+- ⏸️ **AboutAppActivity**: Too complex - uses Fragment with multiple RecyclerView adapters
+  - Requires Fragment-to-Compose conversion strategy
+  - Deferred to later phase when pattern is established
+
+- ⏸️ **NewTabDialogActivity**: Blocked by dependency
+  - Depends on MaterialSearchView which still uses RxJava internally
+  - Should be migrated after MaterialSearchView is converted to Flow
+  - Marked with Phase 8 TODO comments
+
+**Patterns Established**:
+- ✅ ComponentActivity + @AndroidEntryPoint for Hilt
+- ✅ ChromerTheme wrapper with Material3
+- ✅ Composable screens in `/ui/screens/` package
+- ✅ Activity wrappers in original locations with "Compose" suffix
+- ✅ Edge-to-edge with WindowCompat
+- ✅ State observation with collectAsState()
+- ✅ Coil for image loading in Compose
+
+**Files Created**:
+- `/ui/screens/TipsScreen.kt`
+- `/tips/TipsActivityCompose.kt`
+- `/ui/screens/OpenIntentWithScreen.kt`
+- `/browsing/openwith/OpenIntentWithActivityCompose.kt`
+- `/ui/screens/AmpResolverScreen.kt`
+- `/browsing/amp/AmpResolverActivityCompose.kt`
+
+**Progress**: 60% (3 of 5 screens completed, 2 deferred with clear rationale)
+
+**Next Steps**:
+1. Update AndroidManifest.xml to register new Compose activities
+2. Test migrated screens for functionality parity
+3. Consider strategy for complex Fragment-based screens
+4. Move to Phase 5: Core Browsing Features
 
 ---
 
