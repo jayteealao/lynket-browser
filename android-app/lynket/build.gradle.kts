@@ -216,8 +216,7 @@ dependencies {
 
     // Phase 8: RxJava dependencies removed - migrated to Kotlin Coroutines/Flows
 
-    // Legacy: Storage - PaperDB
-    implementation("io.github.pilgr:paperdb:2.7.2")
+    // Phase 3: PaperDB removed - migrated to Room + DataStore + in-memory caches
 
     // Legacy: UI Libraries
     implementation("com.afollestad.material-dialogs:core:0.9.6.0")

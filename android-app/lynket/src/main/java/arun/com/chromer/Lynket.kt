@@ -29,16 +29,15 @@ import arun.com.chromer.di.app.DaggerAppComponent
 import arun.com.chromer.util.ServiceManager
 import com.airbnb.epoxy.EpoxyController
 import com.mikepenz.materialdrawer.util.DrawerImageLoader
-// TODO: RxDogTag removed - no longer needed as RxJava is being phased out
-// import com.uber.rxdogtag.RxDogTag
+// Phase 3: PaperDB removed - legacy data storage replaced with Room + DataStore
 import dagger.hilt.android.HiltAndroidApp
-import io.paperdb.Paper
 import timber.log.Timber
 
 /**
  * Lynket Browser Application Class
  *
  * Phase 1.2: Migrated to Hilt (@HiltAndroidApp)
+ * Phase 3: PaperDB removed (legacy storage)
  * Legacy Dagger 2 code kept temporarily for gradual migration
  */
 @HiltAndroidApp
@@ -53,7 +52,7 @@ open class Lynket : Application() {
 
   override fun onCreate() {
     super.onCreate()
-    Paper.init(this)
+    // Phase 3: Paper.init(this) removed - no longer using PaperDB
 
     if (BuildConfig.DEBUG) {
       // TODO: RxDogTag removed - no longer needed as RxJava is being phased out

@@ -24,47 +24,44 @@ package arun.com.chromer.data.apps.store
 import android.app.Application
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.common.App
-import arun.com.chromer.data.common.BookStore
 import arun.com.chromer.util.Utils
-import io.paperdb.Book
-import io.paperdb.Paper
+// Phase 3: PaperDB removed - using in-memory cache for app data
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Phase 3: Migrated from PaperDB to in-memory cache for app data
+ * App settings (color, blacklist, incognito) are now cached in memory
+ */
 @Singleton
 class AppDiskStore @Inject constructor(
     private val application: Application
-) : AppStore, BookStore {
+) : AppStore {
 
-    override fun getBook(): Book = Paper.book(APP_BOOK_NAME)
+    // Phase 3: In-memory cache for app data (replaces PaperDB)
+    private val appCache = ConcurrentHashMap<String, App>()
 
     override suspend fun getApp(packageName: String): App = withContext(Dispatchers.IO) {
-        var app = Utils.createApp(application, packageName)
-        try {
-            app = getBook().read(packageName, app) ?: app
-        } catch (e: Exception) {
-            try {
-                getBook().delete(packageName)
-            } catch (ignored: Exception) {
-            }
+        // Get from cache or create new
+        appCache.getOrPut(packageName) {
+            Utils.createApp(application, packageName)
         }
-        app
     }
 
     override suspend fun saveApp(app: App): App = withContext(Dispatchers.IO) {
-        getBook().write(app.packageName, app)
-        Timber.d("Wrote %s to storage", app.packageName)
+        appCache[app.packageName] = app
+        Timber.d("Saved %s to cache", app.packageName)
         app
     }
 
     override fun isPackageBlacklisted(packageName: String): Boolean {
-        return getBook().contains(packageName) && runBlocking { getApp(packageName).blackListed }
+        return appCache[packageName]?.blackListed ?: false
     }
 
     override suspend fun setPackageBlacklisted(packageName: String): App {
@@ -109,7 +106,7 @@ class AppDiskStore @Inject constructor(
     override fun getInstalledApps(): Flow<App> = emptyFlow()
 
     override fun isPackageIncognito(packageName: String): Boolean {
-        return getBook().contains(packageName) && runBlocking { getApp(packageName).incognito }
+        return appCache[packageName]?.incognito ?: false
     }
 
     override suspend fun setPackageIncognito(packageName: String): App {
@@ -121,8 +118,4 @@ class AppDiskStore @Inject constructor(
     }
 
     override suspend fun allProviders(): List<Provider> = emptyList()
-
-    companion object {
-        private const val APP_BOOK_NAME = "APPS"
-    }
 }

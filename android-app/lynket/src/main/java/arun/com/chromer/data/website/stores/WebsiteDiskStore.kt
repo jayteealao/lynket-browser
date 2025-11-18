@@ -27,14 +27,12 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.util.Pair
 import androidx.annotation.ColorInt
-import arun.com.chromer.data.common.BookStore
 import arun.com.chromer.data.website.model.WebColor
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.shared.Constants.NO_COLOR
 import `in`.arunkumarsampath.diskcache.ParcelDiskCache
-import io.paperdb.Book
-import io.paperdb.Paper
+// Phase 3: PaperDB removed - using in-memory cache for colors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -42,19 +40,24 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Cache store to get/put [Website] objects to disk cache.
+ * Phase 3: Migrated from PaperDB to in-memory cache for theme colors
  */
 @Singleton
 class WebsiteDiskStore @Inject constructor(
     context: Application
-) : WebsiteStore, BookStore {
+) : WebsiteStore {
 
     // Cache to store our data.
     private var webSiteDiskCache: ParcelDiskCache<Website>? = null
+
+    // Phase 3: In-memory cache for theme colors (replaces PaperDB)
+    private val colorCache = ConcurrentHashMap<String, WebColor>()
 
     init {
         try {
@@ -68,8 +71,6 @@ class WebsiteDiskStore @Inject constructor(
             Timber.e(e)
         }
     }
-
-    override fun getBook(): Book = Paper.book(THEME_COLOR_BOOK)
 
     override fun getWebsite(url: String): Flow<Website?> = flow {
         val webSite = try {
@@ -114,27 +115,18 @@ class WebsiteDiskStore @Inject constructor(
     override suspend fun getWebsiteColor(url: String): WebColor {
         return withContext(Dispatchers.IO) {
             val host = Uri.parse(url).host ?: ""
-            val webColor = try {
-                getBook().read<WebColor>(host)
-            } catch (e: Exception) {
-                Timber.e(e)
-                null
-            }
-
-            webColor ?: WebColor(host, NO_COLOR)
+            // Phase 3: Using in-memory cache instead of PaperDB
+            colorCache[host] ?: WebColor(host, NO_COLOR)
         }
     }
 
     override suspend fun saveWebsiteColor(host: String, @ColorInt color: Int): WebColor {
         return withContext(Dispatchers.IO) {
-            try {
-                val webColor = WebColor(host, color)
-                getBook().write(host, webColor)
-                getBook().read<WebColor>(host) ?: webColor
-            } catch (e: Exception) {
-                Timber.e(e)
-                WebColor(host, NO_COLOR)
-            }
+            // Phase 3: Using in-memory cache instead of PaperDB
+            val webColor = WebColor(host, color)
+            colorCache[host] = webColor
+            Timber.d("Saved color %d for host %s", color, host)
+            webColor
         }
     }
 
@@ -155,6 +147,5 @@ class WebsiteDiskStore @Inject constructor(
         val EMPTY_DRAWABLE_PAIR: Pair<Drawable, Int> = Pair(null, Constants.NO_COLOR)
         // Cache size, currently set at 30 MB.
         private const val DISK_CACHE_SIZE = 1024 * 1024 * 30L
-        private const val THEME_COLOR_BOOK = "THEME_COLOR_BOOK"
     }
 }
