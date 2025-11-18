@@ -20,7 +20,6 @@ import arun.com.chromer.home.MainDispatcherRule
 import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
 import io.mockk.*
-import io.reactivex.Single
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -32,9 +31,10 @@ import org.junit.Test
 
 /**
  * Phase 5: Unit tests for ModernProviderSelectionViewModel
+ * Phase 6: Converted from RxJava to Coroutines mocking
  *
  * Tests the ViewModel's:
- * - Provider loading with RxJava interop
+ * - Provider loading with Kotlin Coroutines
  * - UI state transitions (Loading → Success → Error)
  * - Provider selection (installed vs non-installed)
  * - WebView selection
@@ -129,7 +129,7 @@ class ModernProviderSelectionViewModelTest {
     @Test
     fun `uiState starts with Loading and automatically loads providers`() = runTest {
         // Given: Repository with empty providers
-        every { appRepository.allProviders() } returns Single.just(emptyList())
+        coEvery { appRepository.allProviders() } returns emptyList()
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
 
         // When: ViewModel is created
@@ -157,7 +157,7 @@ class ModernProviderSelectionViewModelTest {
     fun `loadProviders emits Success with providers when successful`() = runTest {
         // Given: Repository with sample providers
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
 
         // When: ViewModel is created
@@ -177,7 +177,7 @@ class ModernProviderSelectionViewModelTest {
     @Test
     fun `loadProviders handles repository errors`() = runTest {
         // Given: Repository that throws error
-        every { appRepository.allProviders() } returns Single.error(RuntimeException("Failed to load"))
+        coEvery { appRepository.allProviders() } throws RuntimeException("Failed to load")
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
 
         // When: ViewModel is created
@@ -195,7 +195,7 @@ class ModernProviderSelectionViewModelTest {
     fun `loadProviders includes current preferences`() = runTest {
         // Given: Repository with providers and preferences
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(
             createPreferences(customTabPackage = "com.brave.browser", useWebView = false)
         )
@@ -214,7 +214,7 @@ class ModernProviderSelectionViewModelTest {
     fun `loadProviders shows WebView preference`() = runTest {
         // Given: Preferences with WebView enabled
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(
             createPreferences(customTabPackage = null, useWebView = true)
         )
@@ -235,7 +235,7 @@ class ModernProviderSelectionViewModelTest {
     fun `selectProvider sets installed provider as default`() = runTest {
         // Given: ViewModel with providers
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
         coEvery { preferencesRepository.setCustomTabPackage(any()) } just Runs
 
@@ -255,7 +255,7 @@ class ModernProviderSelectionViewModelTest {
     fun `selectProvider disables WebView when selecting provider`() = runTest {
         // Given: ViewModel with WebView enabled
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(
             createPreferences(useWebView = true)
         )
@@ -279,7 +279,7 @@ class ModernProviderSelectionViewModelTest {
     fun `selectProvider ignores non-installed providers`() = runTest {
         // Given: ViewModel with providers
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
         coEvery { preferencesRepository.setCustomTabPackage(any()) } just Runs
 
@@ -299,7 +299,7 @@ class ModernProviderSelectionViewModelTest {
     fun `selectProvider reloads providers after selection`() = runTest {
         // Given: ViewModel with providers
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
         coEvery { preferencesRepository.setCustomTabPackage(any()) } just Runs
 
@@ -319,7 +319,7 @@ class ModernProviderSelectionViewModelTest {
     fun `selectProvider handles errors gracefully`() = runTest {
         // Given: ViewModel with preferences that fail to save
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
         coEvery { preferencesRepository.setCustomTabPackage(any()) } throws RuntimeException("Save failed")
 
@@ -341,7 +341,7 @@ class ModernProviderSelectionViewModelTest {
     fun `selectWebView enables WebView in preferences`() = runTest {
         // Given: ViewModel with providers
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
         coEvery { preferencesRepository.setUseWebView(any()) } just Runs
         coEvery { preferencesRepository.setCustomTabPackage(any()) } just Runs
@@ -362,7 +362,7 @@ class ModernProviderSelectionViewModelTest {
     fun `selectWebView reloads providers after selection`() = runTest {
         // Given: ViewModel
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
         coEvery { preferencesRepository.setUseWebView(any()) } just Runs
         coEvery { preferencesRepository.setCustomTabPackage(any()) } just Runs
@@ -382,7 +382,7 @@ class ModernProviderSelectionViewModelTest {
     fun `selectWebView handles errors gracefully`() = runTest {
         // Given: ViewModel with preferences that fail to save
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
         coEvery { preferencesRepository.setUseWebView(any()) } throws RuntimeException("Save failed")
 
@@ -403,7 +403,7 @@ class ModernProviderSelectionViewModelTest {
     fun `refresh reloads providers`() = runTest {
         // Given: ViewModel
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
 
         viewModel = createViewModel()
@@ -423,7 +423,7 @@ class ModernProviderSelectionViewModelTest {
     fun `uiState transitions from Loading to Success`() = runTest {
         // Given: Repository with providers
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
 
         // When: Creating ViewModel and observing state
@@ -447,7 +447,7 @@ class ModernProviderSelectionViewModelTest {
     @Test
     fun `uiState transitions from Loading to Error on failure`() = runTest {
         // Given: Repository that fails
-        every { appRepository.allProviders() } returns Single.error(RuntimeException("Network error"))
+        coEvery { appRepository.allProviders() } throws RuntimeException("Network error")
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
 
         // When: Creating ViewModel
@@ -470,12 +470,13 @@ class ModernProviderSelectionViewModelTest {
     fun `selecting provider updates UI state`() = runTest {
         // Given: ViewModel with providers
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders) andThen
-            Single.just(sampleProviders) // Second call after selection
-        every { preferencesRepository.userPreferencesFlow } returns flowOf(
-            createPreferences(customTabPackage = "com.android.chrome")
-        ) andThen flowOf(
-            createPreferences(customTabPackage = "com.brave.browser") // After selection
+        coEvery { appRepository.allProviders() } returnsMany listOf(
+            sampleProviders, // First call
+            sampleProviders  // Second call after selection
+        )
+        every { preferencesRepository.userPreferencesFlow } returnsMany listOf(
+            flowOf(createPreferences(customTabPackage = "com.android.chrome")),
+            flowOf(createPreferences(customTabPackage = "com.brave.browser")) // After selection
         )
         coEvery { preferencesRepository.setCustomTabPackage(any()) } just Runs
 
@@ -510,7 +511,7 @@ class ModernProviderSelectionViewModelTest {
     @Test
     fun `handles empty providers list`() = runTest {
         // Given: Repository with no providers
-        every { appRepository.allProviders() } returns Single.just(emptyList())
+        coEvery { appRepository.allProviders() } returns(emptyList())
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
 
         // When: ViewModel is created
@@ -526,7 +527,7 @@ class ModernProviderSelectionViewModelTest {
     fun `handles null custom tab package preference`() = runTest {
         // Given: Preferences with null custom tab package
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returns(sampleProviders)
         every { preferencesRepository.userPreferencesFlow } returns flowOf(
             createPreferences(customTabPackage = null)
         )
@@ -544,8 +545,10 @@ class ModernProviderSelectionViewModelTest {
     fun `manual loadProviders call reloads state`() = runTest {
         // Given: ViewModel
         val sampleProviders = createSampleProviders()
-        every { appRepository.allProviders() } returns Single.just(emptyList()) andThen
-            Single.just(sampleProviders)
+        coEvery { appRepository.allProviders() } returnsMany listOf(
+            emptyList(),      // First call
+            sampleProviders   // Second call after manual reload
+        )
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
 
         viewModel = createViewModel()

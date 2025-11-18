@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 6: RxJava scheduler setup removed - no longer needed after migration to Coroutines
 package arun.com.chromer
 
 import android.app.Application
@@ -27,8 +28,6 @@ import org.junit.Before
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import rx.plugins.RxJavaHooks
-import rx.schedulers.Schedulers
 import javax.inject.Inject
 
 
@@ -44,16 +43,8 @@ abstract class LynketRobolectricSuite {
 
   @Before
   fun setup() {
-    setupRxSchedulers()
     testAppComponent = (application as LynketTestApplication).appComponent as TestAppComponent
     testAppComponent.inject(this)
-  }
-
-
-  private fun setupRxSchedulers() {
-    RxJavaHooks.setOnComputationScheduler { Schedulers.trampoline() }
-    RxJavaHooks.setOnIOScheduler { Schedulers.trampoline() }
-    RxJavaHooks.setOnNewThreadScheduler { Schedulers.trampoline() }
   }
 
   internal fun clearPreferences() {
