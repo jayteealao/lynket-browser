@@ -794,7 +794,7 @@ interface FlowUseCase<in Params, out Result> {
 | Step 5: Core Browsing | ✅ Complete | 100% |
 | Step 6: Advanced Features | ✅ Complete | 100% |
 | Step 7: Complex Features | ✅ Complete | 100% |
-| Step 8: Supporting Features | ⏳ Pending | 0% |
+| Step 8: Supporting Features | ✅ Complete | 100% |
 | Step 9: Dependency Cleanup | ⏳ Pending | 0% |
 | Step 10: Code Cleanup | ⏳ Pending | 0% |
 | Step 11: Testing & Quality | ⏳ Pending | 0% |
@@ -807,7 +807,7 @@ interface FlowUseCase<in Params, out Result> {
 | XML Layouts Removed | 89 | 0 | 0% |
 | RxJava Usages Removed | 342 | 342 | 100% ✅ |
 | Butterknife Removed | 83 | 0 | 0% |
-| Screens Migrated | 56 | 17 | 30% |
+| Screens Migrated | 56 | 19 | 34% |
 | Repositories Migrated | 5 | 5 | 100% ✅ |
 | PaperDB Removed | 1 | 1 | 100% ✅ |
 | Test Coverage | >70% | TBD | TBD |
@@ -1124,7 +1124,66 @@ interface FlowUseCase<in Params, out Result> {
 
 **WebHeads Note**: WebHeadService remains legacy due to window overlay requirements. The service uses traditional Android View system for floating windows, which is more compatible than Compose for system overlays. Settings screens control WebHeads via Preferences.
 
-**Next Step**: Phase 8 - Supporting Features (Intro screens, Quick Settings Tiles, Remaining screens)
+---
+
+### Phase 8: Supporting Features ✅ COMPLETE (2025-01-18)
+
+**Objective**: Migrate supporting features including intro screens and provider selection
+
+**Completed Screens** (2 of 2):
+1. ✅ **ProviderSelectionActivity** → ProviderSelectionActivityCompose
+   - Custom Tab provider selection screen
+   - Grid layout showing all available providers (4 columns)
+   - WebView fallback option with confirmation dialog
+   - Provider installation via Play Store
+   - Selected provider indicator
+   - Uses existing ModernProviderSelectionViewModel with Flow state
+   - Material3 cards with elevation for selection
+   - Files: `/browsing/providerselection/ProviderSelectionActivityCompose.kt`
+
+2. ✅ **ChromerIntroActivity** → IntroActivityCompose
+   - Onboarding screens using HorizontalPager
+   - 8 intro slides covering all features:
+     * Welcome screen
+     * Custom Tabs explanation
+     * Provider selection
+     * Web Heads feature
+     * AMP mode
+     * Article mode
+     * Merge tabs & apps
+     * Per-app settings
+   - Page indicators with smooth animations
+   - Skip and navigation controls
+   - Material3 themed with consistent branding
+   - Files: `/intro/IntroActivityCompose.kt`
+
+**Advanced Patterns Established**:
+- ✅ **HorizontalPager** (swipeable intro screens)
+- ✅ **Pager state management** (page indicators, navigation)
+- ✅ **Grid layouts** (provider grid with LazyVerticalGrid)
+- ✅ **Confirmation dialogs** (WebView disadvantages warning)
+- ✅ **Play Store integration** (app installation links)
+- ✅ **Standalone Compose screens** (no NavController dependency)
+
+**Quick Settings Tiles Status**:
+- ✅ ArticleTile, AmpTile, IncognitoTile, WebHeadTile - No migration needed
+- Already clean - use Preferences directly, no RxJava
+- TileService is a system service without UI, only toggles preferences
+- All tiles extend PreferenceQuickSettingsTile (Hilt-injected, Flow-compatible)
+
+**Files Created**:
+- `/browsing/providerselection/ProviderSelectionActivityCompose.kt` (340+ lines)
+- `/intro/IntroActivityCompose.kt` (200+ lines)
+
+**Migration Summary**:
+- 100% of supporting features migrated (2/2)
+- Intro screens modernized with HorizontalPager (replacing AppIntro library)
+- Provider selection fully functional with Flow state management
+- Quick Settings Tiles already modern, no migration required
+- All screens use Material3 design system
+- Smooth onboarding experience with Material You design
+
+**Next Step**: Phase 9 - Dependency Cleanup (Remove RxJava, Butterknife, Epoxy, AppIntro, etc.)
 
 ---
 
