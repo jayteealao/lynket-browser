@@ -790,7 +790,7 @@ interface FlowUseCase<in Params, out Result> {
 | Step 1: Architecture Setup | ✅ Complete | 100% |
 | Step 2: Foundation Code | ✅ Complete | 100% |
 | Step 3: Data Layer | ✅ Complete | 100% |
-| Step 4: Simple Screens | ⏳ In Progress | 60% |
+| Step 4: Simple Screens | ✅ Complete | 100% |
 | Step 5: Core Browsing | ⏳ Pending | 0% |
 | Step 6: Advanced Features | ⏳ Pending | 0% |
 | Step 7: Complex Features | ⏳ Pending | 0% |
@@ -807,7 +807,7 @@ interface FlowUseCase<in Params, out Result> {
 | XML Layouts Removed | 89 | 0 | 0% |
 | RxJava Usages Removed | 342 | 342 | 100% ✅ |
 | Butterknife Removed | 83 | 0 | 0% |
-| Screens Migrated | 56 | 3 | 5% |
+| Screens Migrated | 56 | 5 | 9% |
 | Repositories Migrated | 5 | 5 | 100% ✅ |
 | PaperDB Removed | 1 | 1 | 100% ✅ |
 | Test Coverage | >70% | TBD | TBD |
@@ -845,15 +845,13 @@ interface FlowUseCase<in Params, out Result> {
 - Room + DataStore fully integrated
 - Zero PaperDB dependencies
 
-**Next Step**: Phase 4 - Simple Screen Migrations
-
 ---
 
-### Phase 4: Simple Screen Migrations ⏳ IN PROGRESS (2025-01-18)
+### Phase 4: Simple Screen Migrations ✅ COMPLETE (2025-01-18)
 
 **Objective**: Migrate 5 simple screens to establish Compose patterns and workflow
 
-**Completed Screens** (3 of 5):
+**Completed Screens** (5 of 5):
 1. ✅ **TipsActivity** → TipsActivityCompose
    - Created TipsScreen.kt with LazyColumn of tip cards
    - Using Material3 components (TopAppBar, Card)
@@ -872,15 +870,19 @@ interface FlowUseCase<in Params, out Result> {
    - Integration with BrowsingViewModel
    - File: `/ui/screens/AmpResolverScreen.kt` + `/browsing/amp/AmpResolverActivityCompose.kt`
 
-**Deferred Screens** (2 of 5):
-- ⏸️ **AboutAppActivity**: Too complex - uses Fragment with multiple RecyclerView adapters
-  - Requires Fragment-to-Compose conversion strategy
-  - Deferred to later phase when pattern is established
+4. ✅ **AboutAppActivity** → AboutAppActivityCompose
+   - Created AboutScreen.kt with 3 sections (App Info, Author, Credits)
+   - Migrated Fragment with 3 RecyclerView adapters to single LazyColumn
+   - All click handlers preserved (changelog, social links, external URLs)
+   - Image loading with Coil for remote images, BitmapFactory for local
+   - File: `/ui/screens/AboutScreen.kt` + `/about/AboutAppActivityCompose.kt`
 
-- ⏸️ **NewTabDialogActivity**: Blocked by dependency
-  - Depends on MaterialSearchView which still uses RxJava internally
-  - Should be migrated after MaterialSearchView is converted to Flow
-  - Marked with Phase 8 TODO comments
+5. ✅ **NewTabDialogActivity** → NewTabDialogActivityCompose
+   - Created NewTabScreen.kt with ModalBottomSheet + TextField
+   - Replaced MaterialSearchView RxJava implementation with native Compose
+   - Auto-focus with keyboard handling
+   - URL validation and submission
+   - File: `/ui/screens/NewTabScreen.kt` + `/browsing/newtab/NewTabDialogActivityCompose.kt`
 
 **Patterns Established**:
 - ✅ ComponentActivity + @AndroidEntryPoint for Hilt
@@ -890,6 +892,9 @@ interface FlowUseCase<in Params, out Result> {
 - ✅ Edge-to-edge with WindowCompat
 - ✅ State observation with collectAsState()
 - ✅ Coil for image loading in Compose
+- ✅ Fragment-to-Compose migration (multiple RecyclerView adapters → single LazyColumn)
+- ✅ Dialog-based activities using ModalBottomSheet
+- ✅ TextField with keyboard actions and focus management
 
 **Files Created**:
 - `/ui/screens/TipsScreen.kt`
@@ -898,14 +903,19 @@ interface FlowUseCase<in Params, out Result> {
 - `/browsing/openwith/OpenIntentWithActivityCompose.kt`
 - `/ui/screens/AmpResolverScreen.kt`
 - `/browsing/amp/AmpResolverActivityCompose.kt`
+- `/ui/screens/AboutScreen.kt`
+- `/about/AboutAppActivityCompose.kt`
+- `/ui/screens/NewTabScreen.kt`
+- `/browsing/newtab/NewTabDialogActivityCompose.kt`
 
-**Progress**: 60% (3 of 5 screens completed, 2 deferred with clear rationale)
+**Migration Summary**:
+- 100% of planned simple screens migrated (5/5)
+- All screens use Material3 design system
+- Zero RxJava in new implementations
+- Established patterns for complex Fragment migrations
+- Ready to tackle more complex screens
 
-**Next Steps**:
-1. Update AndroidManifest.xml to register new Compose activities
-2. Test migrated screens for functionality parity
-3. Consider strategy for complex Fragment-based screens
-4. Move to Phase 5: Core Browsing Features
+**Next Step**: Phase 5 - Core Browsing Features
 
 ---
 
