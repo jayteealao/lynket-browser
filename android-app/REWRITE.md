@@ -791,7 +791,7 @@ interface FlowUseCase<in Params, out Result> {
 | Step 2: Foundation Code | ✅ Complete | 100% |
 | Step 3: Data Layer | ✅ Complete | 100% |
 | Step 4: Simple Screens | ✅ Complete | 100% |
-| Step 5: Core Browsing | ⏳ Pending | 0% |
+| Step 5: Core Browsing | ✅ Complete | 100% |
 | Step 6: Advanced Features | ⏳ Pending | 0% |
 | Step 7: Complex Features | ⏳ Pending | 0% |
 | Step 8: Supporting Features | ⏳ Pending | 0% |
@@ -807,7 +807,7 @@ interface FlowUseCase<in Params, out Result> {
 | XML Layouts Removed | 89 | 0 | 0% |
 | RxJava Usages Removed | 342 | 342 | 100% ✅ |
 | Butterknife Removed | 83 | 0 | 0% |
-| Screens Migrated | 56 | 5 | 9% |
+| Screens Migrated | 56 | 9 | 16% |
 | Repositories Migrated | 5 | 5 | 100% ✅ |
 | PaperDB Removed | 1 | 1 | 100% ✅ |
 | Test Coverage | >70% | TBD | TBD |
@@ -915,7 +915,73 @@ interface FlowUseCase<in Params, out Result> {
 - Established patterns for complex Fragment migrations
 - Ready to tackle more complex screens
 
-**Next Step**: Phase 5 - Core Browsing Features
+---
+
+### Phase 5: Core Browsing Features ✅ COMPLETE (2025-01-18)
+
+**Objective**: Migrate the critical user-facing browsing screens
+
+**Completed Screens** (4 of 4):
+1. ✅ **BrowserInterceptActivity** → BrowserInterceptActivityCompose
+   - Transparent URL routing activity (no UI)
+   - Processes incoming http/https intents via TabsManager
+   - Handles invalid links with Toast notification
+   - File: `/browsing/browserintercept/BrowserInterceptActivityCompose.kt`
+
+2. ✅ **CustomTabActivity** → CustomTabActivityCompose
+   - Chrome Custom Tabs launcher wrapper
+   - Lifecycle management for "ghost tab" prevention
+   - Toolbar color configuration from intent
+   - Uses CustomTabs builder with preferences
+   - File: `/browsing/customtabs/CustomTabActivityCompose.kt`
+
+3. ✅ **WebViewActivity** → WebViewActivityCompose + WebViewScreen
+   - Fallback browser using Android WebView
+   - Material3 UI: TopAppBar, LinearProgressIndicator
+   - SwipeRefresh for reload functionality
+   - AndroidView wrapping WebView with WebViewClient/WebChromeClient
+   - Progress tracking and page title updates
+   - Back button handling for WebView navigation
+   - Files: `/ui/screens/WebViewScreen.kt` + `/browsing/webview/WebViewActivityCompose.kt`
+
+4. ✅ **HomeActivity** → HomeActivityCompose + HomeScreen
+   - Main launcher activity (most complex migration)
+   - Search bar replacing MaterialSearchView (removed RxJava dependency)
+   - Provider info card showing active browser
+   - Recent history list with LiveData → Compose state
+   - Settings and tips navigation
+   - Migrated Epoxy RecyclerView → LazyColumn
+   - HomeActivityViewModel integration with collectAsState
+   - Files: `/ui/screens/HomeScreen.kt` + `/home/HomeActivityCompose.kt`
+
+**Advanced Patterns Established**:
+- ✅ Transparent activities (no UI, just logic)
+- ✅ AndroidView integration for legacy Views (WebView)
+- ✅ WebView lifecycle management in Compose
+- ✅ LiveData → Compose State with observeAsState()
+- ✅ Complex RecyclerView (Epoxy) → LazyColumn migration
+- ✅ MaterialSearchView replacement with TextField
+- ✅ Swipe-to-refresh in Compose (using Accompanist)
+- ✅ Back button handling for WebView navigation
+- ✅ Dynamic theming based on website colors
+
+**Files Created**:
+- `/browsing/browserintercept/BrowserInterceptActivityCompose.kt`
+- `/browsing/customtabs/CustomTabActivityCompose.kt`
+- `/ui/screens/WebViewScreen.kt`
+- `/browsing/webview/WebViewActivityCompose.kt`
+- `/ui/screens/HomeScreen.kt`
+- `/home/HomeActivityCompose.kt`
+
+**Migration Summary**:
+- 100% of core browsing screens migrated (4/4)
+- All critical user paths now use Compose
+- MaterialSearchView RxJava dependency eliminated in new code
+- Epoxy RecyclerView successfully migrated to LazyColumn
+- WebView integrated with Compose via AndroidView
+- Users can browse URLs through the app end-to-end with Compose UI
+
+**Next Step**: Phase 6 - Advanced Browsing Features
 
 ---
 
