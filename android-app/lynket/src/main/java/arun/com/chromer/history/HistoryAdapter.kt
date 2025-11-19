@@ -33,8 +33,6 @@ import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.inflate
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.tabs.TabsManager
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.bumptech.glide.RequestManager
 import dagger.hilt.android.scopes.FragmentScoped
 import javax.inject.Inject
@@ -69,19 +67,15 @@ constructor(
   inner class HistoryViewHolder(
     itemView: View
   ) : RecyclerView.ViewHolder(itemView) {
-    @BindView(R.id.history_title)
     @JvmField
     var historyTitle: TextView? = null
 
-    @BindView(R.id.history_favicon)
     @JvmField
     var historyFavicon: ImageView? = null
 
-    @BindView(R.id.history_subtitle)
     @JvmField
     var historySubtitle: TextView? = null
 
-    @BindView(R.id.history_amp)
     @JvmField
     var historyAmp: ImageView? = null
 

@@ -48,25 +48,18 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.TEXT_SHARE_INTENT
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
-import butterknife.BindView
-import butterknife.ButterKnife
-import butterknife.OnClick
 import com.afollestad.materialdialogs.MaterialDialog
 import javax.inject.Inject
 
 class WebHeadContextActivity : BaseActivity(), WebsiteAdapter.WebSiteAdapterListener {
     private val webHeadsEventsReceiver = WebHeadEventsReceiver()
 
-    @BindView(R.id.web_sites_list)
     lateinit var websiteListView: RecyclerView
 
-    @BindView(R.id.copy_all)
     lateinit var copyAll: TextView
 
-    @BindView(R.id.share_all)
     lateinit var shareAll: TextView
 
-    @BindView(R.id.context_activity_card_view)
     lateinit var rootCardView: CardView
 
     @Inject
@@ -148,12 +141,10 @@ class WebHeadContextActivity : BaseActivity(), WebsiteAdapter.WebSiteAdapterList
         copyToClipboard(website.safeLabel(), website.preferredUrl())
     }
 
-    @OnClick(R.id.copy_all)
     fun onCopyAllClick() {
         copyToClipboard("Websites", getCSVUrls().toString())
     }
 
-    @OnClick(R.id.share_all)
     fun onShareAllClick() {
         val items = arrayOf<CharSequence>(
             getString(R.string.comma_separated),

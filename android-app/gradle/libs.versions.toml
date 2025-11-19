@@ -44,7 +44,6 @@ coil = "2.7.0"
 # Legacy dependencies (will be removed)
 # Keep temporarily during migration
 glide = "4.14.2"
-butterknife = "10.2.3"
 epoxy = "4.6.4"
 # Phase 8: RxJava versions removed - migrated to Kotlin Coroutines/Flows
 materialDrawer = "6.1.2"
@@ -153,8 +152,6 @@ compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4
 # Keep during migration, will be removed in Steps 9-10
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", version.ref = "glide" }
-butterknife = { group = "com.jakewharton", name = "butterknife", version.ref = "butterknife" }
-butterknife-compiler = { group = "com.jakewharton", name = "butterknife-compiler", version.ref = "butterknife" }
 epoxy = { group = "com.airbnb.android", name = "epoxy", version.ref = "epoxy" }
 epoxy-processor = { group = "com.airbnb.android", name = "epoxy-processor", version.ref = "epoxy" }
 # Phase 8: RxJava library declarations removed - migrated to Kotlin Coroutines/Flows

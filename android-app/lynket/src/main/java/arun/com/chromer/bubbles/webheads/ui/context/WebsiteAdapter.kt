@@ -34,8 +34,6 @@ import com.mikepenz.iconics.IconicsDrawable
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.util.glide.GlideApp
-import butterknife.BindView
-import butterknife.ButterKnife
 
 /**
  * Created by Arun on 05/09/2016.
@@ -127,19 +125,14 @@ internal class WebsiteAdapter(
     }
 
     inner class WebSiteHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        @BindView(R.id.web_site_icon)
         lateinit var icon: ImageView
 
-        @BindView(R.id.web_site_title)
         lateinit var title: TextView
 
-        @BindView(R.id.web_site_sub_title)
         lateinit var url: TextView
 
-        @BindView(R.id.delete_icon)
         lateinit var deleteIcon: ImageView
 
-        @BindView(R.id.share_icon)
         lateinit var shareIcon: ImageView
 
         init {

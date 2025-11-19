@@ -36,8 +36,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.payments.billing.*
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import timber.log.Timber
@@ -234,13 +232,10 @@ class DonateActivity : AppCompatActivity(), IabBroadcastReceiver.IabBroadcastLis
         override fun getItemCount() = details.size
 
         inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            @BindView(R.id.about_row_item_image)
             lateinit var image: ImageView
 
-            @BindView(R.id.about_app_title)
             lateinit var title: TextView
 
-            @BindView(R.id.about_app_subtitle)
             lateinit var subtitle: TextView
 
             init {

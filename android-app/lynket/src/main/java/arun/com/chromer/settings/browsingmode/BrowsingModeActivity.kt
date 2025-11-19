@@ -34,7 +34,6 @@ import arun.com.chromer.settings.RxPreferences
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.Utils
-import butterknife.BindView
 import com.afollestad.materialdialogs.MaterialDialog
 import com.google.android.material.snackbar.Snackbar
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
@@ -43,11 +42,8 @@ import javax.inject.Inject
 
 class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeClickListener {
 
-  @BindView(R.id.toolbar)
   lateinit var toolbar: Toolbar
-  @BindView(R.id.browsing_mode_list_view)
   lateinit var browsingModeListView: RecyclerView
-  @BindView(R.id.coordinatorLayout)
   lateinit var coordinatorLayout: CoordinatorLayout
 
   @Inject

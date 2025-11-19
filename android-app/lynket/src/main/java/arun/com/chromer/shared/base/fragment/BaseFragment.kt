@@ -19,6 +19,7 @@
  */
 
 // Phase 7: Fully migrated to Hilt - removed legacy Dagger 2 component injection
+// Phase 8: Removed Butterknife - no longer needed with modern ViewBinding/Compose
 
 package arun.com.chromer.shared.base.fragment
 
@@ -28,13 +29,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
-import butterknife.ButterKnife
-import butterknife.Unbinder
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * Base fragment for all fragments in the app.
  * Phase 7: Migrated to Hilt - now uses @AndroidEntryPoint for automatic injection
+ * Phase 8: Butterknife removed - use ViewBinding or Compose in subclasses
  *
  * For lifecycle-aware coroutines, use:
  * - lifecycleScope.launch { } for fragment lifecycle
@@ -43,8 +43,6 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 abstract class BaseFragment : Fragment() {
-
-  private var unbinder: Unbinder? = null
 
   @get:LayoutRes
   protected abstract val layoutRes: Int
@@ -57,12 +55,5 @@ abstract class BaseFragment : Fragment() {
     layoutRes,
     container,
     false
-  ).also { view ->
-    unbinder = ButterKnife.bind(this, view)
-  }
-
-  override fun onDestroy() {
-    unbinder?.unbind()
-    super.onDestroy()
-  }
+  )
 }

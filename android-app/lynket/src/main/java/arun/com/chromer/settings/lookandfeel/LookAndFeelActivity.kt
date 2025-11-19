@@ -38,17 +38,12 @@ import arun.com.chromer.shared.Constants.ACTION_WEBHEAD_COLOR_SET
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBHEAD_COLOR
 import arun.com.chromer.shared.base.Snackable
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.afollestad.materialdialogs.color.ColorChooserDialog
 import com.google.android.material.snackbar.Snackbar
 
 class LookAndFeelActivity : AppCompatActivity(), ColorChooserDialog.ColorCallback, Snackable, SharedPreferences.OnSharedPreferenceChangeListener {
-  @BindView(R.id.toolbar)
   lateinit var toolbar: Toolbar
-  @BindView(R.id.coordinatorLayout)
   lateinit var coordinatorLayout: CoordinatorLayout
-  @BindView(R.id.error)
   lateinit var error: TextView
 
   override fun onCreate(savedInstanceState: Bundle?) {

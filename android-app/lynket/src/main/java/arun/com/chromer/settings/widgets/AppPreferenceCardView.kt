@@ -38,9 +38,6 @@ import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.glide.GlideApp
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
-import butterknife.BindView
-import butterknife.ButterKnife
-import butterknife.Unbinder
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
@@ -54,13 +51,10 @@ class AppPreferenceCardView @JvmOverloads constructor(
   defStyle: Int = 0
 ) : CardView(context, attrs, defStyle) {
 
-  @BindView(R.id.app_preference_icon)
   lateinit var icon: ImageView
 
-  @BindView(R.id.app_preference_category)
   lateinit var categoryTextView: TextView
 
-  @BindView(R.id.app_preference_selection)
   lateinit var appNameTextView: TextView
 
   private var unbinder: Unbinder? = null

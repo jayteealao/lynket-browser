@@ -36,8 +36,6 @@ import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.util.glide.GlideApp
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.bumptech.glide.RequestManager
 import dagger.hilt.android.scopes.ActivityScoped
 import kotlinx.coroutines.flow.Flow
@@ -93,15 +91,12 @@ constructor(
   override fun getItemId(position: Int): Long = providers[position].hashCode().toLong()
 
   inner class RecentsViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-    @BindView(R.id.icon)
     @JvmField
     var icon: ImageView? = null
 
-    @BindView(R.id.label)
     @JvmField
     var label: TextView? = null
 
-    @BindView(R.id.providerInstallButton)
     @JvmField
     var install: TextView? = null
 

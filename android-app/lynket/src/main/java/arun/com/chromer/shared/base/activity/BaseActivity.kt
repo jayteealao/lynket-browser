@@ -19,6 +19,7 @@
  */
 
 // Phase 7: Fully migrated to Hilt - removed legacy Dagger 2 component injection
+// Phase 8: Removed Butterknife - no longer needed with modern ViewBinding/Compose
 
 package arun.com.chromer.shared.base.activity
 
@@ -28,14 +29,13 @@ import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import arun.com.chromer.R
 import arun.com.chromer.util.lifecycle.ActivityLifecycleEvents
-import butterknife.ButterKnife
-import butterknife.Unbinder
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
  * Base activity for all activities in the app.
  * Phase 7: Migrated to Hilt - now uses @AndroidEntryPoint for automatic injection
+ * Phase 8: Butterknife removed - use ViewBinding or Compose in subclasses
  *
  * For lifecycle-aware coroutines, use:
  * - lifecycleScope.launch { } for UI work
@@ -43,8 +43,6 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 abstract class BaseActivity : AppCompatActivity() {
-
-  protected var unbinder: Unbinder? = null
 
   @get:LayoutRes
   protected abstract val layoutRes: Int
@@ -56,13 +54,7 @@ abstract class BaseActivity : AppCompatActivity() {
     super.onCreate(savedInstanceState)
     if (layoutRes != 0) {
       setContentView(layoutRes)
-      unbinder = ButterKnife.bind(this)
     }
-  }
-
-  override fun onDestroy() {
-    unbinder?.unbind()
-    super.onDestroy()
   }
 
   override fun onOptionsItemSelected(item: MenuItem): Boolean {

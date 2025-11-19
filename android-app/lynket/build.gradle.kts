@@ -206,9 +206,7 @@ dependencies {
     implementation(libs.glide)
     kapt(libs.glide.compiler)
 
-    // Legacy: View Binding - Butterknife
-    implementation(libs.butterknife)
-    kapt(libs.butterknife.compiler)
+    // Phase 8: Butterknife removed - migrated to ViewBinding/Compose
 
     // Legacy: RecyclerView - Epoxy
     implementation(libs.epoxy)

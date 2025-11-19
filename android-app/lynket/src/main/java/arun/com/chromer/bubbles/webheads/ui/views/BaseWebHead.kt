@@ -57,8 +57,6 @@ import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.ColorUtil.getForegroundWhiteOrBlack
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.Utils.dpToPx
-import butterknife.BindView
-import butterknife.ButterKnife
 import cn.nekocode.badge.BadgeDrawable
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
@@ -73,19 +71,14 @@ abstract class BaseWebHead @SuppressLint("RtlHardcoded") constructor(
     private val url: String
 ) : FrameLayout(context) {
 
-    @BindView(R.id.favicon)
     protected lateinit var favicon: ImageView
 
-    @BindView(R.id.indicator)
     protected lateinit var indicator: TextView
 
-    @BindView(R.id.circleBackground)
     protected lateinit var circleBg: ElevatedCircleView
 
-    @BindView(R.id.revealView)
     protected lateinit var revealView: CircleView
 
-    @BindView(R.id.badge)
     protected lateinit var badgeView: TextView
 
     @get:JvmName("getWebsiteInternal")

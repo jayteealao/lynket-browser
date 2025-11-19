@@ -29,8 +29,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 
@@ -92,11 +90,8 @@ internal class SettingsGroupAdapter(context: Context) :
   }
 
   class SettingsItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-    @BindView(R.id.settins_list_icon)
     lateinit var icon: ImageView
-    @BindView(R.id.settings_list_title)
     lateinit var title: TextView
-    @BindView(R.id.settings_list_subtitle)
     lateinit var subtitle: TextView
 
     init {

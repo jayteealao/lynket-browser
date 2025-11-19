@@ -41,8 +41,6 @@ import androidx.annotation.IntDef
 import androidx.core.graphics.ColorUtils
 import arun.com.chromer.R
 import arun.com.chromer.util.Utils
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 
@@ -52,10 +50,8 @@ import com.mikepenz.iconics.IconicsDrawable
 @Deprecated("Deprecated")
 class TabView : FrameLayout {
 
-  @BindView(R.id.tab_view_icon)
   lateinit var tabIcon: ImageView
 
-  @BindView(R.id.tab_view_text)
   lateinit var text: TextView
 
   private var initialIconX = 0f

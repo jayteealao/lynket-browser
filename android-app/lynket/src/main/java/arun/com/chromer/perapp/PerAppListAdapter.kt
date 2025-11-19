@@ -34,8 +34,6 @@ import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.data.common.App
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.bumptech.glide.RequestManager
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
@@ -136,23 +134,18 @@ internal constructor(
   }
 
   inner class BlackListItemViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-    @BindView(R.id.app_list_icon)
     @JvmField
     var appIcon: ImageView? = null
 
-    @BindView(R.id.app_list_name)
     @JvmField
     var appName: TextView? = null
 
-    @BindView(R.id.app_list_package)
     @JvmField
     var appPackage: TextView? = null
 
-    @BindView(R.id.incognitoIcon)
     @JvmField
     var incognitoIcon: ImageView? = null
 
-    @BindView(R.id.blacklistIcon)
     @JvmField
     var blacklistIcon: ImageView? = null
 

@@ -37,8 +37,6 @@ import arun.com.chromer.R
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.RxPreferences
 import arun.com.chromer.util.ColorUtil
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import dagger.hilt.android.scopes.ActivityScoped
@@ -114,15 +112,10 @@ class BrowsingModeAdapter @Inject constructor(
     itemView: View,
     private val rxPreferences: RxPreferences
   ) : RecyclerView.ViewHolder(itemView) {
-    @BindView(R.id.icon)
     lateinit var icon: ImageView
-    @BindView(R.id.title)
     lateinit var title: TextView
-    @BindView(R.id.subtitle)
     lateinit var subtitle: TextView
-    @BindView(R.id.browsing_mode_selector)
     lateinit var selector: ImageView
-    @BindView(R.id.browsing_mode_root)
     lateinit var browsingModeRoot: CardView
 
     init {

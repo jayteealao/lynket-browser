@@ -48,9 +48,6 @@ import arun.com.chromer.extenstions.toBitmap
 import arun.com.chromer.extenstions.watch
 import arun.com.chromer.util.glide.GlideApp
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
-import butterknife.BindView
-import butterknife.ButterKnife
-import butterknife.Unbinder
 import com.afollestad.materialdialogs.DialogAction
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.internal.MDButton
@@ -85,19 +82,15 @@ class HomeScreenShortcutCreatorActivity : BrowsingActivity() {
     private lateinit var unbinder: Unbinder
     private var dialog: MaterialDialog? = null
 
-    @BindView(R.id.icon_view)
     @JvmField
     var iconView: ImageView? = null
 
-    @BindView(R.id.shortcut_name)
     @JvmField
     var shortcutName: EditText? = null
 
-    @BindView(R.id.shortcut_name_wrapper)
     @JvmField
     var shortcutNameWrapper: TextInputLayout? = null
 
-    @BindView(R.id.extract_progress)
     @JvmField
     var progressBar: MaterialProgressBar? = null
 

@@ -42,19 +42,13 @@ import arun.com.chromer.settings.lookandfeel.LookAndFeelActivity
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.shared.base.activity.SubActivity
 import arun.com.chromer.util.Utils
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 
 class SettingsGroupActivity : SubActivity(), SettingsGroupAdapter.GroupItemClickListener {
-  @BindView(R.id.toolbar)
   lateinit var toolbar: Toolbar
-  @BindView(R.id.settings_list_view)
   lateinit var settingsListView: RecyclerView
-  @BindView(R.id.set_default_card)
   lateinit var setDefaultCard: CardView
-  @BindView(R.id.set_default_image)
   lateinit var setDefaultImage: ImageView
 
   private lateinit var adapter: SettingsGroupAdapter
