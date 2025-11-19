@@ -18,8 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Phase 8.7: Converted from RxJava to Kotlin Flows/Coroutines
-// Removed deprecated CompositeSubscription - use lifecycleScope.launch instead
+// Phase 7: Fully migrated to Hilt - removed legacy Dagger 2 component injection
 
 package arun.com.chromer.shared.base.activity
 
@@ -28,26 +27,24 @@ import android.view.MenuItem
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import arun.com.chromer.R
-import arun.com.chromer.di.activity.ActivityComponent
-import arun.com.chromer.di.app.appComponent
-import arun.com.chromer.shared.base.ProvidesActivityComponent
 import arun.com.chromer.util.lifecycle.ActivityLifecycleEvents
 import butterknife.ButterKnife
 import butterknife.Unbinder
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
  * Base activity for all activities in the app.
+ * Phase 7: Migrated to Hilt - now uses @AndroidEntryPoint for automatic injection
  *
  * For lifecycle-aware coroutines, use:
  * - lifecycleScope.launch { } for UI work
  * - lifecycleScope.launch(Dispatchers.IO) { } for background work
  */
-abstract class BaseActivity : AppCompatActivity(), ProvidesActivityComponent {
+@AndroidEntryPoint
+abstract class BaseActivity : AppCompatActivity() {
 
   protected var unbinder: Unbinder? = null
-
-  override lateinit var activityComponent: ActivityComponent
 
   @get:LayoutRes
   protected abstract val layoutRes: Int
@@ -56,11 +53,6 @@ abstract class BaseActivity : AppCompatActivity(), ProvidesActivityComponent {
   lateinit var lifecycleEvents: ActivityLifecycleEvents
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    activityComponent = application
-      .appComponent()
-      .activityComponentFactory()
-      .create(this)
-      .also(this::inject)
     super.onCreate(savedInstanceState)
     if (layoutRes != 0) {
       setContentView(layoutRes)

@@ -38,7 +38,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.browsing.providerselection.ProviderSelectionActivity
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.widgets.AppPreferenceCardView
 import arun.com.chromer.shared.Constants.TEXT_SHARE_INTENT
@@ -183,7 +182,6 @@ class BrowsingOptionsActivity : BaseActivity(), Snackable,
         Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG).show()
     }
 
-    override fun inject(activityComponent: ActivityComponent) {
         activityComponent.inject(this)
     }
 

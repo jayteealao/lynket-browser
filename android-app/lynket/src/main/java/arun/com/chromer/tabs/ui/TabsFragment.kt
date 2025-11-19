@@ -38,7 +38,6 @@ import androidx.transition.TransitionManager
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.FragmentTabsBinding
-import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.shared.FabHandler
@@ -65,7 +64,6 @@ class TabsFragment : BaseFragment(), FabHandler {
 
   lateinit var tabsAdapter: TabsAdapter
 
-  override fun inject(fragmentComponent: FragmentComponent) {
     fragmentComponent.inject(this)
   }
 

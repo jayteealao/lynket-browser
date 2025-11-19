@@ -32,7 +32,6 @@ import arun.com.chromer.browsing.openwith.OpenIntentWithActivity
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.ActivityMoreMenuBinding
 import arun.com.chromer.databinding.ActivityMoreMenuItemTemplateBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.history.HistoryActivity
 import arun.com.chromer.settings.SettingsGroupActivity
 import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_ARTICLE
@@ -66,7 +65,6 @@ class ChromerOptionsActivity : BaseActivity() {
   }
 
 
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
   inner class MenuListAdapter
   internal

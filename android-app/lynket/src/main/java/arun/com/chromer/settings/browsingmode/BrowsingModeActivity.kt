@@ -29,7 +29,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.RxPreferences
 import arun.com.chromer.shared.base.activity.BaseActivity
@@ -63,7 +62,6 @@ class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeCli
   override val layoutRes: Int
     get() = R.layout.activity_browsing_mode
 
-  override fun inject(activityComponent: ActivityComponent) {
     activityComponent.inject(this)
   }
 

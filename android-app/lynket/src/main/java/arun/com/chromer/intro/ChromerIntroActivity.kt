@@ -18,32 +18,27 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 7: Migrated to Hilt @AndroidEntryPoint
 package arun.com.chromer.intro
 
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import arun.com.chromer.R
-import arun.com.chromer.di.activity.ActivityComponent
-import arun.com.chromer.di.app.appComponent
 import arun.com.chromer.intro.fragments.*
-import arun.com.chromer.shared.base.ProvidesActivityComponent
 import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
 import com.github.paolorotolo.appintro.AppIntro
+import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * Created by Arun on 17/12/2015.
+ * Phase 7: Migrated to Hilt - now uses @AndroidEntryPoint
  */
-class ChromerIntroActivity : AppIntro(), ProvidesActivityComponent {
-
-  override lateinit var activityComponent: ActivityComponent
+@AndroidEntryPoint
+class ChromerIntroActivity : AppIntro() {
 
   public override fun onCreate(savedInstanceState: Bundle?) {
-    activityComponent = application
-      .appComponent()
-      .activityComponentFactory()
-      .create(this).also(::inject)
     super.onCreate(savedInstanceState)
 
     val bgColor = ContextCompat.getColor(this, R.color.tutorialBackgrounColor)
@@ -112,7 +107,6 @@ class ChromerIntroActivity : AppIntro(), ProvidesActivityComponent {
     finish()
   }
 
-  override fun inject(activityComponent: ActivityComponent) {
     activityComponent.inject(this)
   }
 }

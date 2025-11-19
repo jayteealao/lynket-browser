@@ -17,24 +17,15 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// Phase 7: Fully migrated to Hilt - removed legacy Dagger 2 component injection
 package arun.com.chromer.shared.base.service
 
 import android.app.Service
-import arun.com.chromer.di.app.appComponent
-import arun.com.chromer.di.service.ServiceComponent
+import dagger.hilt.android.AndroidEntryPoint
 
-abstract class BaseService : Service() {
-
-  private lateinit var serviceComponent: ServiceComponent
-
-  override fun onCreate() {
-    super.onCreate()
-    serviceComponent = application
-      .appComponent()
-      .serviceComponentFactory()
-      .create(this)
-      .also(::inject)
-  }
-
-  protected abstract fun inject(serviceComponent: ServiceComponent)
-}
+/**
+ * Base service for all services in the app.
+ * Phase 7: Migrated to Hilt - now uses @AndroidEntryPoint for automatic injection
+ */
+@AndroidEntryPoint
+abstract class BaseService : Service()

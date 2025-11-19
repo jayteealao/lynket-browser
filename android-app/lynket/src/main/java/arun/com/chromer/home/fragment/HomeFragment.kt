@@ -33,7 +33,6 @@ import arun.com.chromer.browsing.providerselection.ProviderSelectionActivity
 import arun.com.chromer.data.Result
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.FragmentHomeBinding
-import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.extenstions.appName
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
@@ -69,7 +68,6 @@ class HomeFragment : BaseFragment(), Snackable {
 
   private val homeFragmentViewModel: HomeFragmentViewModel by viewModels()
 
-  override fun inject(fragmentComponent: FragmentComponent) = fragmentComponent.inject(this)
 
   override val layoutRes: Int get() = R.layout.fragment_home
 

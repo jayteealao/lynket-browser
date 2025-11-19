@@ -28,7 +28,6 @@ import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.databinding.FragmentTextIntroBinding
-import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.util.glide.GlideApp
 import com.github.paolorotolo.appintro.ISlideBackgroundColorHolder
@@ -45,7 +44,6 @@ open class AppIntroFragment : BaseFragment(), ISlideBackgroundColorHolder {
     _binding?.root?.setBackgroundColor(backgroundColor)
   }
 
-  override fun inject(fragmentComponent: FragmentComponent) = fragmentComponent.inject(this)
 
   override val layoutRes: Int get() = R.layout.fragment_text_intro
 

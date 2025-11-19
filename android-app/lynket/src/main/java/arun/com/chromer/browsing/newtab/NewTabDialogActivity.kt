@@ -36,7 +36,6 @@ import android.widget.Toast
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.ActivityNewTabBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.showKeyboard
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
@@ -61,7 +60,6 @@ class NewTabDialogActivity : BaseActivity() {
   }
 
 
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
   override fun onDestroy() {
     super.onDestroy()

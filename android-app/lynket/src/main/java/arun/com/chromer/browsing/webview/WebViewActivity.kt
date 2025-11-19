@@ -40,7 +40,6 @@ import arun.com.chromer.browsing.EXTRA_CURRENT_LOADING_URL
 import arun.com.chromer.browsing.menu.MenuDelegate
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.ActivityWebViewBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.applyColor
 import arun.com.chromer.extenstions.setAutoHideProgress
 import arun.com.chromer.shared.Constants
@@ -60,7 +59,6 @@ open class WebViewActivity : BrowsingActivity() {
 
   override val layoutRes: Int = 0 // Using ViewBinding instead
 
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)

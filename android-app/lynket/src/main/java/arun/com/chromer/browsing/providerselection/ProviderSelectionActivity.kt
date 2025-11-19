@@ -42,7 +42,6 @@ import arun.com.chromer.R
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.databinding.ActivityProviderSelectionBinding
 import arun.com.chromer.databinding.DialogProviderInfoBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.extenstions.watch
@@ -78,7 +77,6 @@ class ProviderSelectionActivity : BaseActivity() {
 
   private var providerDialog: ProviderDialog? = null
 
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
   override val layoutRes: Int
     get() = R.layout.activity_provider_selection

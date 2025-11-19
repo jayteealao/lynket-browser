@@ -46,14 +46,11 @@ import androidx.recyclerview.widget.RecyclerView.VERTICAL
 import androidx.recyclerview.widget.SimpleItemAnimator
 import arun.com.chromer.R
 import arun.com.chromer.databinding.WidgetMaterialSearchViewBinding
-import arun.com.chromer.di.view.Detaches
-import arun.com.chromer.di.view.ViewComponent
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.search.suggestion.SuggestionController
 import arun.com.chromer.search.suggestion.items.SuggestionItem.HistorySuggestionItem
 import arun.com.chromer.search.suggestion.items.SuggestionType.*
 import arun.com.chromer.shared.Constants.REQUEST_CODE_VOICE
-import arun.com.chromer.shared.base.ProvidesActivityComponent
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.animations.spring
 import arun.com.chromer.util.epoxy.intercepts
@@ -74,8 +71,8 @@ constructor(
   defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-  private var viewComponent: ViewComponent? = null
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+  private val detachFlow = MutableSharedFlow<Unit>(replay = 1)
 
   private val binding: WidgetMaterialSearchViewBinding = WidgetMaterialSearchViewBinding.inflate(
     LayoutInflater.from(context),
@@ -105,15 +102,16 @@ constructor(
       .sizeDp(18)
   }
 
+  // Phase 7: TODO - Custom Views can't use @AndroidEntryPoint
+  // These need to be injected manually or passed via constructor
   @Inject
   lateinit var searchPresenter: SearchPresenter
 
   @Inject
   lateinit var suggestionController: SuggestionController
 
-  @Inject
-  @Detaches
-  lateinit var viewDetaches: Flow<Unit>
+  // Phase 7: Replaced Dagger-injected viewDetaches with local implementation
+  private val viewDetaches: Flow<Unit> get() = detachFlow
 
   private val voiceSearchFailedFlow = MutableSharedFlow<Any>(extraBufferCapacity = 1)
   private val searchPerformedFlow = MutableSharedFlow<String>(extraBufferCapacity = 1)
@@ -149,12 +147,8 @@ constructor(
     .filter { focusChangesState.value == false }
 
   init {
-    if (context is ProvidesActivityComponent) {
-      viewComponent = context
-        .activityComponent
-        .viewComponentFactory().create(this)
-        .also { component -> component.inject(this) }
-    }
+    // Phase 7: Custom Views can't use @AndroidEntryPoint - manual injection removed
+    // suggestionController must be injected externally or provided via constructor
 
     binding.searchSuggestions.apply {
       (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
@@ -189,8 +183,8 @@ constructor(
 
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
+    detachFlow.tryEmit(Unit)
     scope.cancel()
-    viewComponent = null
   }
 
   override fun clearFocus() {

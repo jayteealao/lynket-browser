@@ -46,7 +46,6 @@ import arun.com.chromer.data.Result
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.ActivityArticleModeBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.extenstions.watch
@@ -66,7 +65,6 @@ import javax.inject.Inject
 
 class ArticleActivity : BrowsingActivity() {
   private lateinit var binding: ActivityArticleModeBinding
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
   private val browsingArticleViewModel: BrowsingArticleViewModel by viewModels()
 

@@ -37,7 +37,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.PRIORITY_MIN
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
-import arun.com.chromer.di.service.ServiceComponent
 import arun.com.chromer.shared.Constants.EXTRA_KEY_CLEAR_LAST_TOP_APP
 import arun.com.chromer.shared.base.service.BaseService
 import arun.com.chromer.util.Utils
@@ -125,7 +124,6 @@ class AppDetectService : BaseService() {
         }
     }
 
-    override fun inject(serviceComponent: ServiceComponent) {
         serviceComponent.inject(this)
     }
 

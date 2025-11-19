@@ -30,7 +30,6 @@ import arun.com.chromer.R
 import arun.com.chromer.about.changelog.Changelog
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.ActivityMainBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.extenstions.watch
@@ -65,7 +64,6 @@ class HomeActivity : BaseActivity(), Snackable {
 
   private val homeActivityViewModel: HomeActivityViewModel by viewModels()
 
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
 
   @Inject

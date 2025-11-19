@@ -38,7 +38,6 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import kotlinx.coroutines.launch
 import arun.com.chromer.R
 import arun.com.chromer.databinding.AcitivtyPerAppsBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.watch
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.base.Snackable
@@ -61,7 +60,6 @@ class PerAppSettingsActivity : BaseActivity(), CompoundButton.OnCheckedChangeLis
 
   private val perAppViewModel: PerAppSettingsViewModel by viewModels()
 
-  override fun inject(activityComponent: ActivityComponent) {
     activityComponent.inject(this)
   }
 

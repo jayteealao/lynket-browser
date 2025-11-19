@@ -57,7 +57,6 @@ import arun.com.chromer.bubbles.webheads.ui.views.Trashy
 import arun.com.chromer.bubbles.webheads.ui.views.WebHead
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.service.ServiceComponent
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.shared.Constants.ACTION_CLOSE_WEBHEAD_BY_URL
@@ -208,7 +207,6 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
         registerReceivers()
     }
 
-    override fun inject(serviceComponent: ServiceComponent) {
         serviceComponent.inject(this)
     }
 

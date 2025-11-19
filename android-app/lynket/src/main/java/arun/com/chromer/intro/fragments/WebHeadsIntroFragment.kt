@@ -28,7 +28,6 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.databinding.FragmentWebHeadsIntroBinding
-import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.glide.GlideApp
@@ -49,7 +48,6 @@ open class WebHeadsIntroFragment : BaseFragment(), ISlideBackgroundColorHolder {
   @Inject
   lateinit var tabsManager: TabsManager
 
-  override fun inject(fragmentComponent: FragmentComponent) = fragmentComponent.inject(this)
 
   override val layoutRes: Int
     get() = R.layout.fragment_web_heads_intro

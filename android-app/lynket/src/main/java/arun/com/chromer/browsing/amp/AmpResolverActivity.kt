@@ -30,7 +30,6 @@ import android.text.TextUtils
 import arun.com.chromer.R
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.tabs.TabsManager
 import com.afollestad.materialdialogs.MaterialDialog
 import javax.inject.Inject
@@ -48,7 +47,6 @@ class AmpResolverActivity : BrowsingActivity() {
     ampResolverDialog = AmpResolverDialog(this).show()
   }
 
-  override fun inject(activityComponent: ActivityComponent) {
     activityComponent.inject(this)
   }
 

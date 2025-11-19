@@ -18,45 +18,44 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Phase 7: Fully migrated to Hilt - removed legacy Dagger 2 AppComponent
 package arun.com.chromer
 
 import android.app.Application
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.multidex.MultiDex
-import arun.com.chromer.di.app.AppComponent
-import arun.com.chromer.di.app.DaggerAppComponent
 import arun.com.chromer.util.ServiceManager
+import arun.com.chromer.util.drawer.GlideDrawerImageLoader
 import com.airbnb.epoxy.EpoxyController
 import com.mikepenz.materialdrawer.util.DrawerImageLoader
-// Phase 3: PaperDB removed - legacy data storage replaced with Room + DataStore
 import dagger.hilt.android.HiltAndroidApp
+import dagger.hilt.android.EntryPointAccessors
 import timber.log.Timber
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 
 /**
  * Lynket Browser Application Class
  *
  * Phase 1.2: Migrated to Hilt (@HiltAndroidApp)
  * Phase 3: PaperDB removed (legacy storage)
- * Legacy Dagger 2 code kept temporarily for gradual migration
+ * Phase 7: Legacy Dagger 2 AppComponent removed - now 100% Hilt
  */
 @HiltAndroidApp
 open class Lynket : Application() {
 
-  // LEGACY: Dagger 2 AppComponent - Will be removed after full Hilt migration
-  // TODO: Remove this after all components are migrated to Hilt
-  @Deprecated("Use Hilt injection instead", ReplaceWith("@Inject"))
-  open val appComponent: AppComponent by lazy {
-    DaggerAppComponent.factory().create(this)
+  @EntryPoint
+  @InstallIn(SingletonComponent::class)
+  interface LynketEntryPoint {
+    fun glideDrawerImageLoader(): GlideDrawerImageLoader
   }
 
   override fun onCreate() {
     super.onCreate()
-    // Phase 3: Paper.init(this) removed - no longer using PaperDB
 
     if (BuildConfig.DEBUG) {
-      // TODO: RxDogTag removed - no longer needed as RxJava is being phased out
-      // RxDogTag.install()
       Timber.plant(Timber.DebugTree())
     }
     ServiceManager.takeCareOfServices(applicationContext)
@@ -71,7 +70,8 @@ open class Lynket : Application() {
   }
 
   private fun initMaterialDrawer() {
-    DrawerImageLoader.init(appComponent.glideDrawerImageLoader())
+    val entryPoint = EntryPointAccessors.fromApplication(this, LynketEntryPoint::class.java)
+    DrawerImageLoader.init(entryPoint.glideDrawerImageLoader())
       .withHandleAllUris(true)
   }
 

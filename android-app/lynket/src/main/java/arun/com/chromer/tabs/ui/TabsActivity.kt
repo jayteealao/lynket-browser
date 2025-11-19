@@ -24,7 +24,6 @@ import android.os.Bundle
 import android.view.MenuItem
 import arun.com.chromer.R
 import arun.com.chromer.databinding.ActivityTabsBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.shared.FabHandler
 import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.activity.BaseActivity
@@ -81,7 +80,6 @@ class TabsActivity : BaseActivity(), Snackable {
     else -> super.onOptionsItemSelected(item)
   }
 
-  override fun inject(activityComponent: ActivityComponent) {
     activityComponent.inject(this)
   }
 }

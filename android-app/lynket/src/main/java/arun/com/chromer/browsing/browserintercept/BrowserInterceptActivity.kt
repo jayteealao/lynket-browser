@@ -26,7 +26,6 @@ import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.finishAndRemoveTaskCompat
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
@@ -59,7 +58,6 @@ class BrowserInterceptActivity : BaseActivity() {
 
   }
 
-  override fun inject(activityComponent: ActivityComponent) {
     activityComponent.inject(this)
   }
 

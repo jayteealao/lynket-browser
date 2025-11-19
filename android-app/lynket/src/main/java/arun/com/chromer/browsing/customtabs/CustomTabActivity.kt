@@ -23,7 +23,6 @@ package arun.com.chromer.browsing.customtabs
 import android.os.Bundle
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 
 class CustomTabActivity : BrowsingActivity() {
@@ -46,7 +45,6 @@ class CustomTabActivity : BrowsingActivity() {
     } else finish()
   }
 
-  override fun inject(activityComponent: ActivityComponent) {
     activityComponent.inject(this)
   }
 

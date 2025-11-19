@@ -40,7 +40,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants.ACTION_CLOSE_WEBHEAD_BY_URL
 import arun.com.chromer.shared.Constants.ACTION_EVENT_WEBHEAD_DELETED
@@ -232,7 +231,6 @@ class WebHeadContextActivity : BaseActivity(), WebsiteAdapter.WebSiteAdapterList
         Toast.makeText(this, getString(R.string.copied) + " " + url, LENGTH_SHORT).show()
     }
 
-    override fun inject(activityComponent: ActivityComponent) {
         activityComponent.inject(this)
     }
 
