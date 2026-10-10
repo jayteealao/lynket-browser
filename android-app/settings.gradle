@@ -51,4 +51,5 @@ dependencyResolutionManagement {
 rootProject.name = "lynket"
 include ":lynket"
 include ":disk-cache"
+include ":benchmark"
 //include ":lynket-playground"
