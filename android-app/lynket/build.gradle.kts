@@ -17,6 +17,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt) // Phase 1.1: Enabled for modernization
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -79,6 +80,16 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             isDebuggable = true
+        }
+        // Release-like build used only by the :benchmark module to measure start-up and frame times.
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            applicationIdSuffix = ".benchmark"
+            resValue("string", "app_name", "Lynket-bench")
+            isDebuggable = false
+            isProfileable = true
         }
     }
 
@@ -187,6 +198,10 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.compose.ui.test.junit4)
@@ -248,6 +263,10 @@ dependencies {
 
     // Disk LRU cache module
     implementation(project(":disk-cache"))
+}
+
+roborazzi {
+    outputDir.set(file("src/test/screenshots"))
 }
 
 // KAPT Configuration
