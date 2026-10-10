@@ -38,6 +38,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Phase 5: Integration tests for ModernHistoryRepository
@@ -71,6 +72,10 @@ class ModernHistoryRepositoryTest {
 
     // Test dispatcher
     private val testDispatcher = UnconfinedTestDispatcher()
+
+    // Room delivers Flow updates from its own background executor, so Turbine waits on the
+    // wall clock. Turbine's 3 s default timed out once on a heavily loaded machine.
+    private val ROOM_FLOW_TIMEOUT = 10.seconds
 
     @Before
     fun setup() {
@@ -460,7 +465,7 @@ class ModernHistoryRepositoryTest {
     @Test
     fun `getAllHistory Flow emits updates when data changes`() = runTest {
         // When: Observing all history
-        repository.getAllHistory().test {
+        repository.getAllHistory().test(timeout = ROOM_FLOW_TIMEOUT) {
             // Initially empty
             assertThat(awaitItem()).isEmpty()
 
@@ -481,7 +486,7 @@ class ModernHistoryRepositoryTest {
     @Test
     fun `getRecents Flow emits updates when data changes`() = runTest {
         // When: Observing recents
-        repository.getRecents().test {
+        repository.getRecents().test(timeout = ROOM_FLOW_TIMEOUT) {
             // Initially empty
             assertThat(awaitItem()).isEmpty()
 
@@ -502,7 +507,7 @@ class ModernHistoryRepositoryTest {
         repository.recordVisit(website)
 
         // When: Observing specific URL
-        repository.getByUrlFlow(website.url).test {
+        repository.getByUrlFlow(website.url).test(timeout = ROOM_FLOW_TIMEOUT) {
             // Initial value
             val initial = awaitItem()
             assertThat(initial?.visitCount).isEqualTo(1)
@@ -523,7 +528,7 @@ class ModernHistoryRepositoryTest {
         repository.recordVisit(website)
 
         // When: Observing bookmarks
-        repository.getBookmarks().test {
+        repository.getBookmarks().test(timeout = ROOM_FLOW_TIMEOUT) {
             // Initially empty (no bookmarks)
             assertThat(awaitItem()).isEmpty()
 
@@ -544,7 +549,7 @@ class ModernHistoryRepositoryTest {
         repository.recordVisit(createSampleWebsite("https://java.com", "Java Programming"))
 
         // When: Observing search results
-        repository.searchFlow("kotlin").test {
+        repository.searchFlow("kotlin").test(timeout = ROOM_FLOW_TIMEOUT) {
             val results = awaitItem()
             assertThat(results).hasSize(1)
             assertThat(results[0].url).isEqualTo("https://kotlin.org")
