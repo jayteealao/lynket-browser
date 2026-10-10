@@ -21,7 +21,9 @@ package arun.com.chromer.data.apps
 
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.data.common.App
+import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -49,25 +51,22 @@ class DefaultAppRepositoryTest : LynketRobolectricSuite() {
   }
 
   @Test
-  fun allApps() {
-    val testSubscriber = appRepository!!.allApps().test()
+  fun allApps() = runTest {
+    val apps = appRepository!!.allApps()
 
-    testSubscriber.awaitTerminalEvent()
-      .assertNoErrors()
-      .assertCompleted()
-      .assertReceivedOnNext(listOf(listOf(App("App", "Package", false, false, 0))))
+    assertEquals(listOf(App("App", "Package", false, false, 0)), apps)
   }
 
   @Test
-  fun testBlacklistSet() {
-    appRepository!!.setPackageBlacklisted(packageName).subscribe()
+  fun testBlacklistSet() = runTest {
+    appRepository!!.setPackageBlacklisted(packageName)
     assertTrue(appRepository!!.isPackageBlacklisted(packageName))
     assertFalse(appRepository!!.isPackageIncognito(packageName))
   }
 
   @Test
-  fun testIncognitoSet() {
-    appRepository!!.setPackageIncognito(packageName).subscribe()
+  fun testIncognitoSet() = runTest {
+    appRepository!!.setPackageIncognito(packageName)
     assertTrue(appRepository!!.isPackageIncognito(packageName))
     assertFalse(appRepository!!.isPackageBlacklisted(packageName))
   }

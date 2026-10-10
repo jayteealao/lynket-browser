@@ -20,41 +20,32 @@
 package arun.com.chromer
 
 import android.app.Application
-import androidx.test.core.app.ApplicationProvider
 import arun.com.chromer.di.app.TestAppComponent
 import arun.com.chromer.settings.Preferences
 import org.junit.Before
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import rx.plugins.RxJavaHooks
-import rx.schedulers.Schedulers
 import javax.inject.Inject
 
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [19, 21], application = LynketTestApplication::class)
+@Config(sdk = [34], application = LynketTestApplication::class)
 abstract class LynketRobolectricSuite {
   lateinit var testAppComponent: TestAppComponent
 
   @Inject
   lateinit var preferences: Preferences
 
-  val application: Application get() = ApplicationProvider.getApplicationContext()
+  val application: Application get() = RuntimeEnvironment.getApplication()
 
   @Before
   fun setup() {
-    setupRxSchedulers()
     testAppComponent = (application as LynketTestApplication).appComponent as TestAppComponent
     testAppComponent.inject(this)
   }
 
-
-  private fun setupRxSchedulers() {
-    RxJavaHooks.setOnComputationScheduler { Schedulers.trampoline() }
-    RxJavaHooks.setOnIOScheduler { Schedulers.trampoline() }
-    RxJavaHooks.setOnNewThreadScheduler { Schedulers.trampoline() }
-  }
 
   internal fun clearPreferences() {
     preferences.defaultSharedPreferences.edit()?.clear()?.commit()

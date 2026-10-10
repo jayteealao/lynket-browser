@@ -16,11 +16,13 @@ import app.cash.turbine.test
 import arun.com.chromer.data.history.ModernHistoryRepository
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.data.website.model.isBookmarked
 import arun.com.chromer.home.MainDispatcherRule
 import com.google.common.truth.Truth.assertThat
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -243,6 +245,8 @@ class ModernHistoryViewModelTest {
         // Given: Repository with delayed search
         coEvery { historyRepository.searchFlow("test") } returns flowOf(emptyList())
         viewModel = createViewModel()
+        // searchResults is cold; the history screen collects it, so the test does too.
+        backgroundScope.launch { viewModel.searchResults.collect {} }
 
         // When: Starting search
         viewModel.uiState.test {
@@ -259,9 +263,12 @@ class ModernHistoryViewModelTest {
             advanceTimeBy(350)
 
             // Should set isSearching to true (briefly)
-            // Then back to false after results
             val state2 = awaitItem()
-            assertThat(state2.isSearching).isFalse()
+            assertThat(state2.isSearching).isTrue()
+
+            // Then back to false after results
+            val state3 = awaitItem()
+            assertThat(state3.isSearching).isFalse()
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -573,6 +580,8 @@ class ModernHistoryViewModelTest {
         // Given: ViewModel
         coEvery { historyRepository.searchFlow(any()) } returns flowOf(emptyList())
         viewModel = createViewModel()
+        // searchResults is cold; the history screen collects it, so the test does too.
+        backgroundScope.launch { viewModel.searchResults.collect {} }
 
         // When: Rapidly changing search query
         viewModel.onSearchQueryChanged("a")

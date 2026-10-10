@@ -15,6 +15,7 @@ import app.cash.turbine.test
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.home.MainDispatcherRule
+import arun.com.chromer.tabs.CUSTOM_TAB
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.TabsManager.Tab
 import com.google.common.truth.Truth.assertThat
@@ -85,11 +86,20 @@ class ModernTabsViewModelTest {
      */
     private fun createSampleTabs(): List<Tab> {
         return listOf(
-            Tab(url = "https://example.com", title = "Example"),
-            Tab(url = "https://test.com", title = "Test Site"),
-            Tab(url = "https://demo.com", title = "Demo")
+            Tab(url = "https://example.com", type = CUSTOM_TAB),
+            Tab(url = "https://test.com", type = CUSTOM_TAB),
+            Tab(url = "https://demo.com", type = CUSTOM_TAB)
         )
     }
+
+    /** Tab carries no title; the sample titles live here, keyed by URL. */
+    private val sampleTitles = mapOf(
+        "https://example.com" to "Example",
+        "https://test.com" to "Test Site",
+        "https://demo.com" to "Demo"
+    )
+
+    private val Tab.title: String get() = sampleTitles.getValue(url)
 
     /**
      * Helper to create sample website

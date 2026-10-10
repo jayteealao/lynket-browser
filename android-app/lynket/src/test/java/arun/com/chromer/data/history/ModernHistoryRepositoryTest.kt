@@ -13,13 +13,15 @@ package arun.com.chromer.data.history
 
 import android.content.Context
 import androidx.room.Room
-import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import arun.com.chromer.data.database.ChromerDatabase
 import arun.com.chromer.data.database.dao.WebsiteDao
-import arun.com.chromer.data.preferences.UserPreferences
 import arun.com.chromer.data.preferences.UserPreferencesRepository
+import arun.com.chromer.data.preferences.UserPreferencesRepository.UserPreferences
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.data.website.model.copy
+import arun.com.chromer.data.website.model.isBookmarked
+import arun.com.chromer.data.website.model.visitCount
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
@@ -34,6 +36,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -72,7 +75,7 @@ class ModernHistoryRepositoryTest {
     @Before
     fun setup() {
         // Create in-memory database
-        val context = ApplicationProvider.getApplicationContext<Context>()
+        val context: Context = RuntimeEnvironment.getApplication()
         database = Room.inMemoryDatabaseBuilder(
             context,
             ChromerDatabase::class.java

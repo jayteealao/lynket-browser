@@ -19,22 +19,20 @@
 
 package arun.com.chromer.di.app
 
+import android.app.Application
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.data.apps.DefaultAppRepositoryTest
 import arun.com.chromer.di.data.TestDataModule
-import arun.com.chromer.home.HomeActivity
 import arun.com.chromer.tabs.DefaultTabsManagerTest
 import arun.com.chromer.tabs.TabsModule
+import dagger.BindsInstance
 import dagger.Component
-import dev.arunkumar.android.TestSchedulersModule
 import javax.inject.Singleton
 
 @Singleton
 @Component(
   modules = [
-    TestSchedulersModule::class,
-    TestAppModule::class,
-    HomeActivity.HomeBuilder::class,
+    AppModule::class,
     TabsModule::class,
     TestDataModule::class
   ]
@@ -46,4 +44,9 @@ interface TestAppComponent : AppComponent {
   fun inject(defaultTabsManagerTest: DefaultTabsManagerTest)
 
   fun inject(defaultAppRepositoryTest: DefaultAppRepositoryTest)
+
+  @Component.Factory
+  interface Factory {
+    fun create(@BindsInstance application: Application): TestAppComponent
+  }
 }

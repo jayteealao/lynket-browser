@@ -20,6 +20,7 @@
 package arun.com.chromer.tabs
 
 import android.content.Intent
+import android.os.Looper
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.browsing.amp.AmpResolverActivity
 import arun.com.chromer.bubbles.webheads.WebHeadService
@@ -87,11 +88,22 @@ class DefaultTabsManagerTest : LynketRobolectricSuite() {
     val shadowApp = shadowOf(application)
     tabs.openUrl(application, Website(url), fromApp = false, fromWebHeads = false)
     assert(
-      shadowApp.nextStartedActivity.component == Intent(
+      awaitNextStartedActivity(shadowApp).component == Intent(
         application,
         AmpResolverActivity::class.java
       ).component
     )
+  }
+
+  /** openUrl() starts the activity from a background coroutine, so wait for it (bounded). */
+  private fun awaitNextStartedActivity(shadowApp: ShadowApplication, timeoutMs: Long = 5_000): Intent {
+    val deadline = System.currentTimeMillis() + timeoutMs
+    while (System.currentTimeMillis() < deadline) {
+      shadowOf(Looper.getMainLooper()).idle()
+      shadowApp.nextStartedActivity?.let { return it }
+      Thread.sleep(10)
+    }
+    throw AssertionError("No activity started within $timeoutMs ms")
   }
 
   private fun assertWebHeadServiceLaunched(shadowApp: ShadowApplication) {

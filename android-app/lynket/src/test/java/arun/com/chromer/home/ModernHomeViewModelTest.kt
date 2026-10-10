@@ -12,15 +12,18 @@
 package arun.com.chromer.home
 
 import android.app.Application
+import android.content.pm.PackageManager
+import android.net.Uri
 import app.cash.turbine.test
 import arun.com.chromer.data.history.ModernHistoryRepository
-import arun.com.chromer.data.preferences.UserPreferences
 import arun.com.chromer.data.preferences.UserPreferencesRepository
+import arun.com.chromer.data.preferences.UserPreferencesRepository.UserPreferences
 import arun.com.chromer.data.website.model.Website
 import com.google.common.truth.Truth.assertThat
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -73,12 +76,20 @@ class ModernHomeViewModelTest {
         historyRepository = mockk()
         preferencesRepository = mockk()
 
-        // Mock application.appName() extension function
-        every { application.packageManager } returns mockk(relaxed = true)
+        // Mock application.appName() extension function, which reads applicationContext.packageManager
+        val packageManager: PackageManager = mockk(relaxed = true)
+        every { packageManager.getApplicationLabel(any()) } returns "Chrome"
+        every { application.applicationContext } returns application
+        every { application.packageManager } returns packageManager
+
+        // The ViewModel builds provider icon URIs; android.net.Uri has no JVM implementation outside Robolectric.
+        mockkStatic(Uri::class)
+        every { Uri.fromParts(any(), any(), any()) } returns mockk(relaxed = true)
     }
 
     @After
     fun tearDown() {
+        unmockkStatic(Uri::class)
         clearAllMocks()
     }
 
@@ -266,7 +277,8 @@ class ModernHomeViewModelTest {
     fun `uiState emits Error when repository throws exception`() = runTest {
         // Given: Repository that throws an exception
         val exception = RuntimeException("Database error")
-        coEvery { historyRepository.getRecents() } throws exception
+        // getRecents() returns a cold Flow; a repository failure surfaces when the flow is collected.
+        every { historyRepository.getRecents() } returns flow { throw exception }
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
 
         // When: ViewModel is created
@@ -288,7 +300,7 @@ class ModernHomeViewModelTest {
     @Test
     fun `recentWebsites emits empty list when repository throws exception`() = runTest {
         // Given: Repository that throws an exception
-        coEvery { historyRepository.getRecents() } throws RuntimeException("Database error")
+        every { historyRepository.getRecents() } returns flow { throw RuntimeException("Database error") }
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
 
         // When: ViewModel is created
@@ -346,7 +358,7 @@ class ModernHomeViewModelTest {
         val website = createSampleWebsites()[0]
         coEvery { historyRepository.getRecents() } returns flowOf(emptyList())
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
-        coEvery { historyRepository.toggleBookmark(any()) } returns true
+        coEvery { historyRepository.toggleBookmark(any()) } just Runs
 
         viewModel = createViewModel()
 
@@ -430,7 +442,7 @@ class ModernHomeViewModelTest {
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(
-    private val testDispatcher: TestDispatcher = UnconfinedTestDispatcher()
+    private val testDispatcher: TestDispatcher = StandardTestDispatcher()
 ) : TestWatcher() {
 
     override fun starting(description: Description) {

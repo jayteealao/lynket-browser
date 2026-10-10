@@ -22,7 +22,8 @@ package arun.com.chromer.data.apps
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.apps.store.AppStore
 import arun.com.chromer.data.common.App
-import rx.Observable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,19 +32,17 @@ import javax.inject.Singleton
  */
 @Singleton
 class MockAppSystemStore @Inject constructor() : AppStore {
-  override fun allProviders(): Observable<List<Provider>> {
+  override suspend fun allProviders(): List<Provider> = emptyList()
+
+  override suspend fun removeIncognito(packageName: String): App {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
-  override fun removeIncognito(packageName: String): Observable<App> {
+  override suspend fun getApp(packageName: String): App {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
-  override fun getApp(packageName: String): Observable<App> {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-  }
-
-  override fun saveApp(app: App): Observable<App> {
+  override suspend fun saveApp(app: App): App {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
@@ -51,7 +50,7 @@ class MockAppSystemStore @Inject constructor() : AppStore {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
-  override fun setPackageBlacklisted(packageName: String): Observable<App> {
+  override suspend fun setPackageBlacklisted(packageName: String): App {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
@@ -59,7 +58,7 @@ class MockAppSystemStore @Inject constructor() : AppStore {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
-  override fun setPackageIncognito(packageName: String): Observable<App> {
+  override suspend fun setPackageIncognito(packageName: String): App {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
@@ -67,20 +66,20 @@ class MockAppSystemStore @Inject constructor() : AppStore {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
-  override fun getPackageColor(packageName: String): Observable<Int> {
+  override suspend fun getPackageColor(packageName: String): Int {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
-  override fun setPackageColor(packageName: String, color: Int): Observable<App> {
+  override suspend fun setPackageColor(packageName: String, color: Int): App {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
-  override fun removeBlacklist(packageName: String): Observable<App> {
+  override suspend fun removeBlacklist(packageName: String): App {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
-  override fun getInstalledApps(): Observable<App> {
+  override fun getInstalledApps(): Flow<App> {
     val app = App("App", "Package", true, true, 0)
-    return Observable.just(app)
+    return flowOf(app)
   }
 }

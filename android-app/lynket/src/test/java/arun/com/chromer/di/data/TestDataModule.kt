@@ -43,12 +43,15 @@ import arun.com.chromer.data.website.stores.WebsiteNetworkStore
 import arun.com.chromer.data.website.stores.WebsiteStore
 import dagger.Binds
 import dagger.Module
+import dagger.hilt.migration.DisableInstallInCheck
 import javax.inject.Singleton
 
 /**
  * Created by arunk on 15-12-2017.
  */
 @Module
+// sdlc-debt: used only by the legacy Dagger TestAppComponent, never by a Hilt graph; the check opt-out goes when the tests move to Hilt testing.
+@DisableInstallInCheck
 abstract class TestDataModule {
   @Disk
   @Binds
