@@ -181,11 +181,17 @@ class ModernHistoryRepository @Inject constructor(
     suspend fun insert(website: Website): Website? = recordVisit(website)
 
     /**
-     * Update a website.
+     * Update a website. The row is matched by URL, because [Website] carries no row id.
+     * Returns null when no row exists for the URL.
      */
     suspend fun update(website: Website): Website? = withContext(ioDispatcher) {
         try {
-            val entity = website.toEntity()
+            val existing = websiteDao.getByUrl(website.url)
+            if (existing == null) {
+                Timber.w("Update skipped, no history row for: ${website.url}")
+                return@withContext null
+            }
+            val entity = website.toEntity().copy(id = existing.id)
             websiteDao.update(entity)
             Timber.d("Updated website: ${website.url}")
             website
