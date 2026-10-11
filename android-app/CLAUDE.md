@@ -22,7 +22,7 @@ Lynket is an Android browser application that provides custom tabs functionality
 - **Android Gradle Plugin**: 9.4.1, with AGP's built-in Kotlin (no `org.jetbrains.kotlin.android` plugin).
 - **Gradle**: 9.8.1 (wrapper).
 - **Kotlin**: 2.4.21. AGP 9 brings KGP 2.2.10, so the root `build.gradle.kts` puts KGP 2.4.21 and the KSP Gradle plugin on the `buildscript` classpath.
-- **KSP**: 2.3.12. Hilt 2.60.1, Glide (KSP artifact), Room 2.8.5 and Moshi run on KSP. Glide's KSP processor generates no `GlideApp`; load images with `Glide.with`.
+- **KSP**: 2.3.12. Hilt 2.60.1, Glide (KSP artifact), Room 3 (`androidx.room3` 3.0.3, Gradle plugin `androidx.room3`) and Moshi run on KSP. Glide's KSP processor generates no `GlideApp`; load images with `Glide.with`.
 - **Temporary legacy-kapt bridge**: `com.android.legacy-kapt` runs only the Butterknife and Epoxy processors, which have no KSP version. It leaves with the last View-based screens, together with `android.enableAppCompileTimeRClass=false`, `android.nonFinalResIds=false` and `android.r8.optimizedResourceShrinking=false` in `gradle.properties`.
 - **SDK levels**: compileSdk 37 (Compose BOM 2026.09.00 / Compose UI 1.12 needs it), targetSdk 36, minSdk 24. Do not raise targetSdk to 37.
 - **Libraries**: Compose BOM 2026.09.00, Robolectric 4.17 (tests pin `sdk = [34]`), Roborazzi 1.76.0.
@@ -39,6 +39,7 @@ Run from `android-app/`:
 - `./gradlew :lynket:installDebug` - Install the debug build on a device
 - `bash maestro/upgrade/upgrade-check.sh <serial> <dir>` / `maestro/upgrade/tile-check.sh` - Device checks that settings and per-app rules survive an update from release 2.1.3 and that the web heads tile reaches every reader (debug build; it dumps both stores with the debug-only `StoreDumpReceiver`)
 - `bash maestro/upgrade/link-source-check.sh <serial> <dir>` - After the upgrade check: no app-detection service or notification, and a link from a blacklisted app follows its per-app rule
+- `bash maestro/upgrade/history-check.sh <serial> <dir>` - Device check that 500 history rows of release 2.1.3 (5 written by the app, 495 appended in its format) survive an update and show in the History screen
 
 ### Build System
 
@@ -56,7 +57,7 @@ Production module with extensive feature set:
 - **View Binding**: Butterknife for view injection
 - **Lists**: Airbnb Epoxy for RecyclerViews
 - **Image Loading**: Glide
-- **Storage**: settings in one Preferences DataStore (`user_preferences`, every key listed in `data/preferences/SettingsSchema.kt`; read synchronously through the `settings/Preferences` facade); per-app rules in a second DataStore (`per_app_rules`); history in Room. Both DataStores migrate once from the old stores (the settings SharedPreferences file, release 2.1.3's PaperDB `files/APPS` book), back them up and never delete them. PaperDB 2.6 is a dependency only for that one-time read.
+- **Storage**: settings in one Preferences DataStore (`user_preferences`, every key listed in `data/preferences/SettingsSchema.kt`; read synchronously through the `settings/Preferences` facade); per-app rules in a second DataStore (`per_app_rules`); history in Room 3 (`chromer.db`, schemas in `lynket/schemas/`, opened on first use by `data/database/HistoryDatabase`, which moves a broken file to `files/history-broken/` and starts empty). The 2.1.3 history file (`databases/History`) is read once, merged by URL, and kept in `files/history-migration/`. Both DataStores migrate once from the old stores (the settings SharedPreferences file, release 2.1.3's PaperDB `files/APPS` book), back them up and never delete them. PaperDB 2.6 is a dependency only for that one-time read.
 
 Key packages:
 - `browsing/` - Core browsing functionality including custom tabs, webview, article mode, AMP support
