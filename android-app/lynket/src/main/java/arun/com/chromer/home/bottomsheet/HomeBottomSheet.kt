@@ -138,7 +138,6 @@ class HomeBottomSheet : BottomSheetDialogFragment() {
           )
           RATE -> Utils.openPlayStore(requireActivity(), requireActivity().packageName)
           INTRO -> startActivity(Intent(requireActivity(), ChromerIntroActivity::class.java))
-          // DONATION -> startActivity(Intent(requireActivity(), DonateActivity::class.java))
           SHARE -> {
             val shareIntent = Intent(ACTION_SEND)
             shareIntent.putExtra(EXTRA_TEXT, getString(R.string.share_text))

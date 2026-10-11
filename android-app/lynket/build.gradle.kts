@@ -274,12 +274,6 @@ kapt {
     }
 }
 
-// Exclude payments package from compilation (uses deprecated In-App Billing API)
 tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-Xlint:-path")
-    exclude("**/payments/**")
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    exclude("**/payments/**")
 }

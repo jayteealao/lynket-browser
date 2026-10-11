@@ -29,9 +29,6 @@ pluginManagement {
     gradlePluginPortal()
     mavenCentral()
   }
-  plugins {
-    id "com.gradle.enterprise" version "3.6.3"
-  }
 }
 
 dependencyResolutionManagement {
@@ -52,4 +49,3 @@ rootProject.name = "lynket"
 include ":lynket"
 include ":disk-cache"
 include ":benchmark"
-//include ":lynket-playground"

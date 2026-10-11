@@ -22,7 +22,6 @@
   package="arun.com.chromer">
 
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-  <uses-permission android:name="com.android.vending.BILLING" />
   <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -219,10 +218,6 @@
     <activity
       android:name=".about.AboutAppActivity"
       android:theme="@style/AppTheme.NoActionBar" />
-    <!--    <activity-->
-    <!--      android:name=".payments.DonateActivity"-->
-    <!--      android:excludeFromRecents="true"-->
-    <!--      android:theme="@style/DialogTheme" />-->
     <activity
       android:name=".perapp.PerAppSettingsActivity"
       android:label="@string/per_app_settings"
