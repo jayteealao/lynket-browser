@@ -228,7 +228,7 @@
       android:name="arun.com.chromer.bubbles.webheads.ui.context.WebHeadContextActivity"
       android:excludeFromRecents="true"
       android:noHistory="true"
-      android:theme="@style/DialogTheme" />
+      android:theme="@style/Theme.Lynket.Translucent" />
     <activity
       android:name=".browsing.newtab.NewTabDialogActivity"
       android:excludeFromRecents="true"

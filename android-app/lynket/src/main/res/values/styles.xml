@@ -104,6 +104,15 @@
     <item name="colorControlHighlight">@color/colorAccentLighter</item>​
   </style>
 
+  <!-- A window that draws nothing of its own, for activities that show only a Compose sheet or dialog. -->
+  <style name="Theme.Lynket.Translucent" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:backgroundDimEnabled">false</item>
+    <item name="android:windowAnimationStyle">@null</item>
+  </style>
+
   <style name="AppTheme.Launcher" parent="Theme.AppCompat.Light.NoActionBar" />
 
   <style name="Theme.AppCompat.Translucent" parent="Theme.AppCompat.NoActionBar" />
