@@ -1,0 +1,22 @@
+# The overlay explainer on the browsing mode screen, then the system "Display over other apps"
+# screen. Start the screen first (the debug build exports it) with the permission denied:
+#   adb shell appops set arun.com.chromer.debug SYSTEM_ALERT_WINDOW deny
+#   adb shell am start -n arun.com.chromer.debug/arun.com.chromer.settings.browsingmode.BrowsingModeActivity
+# Run: maestro --device <serial> test android-app/maestro/webheads/permission.yaml
+appId: arun.com.chromer.debug
+---
+- extendedWaitUntil:
+    visible: "Browsing mode"
+    timeout: 10000
+- tapOn: "Web heads"
+- extendedWaitUntil:
+    visible: "Allow web heads to float"
+    timeout: 5000
+- assertVisible: "Not now"
+- takeScreenshot: ac22-explainer
+- tapOn: "Grant"
+- extendedWaitUntil:
+    visible:
+      text: ".*(Display over other apps|Appear on top).*"
+    timeout: 10000
+- takeScreenshot: ac22-system-screen
