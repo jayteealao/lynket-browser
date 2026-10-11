@@ -11,141 +11,235 @@
 
 package arun.com.chromer.ui.theme
 
-import android.app.Activity
+import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import arun.com.chromer.settings.Preferences
+import com.google.android.material.color.MaterialColors
 
-/**
- * Phase 3.1: Material3 theme for Lynket Browser
- *
- * Provides a modern Material3 theme with:
- * - Dynamic color (Android 12+)
- * - Dark/Light theme support
- * - Lynket brand colors as fallback
- */
+/** Light, dark or black (near-black surfaces for OLED screens); [Auto] follows the system. */
+enum class ThemeMode { Auto, Light, Dark, Black }
 
-// Lynket brand colors
-private val LynketBlue = Color(0xFF1E88E5)
-private val LynketBlueVariant = Color(0xFF1565C0)
-private val LynketCyan = Color(0xFF26C6DA)
-
-/**
- * Dark color scheme for Lynket
- */
-private val DarkColorScheme = darkColorScheme(
-    primary = LynketBlue,
-    onPrimary = Color.White,
-    primaryContainer = LynketBlueVariant,
-    onPrimaryContainer = Color(0xFFD1E3FF),
-    secondary = LynketCyan,
-    onSecondary = Color.Black,
-    secondaryContainer = Color(0xFF00838F),
-    onSecondaryContainer = Color(0xFFB3E5FC),
-    tertiary = Color(0xFFEF5350),
-    onTertiary = Color.White,
-    error = Color(0xFFF44336),
-    onError = Color.White,
-    background = Color(0xFF121212),
-    onBackground = Color(0xFFE1E2E6),
-    surface = Color(0xFF1E1E1E),
-    onSurface = Color(0xFFE1E2E6),
-    surfaceVariant = Color(0xFF2C2C2C),
-    onSurfaceVariant = Color(0xFFC7C7C7)
+/** The theme choices a surface reads once when it starts. */
+@Immutable
+data class ThemeSettings(
+  val themeMode: ThemeMode = ThemeMode.Auto,
+  val useWallpaperColours: Boolean = false,
+  val primaryColour: Color? = null,
 )
 
-/**
- * Light color scheme for Lynket
- */
-private val LightColorScheme = lightColorScheme(
-    primary = LynketBlue,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFD1E3FF),
-    onPrimaryContainer = Color(0xFF001D35),
-    secondary = LynketCyan,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFB3E5FC),
-    onSecondaryContainer = Color(0xFF00363D),
-    tertiary = Color(0xFFEF5350),
-    onTertiary = Color.White,
-    error = Color(0xFFBA1A1A),
-    onError = Color.White,
-    background = Color(0xFFFAFAFA),
-    onBackground = Color(0xFF1A1C1E),
-    surface = Color.White,
-    onSurface = Color(0xFF1A1C1E),
-    surfaceVariant = Color(0xFFE0E0E0),
-    onSurfaceVariant = Color(0xFF44464E)
+// Roles generated once from the indigo seed #3F51B5 (tonal spot: primary chroma 36, secondary 16,
+// neutral 6, neutral variant 8) with the pink #FF4081 hue as tertiary (chroma 48), using the
+// Material colour utilities. Pure white and black are tinted toward the seed hue.
+internal val LightColours = lightColorScheme(
+  primary = Color(0xFF515B92),
+  onPrimary = Color(0xFFFEFBFF),
+  primaryContainer = Color(0xFFDEE0FF),
+  onPrimaryContainer = Color(0xFF0B154B),
+  inversePrimary = Color(0xFFBAC3FF),
+  secondary = Color(0xFF5B5D72),
+  onSecondary = Color(0xFFFEFBFF),
+  secondaryContainer = Color(0xFFE0E1F9),
+  onSecondaryContainer = Color(0xFF181A2C),
+  tertiary = Color(0xFF9A4059),
+  onTertiary = Color(0xFFFFFBFF),
+  tertiaryContainer = Color(0xFFFFD9DF),
+  onTertiaryContainer = Color(0xFF3F0018),
+  error = Color(0xFFBA1A1A),
+  onError = Color(0xFFFFFBFF),
+  errorContainer = Color(0xFFFFDAD6),
+  onErrorContainer = Color(0xFF410002),
+  background = Color(0xFFFBF8FF),
+  onBackground = Color(0xFF1B1B21),
+  surface = Color(0xFFFBF8FF),
+  onSurface = Color(0xFF1B1B21),
+  surfaceVariant = Color(0xFFE3E1EC),
+  onSurfaceVariant = Color(0xFF46464F),
+  surfaceTint = Color(0xFF515B92),
+  inverseSurface = Color(0xFF303036),
+  inverseOnSurface = Color(0xFFF2EFF7),
+  outline = Color(0xFF767680),
+  outlineVariant = Color(0xFFC7C5D0),
+  scrim = Color(0xFF0D0E13),
+  surfaceBright = Color(0xFFFBF8FF),
+  surfaceDim = Color(0xFFDBD9E0),
+  surfaceContainer = Color(0xFFEFEDF4),
+  surfaceContainerHigh = Color(0xFFE9E7EF),
+  surfaceContainerHighest = Color(0xFFE4E1E9),
+  surfaceContainerLow = Color(0xFFF5F2FA),
+  surfaceContainerLowest = Color(0xFFFEFBFF),
 )
 
-/**
- * Lynket Browser theme.
- *
- * Automatically uses:
- * - Dynamic color on Android 12+ (if enabled)
- * - Dark theme based on system settings (if enabled)
- * - Lynket brand colors as fallback
- *
- * @param darkTheme Whether to use dark theme (defaults to system setting)
- * @param dynamicColor Whether to use dynamic color (Android 12+)
- * @param content The composable content
- */
-@Composable
-fun ChromerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        // Dynamic color is available on Android 12+
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context)
-            else dynamicLightColorScheme(context)
-        }
-        // Use predefined dark/light schemes
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+internal val DarkColours = darkColorScheme(
+  primary = Color(0xFFBAC3FF),
+  onPrimary = Color(0xFF222C61),
+  primaryContainer = Color(0xFF394379),
+  onPrimaryContainer = Color(0xFFDEE0FF),
+  inversePrimary = Color(0xFF515B92),
+  secondary = Color(0xFFC3C5DD),
+  onSecondary = Color(0xFF2D2F42),
+  secondaryContainer = Color(0xFF434659),
+  onSecondaryContainer = Color(0xFFE0E1F9),
+  tertiary = Color(0xFFFFB1C1),
+  onTertiary = Color(0xFF5F112C),
+  tertiaryContainer = Color(0xFF7C2941),
+  onTertiaryContainer = Color(0xFFFFD9DF),
+  error = Color(0xFFFFB4AB),
+  onError = Color(0xFF690005),
+  errorContainer = Color(0xFF93000A),
+  onErrorContainer = Color(0xFFFFDAD6),
+  background = Color(0xFF121318),
+  onBackground = Color(0xFFE4E1E9),
+  surface = Color(0xFF121318),
+  onSurface = Color(0xFFE4E1E9),
+  surfaceVariant = Color(0xFF46464F),
+  onSurfaceVariant = Color(0xFFC7C5D0),
+  surfaceTint = Color(0xFFBAC3FF),
+  inverseSurface = Color(0xFFE4E1E9),
+  inverseOnSurface = Color(0xFF303036),
+  outline = Color(0xFF90909A),
+  outlineVariant = Color(0xFF46464F),
+  scrim = Color(0xFF0D0E13),
+  surfaceBright = Color(0xFF39393F),
+  surfaceDim = Color(0xFF121318),
+  surfaceContainer = Color(0xFF1F1F25),
+  surfaceContainerHigh = Color(0xFF29292F),
+  surfaceContainerHighest = Color(0xFF34343A),
+  surfaceContainerLow = Color(0xFF1B1B21),
+  surfaceContainerLowest = Color(0xFF0D0E13),
+)
 
-    // Update system bar colors
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            window.navigationBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
-            }
-        }
-    }
+/** The dark scheme with near-black surfaces; every surface is darker than #20202A. */
+internal fun ColorScheme.toBlack(): ColorScheme = copy(
+  background = Color(0xFF050508),
+  surface = Color(0xFF050508),
+  surfaceDim = Color(0xFF050508),
+  surfaceBright = Color(0xFF1E1E26),
+  surfaceVariant = Color(0xFF1B1B22),
+  surfaceContainerLowest = Color(0xFF030305),
+  surfaceContainerLow = Color(0xFF0A0A0E),
+  surfaceContainer = Color(0xFF0F0F14),
+  surfaceContainerHigh = Color(0xFF15151B),
+  surfaceContainerHighest = Color(0xFF1B1B22),
+)
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+/** Replaces the primary roles with roles derived from the person's chosen colour. */
+internal fun ColorScheme.withPrimary(colour: Color, isLight: Boolean): ColorScheme {
+  val roles = MaterialColors.getColorRoles(colour.toArgb(), isLight)
+  return copy(
+    primary = Color(roles.accent),
+    onPrimary = Color(roles.onAccent),
+    primaryContainer = Color(roles.accentContainer),
+    onPrimaryContainer = Color(roles.onAccentContainer),
+    surfaceTint = Color(roles.accent),
+  )
 }
 
 /**
- * Custom typography for Lynket.
- * Uses default Material3 typography with potential customizations.
+ * The colour scheme for the given choices: wallpaper colours on Android 12 and later when the
+ * option is on, else the seed scheme with the person's colour as primary.
  */
-private val Typography = Typography(
-    // Can customize fonts here if needed
-    // headlineLarge = TextStyle(
-    //     fontFamily = CustomFontFamily,
-    //     fontWeight = FontWeight.Bold,
-    //     fontSize = 32.sp
-    // ),
-    // etc.
+fun chromerColorScheme(
+  context: Context,
+  dark: Boolean,
+  black: Boolean,
+  useWallpaperColours: Boolean,
+  primaryColour: Color?,
+): ColorScheme {
+  val base = when {
+    useWallpaperColours && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+      if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    else -> {
+      val seed = if (dark) DarkColours else LightColours
+      primaryColour?.let { seed.withPrimary(it, isLight = !dark) } ?: seed
+    }
+  }
+  return if (dark && black) base.toBlack() else base
+}
+
+internal val ChromerShapes = Shapes(
+  small = RoundedCornerShape(8.dp),
+  medium = RoundedCornerShape(16.dp),
+  large = RoundedCornerShape(24.dp),
+  extraLarge = RoundedCornerShape(28.dp),
 )
+
+private val Base = Typography()
+
+/** System font; screen titles and labels at weight 600, row titles 16 sp, summaries 14 sp. */
+internal val ChromerTypography = Base.copy(
+  displaySmall = Base.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+  titleLarge = Base.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+  labelLarge = Base.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+  bodyLarge = Base.bodyLarge.copy(fontSize = 16.sp),
+  bodyMedium = Base.bodyMedium.copy(fontSize = 14.sp),
+)
+
+/**
+ * Lynket theme for every Compose surface, in activities and in the web head overlay windows.
+ * It sets no window colours, so it also works in a window that a service owns.
+ */
+@Composable
+fun ChromerTheme(
+  themeMode: ThemeMode = ThemeMode.Auto,
+  useWallpaperColours: Boolean = false,
+  primaryColour: Color? = null,
+  content: @Composable () -> Unit,
+) {
+  val systemDark = isSystemInDarkTheme()
+  val dark = when (themeMode) {
+    ThemeMode.Auto -> systemDark
+    ThemeMode.Light -> false
+    ThemeMode.Dark, ThemeMode.Black -> true
+  }
+  val context = LocalContext.current
+  val colorScheme = remember(context, dark, themeMode, useWallpaperColours, primaryColour) {
+    chromerColorScheme(context, dark, themeMode == ThemeMode.Black, useWallpaperColours, primaryColour)
+  }
+  // MaterialExpressiveTheme and MotionScheme.expressive() are internal in the resolved Material 3
+  // 1.4.0 (source: javap of material3-android-1.4.0 classes.jar, `expressive$material3`), so the
+  // theme uses MaterialTheme with the expressive shapes and type scale and the standard motion.
+  MaterialTheme(
+    colorScheme = colorScheme,
+    shapes = ChromerShapes,
+    typography = ChromerTypography,
+    content = content,
+  )
+}
+
+/** Theme choices from the settings store, read once. */
+fun Preferences.themeSettings(): ThemeSettings = ThemeSettings(
+  useWallpaperColours = useWallpaperColours(),
+  primaryColour = Color(toolbarColor()),
+)
+
+/** [ChromerTheme] with the person's colour and wallpaper option, read once per composition. */
+@Composable
+fun ChromerThemeFromSettings(content: @Composable () -> Unit) {
+  val context = LocalContext.current
+  val settings = remember(context) { Preferences.get(context).themeSettings() }
+  ChromerTheme(
+    themeMode = settings.themeMode,
+    useWallpaperColours = settings.useWallpaperColours,
+    primaryColour = settings.primaryColour,
+    content = content,
+  )
+}

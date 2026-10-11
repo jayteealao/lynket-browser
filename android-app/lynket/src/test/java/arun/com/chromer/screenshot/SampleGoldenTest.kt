@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.ui.about.AboutScreen
 import arun.com.chromer.ui.theme.ChromerTheme
+import arun.com.chromer.ui.theme.ThemeMode
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
 import org.junit.Test
@@ -40,7 +41,7 @@ class SampleGoldenTest {
   @Test
   fun aboutScreen_light() {
     composeRule.setContent {
-      ChromerTheme(darkTheme = false, dynamicColor = false) {
+      ChromerTheme(themeMode = ThemeMode.Light) {
         AboutScreen(navController = rememberNavController())
       }
     }

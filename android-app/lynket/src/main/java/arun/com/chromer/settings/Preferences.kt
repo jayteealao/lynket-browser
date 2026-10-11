@@ -310,6 +310,11 @@ class Preferences @Inject constructor(
     }
   }
 
+  /** Material You: take the app colours from the wallpaper (Android 12 and later). */
+  fun useWallpaperColours(): Boolean = bool(SettingsSchema.USE_WALLPAPER_COLOURS)
+
+  fun useWallpaperColours(preference: Boolean) = put(SettingsSchema.USE_WALLPAPER_COLOURS, preference)
+
   fun webHeads(): Boolean {
     return bool(WEB_HEAD_ENABLED)
   }

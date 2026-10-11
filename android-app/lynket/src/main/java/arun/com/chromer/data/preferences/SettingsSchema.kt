@@ -79,6 +79,8 @@ object SettingsSchema {
   /** Raw text of an old value that did not convert, kept under this prefix plus the key name. */
   const val UNCONVERTED_PREFIX = "legacy_unconverted."
 
+  const val USE_WALLPAPER_COLOURS = "use_wallpaper_colours"
+
   private fun bool(name: String, default: Boolean) =
     SettingKey(name, SettingType.BOOLEAN) { default }
 
@@ -127,6 +129,8 @@ object SettingsSchema {
     SettingKey("version_code", SettingType.INT) { -1 },
     string("search_engine_preference", SearchProviders.GOOGLE),
     bool("native_bubbles_preference", false),
+    // Material You: colours from the wallpaper. New in this release, so off after an update.
+    bool(USE_WALLPAPER_COLOURS, false),
   )
 
   private val byName = keys.associateBy { it.name }
