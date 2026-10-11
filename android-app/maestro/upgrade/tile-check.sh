@@ -77,9 +77,8 @@ a logcat -d | tr -d '\r' | grep "Open https://example.com/?tile-check=1" > "$OUT
 grep -q "webHeads=$after" "$OUT/route.logcat.txt" || fail "the router did not read webHeads=$after (see route.logcat.txt)"
 echo "router: webHeads=$after" | tee -a "$OUT/tile.txt"
 a shell input keyevent HOME
-# With web heads on, the link starts the old web head service, which still crashes on API 34+
-# until the web heads rebuild; the system then restarts it in a loop and drops tile clicks.
-# Stop the app so the restore click reaches a fresh tile service.
+# With web heads on, the link starts the web head service and its overlay windows. Stop the app
+# so the restore click reaches a fresh tile service with no heads on screen.
 a logcat -d -b crash | tr -d '\r' > "$OUT/route-crash.txt"
 a shell am force-stop "$PKG"
 

@@ -40,6 +40,9 @@ Run from `android-app/`:
 - `bash maestro/upgrade/upgrade-check.sh <serial> <dir>` / `maestro/upgrade/tile-check.sh` - Device checks that settings and per-app rules survive an update from release 2.1.3 and that the web heads tile reaches every reader (debug build; it dumps both stores with the debug-only `StoreDumpReceiver`)
 - `bash maestro/upgrade/link-source-check.sh <serial> <dir>` - After the upgrade check: no app-detection service or notification, and a link from a blacklisted app follows its per-app rule
 - `bash maestro/upgrade/history-check.sh <serial> <dir>` - Device check that 500 history rows of release 2.1.3 (5 written by the app, 495 appended in its format) survive an update and show in the History screen
+- `bash maestro/webheads/webheads-check.sh <serial> <dir> <ac19|ac22|ac23>` - Web heads on a device: a head and the trash window and their removal (ac19); the permission explainer, the special-use foreground start and the tab fallback when the start is refused (ac22); a native bubble that opens its page (ac23)
+- `bash maestro/webheads/drag-check.sh <serial> <dir>` - Records drag, fling, edge snap, trash, queue, list and tap; a person watches `drag.mp4` and signs `feel-checklist.md`
+- `bash maestro/webheads/charter-check.sh <serial> <dir>` - From a 2.1.3 install: upgrade, a link in a tab, web heads turned on through the explainer, the drag check and a native bubble
 
 ### Build System
 
@@ -103,6 +106,10 @@ The app supports multiple browsing modes:
 - **Article Mode** (`browsing/article/`) - Reader-friendly article view
 - **AMP Mode** (`browsing/amp/`) - Accelerated Mobile Pages
 - **Web Heads** (`bubbles/webheads/`) - Floating bubble browser windows
+  - Each head and the trash is its own `TYPE_APPLICATION_OVERLAY` window holding a `ComposeView` (`overlay/OverlayWindow.kt`); the service owns their lifecycle, saved state and view model store (`overlay/OverlayLifecycleOwner.kt`).
+  - `motion/WebHeadsController.kt` moves the windows: drag, fling, edge snap, trash lock, the follower chain, the queue beyond five heads and coasting. `motion/WebHeadMotion.kt` holds the springs, converted from the earlier Rebound values with Rebound's own formulas so the heads feel the same; `WebHeadMotionTest` pins the numbers.
+  - The service starts as a special-use foreground service (`PROPERTY_SPECIAL_USE_FGS_SUBTYPE` in the manifest). When the system refuses the start, the link opens in a browsing tab with a message. Debug builds can force the refusal: `adb shell run-as arun.com.chromer.debug touch files/debug-faults/webhead-start-fail` (see `WebHeadStartFaults`).
+  - Native bubbles (`bubbles/system/`) need a long-lived conversation shortcut per site and a person that is not a bot; with notifications or bubbles off for the app, the link opens in a tab.
 
 ### Services
 
