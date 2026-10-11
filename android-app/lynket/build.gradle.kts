@@ -11,9 +11,10 @@
 
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinParcelize)
-    alias(libs.plugins.kotlinKapt) // Will be removed after KSP migration
+    // Temporary: runs the Butterknife and Epoxy processors, which have no KSP version.
+    // Removed together with the last View-based screens.
+    alias(libs.plugins.legacyKapt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt) // Phase 1.1: Enabled for modernization
     alias(libs.plugins.compose.compiler)
@@ -45,19 +46,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.RequiresOptIn",
-            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-opt-in=kotlinx.coroutines.FlowPreview",
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
-        )
-    }
-
     buildFeatures {
         buildConfig = true
+        resValues = true // AGP 9 turns resValue off by default; every build type sets app_name
         compose = true
         viewBinding = true // Temporary - will be removed after migration
     }
@@ -148,15 +139,14 @@ dependencies {
 
     // Hilt Dependency Injection - Phase 1.1: Enabled
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
     // Hilt Testing
     testImplementation(libs.hilt.android.testing)
-    kaptTest(libs.hilt.compiler)
+    kspTest(libs.hilt.compiler)
     androidTestImplementation(libs.hilt.android.testing)
-    kaptAndroidTest(libs.hilt.android.testing)
-    kaptAndroidTest(libs.hilt.compiler)
+    kspAndroidTest(libs.hilt.compiler)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -216,8 +206,10 @@ dependencies {
 
     // Legacy: Image Loading - Glide
     implementation(libs.glide)
-    kapt(libs.glide.compiler)
+    ksp(libs.glide.ksp)
 
+    // Butterknife and Epoxy have no KSP processor; they run on the temporary legacy-kapt bridge
+    // and leave with the last View-based screens.
     // Legacy: View Binding - Butterknife
     implementation(libs.butterknife)
     kapt(libs.butterknife.compiler)
@@ -266,11 +258,24 @@ roborazzi {
     outputDir.set(file("src/test/screenshots"))
 }
 
-// KAPT Configuration
+kotlin {
+    compilerOptions {
+        // jvmTarget follows android.compileOptions.targetCompatibility (17) with built-in Kotlin.
+        freeCompilerArgs.addAll(
+            "-opt-in=kotlin.RequiresOptIn",
+            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-opt-in=kotlinx.coroutines.FlowPreview",
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
+        )
+    }
+}
+
+// KAPT Configuration (legacy-kapt bridge: Butterknife and Epoxy only)
 kapt {
     correctErrorTypes = true
     javacOptions {
-        option("-Xmaxerrs", 500)
+        option("-Xmaxerrs", "500")
     }
 }
 

@@ -1,12 +1,11 @@
 [versions]
 # Build tools
-agp = "8.13.2"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.25"
+agp = "9.4.1"
+kotlin = "2.4.21"
+ksp = "2.3.12"
 
 # Compose
 composeBom = "2024.12.01"
-composeCompiler = "1.5.15" # For reference, auto-managed by Kotlin 2.0+
 activityCompose = "1.9.3"
 navigationCompose = "2.8.5"
 lifecycleViewmodelCompose = "2.8.7"
@@ -21,14 +20,14 @@ lifecycleRuntimeKtx = "2.8.7"
 lifecycleExtensions = "2.2.0"
 
 # Dependency Injection - Hilt
-hilt = "2.52"
+hilt = "2.60.1"
 hiltNavigationCompose = "1.2.0"
 
 # Reactive
 coroutines = "1.9.0"
 
 # Data & Persistence
-room = "2.6.1"
+room = "2.8.5"
 datastore = "1.1.1"
 paging = "3.3.5"
 pagingCompose = "3.3.5"
@@ -70,6 +69,10 @@ multidex = "2.0.1"
 timber = "5.0.1"
 
 [libraries]
+# Gradle plugins put on the root buildscript classpath (AGP 9 built-in Kotlin uses this KGP)
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+ksp-gradle-plugin = { group = "com.google.devtools.ksp", name = "symbol-processing-gradle-plugin", version.ref = "ksp" }
+
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
@@ -160,7 +163,7 @@ roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "robora
 # Legacy - TO BE REMOVED
 # Keep during migration, will be removed in Steps 9-10
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
-glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", version.ref = "glide" }
+glide-ksp = { group = "com.github.bumptech.glide", name = "ksp", version.ref = "glide" }
 butterknife = { group = "com.jakewharton", name = "butterknife", version.ref = "butterknife" }
 butterknife-compiler = { group = "com.jakewharton", name = "butterknife-compiler", version.ref = "butterknife" }
 epoxy = { group = "com.airbnb.android", name = "epoxy", version.ref = "epoxy" }
@@ -171,8 +174,7 @@ epoxy-processor = { group = "com.airbnb.android", name = "epoxy-processor", vers
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 androidTest = { id = "com.android.test", version.ref = "agp" }
-kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlinKapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
+legacyKapt = { id = "com.android.legacy-kapt", version.ref = "agp" }
 kotlinParcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
