@@ -1,0 +1,14 @@
+# A link is already open in a Custom Tab. Opens Chrome's overflow menu and taps one of the menu
+# items the app added (ITEM, for example "Minimize"), then captures the screen as NAME.
+appId: com.android.chrome
+---
+- tapOn:
+    id: "menu_button"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element: ${ITEM}
+    direction: DOWN
+    timeout: 5000
+- tapOn: ${ITEM}
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/${NAME}

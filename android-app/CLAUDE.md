@@ -111,7 +111,7 @@ Key packages:
 - `FragmentComponent` - Fragment-scoped dependencies
 - `ViewComponent` - View-scoped dependencies
 
-Component factories are accessed via `appComponent()` extension function on Application.
+Every activity, fragment, view, service and receiver is injected by Hilt with `@AndroidEntryPoint`; there is no other component.
 
 **lynket-playground module** uses Whetstone with compile-time code generation via Anvil's `@MergeComponent`.
 
