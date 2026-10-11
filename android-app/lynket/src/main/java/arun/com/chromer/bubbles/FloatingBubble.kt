@@ -32,6 +32,7 @@ import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
 
+/** Shows a link as a floating bubble; returns false when it could not, so the caller opens a tab. */
 interface FloatingBubble {
 
   fun openBubble(
@@ -42,7 +43,7 @@ interface FloatingBubble {
     context: Context? = null,
     @ColorInt
     color: Int = Constants.NO_COLOR
-  )
+  ): Boolean
 }
 
 

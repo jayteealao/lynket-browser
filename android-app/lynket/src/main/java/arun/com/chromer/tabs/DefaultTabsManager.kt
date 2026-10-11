@@ -383,7 +383,7 @@ constructor(
     val bubbles = rxPreferences.nativeBubbles.get()
     val webHeads = preferences.webHeads()
 
-    floatingBubbleFactory[if (bubbles) NATIVE else WEB_HEADS].openBubble(
+    val opened = floatingBubbleFactory[if (bubbles) NATIVE else WEB_HEADS].openBubble(
       website,
       fromMinimize,
       fromAmp,
@@ -391,6 +391,11 @@ constructor(
       context,
       customizedWebsiteColor(website)
     )
+    if (!opened) {
+      // The bubble could not show; the page opens in a tab instead of being lost.
+      openBrowsingTab(context, website, smart = true, fromNewTab = false, incognito = incognito)
+      return
+    }
 
     val shouldUseWebView = shouldUseWebView(incognito)
 

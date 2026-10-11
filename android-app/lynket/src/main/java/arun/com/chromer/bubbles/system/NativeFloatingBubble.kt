@@ -90,7 +90,7 @@ constructor(
     incognito: Boolean,
     context: Context?,
     color: Int
-  ) {
+  ): Boolean {
     loadQueue.tryEmit(
       BubbleLoadData(
         website = website,
@@ -101,6 +101,7 @@ constructor(
         color = color
       )
     )
+    return true
   }
 
   private suspend fun showBubble(bubbleLoadData: BubbleLoadData): BubbleLoadData {

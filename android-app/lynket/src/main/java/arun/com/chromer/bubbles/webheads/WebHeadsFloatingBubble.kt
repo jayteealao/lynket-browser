@@ -26,13 +26,16 @@ import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.os.Handler
 import android.os.Looper
+import android.widget.Toast
 import androidx.core.content.ContextCompat
+import arun.com.chromer.R
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_AMP
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_MINIMIZE
 import arun.com.chromer.util.Utils
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -53,23 +56,36 @@ constructor(
     incognito: Boolean,
     context: Context?,
     color: Int
-  ) {
-    (context ?: application).let { ctx ->
-      if (Utils.isOverlayGranted(ctx)) {
-        val webHeadLauncher = Intent(ctx, WebHeadService::class.java).apply {
-          data = website.preferredUri()
-          addFlags(FLAG_ACTIVITY_NEW_TASK)
-          putExtra(EXTRA_KEY_MINIMIZE, fromMinimize)
-          putExtra(EXTRA_KEY_FROM_AMP, fromAmp)
-          putExtra(EXTRA_KEY_INCOGNITO, incognito)
-        }
-        ContextCompat.startForegroundService(ctx, webHeadLauncher)
-      } else {
-        mainHandler.post {
-          Utils.openDrawOverlaySettings(ctx)
-        }
+  ): Boolean {
+    val ctx = context ?: application
+    if (!Utils.isOverlayGranted(ctx)) {
+      mainHandler.post {
+        Utils.openDrawOverlaySettings(ctx)
       }
+      return true
     }
+    val webHeadLauncher = Intent(ctx, WebHeadService::class.java).apply {
+      data = website.preferredUri()
+      addFlags(FLAG_ACTIVITY_NEW_TASK)
+      putExtra(EXTRA_KEY_MINIMIZE, fromMinimize)
+      putExtra(EXTRA_KEY_FROM_AMP, fromAmp)
+      putExtra(EXTRA_KEY_INCOGNITO, incognito)
+    }
+    try {
+      if (WebHeadStartFaults.isForced(ctx)) {
+        throw IllegalStateException("Web head start refused by the debug fault switch")
+      }
+      ContextCompat.startForegroundService(ctx, webHeadLauncher)
+      return true
+    } catch (e: IllegalStateException) {
+      // ForegroundServiceStartNotAllowedException (API 31+) is an IllegalStateException.
+      Timber.e(e, "Web heads could not start")
+    } catch (e: SecurityException) {
+      Timber.e(e, "Web heads could not start")
+    }
+    mainHandler.post {
+      Toast.makeText(ctx, R.string.web_heads_start_failed, Toast.LENGTH_LONG).show()
+    }
+    return false
   }
 }
-
