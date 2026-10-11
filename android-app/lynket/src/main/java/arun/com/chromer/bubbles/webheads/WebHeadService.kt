@@ -428,7 +428,8 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
           .catch { error -> Timber.e(error) }
           .collect { iconAndColor ->
             controller?.get(webHeadUrl)?.let { head ->
-              head.favicon = iconAndColor.first.toBitmap().asImageBitmap()
+              // A site without an icon gives no drawable; the head keeps the first letter.
+              iconAndColor.first?.let { head.favicon = it.toBitmap().asImageBitmap() }
               if (iconAndColor.second != Constants.NO_COLOR) head.colour = Color(iconAndColor.second)
             }
           }

@@ -66,7 +66,9 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class ArticleActivity : BrowsingActivity() {
-  private lateinit var binding: ActivityArticleModeBinding
+  // Inflated on first use: BrowsingActivity.onCreate can apply a known toolbar colour before this
+  // class's onCreate continues.
+  private val binding by lazy { ActivityArticleModeBinding.inflate(layoutInflater) }
   private val browsingArticleViewModel: BrowsingArticleViewModel by viewModels()
 
   private var url: String? = null
@@ -108,7 +110,6 @@ class ArticleActivity : BrowsingActivity() {
 
   public override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    binding = ActivityArticleModeBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
     readCustomizations()
