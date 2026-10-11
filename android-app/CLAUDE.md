@@ -4,82 +4,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Lynket is an Android browser application that provides custom tabs functionality, web heads (bubble-style browsing), and article reading modes. The project is structured as a multi-module Gradle build with two primary modules:
+Lynket is an Android browser application that provides custom tabs functionality, web heads (bubble-style browsing), and article reading modes. The project is a multi-module Gradle build:
 
-- **lynket**: The legacy main application module using traditional Dagger 2 for dependency injection
-- **lynket-playground**: A modern experimental module using Whetstone (Anvil-based DI) and Jetpack Compose
-- **disk-cache**: A disk LRU cache library module
+- **lynket**: The application module. Hilt is the only dependency injection system.
+- **disk-cache**: A Kotlin disk LRU cache library for Parcelable values (website and article caches).
+- **benchmark**: Macrobenchmarks for link-open start-up and web head drag (runs against the `benchmark` build type of `:lynket`).
 
 ## Build Configuration
 
 ### Prerequisites
 
-**CRITICAL**: This project requires Java/JDK to be installed and JAVA_HOME properly configured before building:
-1. Install JDK 11 or later
-2. Set JAVA_HOME environment variable to JDK installation path
-3. Ensure `java` command is available in PATH
+- JDK 17 or later. `gradle.properties` points `org.gradle.java.home` at the Android Studio JBR 21.
+- Android SDK with platform `android-37` (compileSdk) and build-tools 36.0.0 or later.
 
-Without proper Java setup, Gradle commands will fail with: "JAVA_HOME is not set and no 'java' command could be found in your PATH."
+### Toolchain
 
-### Current Build State (Updated 2025-01-XX)
-
-**Active Configuration**:
-- **Kotlin**: 1.8.22 (temporary, for kotlin-android-extensions support)
-- **Android Gradle Plugin**: 8.3.2
-- **Dagger**: 2.50 (upgraded for Kotlin compatibility)
-- **Compose Compiler**: 1.4.8 (matched to Kotlin 1.8.22)
-
-**Active Module**: Only `:lynket-playground` is currently built. The main `:lynket` module is being modernized.
-
-**Critical Blockers**:
-1. **6 Missing Utility Libraries** - Blocks all compilation
-   - `dev.arunkumar.android.common.Extensions.kt` (dpToPx, etc.)
-   - `dev.arunkumar.android.common.Resource.kt` (sealed class wrapper)
-   - `dev.arunkumar.android.rxschedulers.RxExtensions.kt` (asResource, ioToUi, poolToUi)
-   - `dev.arunkumar.android.epoxy.EpoxyExtensions.kt` (span, TotalSpanOverride)
-   - `arun.com.chromer.tabs.DocumentUtils.kt` (task management)
-   - `arun.com.chromer.shared.ServiceManager.kt` (service lifecycle)
-
-These utilities were previously provided by unpublished SNAPSHOT dependencies from `dev.arunkumar.android` packages that are no longer available.
+- **Android Gradle Plugin**: 9.4.1, with AGP's built-in Kotlin (no `org.jetbrains.kotlin.android` plugin).
+- **Gradle**: 9.8.1 (wrapper).
+- **Kotlin**: 2.4.21. AGP 9 brings KGP 2.2.10, so the root `build.gradle.kts` puts KGP 2.4.21 and the KSP Gradle plugin on the `buildscript` classpath.
+- **KSP**: 2.3.12. Hilt 2.60.1, Glide (KSP artifact), Room 2.8.5 and Moshi run on KSP. Glide's KSP processor generates no `GlideApp`; load images with `Glide.with`.
+- **Temporary legacy-kapt bridge**: `com.android.legacy-kapt` runs only the Butterknife and Epoxy processors, which have no KSP version. It leaves with the last View-based screens, together with `android.enableAppCompileTimeRClass=false`, `android.nonFinalResIds=false` and `android.r8.optimizedResourceShrinking=false` in `gradle.properties`.
+- **SDK levels**: compileSdk 37 (Compose BOM 2026.09.00 / Compose UI 1.12 needs it), targetSdk 36, minSdk 24. Do not raise targetSdk to 37.
+- **Libraries**: Compose BOM 2026.09.00, Robolectric 4.17 (tests pin `sdk = [34]`), Roborazzi 1.76.0.
+- **Back handling**: targetSdk 36 turns on predictive back, and the system no longer calls `onBackPressed`. Use `OnBackPressedDispatcher` callbacks.
 
 ### Gradle Commands
 
-The project uses Gradle with custom build-logic plugins defined in `build-logic/`. Key constants are defined in `build-logic/src/main/kotlin/constants/Constants.kt`:
-- Compile SDK: 31 (legacy lynket module)
-- Compile SDK: 34 (lynket-playground module)
-- Min SDK: 23 (legacy) / 28 (playground)
-- Target SDK: 31 (legacy) / 34 (playground)
-- Package name: `arun.com.chromer`
-
-Common commands (requires JAVA_HOME):
-- `./gradlew assembleDebug` - Build debug APK (lynket-playground only)
-- `./gradlew assembleRelease` - Build release APK
-- `./gradlew test` - Run unit tests
-- `./gradlew installDebug` - Install debug build to device
+Run from `android-app/`:
+- `./gradlew :lynket:assembleDebug` - Build the debug APK
+- `./gradlew :lynket:testDebugUnitTest` - Run the JVM unit tests
+- `./gradlew :lynket:verifyRoborazziDebug` - Compare the screenshot goldens
+- `./gradlew :disk-cache:testDebugUnitTest` - Run the disk cache journal tests
+- `./gradlew :lynket:assembleBenchmark :benchmark:assembleBenchmark` - Build the minified benchmark app and the benchmarks
+- `./gradlew :lynket:installDebug` - Install the debug build on a device
 
 ### Build System
 
-The project uses:
-- Gradle version catalog (`gradle/libs.versions.toml`) for dependency management
-- Custom Gradle plugins in `build-logic/` directory
-- `android-binary-plugin` custom plugin for main app configuration
-- KAPT for annotation processing (Dagger, Butterknife, Epoxy, Glide)
-- Scabbard for Dagger graph visualization (currently disabled)
+- Gradle version catalog (`gradle/libs.versions.toml`) for dependency management.
+- KSP for annotation processing; legacy-kapt only for Butterknife and Epoxy (see above).
 
 ## Module Structure
-
-### lynket-playground
-
-Modern module serving as experimentation ground:
-- **Dependency Injection**: Whetstone (Anvil + Dagger) with `@ContributesAppInjector`
-- **UI**: Jetpack Compose with Material 3
-- **State Management**: Molecule for Compose-based state
-- **Architecture**: Activity injection via lifecycle callbacks
-- Main packages: `di/`, `home/`, `halo/`, `theme/`
-
-Key files:
-- `Lynket.kt`: Application class using `ApplicationComponentOwner` interface
-- `di/AppComponent.kt`: Whetstone-based app component with `@MergeComponent`
 
 ### lynket (Legacy Module)
 
@@ -112,8 +76,6 @@ Key packages:
 - `ViewComponent` - View-scoped dependencies
 
 Every activity, fragment, view, service and receiver is injected by Hilt with `@AndroidEntryPoint`; there is no other component.
-
-**lynket-playground module** uses Whetstone with compile-time code generation via Anvil's `@MergeComponent`.
 
 ## Key Application Components
 
@@ -155,11 +117,7 @@ The app supports multiple browsing modes:
 
 ## Version Configuration
 
-Current module settings are in `settings.gradle`:
-- Commented out: `:lynket` and `:disk-cache`
-- Active: `:lynket-playground`
-
-This suggests the project is transitioning from legacy to modern architecture.
+`settings.gradle` includes `:lynket`, `:disk-cache` and `:benchmark`.
 
 ## Dependencies of Note
 
