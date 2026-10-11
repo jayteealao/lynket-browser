@@ -21,10 +21,27 @@
 // Phase 7: Converted to Kotlin
 package arun.com.chromer.settings.browsingmode
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
+import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.stringResource
 import androidx.appcompat.widget.Toolbar
-import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
@@ -33,10 +50,11 @@ import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.RxPreferences
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.ui.permission.PermissionExplainerDialog
+import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import arun.com.chromer.util.Utils
 import butterknife.BindView
 import com.afollestad.materialdialogs.MaterialDialog
-import com.google.android.material.snackbar.Snackbar
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import dagger.hilt.android.AndroidEntryPoint
@@ -49,8 +67,6 @@ class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeCli
   lateinit var toolbar: Toolbar
   @BindView(R.id.browsing_mode_list_view)
   lateinit var browsingModeListView: RecyclerView
-  @BindView(R.id.coordinatorLayout)
-  lateinit var coordinatorLayout: CoordinatorLayout
 
   @Inject
   lateinit var rxPreferences: RxPreferences
@@ -63,6 +79,24 @@ class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeCli
 
   override val layoutRes: Int
     get() = R.layout.activity_browsing_mode
+
+  /** Which permission explainer shows, if any. */
+  private enum class Explainer { Overlay, WebHeadsNotifications, BubblesNotifications }
+
+  private var explainer by mutableStateOf<Explainer?>(null)
+
+  private val overlaySettings =
+    registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+      if (Settings.canDrawOverlays(this)) {
+        Preferences.get(this).webHeads(true)
+        rxPreferences.nativeBubbles.set(false)
+        adapter.notifyDataSetChanged()
+        askForNotifications(Explainer.WebHeadsNotifications)
+      }
+    }
+
+  private val notificationPermission =
+    registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -77,6 +111,69 @@ class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeCli
       .beginTransaction()
       .replace(R.id.browse_faster_preferences_container, BrowseFasterPreferenceFragment.newInstance())
       .commit()
+
+    addContentView(
+      ComposeView(this).apply {
+        setContent {
+          ChromerThemeFromSettings { ExplainerDialog() }
+        }
+      },
+      ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+    )
+  }
+
+  @Composable
+  private fun ExplainerDialog() {
+    val shown = explainer ?: return
+    val dismiss = { explainer = null }
+    when (shown) {
+      Explainer.Overlay -> PermissionExplainerDialog(
+        icon = Icons.Outlined.Layers,
+        title = stringResource(R.string.overlay_explainer_title),
+        body = stringResource(R.string.overlay_explainer_body),
+        onGrant = {
+          dismiss()
+          openOverlaySettings()
+        },
+        onDismiss = dismiss,
+      )
+      Explainer.WebHeadsNotifications, Explainer.BubblesNotifications -> PermissionExplainerDialog(
+        icon = Icons.Outlined.Notifications,
+        title = stringResource(
+          if (shown == Explainer.WebHeadsNotifications) R.string.web_heads_notification_explainer_title
+          else R.string.bubbles_notification_explainer_title,
+        ),
+        body = stringResource(
+          if (shown == Explainer.WebHeadsNotifications) R.string.web_heads_notification_explainer_body
+          else R.string.bubbles_notification_explainer_body,
+        ),
+        onGrant = {
+          dismiss()
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+          }
+        },
+        onDismiss = dismiss,
+      )
+    }
+  }
+
+  private fun openOverlaySettings() {
+    try {
+      overlaySettings.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+    } catch (e: Exception) {
+      // No settings screen for the permission on this device; the old path shows the message.
+      Utils.openDrawOverlaySettings(this)
+    }
+  }
+
+  /** On Android 13 and later, explains and asks for notifications when they are not allowed yet. */
+  private fun askForNotifications(which: Explainer) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+      ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+    ) {
+      explainer = which
+    }
   }
 
   override fun onDestroy() {
@@ -99,15 +196,10 @@ class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeCli
     if (webHeadsEnabled) {
       if (Utils.isOverlayGranted(this)) {
         Preferences.get(this).webHeads(true)
+        askForNotifications(Explainer.WebHeadsNotifications)
       } else {
         Preferences.get(this).webHeads(false)
-        // Utils.openDrawOverlaySettings(this);
-        val snackbar = Snackbar.make(coordinatorLayout, R.string.overlay_permission_content, Snackbar.LENGTH_INDEFINITE)
-        snackbar.setAction(R.string.grant) {
-          snackbar.dismiss()
-          Utils.openDrawOverlaySettings(this@BrowsingModeActivity)
-        }
-        snackbar.show()
+        explainer = Explainer.Overlay
       }
     } else if (nativeBubbles) {
       MaterialDialog.Builder(this)
@@ -130,7 +222,9 @@ class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeCli
             .icon(CommunityMaterial.Icon.cmd_android_head)
             .colorRes(R.color.material_dark_color)
             .sizeDp(24)
-        ).show()
+        )
+        .dismissListener { askForNotifications(Explainer.BubblesNotifications) }
+        .show()
     }
     adapter.notifyDataSetChanged()
   }

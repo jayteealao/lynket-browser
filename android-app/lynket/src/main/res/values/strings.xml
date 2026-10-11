@@ -347,7 +347,7 @@
   <string name="bubbles_not_allowed">Allow notifications and bubbles for Lynket to use bubbles.</string>
   <string name="not_now">Not now</string>
   <string name="overlay_explainer_title">Allow web heads to float</string>
-  <string name="overlay_explainer_body">To draw web heads over other apps, Lynket needs the "Display over other apps" permission. Android opens the setting next.</string>
+  <string name="overlay_explainer_body">To draw web heads over other apps, Lynket needs the \"Display over other apps\" permission. Android opens the setting next.</string>
   <string name="web_heads_notification_explainer_title">Show web head controls</string>
   <string name="web_heads_notification_explainer_body">While web heads are on screen, a notification holds New tab, Manage and Close all. Android asks you to allow notifications next.</string>
   <string name="bubbles_notification_explainer_title">Bubbles are notifications</string>
