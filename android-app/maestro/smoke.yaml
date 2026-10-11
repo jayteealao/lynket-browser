@@ -1,0 +1,11 @@
+# Smoke flow: a fresh install of the debug build opens on the home screen.
+# Run: maestro --device <serial> test android-app/maestro/smoke.yaml
+appId: arun.com.chromer.debug
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Enter URL or search..."
+    timeout: 15000
+- assertVisible: "Browser Provider"
+- takeScreenshot: smoke-home

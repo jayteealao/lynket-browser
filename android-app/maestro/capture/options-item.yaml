@@ -1,0 +1,14 @@
+# Legacy capture, part 3: a link is already open in a Custom Tab. Opens one item of the Lynket
+# options sheet (ITEM) and captures the screen it opens as NAME.
+appId: arun.com.chromer.debug
+---
+- tapOn:
+    id: "menu_button"
+- tapOn: "Lynket Options"
+- waitForAnimationToEnd
+- tapOn: ${ITEM}
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    notVisible: "Lynket Options"
+    timeout: 3000
+- takeScreenshot: ${OUT}/${NAME}

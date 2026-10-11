@@ -1,0 +1,23 @@
+# Legacy capture, part 2: a link is already open in a Custom Tab (capture-legacy.sh opens it).
+# Opens the Lynket options sheet from the Custom Tab menu and walks the legacy settings screens.
+appId: arun.com.chromer.debug
+---
+- tapOn:
+    id: "menu_button"
+- tapOn: "Lynket Options"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/options-sheet
+- tapOn: "Settings"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/settings-legacy-group
+- tapOn: "Browsing mode"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/settings-browsing-mode
+- back
+- tapOn: "Look & feel"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/settings-look-and-feel
+- back
+- tapOn: "Browsing options"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/settings-browsing-options

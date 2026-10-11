@@ -1,0 +1,16 @@
+# Legacy capture, part 1: screens reached from the launcher (home, history, settings).
+appId: arun.com.chromer.debug
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Enter URL or search..."
+    timeout: 15000
+- takeScreenshot: ${OUT}/home
+- tapOn: "History"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/history
+- back
+- tapOn: "Settings"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/settings

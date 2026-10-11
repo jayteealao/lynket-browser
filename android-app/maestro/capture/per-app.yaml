@@ -1,0 +1,12 @@
+# Legacy capture, part 4: a link is already open in a Custom Tab. Reaches the per-app settings
+# screen through the options sheet, settings and browsing options.
+appId: arun.com.chromer.debug
+---
+- tapOn:
+    id: "menu_button"
+- tapOn: "Lynket Options"
+- tapOn: "Settings"
+- tapOn: "Browsing options"
+- tapOn: "Per app settings"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/per-app
