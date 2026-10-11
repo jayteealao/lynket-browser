@@ -87,7 +87,10 @@ class PreferenceItem<T : Any>(
     .map { read(it) }
     .distinctUntilChanged()
 
-  @Suppress("UNCHECKED_CAST") // sdlc-debt: each branch reads the type of defaultValue, which is T
+  // sdlc-debt: unchecked cast to T; each branch reads the type of defaultValue, which is T, and only
+  // Boolean, String and Int items work (ceiling); upgrade path: typed repository flows replace
+  // PreferenceItem when the legacy settings screens are rebuilt.
+  @Suppress("UNCHECKED_CAST")
   private fun read(stored: StoredPreferences): T = when (defaultValue) {
     is Boolean -> stored.readBoolean(key, defaultValue) as T
     is String -> (stored.readString(key, defaultValue) ?: defaultValue) as T

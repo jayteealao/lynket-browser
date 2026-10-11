@@ -26,7 +26,16 @@ URL="https://example.com/?from=link-source-check"
 
 a() { adb -s "$SERIAL" "$@"; }
 fail() { echo "link-source check failed: $*" | tee -a "$OUT/link-source.txt" >&2; exit 1; }
+# The blacklist hand-off can leave the system's Chrome chooser open in the app's task; while it is
+# on top, a start of the app's launcher activity is delivered to the chooser instead. Close it.
+close_chooser() {
+  if a shell dumpsys activity activities | grep -E "topResumedActivity" | grep -q "ResolverActivity"; then
+    a shell input keyevent BACK
+    sleep 1
+  fi
+}
 : > "$OUT/link-source.txt"
+close_chooser
 
 # 1. Usage access on, cold start.
 a shell appops set "$PKG" GET_USAGE_STATS allow
@@ -70,6 +79,8 @@ grep -qE "com.android.chrome|com.android.internal.app.ResolverActivity" "$OUT/re
   || fail "the link did not leave the app for the secondary browser (see resumed.txt)"
 if grep -q "$PKG/" "$OUT/resumed.txt"; then fail "the link opened in the app despite the blacklist rule"; fi
 echo "link from $SOURCE: blacklist rule followed, handed to com.android.chrome ($(grep -oE '[a-z.]+/[A-Za-z.$]+' "$OUT/resumed.txt" | head -1))" | tee -a "$OUT/link-source.txt"
+
+close_chooser
 
 # 4. No crash.
 a logcat -d -b crash | tr -d '\r' > "$OUT/logcat-crash.txt"

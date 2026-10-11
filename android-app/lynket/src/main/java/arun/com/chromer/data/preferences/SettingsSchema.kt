@@ -173,7 +173,9 @@ private fun <T> mistyped(name: String, value: Any, default: T): T {
 }
 
 /** Typed key for [name] that matches the runtime type of [value]. */
-@Suppress("UNCHECKED_CAST") // sdlc-debt: the key type is chosen from the value's own runtime type, so the cast holds
+// sdlc-debt: unchecked cast to Key<Any>; the key type follows the value's runtime type, so a wrong
+// type shows up only at runtime (ceiling); upgrade path: typed keys from SettingsSchema at every caller.
+@Suppress("UNCHECKED_CAST")
 fun keyFor(name: String, value: Any): Preferences.Key<Any> = when (value) {
   is Boolean -> booleanPreferencesKey(name)
   is Int -> intPreferencesKey(name)

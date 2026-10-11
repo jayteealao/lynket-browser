@@ -35,12 +35,17 @@ dump() {  # $1 = output file; prints "<stored> <reader>" of the web heads key
   awk -F'\t' -v k="$KEY" '$1 == k { print $3, $4 }' "$1"
 }
 toggle() {
+  # Click the tile in the open Quick Settings panel, as a person does. With the panel closed the
+  # system may not have the tile service bound yet and drops the click.
+  a shell cmd statusbar expand-settings >/dev/null 2>&1 || true
+  sleep 4
   a shell cmd statusbar click-tile "$TILE" >/dev/null
   sleep 2
   a shell cmd statusbar collapse >/dev/null 2>&1 || true
 }
 
 : > "$OUT/tile.txt"
+a shell am force-stop "$PKG"  # ends a web head service restart loop left by an earlier run
 a shell appops set "$PKG" SYSTEM_ALERT_WINDOW allow
 a shell cmd statusbar add-tile "$TILE" | tr -d '\r' >> "$OUT/tile.txt"
 
@@ -60,7 +65,10 @@ android layout --device="$SERIAL" --pretty > "$OUT/browsing-mode.layout.txt"
 a exec-out screencap -p > "$OUT/browsing-mode.png"
 a shell input keyevent BACK
 
-# 4. The router's read of the setting.
+# 4. The router's read of the setting. Send the link from the home screen: a link sent while an
+#    app with a per-app rule (the seed blacklists Messages) was in front follows that rule instead.
+a shell input keyevent HOME
+sleep 1
 a logcat -c
 a shell am force-stop com.android.chrome
 a shell "am start -W -a android.intent.action.VIEW -d 'https://example.com/?tile-check=1' -n $PKG/$INTERCEPT" >/dev/null
@@ -69,6 +77,11 @@ a logcat -d | tr -d '\r' | grep "Open https://example.com/?tile-check=1" > "$OUT
 grep -q "webHeads=$after" "$OUT/route.logcat.txt" || fail "the router did not read webHeads=$after (see route.logcat.txt)"
 echo "router: webHeads=$after" | tee -a "$OUT/tile.txt"
 a shell input keyevent HOME
+# With web heads on, the link starts the old web head service, which still crashes on API 34+
+# until the web heads rebuild; the system then restarts it in a loop and drops tile clicks.
+# Stop the app so the restore click reaches a fresh tile service.
+a logcat -d -b crash | tr -d '\r' > "$OUT/route-crash.txt"
+a shell am force-stop "$PKG"
 
 # 5. Restore.
 toggle
