@@ -1,0 +1,75 @@
+# History upgrade check: the legacy History screen is in front (history-check.sh starts it).
+# The five rows the 2.1.3 app wrote are the newest and show first; the 495 appended rows follow,
+# newest first, so scrolling reaches every 50th one in order and then the oldest.
+appId: arun.com.chromer.debug
+---
+- extendedWaitUntil:
+    visible: "Example Domain"
+    timeout: 20000
+- assertVisible: "Wikipedia"
+- assertVisible: '.*example\.org/docs/page\.html.*'
+- assertVisible: '.*example\.com/search\?q=lynket.*'
+- assertVisible: '.*caf%C3%A9.*'
+- takeScreenshot: ${OUT}/history-maestro-top
+- scrollUntilVisible:
+    element:
+      text: "Seed page 050"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- scrollUntilVisible:
+    element:
+      text: "Seed page 100"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- scrollUntilVisible:
+    element:
+      text: "Seed page 150"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- scrollUntilVisible:
+    element:
+      text: "Seed page 200"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- scrollUntilVisible:
+    element:
+      text: "Seed page 250"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- takeScreenshot: ${OUT}/history-page-250
+- scrollUntilVisible:
+    element:
+      text: "Seed page 300"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- scrollUntilVisible:
+    element:
+      text: "Seed page 350"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- scrollUntilVisible:
+    element:
+      text: "Seed page 400"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- scrollUntilVisible:
+    element:
+      text: "Seed page 450"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- scrollUntilVisible:
+    element:
+      text: "Seed page 495"
+    direction: DOWN
+    timeout: 60000
+    visibilityPercentage: 100
+- takeScreenshot: ${OUT}/history-bottom
