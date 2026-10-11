@@ -37,6 +37,7 @@ Run from `android-app/`:
 - `./gradlew :disk-cache:testDebugUnitTest` - Run the disk cache journal tests
 - `./gradlew :lynket:assembleBenchmark :benchmark:assembleBenchmark` - Build the minified benchmark app and the benchmarks
 - `./gradlew :lynket:installDebug` - Install the debug build on a device
+- `bash maestro/upgrade/upgrade-check.sh <serial> <dir>` / `maestro/upgrade/tile-check.sh` - Device checks that settings and per-app rules survive an update from release 2.1.3 and that the web heads tile reaches every reader (debug build; it dumps both stores with the debug-only `StoreDumpReceiver`)
 
 ### Build System
 
@@ -54,7 +55,7 @@ Production module with extensive feature set:
 - **View Binding**: Butterknife for view injection
 - **Lists**: Airbnb Epoxy for RecyclerViews
 - **Image Loading**: Glide
-- **Storage**: PaperDB for NoSQL persistence
+- **Storage**: settings in one Preferences DataStore (`user_preferences`, every key listed in `data/preferences/SettingsSchema.kt`; read synchronously through the `settings/Preferences` facade); per-app rules in a second DataStore (`per_app_rules`); history in Room. Both DataStores migrate once from the old stores (the settings SharedPreferences file, release 2.1.3's PaperDB `files/APPS` book), back them up and never delete them. PaperDB 2.6 is a dependency only for that one-time read.
 
 Key packages:
 - `browsing/` - Core browsing functionality including custom tabs, webview, article mode, AMP support
@@ -85,7 +86,7 @@ Every activity, fragment, view, service and receiver is injected by Hilt with `@
 2. **BrowserInterceptActivity** (`browsing/browserintercept/BrowserInterceptActivity.kt`) - Handles VIEW intents for http/https URLs
 3. **Lynket** Application class initializes:
    - Dagger/Whetstone DI
-   - PaperDB storage
+   - the settings and per-app rule stores (DataStore)
    - RxDogTag (debug builds)
    - Timber logging (debug builds)
    - Material Drawer with Glide
