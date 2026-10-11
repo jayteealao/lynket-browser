@@ -22,6 +22,7 @@ package arun.com.chromer.history
 
 import android.os.Bundle
 import android.view.MenuItem
+import androidx.activity.addCallback
 import arun.com.chromer.R
 import arun.com.chromer.databinding.ActivityHistoryBinding
 import arun.com.chromer.shared.FabHandler
@@ -42,6 +43,9 @@ class HistoryActivity : BaseActivity(), Snackable {
     super.onCreate(savedInstanceState)
     binding = ActivityHistoryBinding.inflate(layoutInflater)
     setContentView(binding.root)
+
+    // Predictive back (targetSdk 36) does not call onBackPressed.
+    onBackPressedDispatcher.addCallback(this) { finishWithTransition() }
 
     setSupportActionBar(binding.toolbar)
     if (supportActionBar != null) {
@@ -78,11 +82,6 @@ class HistoryActivity : BaseActivity(), Snackable {
       return true
     }
     return super.onOptionsItemSelected(item)
-  }
-
-  override fun onBackPressed() {
-    finishWithTransition()
-    super.onBackPressed()
   }
 
 }

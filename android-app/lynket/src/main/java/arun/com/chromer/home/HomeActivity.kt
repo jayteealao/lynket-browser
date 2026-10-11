@@ -23,6 +23,7 @@ package arun.com.chromer.home
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.addCallback
 import androidx.activity.viewModels
 import androidx.core.view.postDelayed
 import androidx.recyclerview.widget.SimpleItemAnimator
@@ -89,6 +90,20 @@ class HomeActivity : BaseActivity(), Snackable {
     setupSearchBar()
     setupFeed()
     setupEventListeners()
+    setupBackHandling()
+  }
+
+  /**
+   * Back clears the search focus first. Predictive back (targetSdk 36) does not call
+   * onBackPressed, so the callback is enabled only while the search view holds focus.
+   */
+  private fun setupBackHandling() {
+    val clearSearchFocus = onBackPressedDispatcher.addCallback(this, enabled = false) {
+      binding.materialSearchView.clearFocus()
+    }
+    binding.materialSearchView.viewTreeObserver.addOnGlobalFocusChangeListener { _, _ ->
+      clearSearchFocus.isEnabled = binding.materialSearchView.hasFocus()
+    }
   }
 
   override fun snack(textToSnack: String) {
@@ -202,14 +217,6 @@ class HomeActivity : BaseActivity(), Snackable {
         }
       */
     }
-  }
-
-  override fun onBackPressed() {
-    if (binding.materialSearchView.hasFocus()) {
-      binding.materialSearchView.clearFocus()
-      return
-    }
-    super.onBackPressed()
   }
 
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

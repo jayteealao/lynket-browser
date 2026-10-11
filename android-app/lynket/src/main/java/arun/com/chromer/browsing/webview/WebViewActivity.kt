@@ -33,6 +33,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.browsing.BrowsingActivity
@@ -66,10 +67,20 @@ open class WebViewActivity : BrowsingActivity() {
     binding = ActivityWebViewBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
+    // Back goes through the page history first; with predictive back (targetSdk 36) the system no
+    // longer calls onBackPressed, so the callback is enabled only while the page can go back.
+    onBackPressedDispatcher.addCallback(this, webBackCallback)
+
     setupToolbar()
     setupSwipeRefresh()
     setupWebView(savedInstanceState)
     setupBottomBar()
+  }
+
+  private val webBackCallback = object : OnBackPressedCallback(false) {
+    override fun handleOnBackPressed() {
+      binding.activityWebViewContent.webView.goBack()
+    }
   }
 
   override fun getCurrentUrl(): String {
@@ -93,14 +104,6 @@ open class WebViewActivity : BrowsingActivity() {
   override fun onDestroy() {
     binding.activityWebViewContent.webView.destroy()
     super.onDestroy()
-  }
-
-  override fun onBackPressed() {
-    if (binding.activityWebViewContent.webView.canGoBack()) {
-      binding.activityWebViewContent.webView.goBack()
-    } else {
-      super.onBackPressed()
-    }
   }
 
   override fun onWebsiteLoaded(website: Website) {
@@ -153,6 +156,11 @@ open class WebViewActivity : BrowsingActivity() {
           override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
             hideLoading()
+          }
+
+          override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+            super.doUpdateVisitedHistory(view, url, isReload)
+            webBackCallback.isEnabled = view?.canGoBack() == true
           }
         }
         webChromeClient = object : WebChromeClient() {

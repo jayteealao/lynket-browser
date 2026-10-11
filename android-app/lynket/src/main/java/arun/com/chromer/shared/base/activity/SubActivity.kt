@@ -20,7 +20,9 @@
 
 package arun.com.chromer.shared.base.activity
 
+import android.os.Bundle
 import android.view.MenuItem
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 
 /**
@@ -37,10 +39,10 @@ abstract class SubActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        finishWithTransition()
-        super.onBackPressed()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Predictive back (targetSdk 36) does not call onBackPressed.
+        onBackPressedDispatcher.addCallback(this) { finishWithTransition() }
     }
 
     private fun finishWithTransition() {
