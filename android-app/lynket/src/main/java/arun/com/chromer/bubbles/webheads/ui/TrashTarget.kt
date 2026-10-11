@@ -28,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.bubbles.webheads.motion.TrashState
@@ -36,7 +35,8 @@ import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 
 /**
  * The trash target under the screen centre. It appears when a head is dragged, and morphs from a
- * neutral circle into a red rounded square when a head locks onto it.
+ * neutral circle into a red rounded square when a head locks onto it. It draws flat (tonal colour, no
+ * shadow): shadows belong to the heads only, and a flat window is cheaper to draw at drag start.
  */
 @Composable
 fun TrashTarget(trash: TrashState, modifier: Modifier = Modifier) {
@@ -59,7 +59,6 @@ fun TrashTarget(trash: TrashState, modifier: Modifier = Modifier) {
           alpha = if (scale <= 0.01f) 0f else 1f
         }
         .size(72.dp)
-        .shadow(6.dp, RoundedCornerShape(corner))
         .background(container, RoundedCornerShape(corner)),
       contentAlignment = Alignment.Center,
     ) {
