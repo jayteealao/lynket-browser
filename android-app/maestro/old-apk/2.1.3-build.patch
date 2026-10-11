@@ -1,0 +1,167 @@
+diff --git a/android-app/app/build.gradle b/android-app/app/build.gradle
+index 14276a3e..a8dbbd50 100644
+--- a/android-app/app/build.gradle
++++ b/android-app/app/build.gradle
+@@ -21,29 +21,21 @@ apply plugin: 'com.android.application'
+ apply plugin: 'kotlin-android'
+ apply plugin: 'kotlin-kapt'
+ apply plugin: 'kotlin-android-extensions'
+-apply plugin: 'io.fabric'
+ 
+-buildscript {
+-    repositories {
+-        maven { url 'https://maven.fabric.io/public' }
+-        google()
+-    }
+-
+-    dependencies {
+-        classpath 'io.fabric.tools:gradle:1.29.0'
+-    }
+-}
+-repositories {
+-    maven { url 'https://maven.fabric.io/public' }
+-}
+ 
+ kapt {
+     useBuildCache = true
+     correctErrorTypes = true
++    // Build-only patch for the upgrade test: process as Java 8 on JDK 11.
++    javacOptions {
++        option("-source", "8")
++        option("-target", "8")
++    }
+ }
+ 
+ android {
+     compileSdkVersion 29
++    buildToolsVersion "30.0.3"
+     compileOptions {
+         sourceCompatibility JavaVersion.VERSION_1_8
+         targetCompatibility JavaVersion.VERSION_1_8
+@@ -226,9 +218,6 @@ dependencies {
+ 
+     // Storage
+     implementation 'io.paperdb:paperdb:2.6'
+-    implementation('com.crashlytics.sdk.android:crashlytics:2.10.1@aar') {
+-        transitive = true
+-    }
+     implementation 'com.github.chrisbanes:PhotoView:1.3.1'
+ 
+     implementation 'com.github.florent37:shapeofview:1.4.7'
+diff --git a/android-app/app/src/main/java/arun/com/chromer/Chromer.kt b/android-app/app/src/main/java/arun/com/chromer/Chromer.kt
+index 30328a53..49a64991 100644
+--- a/android-app/app/src/main/java/arun/com/chromer/Chromer.kt
++++ b/android-app/app/src/main/java/arun/com/chromer/Chromer.kt
+@@ -29,11 +29,8 @@ import arun.com.chromer.di.app.AppModule
+ import arun.com.chromer.di.app.DaggerAppComponent
+ import arun.com.chromer.util.ServiceManager
+ import com.airbnb.epoxy.EpoxyController
+-import com.crashlytics.android.Crashlytics
+-import com.crashlytics.android.core.CrashlyticsCore
+ import com.mikepenz.materialdrawer.util.DrawerImageLoader
+ import com.uber.rxdogtag.RxDogTag
+-import io.fabric.sdk.android.Fabric
+ import io.paperdb.Paper
+ import timber.log.Timber
+ 
+@@ -84,11 +81,7 @@ open class Chromer : Application() {
+     }
+ 
+     protected open fun initFabric() {
+-        val core = CrashlyticsCore.Builder()
+-                .disabled(BuildConfig.DEBUG)
+-                .build()
+-        val crashlytics = Crashlytics.Builder().core(core).build()
+-        Fabric.with(this, crashlytics)
++        // Build-only patch for the upgrade test: Crashlytics removed.
+     }
+ 
+     override fun attachBaseContext(base: Context) {
+@@ -102,7 +95,7 @@ open class Chromer : Application() {
+             if (priority == Log.VERBOSE || priority == Log.DEBUG || priority == Log.INFO) {
+                 return
+             }
+-            Crashlytics.logException(t)
++            // Build-only patch: Crashlytics removed.
+         }
+     }
+ 
+diff --git a/android-app/build.gradle b/android-app/build.gradle
+index 0e43d024..7b016c74 100644
+--- a/android-app/build.gradle
++++ b/android-app/build.gradle
+@@ -22,6 +22,7 @@ buildscript {
+     ext.kotlin_version = '1.3.50'
+     repositories {
+         google()
++        mavenCentral()
+         maven { url "https://jitpack.io" }
+         jcenter()
+     }
+@@ -32,11 +33,13 @@ buildscript {
+ }
+ 
+ allprojects {
+-    def repoUrl = "https://raw.github.com/arunkumar9t2/base-android/master/maven-repo/"
++    def repoUrl = "https://raw.githubusercontent.com/arunkumar9t2/base-android/7a88530c98a340f72ddbe7ab624a2aa66b50aa08/maven-repo/"
+     def baseAndroid = "dev.arunkumar.android"
+ 
+     repositories {
++        if (project.hasProperty('oldApkRepo')) { maven { url project.property('oldApkRepo') } }
+         google()
++        mavenCentral()
+         maven { url "https://jitpack.io" }
+         jcenter()
+         maven {
+@@ -64,6 +67,15 @@ allprojects {
+             resolutionStrategy {
+                 force "org.ow2.asm:asm:7.0"
+                 cacheChangingModulesFor 0, 'seconds'
++                dependencySubstitution {
++                    substitute module('io.paperdb:paperdb:2.6') with module('com.github.pilgr:Paper:2.6')
++                    substitute module('in.arunkumarsampath:suggestions:1.0.3') with module('com.github.arunkumar9t2:rxSuggestions:1.0.3')
++                    substitute module('in.arunkumarsampath:transition-x:1.1.0') with module('com.github.arunkumar9t2:transition-x:v1.1.0')
++                    substitute module('com.flipboard:bottomsheet-core:1.5.1') with module('com.github.Flipboard.bottomsheet:bottomsheet-core:1.5.1')
++                    substitute module('com.flipboard:bottomsheet-commons:1.5.1') with module('com.github.Flipboard.bottomsheet:bottomsheet-commons:1.5.1')
++                    substitute module('com.github.chrisbanes:PhotoView:1.3.1') with module('com.github.chrisbanes:PhotoView:1.3.0')
++                    substitute module('com.github.florent37:shapeofview:1.4.7') with module('io.github.florent37:shapeofview:1.4.7')
++                }
+             }
+         }
+     }
+diff --git a/android-app/buildSrc/build.gradle.kts b/android-app/buildSrc/build.gradle.kts
+index 203c3bf6..1fa26690 100644
+--- a/android-app/buildSrc/build.gradle.kts
++++ b/android-app/buildSrc/build.gradle.kts
+@@ -4,6 +4,7 @@ plugins {
+ }
+ 
+ repositories {
++    mavenCentral()
+     jcenter()
+ }
+ 
+diff --git a/android-app/disk-cache/build.gradle b/android-app/disk-cache/build.gradle
+index 4ad7dc13..01ad9035 100644
+--- a/android-app/disk-cache/build.gradle
++++ b/android-app/disk-cache/build.gradle
+@@ -20,6 +20,7 @@ apply plugin: 'com.android.library'
+ 
+ android {
+     compileSdkVersion 28
++    buildToolsVersion "30.0.3"
+ 
+     defaultConfig {
+         minSdkVersion 16
+diff --git a/android-app/gradle.properties b/android-app/gradle.properties
+index c8ca5e3c..791f70e5 100644
+--- a/android-app/gradle.properties
++++ b/android-app/gradle.properties
+@@ -32,4 +32,5 @@ kapt.incremental.apt=true
+ # Kotlin configurations
+ kotlin.incremental.usePreciseJavaTracking=true
+ # Test
+-android.enableUnitTestBinaryResources=true
+\ No newline at end of file
++android.enableUnitTestBinaryResources=true
++android.builder.sdkDownload=false
