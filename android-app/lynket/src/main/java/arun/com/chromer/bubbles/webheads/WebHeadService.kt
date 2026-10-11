@@ -142,7 +142,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
           if (color != NO_COLOR) controller?.all?.forEach { it.colour = Color(color) }
         }
         ACTION_CLOSE_WEBHEAD_BY_URL -> {
-          @Suppress("DEPRECATION") // sdlc-debt: typed getParcelableExtra needs API 33; minSdk is 24.
+          @Suppress("DEPRECATION") // sdlc-debt: typed getParcelableExtra needs API 33; minSdk is 24. Upgrade: IntentCompat.getParcelableExtra.
           val website = intent.getParcelableExtra<Website>(EXTRA_KEY_WEBSITE)
           website?.let { controller?.close(it.url) }
         }
@@ -171,13 +171,15 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   override fun getNotificationId(): Int = 1
 
   override fun getNotification(): Notification {
-    val channel = NotificationChannel(
-      WebHeadService::class.java.name,
-      getString(R.string.web_heads_service),
-      NotificationManager.IMPORTANCE_MIN
-    )
-    channel.description = getString(R.string.app_detection_notification_channel_description)
-    (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(channel)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val channel = NotificationChannel(
+        WebHeadService::class.java.name,
+        getString(R.string.web_heads_service),
+        NotificationManager.IMPORTANCE_MIN
+      )
+      channel.description = getString(R.string.app_detection_notification_channel_description)
+      (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(channel)
+    }
 
     var flags = PendingIntent.FLAG_UPDATE_CURRENT
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
