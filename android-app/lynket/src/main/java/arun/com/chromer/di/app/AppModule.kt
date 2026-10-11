@@ -20,11 +20,9 @@
 
 package arun.com.chromer.di.app
 
-import android.app.Application
 import arun.com.chromer.browsing.icons.DefaultWebsiteIconsProvider
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.di.viewmodel.ViewModelModule
-import arun.com.chromer.settings.Preferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,11 +32,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 open class AppModule {
-  @Provides
-  @Singleton
-  internal fun providesPreferences(application: Application): Preferences =
-    Preferences.get(application)
-
   // Phase 8: RxEventBus removed - migrated to modern EventBus (arun.com.chromer.util.events.EventBus)
   // EventBus is now provided by Hilt @Singleton annotation
 

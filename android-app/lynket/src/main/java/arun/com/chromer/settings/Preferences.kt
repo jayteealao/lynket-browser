@@ -23,58 +23,82 @@ package arun.com.chromer.settings
 
 import android.content.ComponentName
 import android.content.Context
-import android.content.SharedPreferences
-import android.preference.PreferenceManager
-import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.browsing.customtabs.CustomTabs
+import arun.com.chromer.data.preferences.SettingsSchema
+import arun.com.chromer.data.preferences.UserPreferencesRepository
+import arun.com.chromer.data.preferences.readBoolean
+import arun.com.chromer.data.preferences.readInt
+import arun.com.chromer.data.preferences.readString
 import arun.com.chromer.shared.Constants.CHROME_PACKAGE
 import arun.com.chromer.util.Utils
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Created by Arun on 05/01/2016.
+ * Synchronous access to the settings for code that reads a value at once (tiles, receivers, the
+ * link path, the legacy screens). Every read and write goes to the settings DataStore through
+ * [UserPreferencesRepository]: reads use its hot copy, and a write finishes before the setter
+ * returns, so the next read anywhere sees it.
  */
 @Singleton
-class Preferences @Inject constructor(context: Context) {
+class Preferences @Inject constructor(
+  @ApplicationContext context: Context,
+  private val repository: UserPreferencesRepository,
+) {
   private val context: Context = context.applicationContext
 
-  /**
-   * Returns default shared preferences.
-   *
-   * @return [SharedPreferences] instance
-   */
-  val defaultSharedPreferences: SharedPreferences
-    get() = PreferenceManager.getDefaultSharedPreferences(context)
+  private fun bool(name: String): Boolean =
+    repository.current().readBoolean(name, SettingsSchema.require(name).default(context) as Boolean)
+
+  private fun int(name: String): Int =
+    repository.current().readInt(name, SettingsSchema.require(name).default(context) as Int)
+
+  private fun string(name: String): String? =
+    repository.current().readString(name, SettingsSchema.require(name).default(context) as String?)
+
+  private fun put(name: String, value: Any?) {
+    runBlocking(Dispatchers.IO) { repository.setValue(name, value) }
+  }
 
   val isFirstRun: Boolean
     get() {
-      if (defaultSharedPreferences.getBoolean(FIRST_RUN, true)) {
-        defaultSharedPreferences.edit().putBoolean(FIRST_RUN, false).apply()
+      if (bool(FIRST_RUN)) {
+        put(FIRST_RUN, false)
         return true
       }
       return false
     }
 
+  fun versionCode(): Int = int(VERSION_CODE)
+
+  fun versionCode(versionCode: Int) = put(VERSION_CODE, versionCode)
+
   fun isColoredToolbar(): Boolean {
-    return defaultSharedPreferences.getBoolean(TOOLBAR_COLOR_PREF, true)
+    return bool(TOOLBAR_COLOR_PREF)
   }
 
   fun toolbarColor(): Int {
-    return defaultSharedPreferences.getInt(TOOLBAR_COLOR, ContextCompat.getColor(context, R.color.colorPrimary))
+    return int(TOOLBAR_COLOR)
   }
 
   fun toolbarColor(selectedColor: Int) {
-    defaultSharedPreferences.edit().putInt(TOOLBAR_COLOR, selectedColor).apply()
+    put(TOOLBAR_COLOR, selectedColor)
   }
 
   fun webHeadColor(): Int {
-    return defaultSharedPreferences.getInt(WEB_HEADS_COLOR, ContextCompat.getColor(context, R.color.web_head_color))
+    return int(WEB_HEADS_COLOR)
   }
 
   fun webHeadColor(selectedColor: Int) {
-    defaultSharedPreferences.edit().putInt(WEB_HEADS_COLOR, selectedColor).apply()
+    put(WEB_HEADS_COLOR, selectedColor)
   }
 
   fun isAnimationEnabled(): Boolean {
@@ -82,23 +106,23 @@ class Preferences @Inject constructor(context: Context) {
   }
 
   fun animationType(): Int {
-    return defaultSharedPreferences.getString(ANIMATION_TYPE, "1")?.toInt() ?: 1
+    return int(ANIMATION_TYPE)
   }
 
   fun animationSpeed(): Int {
-    return defaultSharedPreferences.getString(ANIMATION_SPEED, "1")?.toInt() ?: 1
+    return int(ANIMATION_SPEED)
   }
 
   fun articleTheme(): Int {
-    return defaultSharedPreferences.getString(ARTICLE_THEME, "1")?.toInt() ?: 1
+    return int(ARTICLE_THEME)
   }
 
   fun preferredAction(): Int {
-    return defaultSharedPreferences.getString(PREFERRED_ACTION, "1")?.toInt() ?: 1
+    return int(PREFERRED_ACTION)
   }
 
   fun customTabPackage(): String? {
-    var packageName = defaultSharedPreferences.getString(PREFERRED_CUSTOM_TAB_PACKAGE, null)
+    var packageName = string(PREFERRED_CUSTOM_TAB_PACKAGE)
     if (packageName != null && Utils.isPackageInstalled(context, packageName)) {
       return packageName
     } else {
@@ -124,15 +148,15 @@ class Preferences @Inject constructor(context: Context) {
 
   fun customTabPackage(string: String?) {
     useWebView(false)
-    defaultSharedPreferences.edit().putString(PREFERRED_CUSTOM_TAB_PACKAGE, string).apply()
+    put(PREFERRED_CUSTOM_TAB_PACKAGE, string)
   }
 
   fun secondaryBrowserComponent(): String? {
-    return defaultSharedPreferences.getString(SECONDARY_PREF, null)
+    return string(SECONDARY_PREF)
   }
 
   fun secondaryBrowserComponent(componentString: String?) {
-    defaultSharedPreferences.edit().putString(SECONDARY_PREF, componentString).apply()
+    put(SECONDARY_PREF, componentString)
   }
 
   fun secondaryBrowserPackage(): String? {
@@ -142,11 +166,11 @@ class Preferences @Inject constructor(context: Context) {
   }
 
   fun favShareComponent(): String? {
-    return defaultSharedPreferences.getString(FAV_SHARE_PREF, null)
+    return string(FAV_SHARE_PREF)
   }
 
   fun favShareComponent(componentString: String?) {
-    defaultSharedPreferences.edit().putString(FAV_SHARE_PREF, componentString).apply()
+    put(FAV_SHARE_PREF, componentString)
   }
 
   fun favSharePackage(): String? {
@@ -156,96 +180,91 @@ class Preferences @Inject constructor(context: Context) {
   }
 
   fun warmUp(): Boolean {
-    return defaultSharedPreferences.getBoolean(WARM_UP, false)
+    return bool(WARM_UP)
   }
 
   fun warmUp(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(WARM_UP, preference).apply()
+    put(WARM_UP, preference)
   }
 
   fun preFetch(): Boolean {
-    return defaultSharedPreferences.getBoolean(PRE_FETCH, false)
+    return bool(PRE_FETCH)
   }
 
   fun ampMode(): Boolean {
-    return defaultSharedPreferences.getBoolean(AMP_MODE, false)
+    return bool(AMP_MODE)
   }
 
   fun ampMode(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(AMP_MODE, preference).apply()
+    put(AMP_MODE, preference)
   }
 
   fun articleMode(): Boolean {
-    return defaultSharedPreferences.getBoolean(ARTICLE_MODE, false)
+    return bool(ARTICLE_MODE)
   }
 
   fun articleMode(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(ARTICLE_MODE, preference).apply()
+    put(ARTICLE_MODE, preference)
   }
 
   fun historyDisabled(): Boolean {
-    return defaultSharedPreferences.getBoolean(INCOGNITO_MODE, false)
+    return bool(INCOGNITO_MODE)
   }
 
   fun historyDisabled(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(INCOGNITO_MODE, preference).apply()
+    put(INCOGNITO_MODE, preference)
   }
 
   fun fullIncognitoMode(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(FULL_INCOGNITO_MODE, preference).apply()
+    put(FULL_INCOGNITO_MODE, preference)
   }
 
   fun fullIncognitoMode(): Boolean {
-    return defaultSharedPreferences.getBoolean(FULL_INCOGNITO_MODE, false)
+    return bool(FULL_INCOGNITO_MODE)
   }
 
   fun useWebView(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(USE_WEBVIEW_PREF, preference).apply()
+    put(USE_WEBVIEW_PREF, preference)
   }
 
   fun useWebView(): Boolean {
-    return defaultSharedPreferences.getBoolean(USE_WEBVIEW_PREF, false)
-  }
-
-  fun minimizeToWebHead(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(MINIMIZE_BEHAVIOR_PREFERENCE, preference).apply()
+    return bool(USE_WEBVIEW_PREF)
   }
 
   fun minimizeToWebHead(): Boolean {
-    return defaultSharedPreferences
-      .getString(MINIMIZE_BEHAVIOR_PREFERENCE, "1") == MINIMIZE_BEHAVIOR_PREFERENCE_KEY
+    return string(MINIMIZE_BEHAVIOR_PREFERENCE) == MINIMIZE_BEHAVIOR_PREFERENCE_KEY
   }
 
   fun articleTextSizeIncrement(increment: Int) {
-    defaultSharedPreferences.edit().putInt(ARTICLE_TEXT_SIZE, increment).apply()
+    put(ARTICLE_TEXT_SIZE, increment)
   }
 
   fun articleTextSizeIncrement(): Int {
-    return defaultSharedPreferences.getInt(ARTICLE_TEXT_SIZE, 0)
+    return int(ARTICLE_TEXT_SIZE)
   }
 
   fun preFetch(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(PRE_FETCH, preference).apply()
+    put(PRE_FETCH, preference)
   }
 
   fun wifiOnlyPrefetch(): Boolean {
-    return defaultSharedPreferences.getBoolean(WIFI_PREFETCH, false)
+    return bool(WIFI_PREFETCH)
   }
 
   fun wifiOnlyPrefetch(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(WIFI_PREFETCH, preference).apply()
+    put(WIFI_PREFETCH, preference)
   }
 
   fun preFetchNotification(): Boolean {
-    return defaultSharedPreferences.getBoolean(PRE_FETCH_NOTIFICATION, true)
+    return bool(PRE_FETCH_NOTIFICATION)
   }
 
   fun preFetchNotification(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(PRE_FETCH_NOTIFICATION, preference).apply()
+    put(PRE_FETCH_NOTIFICATION, preference)
   }
 
   fun dynamicToolbar(): Boolean {
-    return defaultSharedPreferences.getBoolean(DYNAMIC_COLOR, false)
+    return bool(DYNAMIC_COLOR)
   }
 
   fun dynamiceToolbarEnabledAndWebEnabled(): Boolean {
@@ -253,33 +272,33 @@ class Preferences @Inject constructor(context: Context) {
   }
 
   fun dynamicToolbar(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(DYNAMIC_COLOR, preference).apply()
+    put(DYNAMIC_COLOR, preference)
   }
 
   fun dynamicToolbarOnApp(): Boolean {
-    return defaultSharedPreferences.getBoolean(DYNAMIC_COLOR_APP, false)
+    return bool(DYNAMIC_COLOR_APP)
   }
 
   private fun dynamicToolbarOnApp(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(DYNAMIC_COLOR_APP, preference).apply()
+    put(DYNAMIC_COLOR_APP, preference)
   }
 
   fun dynamicToolbarOnWeb(): Boolean {
-    return defaultSharedPreferences.getBoolean(DYNAMIC_COLOR_WEB, false)
+    return bool(DYNAMIC_COLOR_WEB)
   }
 
   private fun dynamicToolbarOnWeb(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(DYNAMIC_COLOR_WEB, preference).apply()
+    put(DYNAMIC_COLOR_WEB, preference)
   }
 
   fun aggressiveLoading(): Boolean {
     return Utils.ANDROID_LOLLIPOP &&
       webHeads() &&
-      defaultSharedPreferences.getBoolean(AGGRESSIVE_LOADING, false)
+      bool(AGGRESSIVE_LOADING)
   }
 
   fun aggressiveLoading(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(AGGRESSIVE_LOADING, preference).apply()
+    put(AGGRESSIVE_LOADING, preference)
   }
 
   fun dynamicColorSummary(): CharSequence {
@@ -292,60 +311,60 @@ class Preferences @Inject constructor(context: Context) {
   }
 
   fun webHeads(): Boolean {
-    return defaultSharedPreferences.getBoolean(WEB_HEAD_ENABLED, false)
+    return bool(WEB_HEAD_ENABLED)
   }
 
   fun webHeads(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(WEB_HEAD_ENABLED, preference).apply()
+    put(WEB_HEAD_ENABLED, preference)
   }
 
   fun favicons(): Boolean {
-    return defaultSharedPreferences.getBoolean(WEB_HEAD_FAVICON, true)
+    return bool(WEB_HEAD_FAVICON)
   }
 
   fun favicons(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(WEB_HEAD_FAVICON, preference).apply()
+    put(WEB_HEAD_FAVICON, preference)
   }
 
   fun webHeadsSpawnLocation(): Int {
-    return defaultSharedPreferences.getString(WEB_HEAD_SPAWN_LOCATION, "1")?.toInt() ?: 1
+    return int(WEB_HEAD_SPAWN_LOCATION)
   }
 
   fun webHeadsSize(): Int {
-    return defaultSharedPreferences.getString(WEB_HEAD_SIZE, "1")?.toInt() ?: 1
+    return int(WEB_HEAD_SIZE)
   }
 
   fun webHeadsCloseOnOpen(): Boolean {
-    return defaultSharedPreferences.getBoolean(WEB_HEAD_CLOSE_ON_OPEN, false)
+    return bool(WEB_HEAD_CLOSE_ON_OPEN)
   }
 
   fun webHeadsCloseOnOpen(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(WEB_HEAD_CLOSE_ON_OPEN, preference).apply()
+    put(WEB_HEAD_CLOSE_ON_OPEN, preference)
   }
 
   fun perAppSettings(): Boolean {
-    return defaultSharedPreferences.getBoolean(PER_APP_SETTINGS, false)
+    return bool(PER_APP_SETTINGS)
   }
 
   fun perAppSettings(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(PER_APP_SETTINGS, preference).apply()
+    put(PER_APP_SETTINGS, preference)
   }
 
   @Suppress("BooleanMethodIsAlwaysInverted")
   fun mergeTabs(): Boolean {
-    return Utils.isLollipopAbove() && defaultSharedPreferences.getBoolean(MERGE_TABS_AND_APPS, true)
+    return Utils.isLollipopAbove() && bool(MERGE_TABS_AND_APPS)
   }
 
   fun mergeTabs(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(MERGE_TABS_AND_APPS, preference).apply()
+    put(MERGE_TABS_AND_APPS, preference)
   }
 
   fun bottomBar(): Boolean {
-    return defaultSharedPreferences.getBoolean(BOTTOM_BAR_ENABLED, true)
+    return bool(BOTTOM_BAR_ENABLED)
   }
 
   fun bottomBar(preference: Boolean) {
-    defaultSharedPreferences.edit().putBoolean(BOTTOM_BAR_ENABLED, preference).apply()
+    put(BOTTOM_BAR_ENABLED, preference)
   }
 
   fun isAppBasedToolbar(): Boolean {
@@ -399,14 +418,22 @@ class Preferences @Inject constructor(context: Context) {
     private const val SECONDARY_PREF = "secondary_preference"
     private const val FAV_SHARE_PREF = "fav_share_preference"
 
-    // Singleton instance
-    @Volatile
-    private var INSTANCE: Preferences? = null
+    const val VERSION_CODE = "version_code"
+
+    /** The one Hilt instance, for classes that are not injected. */
+    @JvmStatic
+    fun get(context: Context): Preferences = entryPoint(context).preferences()
 
     @JvmStatic
-    @Synchronized
-    fun get(context: Context): Preferences {
-      return INSTANCE ?: Preferences(context).also { INSTANCE = it }
-    }
+    fun entryPoint(context: Context): PreferencesEntryPoint =
+      EntryPointAccessors.fromApplication(context.applicationContext, PreferencesEntryPoint::class.java)
   }
+}
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface PreferencesEntryPoint {
+  fun preferences(): Preferences
+
+  fun userPreferencesRepository(): UserPreferencesRepository
 }

@@ -24,11 +24,12 @@ import android.app.Application
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.multidex.MultiDex
+import arun.com.chromer.data.apps.store.AppDiskStore
+import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.util.ServiceManager
 import arun.com.chromer.util.drawer.GlideDrawerImageLoader
 import com.airbnb.epoxy.EpoxyController
 import com.mikepenz.materialdrawer.util.DrawerImageLoader
-// Phase 3: PaperDB removed - legacy data storage replaced with Room + DataStore
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -37,7 +38,8 @@ import javax.inject.Inject
  * Lynket Browser Application Class
  *
  * Phase 1.2: Migrated to Hilt (@HiltAndroidApp)
- * Phase 3: PaperDB removed (legacy storage)
+ * Settings and per-app rules live in DataStore; release 2.1.3's PaperDB rules are read once by
+ * the per-app rule store's migration.
  */
 @HiltAndroidApp
 open class Lynket : Application() {
@@ -45,9 +47,20 @@ open class Lynket : Application() {
   @Inject
   lateinit var glideDrawerImageLoader: GlideDrawerImageLoader
 
+  // Injecting the two stores starts their hot copies on the IO scope without blocking.
+  @Inject
+  lateinit var userPreferencesRepository: UserPreferencesRepository
+
+  @Inject
+  lateinit var appDiskStore: AppDiskStore
+
   override fun onCreate() {
     super.onCreate()
-    // Phase 3: Paper.init(this) removed - no longer using PaperDB
+    Timber.d(
+      "Stores warming up: settings ready=%b, per-app rules ready=%b",
+      userPreferencesRepository.snapshot.value != null,
+      appDiskStore.snapshot.value != null,
+    )
 
     if (BuildConfig.DEBUG) {
       // TODO: RxDogTag removed - no longer needed as RxJava is being phased out

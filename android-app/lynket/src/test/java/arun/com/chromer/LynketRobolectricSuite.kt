@@ -20,6 +20,7 @@
 package arun.com.chromer
 
 import android.app.Application
+import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.settings.Preferences
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltTestApplication
@@ -29,6 +30,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 
@@ -41,6 +43,9 @@ abstract class LynketRobolectricSuite {
   @Inject
   lateinit var preferences: Preferences
 
+  @Inject
+  lateinit var userPreferencesRepository: UserPreferencesRepository
+
   val application: Application get() = RuntimeEnvironment.getApplication()
 
   @Before
@@ -50,7 +55,7 @@ abstract class LynketRobolectricSuite {
 
 
   internal fun clearPreferences() {
-    preferences.defaultSharedPreferences.edit()?.clear()?.commit()
+    runBlocking { userPreferencesRepository.clearAll() }
   }
 }
 

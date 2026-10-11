@@ -28,7 +28,7 @@ coroutines = "1.9.0"
 
 # Data & Persistence
 room = "2.8.5"
-datastore = "1.1.1"
+datastore = "1.2.1"
 paging = "3.3.5"
 pagingCompose = "3.3.5"
 
@@ -49,7 +49,7 @@ epoxy = "4.6.4"
 materialDrawer = "6.1.2"
 materialDialogs = "3.3.0"
 appIntro = "4.2.3"
-paperdb = "2.7.2"
+paperdb = "2.6"
 
 # Testing
 junit = "4.13.2"
@@ -124,6 +124,7 @@ androidx-room-paging = { group = "androidx.room", name = "room-paging", version.
 # DataStore
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-datastore-core = { group = "androidx.datastore", name = "datastore-core", version.ref = "datastore" }
+paperdb = { group = "com.github.pilgr", name = "Paper", version.ref = "paperdb" }
 
 # Paging
 androidx-paging-runtime-ktx = { group = "androidx.paging", name = "paging-runtime-ktx", version.ref = "paging" }

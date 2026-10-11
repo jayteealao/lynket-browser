@@ -22,7 +22,6 @@
 package arun.com.chromer.settings.lookandfeel
 
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -30,9 +29,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import androidx.preference.PreferenceManager
 import arun.com.chromer.R
 import arun.com.chromer.settings.Preferences
+import arun.com.chromer.settings.onSettingChanges
 import arun.com.chromer.shared.Constants.ACTION_TOOLBAR_COLOR_SET
 import arun.com.chromer.shared.Constants.ACTION_WEBHEAD_COLOR_SET
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
@@ -43,7 +42,7 @@ import butterknife.ButterKnife
 import com.afollestad.materialdialogs.color.ColorChooserDialog
 import com.google.android.material.snackbar.Snackbar
 
-class LookAndFeelActivity : AppCompatActivity(), ColorChooserDialog.ColorCallback, Snackable, SharedPreferences.OnSharedPreferenceChangeListener {
+class LookAndFeelActivity : AppCompatActivity(), ColorChooserDialog.ColorCallback, Snackable {
   @BindView(R.id.toolbar)
   lateinit var toolbar: Toolbar
   @BindView(R.id.coordinatorLayout)
@@ -64,11 +63,16 @@ class LookAndFeelActivity : AppCompatActivity(), ColorChooserDialog.ColorCallbac
       .replace(R.id.web_head_options_preferences_container, WebHeadPreferenceFragment.newInstance())
       .replace(R.id.article_options_preferences_container, ArticlePreferenceFragment.newInstance())
       .commit()
+
+    onSettingChanges(Preferences.entryPoint(this).userPreferencesRepository()) { key ->
+      if (Preferences.WEB_HEAD_ENABLED.equals(key, ignoreCase = true)) {
+        showHideErrorView()
+      }
+    }
   }
 
   override fun onResume() {
     super.onResume()
-    PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this)
     showHideErrorView()
   }
 
@@ -78,11 +82,6 @@ class LookAndFeelActivity : AppCompatActivity(), ColorChooserDialog.ColorCallbac
     } else {
       View.GONE
     }
-  }
-
-  override fun onPause() {
-    PreferenceManager.getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(this)
-    super.onPause()
   }
 
   override fun onColorSelection(dialog: ColorChooserDialog, selectedColor: Int) {
@@ -109,11 +108,5 @@ class LookAndFeelActivity : AppCompatActivity(), ColorChooserDialog.ColorCallbac
 
   override fun snackLong(message: String) {
     Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG).show()
-  }
-
-  override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
-    if (Preferences.WEB_HEAD_ENABLED.equals(key, ignoreCase = true)) {
-      showHideErrorView()
-    }
   }
 }

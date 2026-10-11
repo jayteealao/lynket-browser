@@ -22,7 +22,6 @@
 package arun.com.chromer.settings.browsingoptions
 
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Handler
 import androidx.core.content.ContextCompat
@@ -98,7 +97,7 @@ class BehaviorPreferenceFragment : BasePreferenceFragment() {
     }
   }
 
-  override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+  override fun onSettingChanged(key: String) {
     if (key.equals(Preferences.AGGRESSIVE_LOADING, ignoreCase = true)) {
       if (Preferences.get(requireContext()).aggressiveLoading()) {
         mergeTabsPreference?.isChecked = true

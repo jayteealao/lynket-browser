@@ -20,7 +20,6 @@
 
 package arun.com.chromer.settings.browsingoptions
 
-import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import androidx.preference.SwitchPreference
@@ -32,8 +31,7 @@ import arun.com.chromer.util.Utils
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 
-class BottomBarPreferenceFragment : BasePreferenceFragment(),
-  SharedPreferences.OnSharedPreferenceChangeListener {
+class BottomBarPreferenceFragment : BasePreferenceFragment() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -63,8 +61,8 @@ class BottomBarPreferenceFragment : BasePreferenceFragment(),
     updatePreferenceSummary(Preferences.MINIMIZE_BEHAVIOR_PREFERENCE)
   }
 
-  override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
-    key?.let { updatePreferenceSummary(it) }
+  override fun onSettingChanged(key: String) {
+    updatePreferenceSummary(key)
   }
 
   companion object {

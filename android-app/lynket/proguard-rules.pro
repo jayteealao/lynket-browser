@@ -88,3 +88,12 @@
     long consumerNode;
 }
 
+
+# One-time read of the per-app rules that release 2.1.3 saved with PaperDB (Kryo). Kryo finds
+# classes and fields by name, and the stored records name the App class and its five fields.
+-keep class io.paperdb.** { *; }
+-keep class com.esotericsoftware.** { *; }
+-keep class org.objenesis.** { *; }
+-keepnames class arun.com.chromer.data.common.App
+-keepclassmembernames class arun.com.chromer.data.common.App { <fields>; }
+-keepclassmembers class arun.com.chromer.data.common.App { <init>(); }

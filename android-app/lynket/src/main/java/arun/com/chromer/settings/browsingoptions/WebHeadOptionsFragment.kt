@@ -21,7 +21,6 @@
 // Phase 7: Converted to Kotlin
 package arun.com.chromer.settings.browsingoptions
 
-import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
@@ -61,7 +60,7 @@ class WebHeadOptionsFragment : BasePreferenceFragment() {
     }
   }
 
-  override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+  override fun onSettingChanged(key: String) {
     updatePreferenceStates(key)
     updatePreferenceSummary(key)
     if (key.equals(Preferences.MERGE_TABS_AND_APPS, ignoreCase = true)) {

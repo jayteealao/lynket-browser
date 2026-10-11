@@ -102,6 +102,11 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            all {
+                // PaperDB's Kryo setup reflects into java.util, which JDK 17+ closes to the
+                // classpath; Android has no module system, so this is needed on the JVM only.
+                it.jvmArgs("--add-opens", "java.base/java.util=ALL-UNNAMED")
+            }
         }
     }
 }
@@ -162,6 +167,8 @@ dependencies {
     // DataStore
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.datastore.core)
+    // One-time read of the per-app rules that release 2.1.3 saved with PaperDB
+    implementation(libs.paperdb)
 
     // Paging 3
     implementation(libs.androidx.paging.runtime.ktx)
@@ -219,8 +226,6 @@ dependencies {
     kapt(libs.epoxy.processor)
 
     // Phase 8: RxJava dependencies removed - migrated to Kotlin Coroutines/Flows
-
-    // Phase 3: PaperDB removed - migrated to Room + DataStore + in-memory caches
 
     // Legacy: UI Libraries
     implementation("com.afollestad.material-dialogs:core:0.9.6.0")

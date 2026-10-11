@@ -25,7 +25,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
@@ -39,7 +38,7 @@ import com.afollestad.materialdialogs.color.ColorChooserDialog
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 
-class WebHeadPreferenceFragment : BasePreferenceFragment(), SharedPreferences.OnSharedPreferenceChangeListener {
+class WebHeadPreferenceFragment : BasePreferenceFragment() {
 
   private val SUMMARY_GROUP = arrayOf(
     Preferences.WEB_HEAD_SPAWN_LOCATION,
@@ -82,7 +81,7 @@ class WebHeadPreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
     super.onPause()
   }
 
-  override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+  override fun onSettingChanged(key: String) {
     updatePreferenceStates(key)
     updatePreferenceSummary(key)
   }

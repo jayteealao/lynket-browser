@@ -21,7 +21,6 @@
 // Phase 7: Converted to Kotlin
 package arun.com.chromer.settings.browsingmode
 
-import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
@@ -32,7 +31,7 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 
-class BrowseFasterPreferenceFragment : BasePreferenceFragment(), SharedPreferences.OnSharedPreferenceChangeListener {
+class BrowseFasterPreferenceFragment : BasePreferenceFragment() {
 
   private var dialog: MaterialDialog? = null
 
@@ -95,17 +94,7 @@ class BrowseFasterPreferenceFragment : BasePreferenceFragment(), SharedPreferenc
     dialog?.dismiss()
   }
 
-  override fun onResume() {
-    super.onResume()
-    sharedPreferences.registerOnSharedPreferenceChangeListener(this)
-  }
-
-  override fun onPause() {
-    sharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
-    super.onPause()
-  }
-
-  override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+  override fun onSettingChanged(key: String) {
   }
 
   companion object {

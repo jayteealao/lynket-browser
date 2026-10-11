@@ -130,7 +130,10 @@ constructor(
       clearNonBrowsingActivities()
     }
     // Open in web heads mode if we this command did not come from web heads.
-    if ((preferences.webHeads() || rxPreferences.nativeBubbles.get()) && !fromWebHeads) {
+    val webHeads = preferences.webHeads()
+    val nativeBubbles = rxPreferences.nativeBubbles.get()
+    Timber.d("Open %s: webHeads=%b nativeBubbles=%b", website.url, webHeads, nativeBubbles)
+    if ((webHeads || nativeBubbles) && !fromWebHeads) {
       openWebHeads(context, website = website, fromMinimize = fromAmp, incognito = incognito)
       return
     }

@@ -13,7 +13,10 @@ package arun.com.chromer.data.preferences
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
+import arun.com.chromer.di.hilt.ApplicationScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -22,24 +25,45 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Phase 1.4: Modern preferences repository using DataStore
+ * The settings store of the app: one Preferences DataStore holding every key of [SettingsSchema].
  *
- * Replaces legacy SharedPreferences (Preferences.java) with DataStore.
- * Provides type-safe, asynchronous access to app preferences using Kotlin Flow.
+ * - [userPreferencesFlow] and [snapshot] for readers that observe;
+ * - [current] for readers that need a value at once (the `Preferences` facade, tiles, receivers);
+ * - [set] and the named setters for writers; each write is visible to [current] when it returns.
  *
- * Benefits over SharedPreferences:
- * - Asynchronous API (no blocking UI thread)
- * - Type-safe with compile-time checks
- * - Observable via Flow (reactive updates)
- * - Transactional updates (data consistency)
- * - Built-in migration from SharedPreferences
- *
- * All preferences are exposed as Flows that emit whenever values change.
+ * Values are read with type tolerance: a value stored with the wrong type yields the default and
+ * a warning, never a crash.
  */
 @Singleton
 class UserPreferencesRepository @Inject constructor(
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    @ApplicationScope appScope: CoroutineScope,
 ) {
+    private val store = PreferencesSnapshot(dataStore, appScope)
+
+    /** Latest stored values; null until the first read finishes. */
+    val snapshot: StateFlow<Preferences?> get() = store.flow
+
+    /** Latest stored values, waiting once for the first read if it has not finished. */
+    fun current(): Preferences = store.current()
+
+    /** Reads the store itself, bypassing the hot copy. */
+    suspend fun fresh(): Preferences = store.fresh()
+
+    /** Writes [value] under [key]; null removes the key. */
+    suspend fun <T> set(key: Preferences.Key<T>, value: T?) {
+        store.edit { preferences ->
+            if (value == null) preferences.remove(key) else preferences[key] = value
+        }
+    }
+
+    /** Writes [value] under [name] with the key type of the value; null removes the key. */
+    suspend fun setValue(name: String, value: Any?) {
+        store.edit { preferences ->
+            preferences.remove(stringPreferencesKey(name))
+            if (value != null) preferences[keyFor(name, value)] = value
+        }
+    }
 
     /**
      * Data class representing all user preferences.
@@ -148,40 +172,40 @@ class UserPreferencesRepository @Inject constructor(
      */
     private fun mapPreferences(preferences: Preferences): UserPreferences {
         return UserPreferences(
-            isFirstRun = preferences[PreferencesKeys.FIRST_RUN] ?: true,
-            isColoredToolbar = preferences[PreferencesKeys.TOOLBAR_COLOR_PREF] ?: true,
-            toolbarColor = preferences[PreferencesKeys.TOOLBAR_COLOR] ?: 0,
-            dynamicToolbar = preferences[PreferencesKeys.DYNAMIC_COLOR] ?: false,
-            dynamicToolbarOnApp = preferences[PreferencesKeys.DYNAMIC_COLOR_APP] ?: false,
-            dynamicToolbarOnWeb = preferences[PreferencesKeys.DYNAMIC_COLOR_WEB] ?: false,
-            webHeadsEnabled = preferences[PreferencesKeys.WEB_HEAD_ENABLED] ?: false,
-            webHeadsColor = preferences[PreferencesKeys.WEB_HEADS_COLOR] ?: 0,
-            webHeadsFavicons = preferences[PreferencesKeys.WEB_HEAD_FAVICON] ?: true,
-            webHeadsSpawnLocation = preferences[PreferencesKeys.WEB_HEAD_SPAWN_LOCATION] ?: 1,
-            webHeadsSize = preferences[PreferencesKeys.WEB_HEAD_SIZE] ?: 1,
-            webHeadsCloseOnOpen = preferences[PreferencesKeys.WEB_HEAD_CLOSE_ON_OPEN] ?: false,
-            animationType = preferences[PreferencesKeys.ANIMATION_TYPE] ?: 1,
-            animationSpeed = preferences[PreferencesKeys.ANIMATION_SPEED] ?: 1,
-            preferredCustomTabPackage = preferences[PreferencesKeys.PREFERRED_CUSTOM_TAB_PACKAGE],
-            secondaryBrowserComponent = preferences[PreferencesKeys.SECONDARY_PREF],
-            useWebView = preferences[PreferencesKeys.USE_WEBVIEW_PREF] ?: false,
-            preferredAction = preferences[PreferencesKeys.PREFERRED_ACTION] ?: 1,
-            articleMode = preferences[PreferencesKeys.ARTICLE_MODE] ?: false,
-            articleTheme = preferences[PreferencesKeys.ARTICLE_THEME] ?: 1,
-            articleTextSizeIncrement = preferences[PreferencesKeys.ARTICLE_TEXT_SIZE] ?: 0,
-            ampMode = preferences[PreferencesKeys.AMP_MODE] ?: false,
-            incognitoMode = preferences[PreferencesKeys.INCOGNITO_MODE] ?: false,
-            fullIncognitoMode = preferences[PreferencesKeys.FULL_INCOGNITO_MODE] ?: false,
-            bottomBarEnabled = preferences[PreferencesKeys.BOTTOM_BAR_ENABLED] ?: true,
-            mergeTabsAndApps = preferences[PreferencesKeys.MERGE_TABS_AND_APPS] ?: true,
-            perAppSettings = preferences[PreferencesKeys.PER_APP_SETTINGS] ?: false,
-            warmUp = preferences[PreferencesKeys.WARM_UP] ?: false,
-            preFetch = preferences[PreferencesKeys.PRE_FETCH] ?: false,
-            wifiOnlyPrefetch = preferences[PreferencesKeys.WIFI_PREFETCH] ?: false,
-            preFetchNotification = preferences[PreferencesKeys.PRE_FETCH_NOTIFICATION] ?: true,
-            aggressiveLoading = preferences[PreferencesKeys.AGGRESSIVE_LOADING] ?: false,
-            favShareComponent = preferences[PreferencesKeys.FAV_SHARE_PREF],
-            minimizeBehavior = preferences[PreferencesKeys.MINIMIZE_BEHAVIOR_PREFERENCE] ?: "1"
+            isFirstRun = preferences.readBoolean("firstrun_3", true),
+            isColoredToolbar = preferences.readBoolean("toolbar_color_pref", true),
+            toolbarColor = preferences.readInt("toolbar_color", 0),
+            dynamicToolbar = preferences.readBoolean("dynamic_color", false),
+            dynamicToolbarOnApp = preferences.readBoolean("dynamic_color_app", false),
+            dynamicToolbarOnWeb = preferences.readBoolean("dynamic_color_web", false),
+            webHeadsEnabled = preferences.readBoolean("webhead_enabled_pref", false),
+            webHeadsColor = preferences.readInt("webhead_color", 0),
+            webHeadsFavicons = preferences.readBoolean("webhead_favicons_pref", true),
+            webHeadsSpawnLocation = preferences.readInt("webhead_spawn_preference", 1),
+            webHeadsSize = preferences.readInt("webhead_size_preference", 1),
+            webHeadsCloseOnOpen = preferences.readBoolean("webhead_close_onclick_pref", false),
+            animationType = preferences.readInt("animation_preference", 1),
+            animationSpeed = preferences.readInt("animation_speed_preference", 1),
+            preferredCustomTabPackage = preferences.readString("preferred_package", null),
+            secondaryBrowserComponent = preferences.readString("secondary_preference", null),
+            useWebView = preferences.readBoolean("use_webview_pref", false),
+            preferredAction = preferences.readInt("preferred_action_preference", 1),
+            articleMode = preferences.readBoolean("article_mode_pref", false),
+            articleTheme = preferences.readInt("article_theme_preference", 1),
+            articleTextSizeIncrement = preferences.readInt("article_text_size_pref", 0),
+            ampMode = preferences.readBoolean("amp_mode_pref", false),
+            incognitoMode = preferences.readBoolean("incognito_mode_pref", false),
+            fullIncognitoMode = preferences.readBoolean("full_incognito_mode", false),
+            bottomBarEnabled = preferences.readBoolean("bottombar_enabled_preference", true),
+            mergeTabsAndApps = preferences.readBoolean("merge_tabs_and_apps_preference", true),
+            perAppSettings = preferences.readBoolean("blacklist_preference", false),
+            warmUp = preferences.readBoolean("warm_up_preference", false),
+            preFetch = preferences.readBoolean("pre_fetch_preference", false),
+            wifiOnlyPrefetch = preferences.readBoolean("wifi_preference", false),
+            preFetchNotification = preferences.readBoolean("pre_fetch_notification_preference", true),
+            aggressiveLoading = preferences.readBoolean("aggressive_loading", false),
+            favShareComponent = preferences.readString("fav_share_preference", null),
+            minimizeBehavior = preferences.readString("minimize_behavior_preference", "1") ?: "1",
         )
     }
 
@@ -189,109 +213,109 @@ class UserPreferencesRepository @Inject constructor(
     // Suspend functions for updating individual preferences
 
     suspend fun setFirstRunComplete() {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.FIRST_RUN] = false
         }
     }
 
     suspend fun setToolbarColor(color: Int) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.TOOLBAR_COLOR] = color
         }
     }
 
     suspend fun setColoredToolbar(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.TOOLBAR_COLOR_PREF] = enabled
         }
     }
 
     suspend fun setWebHeadsEnabled(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.WEB_HEAD_ENABLED] = enabled
         }
     }
 
     suspend fun setWebHeadsColor(color: Int) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.WEB_HEADS_COLOR] = color
         }
     }
 
     suspend fun setWebHeadsFavicons(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.WEB_HEAD_FAVICON] = enabled
         }
     }
 
     suspend fun setWebHeadsCloseOnOpen(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.WEB_HEAD_CLOSE_ON_OPEN] = enabled
         }
     }
 
     suspend fun setDynamicToolbar(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.DYNAMIC_COLOR] = enabled
         }
     }
 
     suspend fun setDynamicToolbarOnApp(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.DYNAMIC_COLOR_APP] = enabled
         }
     }
 
     suspend fun setDynamicToolbarOnWeb(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.DYNAMIC_COLOR_WEB] = enabled
         }
     }
 
     suspend fun setAmpMode(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.AMP_MODE] = enabled
         }
     }
 
     suspend fun setArticleMode(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.ARTICLE_MODE] = enabled
         }
     }
 
     suspend fun setArticleTheme(theme: Int) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.ARTICLE_THEME] = theme
         }
     }
 
     suspend fun setArticleTextSizeIncrement(increment: Int) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.ARTICLE_TEXT_SIZE] = increment
         }
     }
 
     suspend fun setIncognitoMode(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.INCOGNITO_MODE] = enabled
         }
     }
 
     suspend fun setFullIncognitoMode(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.FULL_INCOGNITO_MODE] = enabled
         }
     }
 
     suspend fun setUseWebView(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.USE_WEBVIEW_PREF] = enabled
         }
     }
 
     suspend fun setCustomTabPackage(packageName: String?) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             if (packageName != null) {
                 preferences[PreferencesKeys.PREFERRED_CUSTOM_TAB_PACKAGE] = packageName
             } else {
@@ -303,7 +327,7 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun setSecondaryBrowserComponent(component: String?) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             if (component != null) {
                 preferences[PreferencesKeys.SECONDARY_PREF] = component
             } else {
@@ -313,7 +337,7 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun setFavShareComponent(component: String?) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             if (component != null) {
                 preferences[PreferencesKeys.FAV_SHARE_PREF] = component
             } else {
@@ -323,85 +347,85 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun setWarmUp(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.WARM_UP] = enabled
         }
     }
 
     suspend fun setPreFetch(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.PRE_FETCH] = enabled
         }
     }
 
     suspend fun setWifiOnlyPrefetch(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.WIFI_PREFETCH] = enabled
         }
     }
 
     suspend fun setPreFetchNotification(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.PRE_FETCH_NOTIFICATION] = enabled
         }
     }
 
     suspend fun setAggressiveLoading(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.AGGRESSIVE_LOADING] = enabled
         }
     }
 
     suspend fun setBottomBar(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.BOTTOM_BAR_ENABLED] = enabled
         }
     }
 
     suspend fun setMergeTabs(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.MERGE_TABS_AND_APPS] = enabled
         }
     }
 
     suspend fun setPerAppSettings(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.PER_APP_SETTINGS] = enabled
         }
     }
 
     suspend fun setMinimizeBehavior(behavior: String) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.MINIMIZE_BEHAVIOR_PREFERENCE] = behavior
         }
     }
 
     suspend fun setAnimationType(type: Int) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.ANIMATION_TYPE] = type
         }
     }
 
     suspend fun setAnimationSpeed(speed: Int) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.ANIMATION_SPEED] = speed
         }
     }
 
     suspend fun setPreferredAction(action: Int) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.PREFERRED_ACTION] = action
         }
     }
 
     suspend fun setWebHeadsSpawnLocation(location: Int) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.WEB_HEAD_SPAWN_LOCATION] = location
         }
     }
 
     suspend fun setWebHeadsSize(size: Int) {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences[PreferencesKeys.WEB_HEAD_SIZE] = size
         }
     }
@@ -410,7 +434,7 @@ class UserPreferencesRepository @Inject constructor(
      * Clear all preferences (for testing or reset)
      */
     suspend fun clearAll() {
-        dataStore.edit { preferences ->
+        store.edit { preferences ->
             preferences.clear()
         }
     }

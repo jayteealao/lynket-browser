@@ -33,10 +33,10 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.Toast
-import androidx.preference.PreferenceManager
 import com.afollestad.materialdialogs.MaterialDialog
 import arun.com.chromer.BuildConfig
 import arun.com.chromer.R
+import arun.com.chromer.settings.Preferences
 import arun.com.chromer.util.Utils
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar
 
@@ -44,7 +44,6 @@ import me.zhanghai.android.materialprogressbar.MaterialProgressBar
  * Created by Arun on 25/12/2015.
  */
 object Changelog {
-    private const val PREF_VERSION_CODE_KEY = "version_code"
     private const val DOES_NT_EXIST = -1
 
     fun show(activity: Activity) {
@@ -111,9 +110,9 @@ object Changelog {
 
     private fun shouldShow(context: Context): Boolean {
         val currentVersionCode = BuildConfig.VERSION_CODE
-        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        val savedVersionCode = prefs.getInt(PREF_VERSION_CODE_KEY, DOES_NT_EXIST)
-        prefs.edit().putInt(PREF_VERSION_CODE_KEY, currentVersionCode).apply()
+        val preferences = Preferences.get(context)
+        val savedVersionCode = preferences.versionCode()
+        preferences.versionCode(currentVersionCode)
         return when {
             currentVersionCode == savedVersionCode -> false // This is just a normal run
             savedVersionCode == DOES_NT_EXIST -> true // This is a new install (or the user cleared the shared preferences)

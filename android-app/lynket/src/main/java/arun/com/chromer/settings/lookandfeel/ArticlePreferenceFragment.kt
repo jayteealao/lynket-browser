@@ -21,7 +21,6 @@
 // Phase 7: Converted to Kotlin
 package arun.com.chromer.settings.lookandfeel
 
-import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
@@ -31,7 +30,7 @@ import arun.com.chromer.settings.widgets.IconListPreference
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 
-class ArticlePreferenceFragment : BasePreferenceFragment(), SharedPreferences.OnSharedPreferenceChangeListener {
+class ArticlePreferenceFragment : BasePreferenceFragment() {
 
   private val SUMMARY_GROUP = arrayOf(Preferences.ARTICLE_THEME)
   private var spawnLocation: IconListPreference? = null
@@ -48,7 +47,7 @@ class ArticlePreferenceFragment : BasePreferenceFragment(), SharedPreferences.On
     updatePreferenceSummary(*SUMMARY_GROUP)
   }
 
-  override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+  override fun onSettingChanged(key: String) {
     updatePreferenceStates(key)
     updatePreferenceSummary(key)
   }

@@ -23,25 +23,40 @@ package arun.com.chromer.settings.preferences
 
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.recyclerview.widget.RecyclerView
+import arun.com.chromer.settings.Preferences
+import arun.com.chromer.settings.SettingsPreferenceDataStore
+import arun.com.chromer.settings.onSettingChanges
 import arun.com.chromer.settings.widgets.ColorPreference
 import arun.com.chromer.shared.base.Snackable
 
 /**
  * Created by Arun on 02/03/2016.
  */
-abstract class BasePreferenceFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedPreferenceChangeListener {
+abstract class BasePreferenceFragment : PreferenceFragmentCompat() {
 
+  private val repository
+    get() = Preferences.entryPoint(requireContext()).userPreferencesRepository()
+
+  /**
+   * Called inside `super.onCreate`, before a subclass inflates its XML, so every preference of the
+   * screen reads and writes the settings DataStore.
+   */
   override fun onCreatePreferences(bundle: Bundle?, s: String?) {
-    // To be used by deriving classes
+    preferenceManager.preferenceDataStore = SettingsPreferenceDataStore(requireContext(), repository)
+  }
+
+  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    super.onViewCreated(view, savedInstanceState)
+    viewLifecycleOwner.onSettingChanges(repository) { key -> onSettingChanged(key) }
   }
 
   override fun onCreateRecyclerView(
@@ -78,17 +93,8 @@ abstract class BasePreferenceFragment : PreferenceFragmentCompat(), SharedPrefer
     }
   }
 
-  override fun onResume() {
-    super.onResume()
-    sharedPreferences.registerOnSharedPreferenceChangeListener(this)
-  }
-
-  override fun onPause() {
-    sharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
-    super.onPause()
-  }
-
-  abstract override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?)
+  /** Called with the name of each setting that changes while the screen is started. */
+  abstract fun onSettingChanged(key: String)
 
   protected fun registerReceiver(receiver: BroadcastReceiver?, filter: IntentFilter?) {
     if (receiver != null && filter != null) {
@@ -111,7 +117,4 @@ abstract class BasePreferenceFragment : PreferenceFragmentCompat(), SharedPrefer
       snackable.snackLong(textToSnack)
     }
   }
-
-  protected val sharedPreferences: SharedPreferences
-    get() = preferenceManager.sharedPreferences!!
 }

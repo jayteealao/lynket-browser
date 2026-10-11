@@ -22,7 +22,6 @@ package arun.com.chromer.settings.browsingoptions
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -33,12 +32,13 @@ import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
-import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.browsing.providerselection.ProviderSelectionActivity
+import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.settings.Preferences
+import arun.com.chromer.settings.onSettingChanges
 import arun.com.chromer.settings.widgets.AppPreferenceCardView
 import arun.com.chromer.shared.Constants.TEXT_SHARE_INTENT
 import arun.com.chromer.shared.Constants.WEB_INTENT
@@ -60,8 +60,7 @@ import javax.inject.Inject
  * Modernized to use Material Design BottomSheetDialogFragment instead of Flipboard BottomSheet.
  */
 @AndroidEntryPoint
-class BrowsingOptionsActivity : BaseActivity(), Snackable,
-    SharedPreferences.OnSharedPreferenceChangeListener {
+class BrowsingOptionsActivity : BaseActivity(), Snackable {
 
     override val layoutRes: Int = R.layout.activity_browsing_options
 
@@ -74,6 +73,9 @@ class BrowsingOptionsActivity : BaseActivity(), Snackable,
     private lateinit var errorView: TextView
 
     // Phase 8: Removed rxEventBus injection (unused, modern EventBus available via Event.SettingsEvent.ProviderChanged)
+
+    @Inject
+    lateinit var userPreferencesRepository: UserPreferencesRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,20 +103,17 @@ class BrowsingOptionsActivity : BaseActivity(), Snackable,
 
         initBottomActions()
         setupClickListeners()
+        onSettingChanges(userPreferencesRepository) { key ->
+            if (Preferences.WEB_HEAD_ENABLED.equals(key, ignoreCase = true)) {
+                showHideErrorView()
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        PreferenceManager.getDefaultSharedPreferences(this)
-            .registerOnSharedPreferenceChangeListener(this)
         showHideErrorView()
         customTabPreferenceView.refreshState()
-    }
-
-    override fun onPause() {
-        PreferenceManager.getDefaultSharedPreferences(this)
-            .unregisterOnSharedPreferenceChangeListener(this)
-        super.onPause()
     }
 
     private fun initBottomActions() {
@@ -167,12 +166,6 @@ class BrowsingOptionsActivity : BaseActivity(), Snackable,
             View.VISIBLE
         } else {
             View.GONE
-        }
-    }
-
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
-        if (Preferences.WEB_HEAD_ENABLED.equals(key, ignoreCase = true)) {
-            showHideErrorView()
         }
     }
 

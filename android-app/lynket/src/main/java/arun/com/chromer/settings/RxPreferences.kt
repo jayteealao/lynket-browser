@@ -20,16 +20,18 @@
 
 package arun.com.chromer.settings
 
-import android.app.Application
-import android.content.SharedPreferences
-import androidx.preference.PreferenceManager
+import arun.com.chromer.data.preferences.UserPreferencesRepository
+import arun.com.chromer.data.preferences.readBoolean
+import arun.com.chromer.data.preferences.readInt
+import arun.com.chromer.data.preferences.readString
 import arun.com.chromer.search.provider.SearchProviders
-import arun.com.chromer.settings.Preferences
-import kotlinx.coroutines.channels.awaitClose
+import androidx.datastore.preferences.core.Preferences as StoredPreferences
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,87 +41,57 @@ const val NATIVE_BUBBLES_PREFERENCE = "native_bubbles_preference"
 @Singleton
 class RxPreferences
 @Inject
-constructor(application: Application) {
-
-  private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(application)
+constructor(repository: UserPreferencesRepository) {
 
   val customTabProviderPref: PreferenceItem<String> by lazy {
-    PreferenceItem(prefs, Preferences.PREFERRED_CUSTOM_TAB_PACKAGE, "")
+    PreferenceItem(repository, Preferences.PREFERRED_CUSTOM_TAB_PACKAGE, "")
   }
 
   val incognitoPref: PreferenceItem<Boolean> by lazy {
-    PreferenceItem(prefs, Preferences.FULL_INCOGNITO_MODE, false)
+    PreferenceItem(repository, Preferences.FULL_INCOGNITO_MODE, false)
   }
 
   val webviewPref: PreferenceItem<Boolean> by lazy {
-    PreferenceItem(prefs, Preferences.USE_WEBVIEW_PREF, false)
+    PreferenceItem(repository, Preferences.USE_WEBVIEW_PREF, false)
   }
 
   val searchEngine: PreferenceItem<String> by lazy {
-    PreferenceItem(prefs, SEARCH_ENGINE_PREFERENCE, SearchProviders.GOOGLE)
+    PreferenceItem(repository, SEARCH_ENGINE_PREFERENCE, SearchProviders.GOOGLE)
   }
 
   val nativeBubbles: PreferenceItem<Boolean> by lazy {
-    PreferenceItem(prefs, NATIVE_BUBBLES_PREFERENCE, false)
+    PreferenceItem(repository, NATIVE_BUBBLES_PREFERENCE, false)
   }
 }
 
 /**
- * Wrapper class for a preference item that provides Flow-based observation
+ * One setting read, written and observed through the settings DataStore.
  */
-class PreferenceItem<T>(
-  private val prefs: SharedPreferences,
+class PreferenceItem<T : Any>(
+  private val repository: UserPreferencesRepository,
   private val key: String,
   private val defaultValue: T
 ) {
 
-  /**
-   * Get the current value of the preference
-   */
-  @Suppress("UNCHECKED_CAST")
-  fun get(): T = when (defaultValue) {
-    is Boolean -> prefs.getBoolean(key, defaultValue) as T
-    is String -> prefs.getString(key, defaultValue) as T
-    is Int -> prefs.getInt(key, defaultValue) as T
-    is Long -> prefs.getLong(key, defaultValue) as T
-    is Float -> prefs.getFloat(key, defaultValue) as T
+  /** The current value. */
+  fun get(): T = read(repository.current())
+
+  /** Writes the value; the write is finished when this returns. */
+  fun set(value: T) {
+    runBlocking(Dispatchers.IO) { repository.setValue(key, value) }
+  }
+
+  /** The value now and after each change. */
+  fun observe(): Flow<T> = repository.snapshot
+    .filterNotNull()
+    .map { read(it) }
+    .distinctUntilChanged()
+
+  @Suppress("UNCHECKED_CAST") // sdlc-debt: each branch reads the type of defaultValue, which is T
+  private fun read(stored: StoredPreferences): T = when (defaultValue) {
+    is Boolean -> stored.readBoolean(key, defaultValue) as T
+    is String -> (stored.readString(key, defaultValue) ?: defaultValue) as T
+    is Int -> stored.readInt(key, defaultValue) as T
     else -> throw IllegalArgumentException("Unsupported preference type")
   }
-
-  /**
-   * Set the value of the preference
-   */
-  fun set(value: T) {
-    with(prefs.edit()) {
-      when (value) {
-        is Boolean -> putBoolean(key, value)
-        is String -> putString(key, value)
-        is Int -> putInt(key, value)
-        is Long -> putLong(key, value)
-        is Float -> putFloat(key, value)
-        else -> throw IllegalArgumentException("Unsupported preference type")
-      }
-      apply()
-    }
-  }
-
-  /**
-   * Observe changes to this preference as a Flow
-   */
-  fun observe(): Flow<T> = callbackFlow {
-    // Emit current value first
-    trySend(get())
-
-    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
-      if (changedKey == key) {
-        trySend(get())
-      }
-    }
-
-    prefs.registerOnSharedPreferenceChangeListener(listener)
-
-    awaitClose {
-      prefs.unregisterOnSharedPreferenceChangeListener(listener)
-    }
-  }.distinctUntilChanged()
 }
