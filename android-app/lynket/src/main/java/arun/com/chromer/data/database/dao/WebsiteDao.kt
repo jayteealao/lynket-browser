@@ -12,14 +12,22 @@
 package arun.com.chromer.data.database.dao
 
 import androidx.paging.PagingSource
-import androidx.room.*
+import androidx.room3.Dao
+import androidx.room3.DaoReturnTypeConverters
+import androidx.room3.Delete
+import androidx.room3.Insert
+import androidx.room3.OnConflictStrategy
+import androidx.room3.Query
+import androidx.room3.Transaction
+import androidx.room3.Update
+import androidx.room3.paging.PagingSourceDaoReturnTypeConverter
 import arun.com.chromer.data.database.entity.WebsiteEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
  * Phase 1.3: Room DAO for Website/History operations
  *
- * Replaces legacy HistorySqlDiskStore with modern Room DAO using:
+ * The one history DAO (Room 3); the old SQLite history store is read once by LegacyHistoryImport. It uses:
  * - Kotlin Coroutines (suspend functions) for async operations
  * - Flow for reactive data streams
  * - PagingSource for efficient list pagination
@@ -27,6 +35,7 @@ import kotlinx.coroutines.flow.Flow
  * All database operations are now type-safe, null-safe, and properly async.
  */
 @Dao
+@DaoReturnTypeConverters(PagingSourceDaoReturnTypeConverter::class)
 interface WebsiteDao {
 
     /**
@@ -186,6 +195,50 @@ interface WebsiteDao {
      */
     @Query("SELECT COUNT(*) FROM history WHERE bookmarked = 1")
     suspend fun getBookmarkCount(): Int
+
+    /**
+     * Merges rows read from an older history store, in one transaction.
+     *
+     * One row per URL remains. When the URL is already stored, the newest visit time and the larger
+     * visit count win; title, icons and other details come from the newer row, and an empty detail
+     * is filled from the other row; the row is bookmarked when either is. A visit count below 1
+     * counts as 1. Running it twice with the same rows gives the same table.
+     *
+     * @return the number of rows that were merged into an existing URL.
+     */
+    @Transaction
+    suspend fun mergeLegacyRows(rows: List<WebsiteEntity>): Int {
+        var merged = 0
+        for (row in rows) {
+            val incoming = row.copy(id = 0, visitCount = maxOf(1, row.visitCount))
+            val stored = getByUrl(incoming.url)
+            if (stored == null) {
+                insert(incoming)
+            } else {
+                update(mergeHistoryRows(stored, incoming).copy(id = stored.id))
+                merged++
+            }
+        }
+        return merged
+    }
+}
+
+/**
+ * The merge rule for two rows of the same URL: newest time, larger count, details from the newer
+ * row with empty details filled from the older one, bookmarked when either is.
+ */
+fun mergeHistoryRows(a: WebsiteEntity, b: WebsiteEntity): WebsiteEntity {
+    val (newer, older) = if (b.createdAt > a.createdAt) b to a else a to b
+    return newer.copy(
+        title = newer.title ?: older.title,
+        faviconUrl = newer.faviconUrl ?: older.faviconUrl,
+        canonicalUrl = newer.canonicalUrl ?: older.canonicalUrl,
+        themeColor = newer.themeColor ?: older.themeColor,
+        ampUrl = newer.ampUrl ?: older.ampUrl,
+        bookmarked = a.bookmarked || b.bookmarked,
+        createdAt = maxOf(a.createdAt, b.createdAt),
+        visitCount = maxOf(a.visitCount, b.visitCount)
+    )
 }
 
 /**

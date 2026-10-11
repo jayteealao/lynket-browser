@@ -15,7 +15,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
-import arun.com.chromer.data.database.dao.WebsiteDao
+import arun.com.chromer.data.database.HistoryDatabase
 import arun.com.chromer.data.database.dao.upsertVisit
 import arun.com.chromer.data.database.entity.WebsiteEntity
 import arun.com.chromer.data.database.entity.toEntity
@@ -44,7 +44,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class ModernHistoryRepository @Inject constructor(
-    private val websiteDao: WebsiteDao,
+    private val historyDatabase: HistoryDatabase,
     private val preferencesRepository: UserPreferencesRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
@@ -54,7 +54,7 @@ class ModernHistoryRepository @Inject constructor(
      * Emits updates whenever history changes.
      */
     fun getAllHistory(): Flow<List<Website>> {
-        return websiteDao.getAllFlow()
+        return flow { emitAll(historyDatabase.dao().getAllFlow()) }
             .map { entities -> entities.map { it.toWebsite() } }
             .flowOn(ioDispatcher)
     }
@@ -64,7 +64,7 @@ class ModernHistoryRepository @Inject constructor(
      * Updates in real-time as history changes.
      */
     fun getRecents(): Flow<List<Website>> {
-        return websiteDao.getRecentsFlow()
+        return flow { emitAll(historyDatabase.dao().getRecentsFlow()) }
             .map { entities -> entities.map { it.toWebsite() } }
             .onEach { websites ->
                 Timber.d("Recent history updated: ${websites.size} items")
@@ -77,14 +77,19 @@ class ModernHistoryRepository @Inject constructor(
      * Efficiently handles large datasets with Paging 3.
      */
     fun getPagedHistory(): Flow<PagingData<Website>> {
-        return Pager(
-            config = PagingConfig(
-                pageSize = 20,
-                initialLoadSize = 10,
-                enablePlaceholders = false
-            ),
-            pagingSourceFactory = { websiteDao.getAllPaged() }
-        ).flow
+        return flow {
+            val dao = historyDatabase.dao()
+            emitAll(
+                Pager(
+                    config = PagingConfig(
+                        pageSize = 20,
+                        initialLoadSize = 10,
+                        enablePlaceholders = false
+                    ),
+                    pagingSourceFactory = { dao.getAllPaged() }
+                ).flow
+            )
+        }
             .map { pagingData -> pagingData.map { it.toWebsite() } }
             .flowOn(ioDispatcher)
     }
@@ -94,7 +99,7 @@ class ModernHistoryRepository @Inject constructor(
      * Returns null if not found.
      */
     suspend fun getByUrl(url: String): Website? = withContext(ioDispatcher) {
-        websiteDao.getByUrl(url)?.toWebsite()
+        historyDatabase.dao().getByUrl(url)?.toWebsite()
     }
 
     /**
@@ -102,7 +107,7 @@ class ModernHistoryRepository @Inject constructor(
      * Emits updates whenever this website changes.
      */
     fun getByUrlFlow(url: String): Flow<Website?> {
-        return websiteDao.getByUrlFlow(url)
+        return flow { emitAll(historyDatabase.dao().getByUrlFlow(url)) }
             .map { it?.toWebsite() }
             .flowOn(ioDispatcher)
     }
@@ -112,14 +117,14 @@ class ModernHistoryRepository @Inject constructor(
      * Returns up to 5 results.
      */
     suspend fun search(query: String): List<Website> = withContext(ioDispatcher) {
-        websiteDao.search(query).map { it.toWebsite() }
+        historyDatabase.dao().search(query).map { it.toWebsite() }
     }
 
     /**
      * Search history as a Flow.
      */
     fun searchFlow(query: String): Flow<List<Website>> {
-        return websiteDao.searchFlow(query)
+        return flow { emitAll(historyDatabase.dao().searchFlow(query)) }
             .map { entities -> entities.map { it.toWebsite() } }
             .flowOn(ioDispatcher)
     }
@@ -128,7 +133,7 @@ class ModernHistoryRepository @Inject constructor(
      * Get all bookmarked websites.
      */
     fun getBookmarks(): Flow<List<Website>> {
-        return websiteDao.getBookmarksFlow()
+        return flow { emitAll(historyDatabase.dao().getBookmarksFlow()) }
             .map { entities -> entities.map { it.toWebsite() } }
             .flowOn(ioDispatcher)
     }
@@ -154,12 +159,12 @@ class ModernHistoryRepository @Inject constructor(
 
         try {
             // Use upsert helper to insert or update
-            websiteDao.upsertVisit(website.url) {
+            historyDatabase.dao().upsertVisit(website.url) {
                 website.toEntity()
             }
 
             // Fetch the updated website
-            val updated = websiteDao.getByUrl(website.url)?.toWebsite()
+            val updated = historyDatabase.dao().getByUrl(website.url)?.toWebsite()
 
             if (updated != null) {
                 Timber.d("Recorded visit for: ${website.url} (count: ${updated.count})")
@@ -186,13 +191,13 @@ class ModernHistoryRepository @Inject constructor(
      */
     suspend fun update(website: Website): Website? = withContext(ioDispatcher) {
         try {
-            val existing = websiteDao.getByUrl(website.url)
+            val existing = historyDatabase.dao().getByUrl(website.url)
             if (existing == null) {
                 Timber.w("Update skipped, no history row for: ${website.url}")
                 return@withContext null
             }
             val entity = website.toEntity().copy(id = existing.id)
-            websiteDao.update(entity)
+            historyDatabase.dao().update(entity)
             Timber.d("Updated website: ${website.url}")
             website
         } catch (e: Exception) {
@@ -206,7 +211,7 @@ class ModernHistoryRepository @Inject constructor(
      */
     suspend fun delete(website: Website): Boolean = withContext(ioDispatcher) {
         try {
-            websiteDao.deleteByUrl(website.url)
+            historyDatabase.dao().deleteByUrl(website.url)
             Timber.d("Deleted website: ${website.url}")
             true
         } catch (e: Exception) {
@@ -220,8 +225,8 @@ class ModernHistoryRepository @Inject constructor(
      */
     suspend fun deleteAll(): Int = withContext(ioDispatcher) {
         try {
-            val count = websiteDao.getCount()
-            websiteDao.deleteAll()
+            val count = historyDatabase.dao().getCount()
+            historyDatabase.dao().deleteAll()
             Timber.d("Deleted all history: $count items")
             count
         } catch (e: Exception) {
@@ -234,7 +239,7 @@ class ModernHistoryRepository @Inject constructor(
      * Check if a URL exists in history.
      */
     suspend fun exists(url: String): Boolean = withContext(ioDispatcher) {
-        websiteDao.exists(url)
+        historyDatabase.dao().exists(url)
     }
 
     /**
@@ -247,7 +252,7 @@ class ModernHistoryRepository @Inject constructor(
      */
     suspend fun toggleBookmark(url: String) = withContext(ioDispatcher) {
         try {
-            websiteDao.toggleBookmark(url)
+            historyDatabase.dao().toggleBookmark(url)
             Timber.d("Toggled bookmark for: $url")
         } catch (e: Exception) {
             Timber.e(e, "Error toggling bookmark for: $url")
@@ -259,7 +264,7 @@ class ModernHistoryRepository @Inject constructor(
      */
     suspend fun setBookmarked(url: String, bookmarked: Boolean) = withContext(ioDispatcher) {
         try {
-            websiteDao.setBookmarked(url, bookmarked)
+            historyDatabase.dao().setBookmarked(url, bookmarked)
             Timber.d("Set bookmark for: $url to $bookmarked")
         } catch (e: Exception) {
             Timber.e(e, "Error setting bookmark for: $url")
@@ -273,9 +278,9 @@ class ModernHistoryRepository @Inject constructor(
     suspend fun deleteOlderThan(days: Int): Int = withContext(ioDispatcher) {
         try {
             val timestamp = System.currentTimeMillis() - (days * 24 * 60 * 60 * 1000L)
-            val countBefore = websiteDao.getCount()
-            websiteDao.deleteOlderThan(timestamp)
-            val countAfter = websiteDao.getCount()
+            val countBefore = historyDatabase.dao().getCount()
+            historyDatabase.dao().deleteOlderThan(timestamp)
+            val countAfter = historyDatabase.dao().getCount()
             val deleted = countBefore - countAfter
             Timber.d("Deleted $deleted items older than $days days")
             deleted
@@ -289,13 +294,13 @@ class ModernHistoryRepository @Inject constructor(
      * Get total history count.
      */
     suspend fun getCount(): Int = withContext(ioDispatcher) {
-        websiteDao.getCount()
+        historyDatabase.dao().getCount()
     }
 
     /**
      * Get total bookmark count.
      */
     suspend fun getBookmarkCount(): Int = withContext(ioDispatcher) {
-        websiteDao.getBookmarkCount()
+        historyDatabase.dao().getBookmarkCount()
     }
 }

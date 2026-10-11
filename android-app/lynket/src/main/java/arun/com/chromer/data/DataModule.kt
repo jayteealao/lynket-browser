@@ -30,8 +30,8 @@ import arun.com.chromer.data.common.qualifiers.Disk
 import arun.com.chromer.data.common.qualifiers.Network
 import arun.com.chromer.data.history.DefaultHistoryRepository
 import arun.com.chromer.data.history.HistoryRepository
-import arun.com.chromer.data.history.HistorySqlDiskStore
 import arun.com.chromer.data.history.HistoryStore
+import arun.com.chromer.data.history.RoomHistoryStore
 import arun.com.chromer.data.webarticle.DefaultWebArticleRepository
 import arun.com.chromer.data.webarticle.WebArticleRepository
 import arun.com.chromer.data.webarticle.WebArticleStore
@@ -68,7 +68,7 @@ abstract class DataModule {
 
   @Binds
   @Singleton
-  internal abstract fun historyStore(historySqlDiskStore: HistorySqlDiskStore): HistoryStore
+  internal abstract fun historyStore(roomHistoryStore: RoomHistoryStore): HistoryStore
 
   @Binds
   @Singleton

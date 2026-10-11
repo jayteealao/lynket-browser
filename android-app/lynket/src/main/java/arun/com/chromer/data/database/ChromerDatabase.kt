@@ -12,40 +12,31 @@
 package arun.com.chromer.data.database
 
 import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room3.Database
+import androidx.room3.Room
+import androidx.room3.RoomDatabase
+import androidx.room3.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.execSQL
+import androidx.sqlite.driver.AndroidSQLiteDriver
 import arun.com.chromer.data.database.dao.WebsiteDao
 import arun.com.chromer.data.database.entity.WebsiteEntity
+import kotlinx.coroutines.Dispatchers
 import timber.log.Timber
 
 /**
- * Phase 1.3: Main Room Database for Lynket Browser
+ * The history database (`chromer.db`), on Room 3 with the platform SQLite driver.
  *
- * This replaces the legacy SQLiteOpenHelper (HistorySqlDiskStore) with a modern
- * Room database implementation.
- *
- * Features:
- * - Type-safe database access
- * - Automatic migration handling
- * - Compile-time SQL verification
- * - Seamless integration with Kotlin Coroutines and Flow
- *
- * Current entities:
- * - WebsiteEntity: Stores browsing history and website metadata
- *
- * Future entities (to be added in later phases):
- * - TabEntity: Active tabs
- * - WebArticleEntity: Saved articles
- * - ProviderEntity: Custom tab providers
+ * Version 3 has the same tables as version 2; the empty 2 to 3 migration makes Room 3 validate
+ * the existing tables and write its own identity data. There is no destructive fallback: a
+ * missing migration fails the open, and [HistoryDatabase] keeps the file instead of wiping it.
+ * Schemas are exported to `lynket/schemas/`.
  */
 @Database(
     entities = [
         WebsiteEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class ChromerDatabase : RoomDatabase() {
@@ -53,7 +44,7 @@ abstract class ChromerDatabase : RoomDatabase() {
     abstract fun websiteDao(): WebsiteDao
 
     companion object {
-        private const val DATABASE_NAME = "chromer.db"
+        const val DATABASE_NAME = "chromer.db"
 
         /**
          * Migration from legacy SQLite database (version 1) to Room database (version 2).
@@ -67,12 +58,12 @@ abstract class ChromerDatabase : RoomDatabase() {
          * 3. Drop old table
          */
         val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override suspend fun migrate(connection: SQLiteConnection) {
                 Timber.d("Migrating database from version 1 to 2")
 
                 try {
                     // Create new Room-based table with correct schema
-                    database.execSQL("""
+                    connection.execSQL("""
                         CREATE TABLE IF NOT EXISTS history (
                             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                             url TEXT NOT NULL,
@@ -88,27 +79,27 @@ abstract class ChromerDatabase : RoomDatabase() {
                     """)
 
                     // Create indices for better query performance
-                    database.execSQL("""
+                    connection.execSQL("""
                         CREATE UNIQUE INDEX IF NOT EXISTS index_history_url
                         ON history(url)
                     """)
 
-                    database.execSQL("""
+                    connection.execSQL("""
                         CREATE INDEX IF NOT EXISTS index_history_created_at
                         ON history(created_at)
                     """)
 
                     // Check if legacy History table exists
-                    val cursor = database.query("SELECT name FROM sqlite_master WHERE type='table' AND name='History'")
-                    val legacyTableExists = cursor.count > 0
-                    cursor.close()
+                    val legacyTableExists = connection
+                        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='History'")
+                        .use { it.step() }
 
                     if (legacyTableExists) {
                         Timber.d("Legacy History table found, migrating data...")
 
                         // Copy data from legacy table to new table
                         // Map old column names to new ones
-                        database.execSQL("""
+                        connection.execSQL("""
                             INSERT INTO history (url, title, favicon_url, canonical_url, theme_color, amp_url, bookmarked, created_at, visit_count)
                             SELECT
                                 URL,
@@ -124,7 +115,7 @@ abstract class ChromerDatabase : RoomDatabase() {
                         """)
 
                         // Drop legacy table
-                        database.execSQL("DROP TABLE IF EXISTS History")
+                        connection.execSQL("DROP TABLE IF EXISTS History")
 
                         Timber.d("Migration completed successfully")
                     } else {
@@ -137,19 +128,17 @@ abstract class ChromerDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * Create database instance with Hilt.
-         * This function is called by the Hilt database module.
-         */
-        fun create(context: Context): ChromerDatabase {
-            return Room.databaseBuilder(
-                context.applicationContext,
-                ChromerDatabase::class.java,
-                DATABASE_NAME
-            )
-                .addMigrations(MIGRATION_1_2)
-                .fallbackToDestructiveMigration() // Only for development - remove in production
-                .build()
+        /** Room 2 to Room 3: the tables do not change; Room validates them and rewrites its identity row. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override suspend fun migrate(connection: SQLiteConnection) = Unit
         }
+
+        /** Builds the database on [DATABASE_NAME]; [HistoryDatabase] is the only caller in the app. */
+        fun create(context: Context, name: String = DATABASE_NAME): ChromerDatabase =
+            Room.databaseBuilder<ChromerDatabase>(context.applicationContext, name)
+                .setDriver(AndroidSQLiteDriver())
+                .setQueryCoroutineContext(Dispatchers.IO)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .build()
     }
 }

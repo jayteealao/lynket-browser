@@ -17,6 +17,7 @@ plugins {
   alias(libs.plugins.compose.compiler) apply false
   alias(libs.plugins.androidTest) apply false
   alias(libs.plugins.roborazzi) apply false
+  alias(libs.plugins.room3) apply false
 }
 
 tasks.register("clean", Delete::class) {

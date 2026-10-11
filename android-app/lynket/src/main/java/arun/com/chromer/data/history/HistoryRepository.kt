@@ -21,8 +21,7 @@
 
 package arun.com.chromer.data.history
 
-import androidx.lifecycle.LiveData
-import androidx.paging.PagedList
+import androidx.paging.PagingData
 import arun.com.chromer.data.website.model.Website
 import kotlinx.coroutines.flow.Flow
 
@@ -46,12 +45,6 @@ interface HistoryRepository {
 
   suspend fun search(text: String): List<Website>
 
-  /**
-   * Load given range specified by [limit] and [offset]
-   */
-  fun loadHistoryRange(limit: Int, offset: Int): List<Website>
-
-  fun pagedHistory(): LiveData<PagedList<Website>>
-
-  fun changes(): Flow<Int>
+  /** Every history row, newest first, in pages. */
+  fun pagedHistory(): Flow<PagingData<Website>>
 }

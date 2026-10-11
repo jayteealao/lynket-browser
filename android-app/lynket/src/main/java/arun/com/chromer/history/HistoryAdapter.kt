@@ -25,7 +25,7 @@ import android.view.View.GONE
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.paging.PagedListAdapter
+import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
@@ -48,7 +48,7 @@ class HistoryAdapter
 constructor(
   private val defaultTabsManager: TabsManager,
   private val requestManager: RequestManager
-) : PagedListAdapter<Website, HistoryAdapter.HistoryViewHolder>(Website.DIFFER) {
+) : PagingDataAdapter<Website, HistoryAdapter.HistoryViewHolder>(Website.DIFFER) {
 
   override fun onCreateViewHolder(
     parent: ViewGroup,

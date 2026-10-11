@@ -27,10 +27,10 @@ hiltNavigationCompose = "1.2.0"
 coroutines = "1.9.0"
 
 # Data & Persistence
-room = "2.8.5"
+room3 = "3.0.3"
 datastore = "1.2.1"
-paging = "3.3.5"
-pagingCompose = "3.3.5"
+paging = "3.4.2"
+pagingCompose = "3.4.2"
 
 # Networking
 retrofit = "2.11.0"
@@ -115,11 +115,10 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 kotlinx-coroutines-rx2 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-rx2", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
-# Room
-androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
-androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-androidx-room-paging = { group = "androidx.room", name = "room-paging", version.ref = "room" }
+# Room 3
+androidx-room3-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room3" }
+androidx-room3-paging = { group = "androidx.room3", name = "room3-paging", version.ref = "room3" }
+androidx-room3-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room3" }
 
 # DataStore
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
@@ -181,3 +180,4 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
+room3 = { id = "androidx.room3", version.ref = "room3" }

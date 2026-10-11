@@ -12,9 +12,11 @@
 package arun.com.chromer.data.history
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
+import androidx.sqlite.driver.AndroidSQLiteDriver
 import app.cash.turbine.test
 import arun.com.chromer.data.database.ChromerDatabase
+import arun.com.chromer.data.database.HistoryDatabase
 import arun.com.chromer.data.database.dao.WebsiteDao
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.UserPreferencesRepository.UserPreferences
@@ -81,11 +83,8 @@ class ModernHistoryRepositoryTest {
     fun setup() {
         // Create in-memory database
         val context: Context = RuntimeEnvironment.getApplication()
-        database = Room.inMemoryDatabaseBuilder(
-            context,
-            ChromerDatabase::class.java
-        )
-            .allowMainThreadQueries() // Allow for testing
+        database = Room.inMemoryDatabaseBuilder<ChromerDatabase>(context)
+            .setDriver(AndroidSQLiteDriver())
             .build()
 
         websiteDao = database.websiteDao()
@@ -102,7 +101,7 @@ class ModernHistoryRepositoryTest {
 
         // Create repository with real DAO
         repository = ModernHistoryRepository(
-            websiteDao = websiteDao,
+            historyDatabase = HistoryDatabase(context, legacyImport = null) { database },
             preferencesRepository = preferencesRepository,
             ioDispatcher = testDispatcher
         )

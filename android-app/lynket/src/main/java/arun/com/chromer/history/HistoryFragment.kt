@@ -43,6 +43,7 @@ import arun.com.chromer.R
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import arun.com.chromer.databinding.FragmentHistoryBinding
@@ -154,14 +155,17 @@ class HistoryFragment : BaseFragment(), Snackable, FabHandler {
   }
 
   private fun observeViewModel() {
-    val owner = viewLifecycleOwner
     viewModel.apply {
       viewLifecycleOwner.lifecycleScope.launch {
         viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
           loadingState.collect { loading(it) }
         }
       }
-      historyPagedListLiveData.observe(owner) { historyAdapter.submitList(it) }
+      viewLifecycleOwner.lifecycleScope.launch {
+        viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+          pagedHistory.collectLatest(historyAdapter::submitData)
+        }
+      }
     }
     loadHistory()
   }
@@ -240,7 +244,7 @@ class HistoryFragment : BaseFragment(), Snackable, FabHandler {
         ContextCompat.getColor(context!!, R.color.accent)
       )
       setOnRefreshListener {
-        loadHistory()
+        historyAdapter.refresh()
         isRefreshing = false
       }
     }

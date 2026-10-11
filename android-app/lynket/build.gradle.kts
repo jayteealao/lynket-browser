@@ -19,6 +19,7 @@ plugins {
     alias(libs.plugins.hilt) // Phase 1.1: Enabled for modernization
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.roborazzi)
+    alias(libs.plugins.room3)
 }
 
 android {
@@ -158,11 +159,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     // Phase 8: RxJava interop removed - migration complete
 
-    // Room Database
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
-    ksp(libs.androidx.room.compiler)
+    // Room 3 (history database)
+    implementation(libs.androidx.room3.runtime)
+    implementation(libs.androidx.room3.paging)
+    ksp(libs.androidx.room3.compiler)
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
@@ -243,12 +243,8 @@ dependencies {
     implementation("androidx.cardview:cardview:1.0.0")
     implementation("androidx.palette:palette-ktx:1.0.0")
     implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
-    implementation("androidx.sqlite:sqlite-ktx:2.0.1")
     implementation("androidx.fragment:fragment-ktx:1.6.2") // Updated for viewModels() delegate
     implementation("androidx.activity:activity-ktx:1.8.0") // Added for Activities viewModels() delegate
-
-    // Legacy: Paging 2.x (will be migrated to Paging 3)
-    implementation("androidx.paging:paging-runtime-ktx:2.1.2")
 
     // Legacy: Other
     implementation("com.facebook.rebound:rebound:0.3.8")
@@ -261,6 +257,10 @@ dependencies {
 
 roborazzi {
     outputDir.set(file("src/test/screenshots"))
+}
+
+room3 {
+    schemaDirectory("$projectDir/schemas")
 }
 
 kotlin {

@@ -21,10 +21,7 @@
 
 package arun.com.chromer.data.history
 
-import androidx.lifecycle.LiveData
-import androidx.paging.LivePagedListBuilder
-import androidx.paging.PagedList
-import arun.com.chromer.data.history.paging.PagedHistoryDataSource
+import androidx.paging.PagingData
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
 import kotlinx.coroutines.flow.Flow
@@ -40,11 +37,8 @@ class DefaultHistoryRepository
 @Inject
 internal constructor(
   private val historyStore: HistoryStore,
-  private val preferences: Preferences,
-  private val pagedHistoryDataSourceFactory: PagedHistoryDataSource.Factory
+  private val preferences: Preferences
 ) : HistoryRepository {
-
-  override fun changes(): Flow<Int> = historyStore.changes()
 
   override suspend fun get(website: Website): Website? {
     val saved = historyStore.get(website)
@@ -82,19 +76,7 @@ internal constructor(
     }
   }
 
-  override fun pagedHistory(): LiveData<PagedList<Website>> {
-    val pagedListConfig = PagedList.Config.Builder()
-      .setEnablePlaceholders(false)
-      .setInitialLoadSizeHint(10)
-      .setPageSize(20)
-      .build()
-    return LivePagedListBuilder(pagedHistoryDataSourceFactory, pagedListConfig).build()
-  }
-
-  override fun loadHistoryRange(
-    limit: Int,
-    offset: Int
-  ) = historyStore.loadHistoryRange(limit, offset)
+  override fun pagedHistory(): Flow<PagingData<Website>> = historyStore.pagedHistory()
 
   override suspend fun delete(website: Website) = historyStore.delete(website)
 

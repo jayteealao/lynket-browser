@@ -23,9 +23,12 @@ package arun.com.chromer.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import arun.com.chromer.data.history.HistoryRepository
 import arun.com.chromer.data.website.model.Website
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,10 +54,11 @@ constructor(
   private val _loadingState = MutableStateFlow(false)
   val loadingState: StateFlow<Boolean> = _loadingState.asStateFlow()
 
-  var historyPagedListLiveData = historyRepository.pagedHistory()
+  /** Every history row, newest first, in pages; the Room source refreshes itself on changes. */
+  val pagedHistory: Flow<PagingData<Website>> = historyRepository.pagedHistory().cachedIn(viewModelScope)
 
   fun loadHistory() {
-    // Currently using pagedHistory LiveData, so no additional loading needed
+    // The paged flow follows the database, so no additional loading is needed.
     // This method is kept for compatibility with existing code
   }
 
