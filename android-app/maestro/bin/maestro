@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Maestro wrapper for the device-check scripts: talks to an emulator's adbd directly instead of
+# through the adb server.
+#
+# Maestro 2.2.0 lists every device on the adb server and runs a shell command on each before it
+# picks the one given with --device. One emulator that no longer answers (or is offline) then
+# blocks or fails every run, also on the other emulators. With --host/--port Maestro skips the
+# list and connects to the given adbd. An emulator with console port N serves adbd on N+1.
+#
+# Use: PATH="$PWD/maestro/bin:$PATH" bash maestro/upgrade/history-check.sh emulator-5556 <dir>
+# Any argument list without "--device emulator-<port>" passes through unchanged.
+set -euo pipefail
+
+self_dir="$(cd "$(dirname "$0")" && pwd)"
+real=""
+IFS=: read -ra dirs <<< "$PATH"
+for d in "${dirs[@]}"; do
+  [ "$(cd "$d" 2>/dev/null && pwd)" = "$self_dir" ] && continue
+  for name in maestro maestro.bat maestro.cmd; do
+    if [ -x "$d/$name" ] || [ -f "$d/$name" ]; then real="$d/$name"; break 2; fi
+  done
+done
+[ -n "$real" ] || { echo "maestro wrapper: no maestro found on PATH" >&2; exit 127; }
+
+args=()
+while [ $# -gt 0 ]; do
+  if [ "$1" = "--device" ] && [[ "${2:-}" =~ ^emulator-([0-9]+)$ ]]; then
+    args+=(--host localhost --port "$((BASH_REMATCH[1] + 1))")
+    shift 2
+  else
+    args+=("$1")
+    shift
+  fi
+done
+exec "$real" "${args[@]}"
