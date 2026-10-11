@@ -90,8 +90,12 @@ ac22() {
   a shell am kill "$PKG"
   a logcat -c
   open_link "https://example.com/?ac22=1"
-  sleep 5
-  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/ac22-service.txt"
+  # A loaded device can take well over 5 s to start the process; poll for up to 60 s.
+  for _ in $(seq 1 60); do
+    a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/ac22-service.txt"
+    grep -q "isForeground=true" "$OUT/ac22-service.txt" && break
+    sleep 1
+  done
   shot ac22-head
   grep -qE "isForeground=true" "$OUT/ac22-service.txt" || fail "the web head service is not in the foreground"
   grep -qE "(foregroundServiceType|types)=0x40000000" "$OUT/ac22-service.txt" || fail "the service type is not specialUse"
@@ -100,12 +104,17 @@ ac22() {
   # 3. Start refused (debug marker file): the link opens in a Custom Tab with a message.
   close_all_heads
   a shell run-as "$PKG" sh -c "'mkdir -p files/debug-faults && touch files/debug-faults/webhead-start-fail'"
+  # Never leave the forced refusal behind: a failed check would make every later start refuse.
+  trap 'a shell run-as "$PKG" rm -f files/debug-faults/webhead-start-fail' EXIT
   a shell input keyevent HOME
   sleep 1
   a shell am kill "$PKG"
   a logcat -c
   open_link "https://example.com/?ac22=2"
-  sleep 2
+  for _ in $(seq 1 60); do
+    a logcat -d | grep -q "Web heads could not start" && break
+    sleep 1
+  done
   shot ac22-fallback
   a shell dumpsys activity activities | tr -d '\r' | grep -m1 "topResumedActivity" | tee -a "$OUT/ac22.txt"
   app_logcat ac22-fallback
