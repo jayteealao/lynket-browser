@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  Upgrade seed: one entry for each of the 35 key names in the 2.1.3 Preferences.java, written by
+  seed-upgrade.sh into the 2.1.3 build's default SharedPreferences file (merged; keys the app wrote
+  itself, such as version_code, stay). Values differ from the getter defaults where a key allows it,
+  so a migration that falls back to a default shows up as a changed value.
+  The seven list settings are stored as text, as the 2.1.3 ListPreference screens store them.
+  blacklist_preference and blacklist_preference_dummy are written by the per-app flow; the script
+  checks the device holds these exact values before the merge. firstrun_3 is false because the
+  first-run flow passed the intro.
+-->
+<map>
+    <int name="toolbar_color" value="-16738680" />
+    <int name="webhead_color" value="-1499549" />
+    <string name="animation_preference">2</string>
+    <string name="animation_speed_preference">2</string>
+    <boolean name="dynamic_color" value="true" />
+    <boolean name="webhead_close_onclick_pref" value="false" />
+    <string name="preferred_action_preference">2</string>
+    <boolean name="webhead_enabled_pref" value="true" />
+    <string name="webhead_spawn_preference">2</string>
+    <string name="webhead_size_preference">2</string>
+    <boolean name="bottombar_enabled_preference" value="false" />
+    <boolean name="toolbar_color_pref" value="false" />
+    <boolean name="warm_up_preference" value="true" />
+    <boolean name="pre_fetch_preference" value="true" />
+    <boolean name="wifi_preference" value="true" />
+    <boolean name="pre_fetch_notification_preference" value="false" />
+    <boolean name="blacklist_preference_dummy" value="true" />
+    <boolean name="merge_tabs_and_apps_preference" value="false" />
+    <boolean name="aggressive_loading" value="true" />
+    <string name="preferred_package">com.android.chrome</string>
+    <boolean name="dynamic_color_app" value="true" />
+    <boolean name="dynamic_color_web" value="true" />
+    <boolean name="amp_mode_pref" value="true" />
+    <boolean name="article_mode_pref" value="true" />
+    <string name="article_theme_preference">4</string>
+    <boolean name="incognito_mode_pref" value="true" />
+    <boolean name="full_incognito_mode" value="true" />
+    <int name="article_text_size_pref" value="3" />
+    <boolean name="use_webview_pref" value="true" />
+    <string name="minimize_behavior_preference">2</string>
+    <boolean name="webhead_favicons_pref" value="false" />
+    <boolean name="blacklist_preference" value="true" />
+    <boolean name="firstrun_3" value="false" />
+    <string name="secondary_preference">com.android.chrome/com.google.android.apps.chrome.Main</string>
+    <string name="fav_share_preference">com.google.android.gm/com.google.android.gm.ComposeActivityGmailExternal</string>
+</map>

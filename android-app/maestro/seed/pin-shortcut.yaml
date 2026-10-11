@@ -1,0 +1,19 @@
+# Upgrade seed, part 3: a link is already open in a Custom Tab (seed-upgrade.sh opens it).
+# Creates a pinned home-screen shortcut through the 2.1.3 shortcut creator and accepts the
+# launcher's confirmation.
+appId: arun.com.chromer.debug
+---
+- tapOn:
+    id: "menu_button"
+- tapOn: "Lynket Options"
+- tapOn: "Add to Home Screen"
+- extendedWaitUntil:
+    visible: "Create shortcut"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      text: "CREATE"
+      enabled: true
+    timeout: 15000
+- tapOn: "CREATE"
+- tapOn: "Add to home screen"

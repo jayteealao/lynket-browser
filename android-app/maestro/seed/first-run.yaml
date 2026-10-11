@@ -1,0 +1,15 @@
+# Upgrade seed, part 1: the 2.1.3 build's first launch. Passes the intro and the changelog once,
+# so the device holds the first-run state of a person who has used 2.1.3.
+appId: arun.com.chromer.debug
+---
+- launchApp:
+    clearState: false
+- tapOn: "SKIP"
+- runFlow:
+    when:
+      visible: "Changelog"
+    commands:
+      - tapOn: "OK"
+- extendedWaitUntil:
+    visible: "Search or type URL"
+    timeout: 15000

@@ -1,0 +1,42 @@
+# Upgrade seed, part 2: per-app rules set through the 2.1.3 per-app settings screen, so the old
+# app writes them to its own store. Calendar gets the secondary-browser rule, Clock the incognito
+# rule, and the per-app switch is turned on (needs usage access, granted by seed-upgrade.sh).
+appId: arun.com.chromer.debug
+---
+- launchApp:
+    clearState: false
+- tapOn:
+    id: ".*settingsIcon"
+- tapOn: "Browsing options"
+- tapOn: "Per app settings"
+- extendedWaitUntil:
+    visible: "com.google.android.calendar"
+    timeout: 15000
+- tapOn:
+    id: ".*blacklistIcon"
+    childOf:
+      id: ".*blacklist_template_root"
+      containsDescendants:
+        - text: "com.google.android.calendar"
+- tapOn:
+    id: ".*incognitoIcon"
+    childOf:
+      id: ".*blacklist_template_root"
+      containsDescendants:
+        - text: "com.google.android.deskclock"
+- tapOn:
+    id: ".*blacklist_switch"
+# The switch starts the app-detect service; Android 13+ then asks for notifications once.
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Allow Lynket-dev to send you notifications?"
+    commands:
+      - tapOn: "Allow"
+- extendedWaitUntil:
+    visible: "ON"
+    timeout: 5000
+- takeScreenshot: ${OUT}/per-app-rules
+- back
+- back
+- back
