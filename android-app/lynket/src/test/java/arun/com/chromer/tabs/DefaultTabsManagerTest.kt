@@ -26,7 +26,7 @@ import arun.com.chromer.browsing.amp.AmpResolverActivity
 import arun.com.chromer.bubbles.webheads.WebHeadService
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.home.HomeActivity
-import org.junit.Before
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Ignore
 import org.junit.Test
 import org.robolectric.Robolectric
@@ -38,16 +38,12 @@ import javax.inject.Inject
 /**
  * Created by Arunkumar on 15-12-2017.
  */
+@HiltAndroidTest
 class DefaultTabsManagerTest : LynketRobolectricSuite() {
   @Inject
   lateinit var tabs: TabsManager
 
   private val url = "https://www.example.com"
-
-  @Before
-  fun setUp() {
-    testAppComponent.inject(this)
-  }
 
   @Test
   fun testInject() {

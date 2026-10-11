@@ -28,12 +28,14 @@ import arun.com.chromer.R
 import arun.com.chromer.shared.base.PreferenceQuickSettingsTile
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
+import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * Created by Arun on 09/09/2016.
  */
 
 @RequiresApi(api = Build.VERSION_CODES.N)
+@AndroidEntryPoint
 class WebHeadTile : PreferenceQuickSettingsTile() {
   override fun togglePreference() = preferences.webHeads(!preferences.webHeads())
 

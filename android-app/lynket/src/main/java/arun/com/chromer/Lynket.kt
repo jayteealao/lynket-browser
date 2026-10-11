@@ -24,31 +24,26 @@ import android.app.Application
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.multidex.MultiDex
-import arun.com.chromer.di.app.AppComponent
-import arun.com.chromer.di.app.DaggerAppComponent
 import arun.com.chromer.util.ServiceManager
+import arun.com.chromer.util.drawer.GlideDrawerImageLoader
 import com.airbnb.epoxy.EpoxyController
 import com.mikepenz.materialdrawer.util.DrawerImageLoader
 // Phase 3: PaperDB removed - legacy data storage replaced with Room + DataStore
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * Lynket Browser Application Class
  *
  * Phase 1.2: Migrated to Hilt (@HiltAndroidApp)
  * Phase 3: PaperDB removed (legacy storage)
- * Legacy Dagger 2 code kept temporarily for gradual migration
  */
 @HiltAndroidApp
 open class Lynket : Application() {
 
-  // LEGACY: Dagger 2 AppComponent - Will be removed after full Hilt migration
-  // TODO: Remove this after all components are migrated to Hilt
-  @Deprecated("Use Hilt injection instead", ReplaceWith("@Inject"))
-  open val appComponent: AppComponent by lazy {
-    DaggerAppComponent.factory().create(this)
-  }
+  @Inject
+  lateinit var glideDrawerImageLoader: GlideDrawerImageLoader
 
   override fun onCreate() {
     super.onCreate()
@@ -71,7 +66,7 @@ open class Lynket : Application() {
   }
 
   private fun initMaterialDrawer() {
-    DrawerImageLoader.init(appComponent.glideDrawerImageLoader())
+    DrawerImageLoader.init(glideDrawerImageLoader)
       .withHandleAllUris(true)
   }
 

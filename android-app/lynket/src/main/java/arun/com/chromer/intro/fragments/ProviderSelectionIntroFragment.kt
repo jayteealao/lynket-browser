@@ -28,13 +28,14 @@ import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.browsing.providerselection.ProviderSelectionActivity
 import arun.com.chromer.databinding.FragmentProviderSelectionIntroBinding
-import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.glide.GlideApp
 import com.github.paolorotolo.appintro.ISlideBackgroundColorHolder
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 open class ProviderSelectionIntroFragment : BaseFragment(), ISlideBackgroundColorHolder {
   private var _binding: FragmentProviderSelectionIntroBinding? = null
   private val binding get() = _binding!!
@@ -48,8 +49,6 @@ open class ProviderSelectionIntroFragment : BaseFragment(), ISlideBackgroundColo
 
   @Inject
   lateinit var tabsManager: TabsManager
-
-  override fun inject(fragmentComponent: FragmentComponent) = fragmentComponent.inject(this)
 
   override val layoutRes: Int
     get() = R.layout.fragment_provider_selection_intro

@@ -20,21 +20,5 @@
 package arun.com.chromer.shared.base.service
 
 import android.app.Service
-import arun.com.chromer.di.app.appComponent
-import arun.com.chromer.di.service.ServiceComponent
 
-abstract class BaseService : Service() {
-
-  private lateinit var serviceComponent: ServiceComponent
-
-  override fun onCreate() {
-    super.onCreate()
-    serviceComponent = application
-      .appComponent()
-      .serviceComponentFactory()
-      .create(this)
-      .also(::inject)
-  }
-
-  protected abstract fun inject(serviceComponent: ServiceComponent)
-}
+abstract class BaseService : Service()

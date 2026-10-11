@@ -28,7 +28,7 @@ import arun.com.chromer.search.suggestion.SuggestionsEngine
 import arun.com.chromer.search.suggestion.items.SuggestionItem
 import arun.com.chromer.search.suggestion.items.SuggestionType
 import arun.com.chromer.settings.RxPreferences
-import dev.arunkumar.android.dagger.view.PerView
+import dagger.hilt.android.scopes.ViewScoped
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
@@ -40,7 +40,7 @@ data class SuggestionResult(
   val suggestions: List<SuggestionItem>
 )
 
-@PerView
+@ViewScoped
 class SearchPresenter
 @Inject
 constructor(

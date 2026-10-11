@@ -19,6 +19,7 @@
 
 package arun.com.chromer.di.data
 
+import arun.com.chromer.data.DataModule
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.apps.DefaultAppRepository
 import arun.com.chromer.data.apps.MockAppSystemStore
@@ -43,15 +44,15 @@ import arun.com.chromer.data.website.stores.WebsiteNetworkStore
 import arun.com.chromer.data.website.stores.WebsiteStore
 import dagger.Binds
 import dagger.Module
-import dagger.hilt.migration.DisableInstallInCheck
+import dagger.hilt.components.SingletonComponent
+import dagger.hilt.testing.TestInstallIn
 import javax.inject.Singleton
 
 /**
  * Created by arunk on 15-12-2017.
  */
 @Module
-// sdlc-debt: used only by the legacy Dagger TestAppComponent, never by a Hilt graph; the check opt-out goes when the tests move to Hilt testing.
-@DisableInstallInCheck
+@TestInstallIn(components = [SingletonComponent::class], replaces = [DataModule::class])
 abstract class TestDataModule {
   @Disk
   @Binds

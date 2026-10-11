@@ -30,13 +30,14 @@ import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.FragmentSlideOverIntroBinding
-import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.glide.GlideApp
 import com.github.paolorotolo.appintro.ISlideBackgroundColorHolder
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 open class SlideOverExplanationFragment : BaseFragment(), ISlideBackgroundColorHolder {
   private var _binding: FragmentSlideOverIntroBinding? = null
   private val binding get() = _binding!!
@@ -51,7 +52,6 @@ open class SlideOverExplanationFragment : BaseFragment(), ISlideBackgroundColorH
   @Inject
   lateinit var tabsManager: TabsManager
 
-  override fun inject(fragmentComponent: FragmentComponent) = fragmentComponent.inject(this)
   override val layoutRes: Int
     get() = R.layout.fragment_slide_over_intro
 

@@ -38,7 +38,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.browsing.providerselection.ProviderSelectionActivity
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.widgets.AppPreferenceCardView
 import arun.com.chromer.shared.Constants.TEXT_SHARE_INTENT
@@ -52,6 +51,7 @@ import arun.com.chromer.util.Utils
 import com.google.android.material.snackbar.Snackbar
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
@@ -59,6 +59,7 @@ import javax.inject.Inject
  * favorite share app, and bottom bar actions.
  * Modernized to use Material Design BottomSheetDialogFragment instead of Flipboard BottomSheet.
  */
+@AndroidEntryPoint
 class BrowsingOptionsActivity : BaseActivity(), Snackable,
     SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -181,10 +182,6 @@ class BrowsingOptionsActivity : BaseActivity(), Snackable,
 
     override fun snackLong(message: String) {
         Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG).show()
-    }
-
-    override fun inject(activityComponent: ActivityComponent) {
-        activityComponent.inject(this)
     }
 
     class ProviderChanged

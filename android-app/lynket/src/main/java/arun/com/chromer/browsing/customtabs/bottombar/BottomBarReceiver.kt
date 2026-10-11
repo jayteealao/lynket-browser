@@ -24,22 +24,22 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.browser.customtabs.CustomTabsIntent
-import arun.com.chromer.Lynket
 import arun.com.chromer.R
 import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.Utils
+import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class BottomBarReceiver : BroadcastReceiver() {
   @Inject
   lateinit var tabsManager: TabsManager
 
   override fun onReceive(context: Context, intent: Intent) {
-    (context.applicationContext as Lynket).appComponent.inject(this)
 
     val clickedId = intent.getIntExtra(CustomTabsIntent.EXTRA_REMOTEVIEWS_CLICKED_ID, -1)
     val url = intent.dataString

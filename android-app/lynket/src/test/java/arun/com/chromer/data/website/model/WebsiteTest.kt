@@ -20,9 +20,11 @@
 package arun.com.chromer.data.website.model
 
 import arun.com.chromer.LynketRobolectricSuite
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+@HiltAndroidTest
 class WebsiteTest : LynketRobolectricSuite() {
 
   @Test

@@ -27,13 +27,14 @@ import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.FragmentArticleIntroBinding
-import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.glide.GlideApp
 import com.github.paolorotolo.appintro.ISlideBackgroundColorHolder
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 open class ArticleIntroFragment : BaseFragment(), ISlideBackgroundColorHolder {
   private var _binding: FragmentArticleIntroBinding? = null
   private val binding get() = _binding!!
@@ -47,8 +48,6 @@ open class ArticleIntroFragment : BaseFragment(), ISlideBackgroundColorHolder {
 
   @Inject
   lateinit var tabsManager: TabsManager
-
-  override fun inject(fragmentComponent: FragmentComponent) = fragmentComponent.inject(this)
 
   override val layoutRes: Int get() = R.layout.fragment_article_intro
 

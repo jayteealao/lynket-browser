@@ -24,12 +24,13 @@ import android.os.Bundle
 import android.view.MenuItem
 import arun.com.chromer.R
 import arun.com.chromer.databinding.ActivityHistoryBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.shared.FabHandler
 import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.activity.BaseActivity
 import com.google.android.material.snackbar.Snackbar
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class HistoryActivity : BaseActivity(), Snackable {
 
   private lateinit var binding: ActivityHistoryBinding
@@ -84,7 +85,4 @@ class HistoryActivity : BaseActivity(), Snackable {
     super.onBackPressed()
   }
 
-  override fun inject(activityComponent: ActivityComponent) {
-    activityComponent.inject(this)
-  }
 }

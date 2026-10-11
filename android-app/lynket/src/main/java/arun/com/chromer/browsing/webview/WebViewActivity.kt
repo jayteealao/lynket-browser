@@ -40,15 +40,16 @@ import arun.com.chromer.browsing.EXTRA_CURRENT_LOADING_URL
 import arun.com.chromer.browsing.menu.MenuDelegate
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.ActivityWebViewBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.applyColor
 import arun.com.chromer.extenstions.setAutoHideProgress
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
+import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
 
+@AndroidEntryPoint
 open class WebViewActivity : BrowsingActivity() {
   private lateinit var binding: ActivityWebViewBinding
   @Inject
@@ -59,8 +60,6 @@ open class WebViewActivity : BrowsingActivity() {
   private var foregroundColor = 0
 
   override val layoutRes: Int = 0 // Using ViewBinding instead
-
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)

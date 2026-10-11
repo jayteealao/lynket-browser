@@ -57,7 +57,6 @@ import arun.com.chromer.bubbles.webheads.ui.views.Trashy
 import arun.com.chromer.bubbles.webheads.ui.views.WebHead
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.service.ServiceComponent
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.shared.Constants.ACTION_CLOSE_WEBHEAD_BY_URL
@@ -80,6 +79,7 @@ import arun.com.chromer.util.Utils
 import com.facebook.rebound.Spring
 import com.facebook.rebound.SpringConfig
 import com.facebook.rebound.SpringSystem
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -95,6 +95,7 @@ import timber.log.Timber
 import java.util.LinkedList
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.ConnectionCallback {
 
     @Inject
@@ -206,10 +207,6 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
         Trashy.init(this)
         bindToCustomTabSession()
         registerReceivers()
-    }
-
-    override fun inject(serviceComponent: ServiceComponent) {
-        serviceComponent.inject(this)
     }
 
     override fun onDestroy() {

@@ -38,7 +38,7 @@ import arun.com.chromer.tabs.TabsManager
 import com.airbnb.epoxy.AsyncEpoxyController
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
-import dev.arunkumar.android.dagger.view.PerView
+import dagger.hilt.android.scopes.ViewScoped
 import dev.arunkumar.android.epoxy.TotalSpanOverride
 import dev.arunkumar.android.common.dpToPx
 import kotlinx.coroutines.flow.Flow
@@ -46,7 +46,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 
-@PerView
+@ViewScoped
 class SuggestionController
 @Inject
 constructor(

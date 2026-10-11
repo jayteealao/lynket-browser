@@ -20,7 +20,10 @@
 
 package arun.com.chromer.browsing.webview
 
+import dagger.hilt.android.AndroidEntryPoint
+
 /**
  * Only exists to provide embeddable activity for Android 10 bubbles.
  */
+@AndroidEntryPoint
 class EmbeddableWebViewActivity : WebViewActivity()

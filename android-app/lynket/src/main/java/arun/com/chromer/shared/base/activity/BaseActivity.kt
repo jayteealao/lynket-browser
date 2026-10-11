@@ -28,9 +28,6 @@ import android.view.MenuItem
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import arun.com.chromer.R
-import arun.com.chromer.di.activity.ActivityComponent
-import arun.com.chromer.di.app.appComponent
-import arun.com.chromer.shared.base.ProvidesActivityComponent
 import arun.com.chromer.util.lifecycle.ActivityLifecycleEvents
 import butterknife.ButterKnife
 import butterknife.Unbinder
@@ -43,11 +40,9 @@ import javax.inject.Inject
  * - lifecycleScope.launch { } for UI work
  * - lifecycleScope.launch(Dispatchers.IO) { } for background work
  */
-abstract class BaseActivity : AppCompatActivity(), ProvidesActivityComponent {
+abstract class BaseActivity : AppCompatActivity() {
 
   protected var unbinder: Unbinder? = null
-
-  override lateinit var activityComponent: ActivityComponent
 
   @get:LayoutRes
   protected abstract val layoutRes: Int
@@ -56,11 +51,6 @@ abstract class BaseActivity : AppCompatActivity(), ProvidesActivityComponent {
   lateinit var lifecycleEvents: ActivityLifecycleEvents
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    activityComponent = application
-      .appComponent()
-      .activityComponentFactory()
-      .create(this)
-      .also(this::inject)
     super.onCreate(savedInstanceState)
     if (layoutRes != 0) {
       setContentView(layoutRes)

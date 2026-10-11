@@ -36,16 +36,17 @@ import android.widget.Toast
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.ActivityNewTabBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.showKeyboard
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import com.afollestad.materialdialogs.MaterialDialog
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
  * Simple dialog activity to launch new url in a popup. Shows a search view.
  */
+@AndroidEntryPoint
 class NewTabDialogActivity : BaseActivity() {
   private var newTabDialog: NewTabDialog? = null
 
@@ -60,8 +61,6 @@ class NewTabDialogActivity : BaseActivity() {
     newTabDialog = NewTabDialog(this).show()
   }
 
-
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
   override fun onDestroy() {
     super.onDestroy()

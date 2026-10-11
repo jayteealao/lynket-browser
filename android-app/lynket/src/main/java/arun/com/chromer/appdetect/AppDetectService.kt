@@ -37,14 +37,15 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.PRIORITY_MIN
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
-import arun.com.chromer.di.service.ServiceComponent
 import arun.com.chromer.shared.Constants.EXTRA_KEY_CLEAR_LAST_TOP_APP
 import arun.com.chromer.shared.base.service.BaseService
 import arun.com.chromer.util.Utils
+import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import java.util.TreeMap
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class AppDetectService : BaseService() {
 
     @Inject
@@ -123,10 +124,6 @@ class AppDetectService : BaseService() {
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
-    }
-
-    override fun inject(serviceComponent: ServiceComponent) {
-        serviceComponent.inject(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

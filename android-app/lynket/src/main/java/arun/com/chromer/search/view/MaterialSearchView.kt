@@ -47,25 +47,25 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import arun.com.chromer.R
 import arun.com.chromer.databinding.WidgetMaterialSearchViewBinding
 import arun.com.chromer.di.view.Detaches
-import arun.com.chromer.di.view.ViewComponent
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.search.suggestion.SuggestionController
 import arun.com.chromer.search.suggestion.items.SuggestionItem.HistorySuggestionItem
 import arun.com.chromer.search.suggestion.items.SuggestionType.*
 import arun.com.chromer.shared.Constants.REQUEST_CODE_VOICE
-import arun.com.chromer.shared.base.ProvidesActivityComponent
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.animations.spring
 import arun.com.chromer.util.epoxy.intercepts
 import arun.com.chromer.util.glide.GlideApp
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class MaterialSearchView
 @JvmOverloads
 constructor(
@@ -74,7 +74,6 @@ constructor(
   defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-  private var viewComponent: ViewComponent? = null
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
   private val binding: WidgetMaterialSearchViewBinding = WidgetMaterialSearchViewBinding.inflate(
@@ -149,13 +148,6 @@ constructor(
     .filter { focusChangesState.value == false }
 
   init {
-    if (context is ProvidesActivityComponent) {
-      viewComponent = context
-        .activityComponent
-        .viewComponentFactory().create(this)
-        .also { component -> component.inject(this) }
-    }
-
     binding.searchSuggestions.apply {
       (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
       layoutManager = GridLayoutManager(context, 4, VERTICAL, true)
@@ -190,7 +182,6 @@ constructor(
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
     scope.cancel()
-    viewComponent = null
   }
 
   override fun clearFocus() {

@@ -29,7 +29,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.RxPreferences
 import arun.com.chromer.shared.base.activity.BaseActivity
@@ -40,8 +39,10 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.google.android.material.snackbar.Snackbar
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeClickListener {
 
   @BindView(R.id.toolbar)
@@ -62,10 +63,6 @@ class BrowsingModeActivity : BaseActivity(), BrowsingModeAdapter.BrowsingModeCli
 
   override val layoutRes: Int
     get() = R.layout.activity_browsing_mode
-
-  override fun inject(activityComponent: ActivityComponent) {
-    activityComponent.inject(this)
-  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)

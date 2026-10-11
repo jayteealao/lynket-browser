@@ -20,9 +20,11 @@
 package arun.com.chromer
 
 import android.app.Application
-import arun.com.chromer.di.app.TestAppComponent
 import arun.com.chromer.settings.Preferences
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltTestApplication
 import org.junit.Before
+import org.junit.Rule
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -31,9 +33,10 @@ import javax.inject.Inject
 
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = LynketTestApplication::class)
+@Config(sdk = [34], application = HiltTestApplication::class)
 abstract class LynketRobolectricSuite {
-  lateinit var testAppComponent: TestAppComponent
+  @get:Rule
+  val hiltRule = HiltAndroidRule(this)
 
   @Inject
   lateinit var preferences: Preferences
@@ -42,8 +45,7 @@ abstract class LynketRobolectricSuite {
 
   @Before
   fun setup() {
-    testAppComponent = (application as LynketTestApplication).appComponent as TestAppComponent
-    testAppComponent.inject(this)
+    hiltRule.inject()
   }
 
 

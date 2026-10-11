@@ -46,7 +46,6 @@ import arun.com.chromer.data.Result
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.ActivityArticleModeBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.extenstions.watch
@@ -62,12 +61,12 @@ import com.bumptech.glide.RequestManager
 // import hu.akarnokd.rxjava.interop.RxJavaInterop
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class ArticleActivity : BrowsingActivity() {
   private lateinit var binding: ActivityArticleModeBinding
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
-
   private val browsingArticleViewModel: BrowsingArticleViewModel by viewModels()
 
   private var url: String? = null

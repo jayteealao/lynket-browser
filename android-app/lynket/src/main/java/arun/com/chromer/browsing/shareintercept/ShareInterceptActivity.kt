@@ -34,18 +34,19 @@ import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.search.provider.SearchProviders
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.SafeIntent
 import arun.com.chromer.util.Utils
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
 @SuppressLint("GoogleAppIndexingApiWarning")
+@AndroidEntryPoint
 class ShareInterceptActivity : BaseActivity() {
 
   @Inject
@@ -78,10 +79,6 @@ class ShareInterceptActivity : BaseActivity() {
     } finally {
       finish()
     }
-  }
-
-  override fun inject(activityComponent: ActivityComponent) {
-    activityComponent.inject(this)
   }
 
   private fun findAndOpenLink(receivedText: String) {

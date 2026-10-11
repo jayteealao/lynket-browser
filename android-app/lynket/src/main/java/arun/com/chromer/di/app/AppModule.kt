@@ -21,24 +21,17 @@
 package arun.com.chromer.di.app
 
 import android.app.Application
-import androidx.lifecycle.ViewModelProvider
 import arun.com.chromer.browsing.icons.DefaultWebsiteIconsProvider
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.di.viewmodel.ViewModelModule
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.util.viemodel.ViewModelFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import dev.arunkumar.android.dagger.viewmodel.DefaultViewModelsBuilder
 import javax.inject.Singleton
 
-@Module(
-  includes = [
-    DefaultViewModelsBuilder::class
-  ]
-)
+@Module
 @InstallIn(SingletonComponent::class)
 open class AppModule {
   @Provides
@@ -53,11 +46,5 @@ open class AppModule {
   @Singleton
   internal fun websiteIconProvider(defaultWebsiteIconsProvider: DefaultWebsiteIconsProvider): WebsiteIconsProvider {
     return defaultWebsiteIconsProvider
-  }
-
-  @Provides
-  @Singleton
-  internal fun viewModelFactory(factory: ViewModelFactory): ViewModelProvider.Factory {
-    return factory
   }
 }

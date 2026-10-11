@@ -23,9 +23,11 @@ package arun.com.chromer.browsing.customtabs
 import android.os.Bundle
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class CustomTabActivity : BrowsingActivity() {
   /**
    * As soon as user presses back, this activity will get focus. We need to kill this activity else
@@ -33,21 +35,20 @@ class CustomTabActivity : BrowsingActivity() {
    */
   private var isLoaded = false
 
+  @Inject
+  lateinit var customTabs: CustomTabs
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
     val toolbarColor = intent.getIntExtra(EXTRA_KEY_TOOLBAR_COLOR, 0)
 
     if (savedInstanceState == null) {
-      activityComponent.customTabs()
+      customTabs
         .forUrl(intent.dataString!!)
         .toolbarColor(toolbarColor)
         .launch()
     } else finish()
-  }
-
-  override fun inject(activityComponent: ActivityComponent) {
-    activityComponent.inject(this)
   }
 
   override fun onAttachedToWindow() {

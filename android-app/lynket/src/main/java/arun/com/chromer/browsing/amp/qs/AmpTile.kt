@@ -25,8 +25,10 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import arun.com.chromer.R
 import arun.com.chromer.shared.base.PreferenceQuickSettingsTile
+import dagger.hilt.android.AndroidEntryPoint
 
 @RequiresApi(api = Build.VERSION_CODES.N)
+@AndroidEntryPoint
 class AmpTile : PreferenceQuickSettingsTile() {
   override fun togglePreference() = preferences.ampMode(!preferences.ampMode())
 

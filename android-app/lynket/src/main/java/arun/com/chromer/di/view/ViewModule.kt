@@ -25,7 +25,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewComponent
-import dev.arunkumar.android.dagger.view.PerView
+import dagger.hilt.android.scopes.ViewScoped
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -34,7 +34,7 @@ import kotlinx.coroutines.flow.callbackFlow
 @InstallIn(ViewComponent::class)
 object ViewModule {
   @Provides
-  @PerView
+  @ViewScoped
   @Detaches
   fun detaches(view: View): Flow<Unit> = callbackFlow {
     val listener = object : View.OnAttachStateChangeListener {

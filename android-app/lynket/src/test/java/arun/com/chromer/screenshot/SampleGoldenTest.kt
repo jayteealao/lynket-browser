@@ -11,11 +11,11 @@
 
 package arun.com.chromer.screenshot
 
+import android.app.Application
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import arun.com.chromer.LynketTestApplication
 import arun.com.chromer.ui.about.AboutScreen
 import arun.com.chromer.ui.theme.ChromerTheme
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -31,7 +31,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = LynketTestApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class SampleGoldenTest {
 
   @get:Rule

@@ -26,15 +26,16 @@ import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.finishAndRemoveTaskCompat
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.SafeIntent
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @SuppressLint("GoogleAppIndexingApiWarning")
+@AndroidEntryPoint
 class BrowserInterceptActivity : BaseActivity() {
   @Inject
   lateinit var defaultTabsManager: TabsManager
@@ -57,10 +58,6 @@ class BrowserInterceptActivity : BaseActivity() {
       finishAndRemoveTaskCompat()
     }
 
-  }
-
-  override fun inject(activityComponent: ActivityComponent) {
-    activityComponent.inject(this)
   }
 
   private fun invalidLink() {

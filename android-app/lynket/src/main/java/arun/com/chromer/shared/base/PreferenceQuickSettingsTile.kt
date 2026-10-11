@@ -25,7 +25,6 @@ import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
-import arun.com.chromer.Lynket
 import arun.com.chromer.settings.Preferences
 import timber.log.Timber
 import javax.inject.Inject
@@ -38,14 +37,6 @@ abstract class PreferenceQuickSettingsTile : TileService() {
 
   @Inject
   internal lateinit var preferences: Preferences
-
-  override fun onCreate() {
-    super.onCreate()
-    (application as Lynket).appComponent
-      .serviceComponentFactory()
-      .create(this)
-      .inject(this)
-  }
 
   /**
    * Called when the tile is added to the Quick Settings.

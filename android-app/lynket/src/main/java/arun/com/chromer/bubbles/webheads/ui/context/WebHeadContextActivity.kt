@@ -40,7 +40,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants.ACTION_CLOSE_WEBHEAD_BY_URL
 import arun.com.chromer.shared.Constants.ACTION_EVENT_WEBHEAD_DELETED
@@ -53,8 +52,10 @@ import butterknife.BindView
 import butterknife.ButterKnife
 import butterknife.OnClick
 import com.afollestad.materialdialogs.MaterialDialog
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class WebHeadContextActivity : BaseActivity(), WebsiteAdapter.WebSiteAdapterListener {
     private val webHeadsEventsReceiver = WebHeadEventsReceiver()
 
@@ -230,10 +231,6 @@ class WebHeadContextActivity : BaseActivity(), WebsiteAdapter.WebSiteAdapterList
         val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         cm.setPrimaryClip(clip)
         Toast.makeText(this, getString(R.string.copied) + " " + url, LENGTH_SHORT).show()
-    }
-
-    override fun inject(activityComponent: ActivityComponent) {
-        activityComponent.inject(this)
     }
 
     /**

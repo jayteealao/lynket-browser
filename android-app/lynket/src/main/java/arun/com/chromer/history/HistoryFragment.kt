@@ -46,7 +46,6 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import arun.com.chromer.databinding.FragmentHistoryBinding
-import arun.com.chromer.di.fragment.FragmentComponent
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.browsingoptions.BrowsingOptionsActivity
 import arun.com.chromer.shared.FabHandler
@@ -263,8 +262,6 @@ class HistoryFragment : BaseFragment(), Snackable, FabHandler {
   private fun loadHistory() {
     viewModel.loadHistory()
   }
-
-  override fun inject(fragmentComponent: FragmentComponent) = fragmentComponent.inject(this)
 
   override fun onResume() {
     super.onResume()

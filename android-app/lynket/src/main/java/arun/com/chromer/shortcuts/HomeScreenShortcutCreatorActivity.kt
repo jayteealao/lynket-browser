@@ -42,7 +42,6 @@ import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.browsing.browserintercept.BrowserInterceptActivity
 import arun.com.chromer.data.Result
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.extenstions.toBitmap
@@ -57,12 +56,13 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.internal.MDButton
 import com.bumptech.glide.request.target.ImageViewTarget
 import com.google.android.material.textfield.TextInputLayout
+import dagger.hilt.android.AndroidEntryPoint
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar
 
 
+@AndroidEntryPoint
 class HomeScreenShortcutCreatorActivity : BrowsingActivity() {
 
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
   override fun onWebsiteLoaded(website: Website) {
   }
 

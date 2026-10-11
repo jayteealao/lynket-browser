@@ -30,20 +30,19 @@ import androidx.recyclerview.widget.RecyclerView
 import arun.com.chromer.R
 import arun.com.chromer.databinding.ActivityTipsBinding
 import arun.com.chromer.databinding.LayoutTipsCardBinding
-import arun.com.chromer.di.activity.ActivityComponent
 import arun.com.chromer.extenstions.inflate
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.util.Utils
 import com.bumptech.glide.RequestManager
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class TipsActivity : BaseActivity() {
 
   private lateinit var binding: ActivityTipsBinding
-
-  override fun inject(activityComponent: ActivityComponent) = activityComponent.inject(this)
 
   @Inject
   lateinit var requestManager: RequestManager

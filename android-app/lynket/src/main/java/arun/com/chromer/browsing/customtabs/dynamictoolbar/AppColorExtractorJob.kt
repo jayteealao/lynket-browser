@@ -29,23 +29,23 @@ import androidx.annotation.ColorInt
 import androidx.core.app.JobIntentService
 import androidx.core.content.ContextCompat
 import androidx.palette.graphics.Palette
-import arun.com.chromer.Lynket
 import arun.com.chromer.R
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.shared.Constants.EXTRA_PACKAGE_NAME
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
+import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class AppColorExtractorJob : JobIntentService() {
 
     @Inject
     lateinit var appRepository: AppRepository
 
     override fun onHandleWork(intent: Intent) {
-        (application as Lynket).appComponent.inject(this)
         val packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME)
         if (packageName != null) {
             if (isValidPackage(packageName))

@@ -21,29 +21,25 @@ package arun.com.chromer.data.apps
 
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.data.common.App
+import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import javax.inject.Inject
 
 /**
  * Created by arunk on 10-02-2018.
  */
+@HiltAndroidTest
 class DefaultAppRepositoryTest : LynketRobolectricSuite() {
   @Inject
   @JvmField
   var appRepository: AppRepository? = null
 
   private val packageName = "PackageName"
-
-  @Before
-  fun setUp() {
-    testAppComponent.inject(this)
-  }
 
   @After
   fun tearDown() {

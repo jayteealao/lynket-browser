@@ -152,6 +152,8 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
 
     // Hilt Testing
+    testImplementation(libs.hilt.android.testing)
+    kaptTest(libs.hilt.compiler)
     androidTestImplementation(libs.hilt.android.testing)
     kaptAndroidTest(libs.hilt.android.testing)
     kaptAndroidTest(libs.hilt.compiler)
@@ -211,11 +213,6 @@ dependencies {
     // LEGACY DEPENDENCIES - TO BE REMOVED
     // Keep temporarily during migration (Steps 3-9)
     // =============================================
-
-    // Legacy: Dagger 2 (will coexist with Hilt temporarily)
-    implementation("com.google.dagger:dagger:2.50")
-    kapt("com.google.dagger:dagger-compiler:2.50")
-    kaptTest("com.google.dagger:dagger-compiler:2.50")
 
     // Legacy: Image Loading - Glide
     implementation(libs.glide)
