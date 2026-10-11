@@ -16,6 +16,8 @@ import android.content.Context
 import android.content.Intent
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.apps.store.PaperPerAppMigration
+import arun.com.chromer.data.database.HistoryDatabase
+import arun.com.chromer.data.history.LegacyHistoryImport
 import arun.com.chromer.data.preferences.LegacySettingsMigration
 import arun.com.chromer.data.preferences.SettingType
 import arun.com.chromer.data.preferences.SettingsSchema
@@ -28,6 +30,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
@@ -38,7 +41,9 @@ import javax.inject.Inject
  * - `settings.tsv`: key, stored type, stored value, value a reader gets (schema keys first, then
  *   every other stored key);
  * - `per-app.tsv`: package, blacklisted, incognito, colour;
- * - `settings-report.tsv` and `per-app-report.tsv`: the migration reports, when they exist.
+ * - `history.tsv`: url, created_at, visit_count, title of every history row, newest first;
+ * - `settings-report.tsv`, `per-app-report.tsv` and `history-report.tsv`: the migration reports,
+ *   when they exist.
  *
  * `adb shell am broadcast -n arun.com.chromer.debug/arun.com.chromer.debug.StoreDumpReceiver`,
  * then `adb exec-out run-as arun.com.chromer.debug cat files/debug-dump/<file>`.
@@ -51,6 +56,9 @@ class StoreDumpReceiver : BroadcastReceiver() {
 
   @Inject
   lateinit var appDiskStore: AppDiskStore
+
+  @Inject
+  lateinit var historyDatabase: HistoryDatabase
 
   override fun onReceive(context: Context, intent: Intent) {
     val pending = goAsync()
@@ -93,6 +101,15 @@ class StoreDumpReceiver : BroadcastReceiver() {
 
     copyIfPresent(File(context.filesDir, "settings-migration/${LegacySettingsMigration.REPORT}"), File(out, "settings-report.tsv"))
     copyIfPresent(File(context.filesDir, "per-app-migration/${PaperPerAppMigration.REPORT}"), File(out, "per-app-report.tsv"))
+
+    // Read through the app's own database: Room uses WAL, so a pulled chromer.db can miss rows.
+    val history = StringBuilder("url\tcreated_at\tvisit_count\ttitle\n")
+    historyDatabase.dao().getAllFlow().first().forEach { history.row(it.url, it.createdAt, it.visitCount, it.title) }
+    File(out, "history.tsv").writeText(history.toString())
+    copyIfPresent(
+      File(context.filesDir, "${LegacyHistoryImport.MIGRATION_FOLDER}/${LegacyHistoryImport.REPORT}"),
+      File(out, "history-report.tsv")
+    )
   }
 
   private fun typeOf(value: Any?): String = when (value) {
