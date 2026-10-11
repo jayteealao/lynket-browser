@@ -23,12 +23,12 @@ plugins {
 
 android {
     namespace = "arun.com.chromer"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "arun.com.chromer"
         minSdk = 24 // Android 7.0+ (Decision: Bump from 23)
-        targetSdk = 35 // Phase 1.1: Updated to latest
+        targetSdk = 36 // Set explicitly: AGP 9 defaults targetSdk to compileSdk
         versionCode = 56
         versionName = "2.1.3"
 

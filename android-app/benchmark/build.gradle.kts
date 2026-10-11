@@ -18,11 +18,11 @@ plugins {
 android {
     // Must differ from the target app id (arun.com.chromer.benchmark), or the two APKs collide on install.
     namespace = "arun.com.chromer.macrobenchmark"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36 // Set explicitly: AGP 9 defaults targetSdk to compileSdk
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Baselines are recorded on the Pixel_9_Pro emulator; compare runs use the same AVD.
         testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] = "EMULATOR"
