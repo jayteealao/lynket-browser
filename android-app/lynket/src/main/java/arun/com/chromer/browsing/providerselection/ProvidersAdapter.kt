@@ -35,7 +35,7 @@ import arun.com.chromer.R
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.bumptech.glide.RequestManager
@@ -85,7 +85,7 @@ constructor(
   }
 
   override fun onViewDetachedFromWindow(holder: RecentsViewHolder) {
-    GlideApp.with(holder.itemView.context).clear(holder.icon!!)
+    Glide.with(holder.itemView.context).clear(holder.icon!!)
   }
 
   override fun getItemCount(): Int = providers.size

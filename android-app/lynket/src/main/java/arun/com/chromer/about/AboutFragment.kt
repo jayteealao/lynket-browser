@@ -41,7 +41,7 @@ import arun.com.chromer.databinding.FragmentAboutBinding
 import arun.com.chromer.databinding.FragmentAboutListItemTemplateBinding
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.shared.Constants
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 
@@ -363,13 +363,13 @@ class AboutFragment : Fragment() {
         patryk -> {
           holder.itemBinding.aboutAppTitle.text = "Patryk Goworowski"
           holder.itemBinding.aboutAppSubtitle.setText(R.string.icon_design)
-          GlideApp.with(holder.itemView.context).load(patrykProfileImg)
+          Glide.with(holder.itemView.context).load(patrykProfileImg)
             .into(holder.itemBinding.aboutRowItemImage)
         }
         max -> {
           holder.itemBinding.aboutAppTitle.text = "Max Patchs"
           holder.itemBinding.aboutAppSubtitle.setText(R.string.illustrations_and_video)
-          GlideApp.with(holder.itemView.context).load(maxImg).into(holder.itemBinding.aboutRowItemImage)
+          Glide.with(holder.itemView.context).load(maxImg).into(holder.itemBinding.aboutRowItemImage)
         }
         beta -> {
           holder.itemBinding.aboutAppTitle.setText(R.string.beta_testers)

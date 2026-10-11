@@ -32,7 +32,6 @@ import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils.dpToPx
 import arun.com.chromer.util.Utils.getFirstLetter
 import arun.com.chromer.util.Utils.isValidFavicon
-import arun.com.chromer.util.glide.GlideApp
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.Options
 import com.bumptech.glide.load.ResourceDecoder
@@ -67,7 +66,7 @@ class WebsiteDecoder(private val context: Context, glide: Glide) :
   ): Resource<Bitmap>? {
     // Try to load using Glide normally
     val websiteFavicon = try {
-      GlideApp.with(context)
+      Glide.with(context)
         .asBitmap()
         .load(website.faviconUrl)
         .useUnlimitedSourceGeneratorsPool(true)

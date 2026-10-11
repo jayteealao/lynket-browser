@@ -30,7 +30,7 @@ import arun.com.chromer.browsing.providerselection.ProviderSelectionActivity
 import arun.com.chromer.databinding.FragmentProviderSelectionIntroBinding
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.github.paolorotolo.appintro.ISlideBackgroundColorHolder
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -63,7 +63,7 @@ open class ProviderSelectionIntroFragment : BaseFragment(), ISlideBackgroundColo
 
   override fun onActivityCreated(savedInstanceState: Bundle?) {
     super.onActivityCreated(savedInstanceState)
-    GlideApp.with(this).load(R.drawable.tutorial_choose_browser).into(binding.imageView)
+    Glide.with(this).load(R.drawable.tutorial_choose_browser).into(binding.imageView)
     binding.chooseProviderButton.setOnClickListener {
       startActivity(Intent(context, ProviderSelectionActivity::class.java))
     }

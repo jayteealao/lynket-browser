@@ -167,7 +167,7 @@ internal class ArticleAdapter(
           image.show()
           Timber.v("loading url at %s", imageSourceUrl)
           holder.url = imageSourceUrl
-          GlideApp.with(image.context)
+          Glide.with(image.context)
                   .load(imageSourceUrl)
                   .apply(placeholderOf(R.color.article_imageBackground))
                   .apply(diskCacheStrategyOf(DiskCacheStrategy.ALL))

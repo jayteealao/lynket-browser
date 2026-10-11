@@ -29,7 +29,7 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.FragmentArticleIntroBinding
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.github.paolorotolo.appintro.ISlideBackgroundColorHolder
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -61,7 +61,7 @@ open class ArticleIntroFragment : BaseFragment(), ISlideBackgroundColorHolder {
 
   override fun onActivityCreated(savedInstanceState: Bundle?) {
     super.onActivityCreated(savedInstanceState)
-    GlideApp.with(this).load(R.drawable.tutorial_article_mode).into(binding.imageView)
+    Glide.with(this).load(R.drawable.tutorial_article_mode).into(binding.imageView)
     binding.tryItButton.setOnClickListener {
       tabsManager.openArticle(requireContext(), Website("https://en.wikipedia.org/wiki/Web_browser"))
     }

@@ -30,7 +30,7 @@ import arun.com.chromer.R
 import arun.com.chromer.databinding.FragmentWebHeadsIntroBinding
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.github.paolorotolo.appintro.ISlideBackgroundColorHolder
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -63,7 +63,7 @@ open class WebHeadsIntroFragment : BaseFragment(), ISlideBackgroundColorHolder {
 
   override fun onActivityCreated(savedInstanceState: Bundle?) {
     super.onActivityCreated(savedInstanceState)
-    GlideApp.with(this).load(R.drawable.tutorial_web_heads).into(binding.imageView)
+    Glide.with(this).load(R.drawable.tutorial_web_heads).into(binding.imageView)
     binding.watchDemo.setOnClickListener {
       startActivity(
         Intent(

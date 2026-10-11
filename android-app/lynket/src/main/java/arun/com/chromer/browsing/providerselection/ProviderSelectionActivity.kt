@@ -52,7 +52,7 @@ import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.events.EventBus
 import arun.com.chromer.util.events.Event
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
 import com.afollestad.materialdialogs.MaterialDialog
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
@@ -134,7 +134,7 @@ class ProviderSelectionActivity : BaseActivity() {
   private fun setupWebViewCard() {
     binding.webViewCard.setOnClickListener { onWebViewClick() }
 
-    GlideApp.with(this)
+    Glide.with(this)
       .load(ApplicationIcon.createUri(Constants.SYSTEM_WEBVIEW))
       .error(
         IconicsDrawable(this)
@@ -219,7 +219,7 @@ class ProviderSelectionActivity : BaseActivity() {
 
       dialogBinding = DialogProviderInfoBinding.bind(dialog!!.customView!!)
 
-      GlideApp.with(activity!!).load(provider.iconUri).into(dialogBinding!!.iconView)
+      Glide.with(activity!!).load(provider.iconUri).into(dialogBinding!!.iconView)
 
       if (provider.features.isNotEmpty()) {
         dialogBinding!!.providerDetails.text = provider.features

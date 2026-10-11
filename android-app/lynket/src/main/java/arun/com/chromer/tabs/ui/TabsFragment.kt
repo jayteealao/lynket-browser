@@ -43,7 +43,7 @@ import arun.com.chromer.extenstions.show
 import arun.com.chromer.shared.FabHandler
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.afollestad.materialdialogs.MaterialDialog
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -125,7 +125,7 @@ class TabsFragment : BaseFragment(), FabHandler {
 
   private fun setupRecyclerView() {
     // Setup RecyclerView
-    tabsAdapter = TabsAdapter(GlideApp.with(this), tabsManager)
+    tabsAdapter = TabsAdapter(Glide.with(this), tabsManager)
     binding.tabsRecyclerView.apply {
       layoutManager = LinearLayoutManager(activity)
       adapter = tabsAdapter

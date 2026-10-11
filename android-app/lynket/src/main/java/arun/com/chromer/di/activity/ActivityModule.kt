@@ -21,7 +21,7 @@ package arun.com.chromer.di.activity
 
 import android.app.Activity
 import androidx.lifecycle.LifecycleOwner
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import arun.com.chromer.util.lifecycle.ActivityLifecycle
 import com.bumptech.glide.RequestManager
 import dagger.Module
@@ -35,7 +35,7 @@ import dagger.hilt.android.scopes.ActivityScoped
 class ActivityModule {
   @Provides
   fun glideRequests(activity: Activity): RequestManager {
-    return GlideApp.with(activity)
+    return Glide.with(activity)
   }
 
   @Provides

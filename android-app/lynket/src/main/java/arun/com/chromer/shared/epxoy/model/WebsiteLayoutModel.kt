@@ -26,7 +26,7 @@ import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.WidgetWebsiteGridItemBinding
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import arun.com.chromer.util.makeMatchingBold
 import com.airbnb.epoxy.EpoxyAttribute
 import com.airbnb.epoxy.EpoxyAttribute.Option.DoNotHash
@@ -60,7 +60,7 @@ abstract class WebsiteLayoutModel : KotlinEpoxyModelWithHolder<WebsiteLayoutMode
       root.setOnClickListener {
         tabsManager.openUrl(root.context, website)
       }
-      GlideApp.with(root.context)
+      Glide.with(root.context)
         .load(website)
         .into(icon)
     }

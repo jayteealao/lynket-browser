@@ -30,7 +30,7 @@ import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.FragmentTabsItemTemplateBinding
 import arun.com.chromer.tabs.*
-import arun.com.chromer.util.glide.GlideRequests
+import com.bumptech.glide.RequestManager
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 
@@ -39,7 +39,7 @@ import com.mikepenz.iconics.IconicsDrawable
  */
 class TabsAdapter
 constructor(
-  val glideRequests: GlideRequests,
+  val glideRequests: RequestManager,
   val tabsManager: TabsManager
 ) : ListAdapter<TabsManager.Tab, TabsAdapter.TabsViewHolder>(TabDiff) {
 

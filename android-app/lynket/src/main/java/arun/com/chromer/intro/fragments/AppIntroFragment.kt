@@ -29,7 +29,7 @@ import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.databinding.FragmentTextIntroBinding
 import arun.com.chromer.shared.base.fragment.BaseFragment
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.github.paolorotolo.appintro.ISlideBackgroundColorHolder
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -91,7 +91,7 @@ open class AppIntroFragment : BaseFragment(), ISlideBackgroundColorHolder {
     }
 
     // Use glide to load the drawable
-    GlideApp.with(this).load(drawable).into(binding.imageView)
+    Glide.with(this).load(drawable).into(binding.imageView)
   }
 
   override fun onDestroyView() {

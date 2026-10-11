@@ -30,7 +30,7 @@ import arun.com.chromer.extenstions.StringResource
 import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.resolveStringResource
 import arun.com.chromer.util.HtmlCompat
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.airbnb.epoxy.EpoxyAttribute
 import com.airbnb.epoxy.EpoxyModelClass
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
@@ -51,7 +51,7 @@ abstract class ProviderInfoModel : KotlinEpoxyModelWithHolder<ProviderInfoModel.
   lateinit var providerInfo: CustomTabProviderInfo
 
   override fun bind(holder: ViewHolder) {
-    GlideApp.with(holder.binding.providerIcon)
+    Glide.with(holder.binding.providerIcon)
       .load(providerInfo.iconUri)
       .error(
         IconicsDrawable(holder.binding.providerIcon.context)

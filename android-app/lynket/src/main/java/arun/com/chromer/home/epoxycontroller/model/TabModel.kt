@@ -25,7 +25,7 @@ import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.WidgetTabModelPreviewBinding
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.airbnb.epoxy.EpoxyAttribute
 import com.airbnb.epoxy.EpoxyAttribute.Option.DoNotHash
 import com.airbnb.epoxy.EpoxyModelClass
@@ -42,7 +42,7 @@ abstract class TabModel : KotlinEpoxyModelWithHolder<TabModel.ViewHolder>() {
 
   override fun bind(holder: ViewHolder) {
     super.bind(holder)
-    GlideApp.with(holder.binding.root.context)
+    Glide.with(holder.binding.root.context)
       .load(tab.website ?: Website(tab.url))
       .circleCrop()
       .into(holder.binding.icon)

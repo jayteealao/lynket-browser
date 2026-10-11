@@ -36,7 +36,7 @@ import arun.com.chromer.R
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
 import butterknife.BindView
 import butterknife.ButterKnife
@@ -143,7 +143,7 @@ class AppPreferenceCardView @JvmOverloads constructor(
   private fun applyIcon() {
     if (Utils.isPackageInstalled(context, appPackage)) {
       icon.scaleType = ImageView.ScaleType.FIT_CENTER
-      GlideApp.with(context)
+      Glide.with(context)
         .load(ApplicationIcon.createUri(appPackage ?: ""))
         .fitCenter()
         .listener(object : RequestListener<android.graphics.drawable.Drawable> {

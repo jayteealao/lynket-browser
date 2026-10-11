@@ -31,7 +31,7 @@ import android.graphics.Paint
 import androidx.palette.graphics.Palette
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.util.ColorUtil
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import dev.arunkumar.android.common.dpToPx
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -60,7 +60,7 @@ constructor(private val application: Application) : WebsiteIconsProvider {
   private val adaptiveIconOuterSize by lazy { 108.dpToPx() }
 
   override suspend fun getBubbleIconAndColor(website: Website): WebsiteIconData = withContext(Dispatchers.IO) {
-    val websiteIcon = GlideApp.with(application)
+    val websiteIcon = Glide.with(application)
       .asBitmap()
       .load(website)
       .submit(adaptiveIconOuterSize, adaptiveIconOuterSize)

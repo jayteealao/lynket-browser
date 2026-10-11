@@ -32,7 +32,7 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.FragmentSlideOverIntroBinding
 import arun.com.chromer.shared.base.fragment.BaseFragment
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.github.paolorotolo.appintro.ISlideBackgroundColorHolder
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -65,7 +65,7 @@ open class SlideOverExplanationFragment : BaseFragment(), ISlideBackgroundColorH
 
   override fun onActivityCreated(savedInstanceState: Bundle?) {
     super.onActivityCreated(savedInstanceState)
-    GlideApp.with(this).load(R.drawable.chromer_hd_icon).into(binding.imageView)
+    Glide.with(this).load(R.drawable.chromer_hd_icon).into(binding.imageView)
     binding.tryItButton.setOnClickListener {
       tabsManager.openBrowsingTab(
         requireContext(),

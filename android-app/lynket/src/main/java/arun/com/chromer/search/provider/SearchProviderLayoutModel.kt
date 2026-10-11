@@ -23,7 +23,7 @@ package arun.com.chromer.search.provider
 import android.view.View
 import arun.com.chromer.R
 import arun.com.chromer.databinding.WidgetSearchProviderItemBinding
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.airbnb.epoxy.EpoxyAttribute
 import com.airbnb.epoxy.EpoxyAttribute.Option.DoNotHash
 import com.airbnb.epoxy.EpoxyModelClass
@@ -51,7 +51,7 @@ abstract class SearchProviderLayoutModel :
   override fun bind(holder: ViewHolder) {
     super.bind(holder)
     holder.apply {
-      GlideApp.with(binding.searchProviderIcon).load(searchProvider.iconUri).into(binding.searchProviderIcon)
+      Glide.with(binding.searchProviderIcon).load(searchProvider.iconUri).into(binding.searchProviderIcon)
       binding.searchProviderName.text = searchProvider.name
     }
     holder.binding.root.setOnClickListener(onClick)

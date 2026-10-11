@@ -46,7 +46,7 @@ import arun.com.chromer.extenstions.gone
 import arun.com.chromer.extenstions.show
 import arun.com.chromer.extenstions.toBitmap
 import arun.com.chromer.extenstions.watch
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
 import butterknife.BindView
 import butterknife.ButterKnife
@@ -148,10 +148,10 @@ class HomeScreenShortcutCreatorActivity : BrowsingActivity() {
           is Result.Success<Website> -> {
             website = it.data!!
             shortcutName?.setText(website.safeLabel())
-            GlideApp.with(activity!!)
+            Glide.with(activity!!)
               .load(it.data)
               .error(
-                GlideApp.with(activity!!).load(ApplicationIcon.createUri(activity!!.packageName))
+                Glide.with(activity!!).load(ApplicationIcon.createUri(activity!!.packageName))
               )
               .into(object : ImageViewTarget<Drawable>(iconView) {
                 override fun setResource(resource: Drawable?) {

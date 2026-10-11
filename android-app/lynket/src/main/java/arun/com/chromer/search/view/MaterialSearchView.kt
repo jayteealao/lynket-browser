@@ -55,7 +55,7 @@ import arun.com.chromer.shared.Constants.REQUEST_CODE_VOICE
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.animations.spring
 import arun.com.chromer.util.epoxy.intercepts
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import dagger.hilt.android.AndroidEntryPoint
@@ -226,7 +226,7 @@ constructor(
       fun apply(view: ImageView) {
         when {
           drawable != null -> view.setImageDrawable(drawable)
-          uri != null -> GlideApp.with(view).load(uri).into(view)
+          uri != null -> Glide.with(view).load(uri).into(view)
         }
       }
     }

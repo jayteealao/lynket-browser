@@ -28,7 +28,7 @@ import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.WidgetWebsiteGridItemBinding
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 import dagger.hilt.android.scopes.FragmentScoped
 import javax.inject.Inject
 
@@ -65,7 +65,7 @@ constructor(val tabsManager: TabsManager) :
 
   override fun onViewDetachedFromWindow(holder: RecentsViewHolder) {
     super.onViewDetachedFromWindow(holder)
-    GlideApp.with(holder.itemView).clear(holder.binding.icon)
+    Glide.with(holder.itemView).clear(holder.binding.icon)
   }
 
   override fun getItemCount(): Int = websites.size
@@ -91,7 +91,7 @@ constructor(val tabsManager: TabsManager) :
         itemView.setOnClickListener {
           tabsManager.openUrl(itemView.context, website)
         }
-        GlideApp.with(itemView)
+        Glide.with(itemView)
           .load(website)
           .into(binding.icon)
       }

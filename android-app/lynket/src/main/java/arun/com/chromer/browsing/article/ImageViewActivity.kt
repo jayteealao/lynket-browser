@@ -23,7 +23,7 @@ package arun.com.chromer.browsing.article
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import arun.com.chromer.databinding.ActivityImageViewBinding
-import arun.com.chromer.util.glide.GlideApp
+import com.bumptech.glide.Glide
 
 /**
  * Activity for viewing full size images from an article. Images are zoomable. You can pass in the
@@ -38,7 +38,7 @@ class ImageViewActivity : AppCompatActivity() {
     binding = ActivityImageViewBinding.inflate(layoutInflater)
     setContentView(binding.root)
     val url = intent.dataString
-    GlideApp.with(this)
+    Glide.with(this)
       .load(url)
       .into(binding.imageView)
   }
