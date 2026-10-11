@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug build only: test hooks for the device checks. Each one is guarded by the DUMP
+  permission, which the adb shell holds and other apps do not.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
+
+  <application>
+    <!-- Writes both settings stores to files/debug-dump/ for `adb shell am broadcast -n`. -->
+    <receiver
+      android:name="arun.com.chromer.debug.StoreDumpReceiver"
+      android:exported="true"
+      android:permission="android.permission.DUMP" />
+
+    <!-- The legacy settings screens, startable with `adb shell am start -n` when no link can be
+         opened (for example, right after an update that turned web heads on). -->
+    <activity
+      android:name="arun.com.chromer.settings.SettingsGroupActivity"
+      android:exported="true"
+      android:permission="android.permission.DUMP"
+      tools:node="merge" />
+    <activity
+      android:name="arun.com.chromer.settings.browsingmode.BrowsingModeActivity"
+      android:exported="true"
+      android:permission="android.permission.DUMP"
+      tools:node="merge" />
+    <activity
+      android:name="arun.com.chromer.settings.lookandfeel.LookAndFeelActivity"
+      android:exported="true"
+      android:permission="android.permission.DUMP"
+      tools:node="merge" />
+    <activity
+      android:name="arun.com.chromer.settings.browsingoptions.BrowsingOptionsActivity"
+      android:exported="true"
+      android:permission="android.permission.DUMP"
+      tools:node="merge" />
+    <activity
+      android:name="arun.com.chromer.perapp.PerAppSettingsActivity"
+      android:exported="true"
+      android:permission="android.permission.DUMP"
+      tools:node="merge" />
+  </application>
+</manifest>
