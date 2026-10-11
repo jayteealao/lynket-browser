@@ -103,6 +103,7 @@ class ParcelDiskCache<T : Parcelable> private constructor(
   // sdlc-debt: the typed readParcelable(ClassLoader, Class) needs API 33 and a Class<T> that this
   // generic cache does not hold; the deprecated call is the one older releases used to write and read
   // the same bytes. Upgrade path: pass the item class to open().
+  // source: https://developer.android.com/reference/android/os/Parcel#readParcelable(java.lang.ClassLoader,java.lang.Class%3CT%3E) (added in API 33)
   @Suppress("DEPRECATION")
   private fun readParcelable(parcel: Parcel): T? = parcel.readParcelable(classLoader)
 
@@ -165,6 +166,7 @@ class ParcelDiskCache<T : Parcelable> private constructor(
   }
 
   // sdlc-debt: same reason as readParcelable above; the typed readList overload needs API 33.
+  // source: https://developer.android.com/reference/android/os/Parcel#readList(java.util.List%3C?%20super%20T%3E,java.lang.ClassLoader,java.lang.Class%3CT%3E) (added in API 33)
   @Suppress("DEPRECATION")
   private fun readList(parcel: Parcel, out: MutableList<T>, loader: ClassLoader?) {
     parcel.readList(out, loader)
@@ -282,6 +284,7 @@ class ParcelDiskCache<T : Parcelable> private constructor(
     // sdlc-debt: PackageInfo.versionCode is the only version API on API 24-27 (minSdk 24), and the
     // cache folder version must stay versionCode + SDK_INT so caches written by older releases open.
     // Upgrade path: PackageInfoCompat.getLongVersionCode once androidx.core is a dependency here.
+    // source: https://developer.android.com/reference/android/content/pm/PackageInfo#getLongVersionCode() (added in API 28)
     @Suppress("DEPRECATION")
     @JvmStatic
     fun getVersionCode(context: Context): Int {
