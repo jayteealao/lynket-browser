@@ -20,10 +20,16 @@
 
 package arun.com.chromer.bubbles.system
 
+import android.app.Application
+import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import androidx.annotation.RequiresApi
+import arun.com.chromer.R
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.data.website.WebsiteRepository
@@ -59,6 +65,7 @@ data class BubbleLoadData(
 class NativeFloatingBubble
 @Inject
 constructor(
+  private val application: Application,
   private val websiteRepository: WebsiteRepository,
   private val bubbleNotificationManager: BubbleNotificationManager,
   private val websiteIconsProvider: WebsiteIconsProvider
@@ -91,6 +98,13 @@ constructor(
     context: Context?,
     color: Int
   ): Boolean {
+    if (!bubblesAllowed()) {
+      Timber.w("Bubbles are not allowed; opening %s in a tab", website.url)
+      Handler(Looper.getMainLooper()).post {
+        Toast.makeText(application, R.string.bubbles_not_allowed, Toast.LENGTH_LONG).show()
+      }
+      return false
+    }
     loadQueue.tryEmit(
       BubbleLoadData(
         website = website,
@@ -101,6 +115,18 @@ constructor(
         color = color
       )
     )
+    return true
+  }
+
+  /** Notifications on, and on Android 11 and later, bubbles not switched off for the app. */
+  private fun bubblesAllowed(): Boolean {
+    val manager = application.getSystemService(NotificationManager::class.java) ?: return false
+    if (!manager.areNotificationsEnabled()) return false
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+      manager.bubblePreference == NotificationManager.BUBBLE_PREFERENCE_NONE
+    ) {
+      return false
+    }
     return true
   }
 

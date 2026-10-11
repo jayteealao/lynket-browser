@@ -32,6 +32,10 @@ import android.net.Uri
 import android.os.Build
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
+import androidx.core.app.Person
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.graphics.drawable.toBitmap
 import arun.com.chromer.R
 import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
@@ -129,7 +133,12 @@ constructor(
         .defaultDisplay
         .let { display -> Point().apply(display::getSize).y }
 
+      // Android 11 and later only show a bubble for a conversation, which needs a long-lived
+      // shortcut for it.
+      val shortcutId = pushConversationShortcut(website.url, website.safeLabel(), bubbleIcon)
+
       val bubbleNotification = notification(context, BUBBLE_NOTIFICATION_CHANNEL_ID) {
+        shortcutId?.let(::setShortcutId)
         setContentTitle(website.safeLabel())
         setContentText(website.preferredUrl())
         setGroup(BUBBLE_NOTIFICATION_GROUP)
@@ -157,7 +166,8 @@ constructor(
         // https://developer.android.com/guide/topics/ui/bubbles#when_bubbles_appear
         setCategory(Notification.CATEGORY_CALL)
         style = Notification.MessagingStyle(addPerson {
-          setBot(true)
+          // A conversation whose only person is a bot is not a conversation, and only
+          // conversations bubble.
           setIcon(bubbleIcon)
           setName(website.safeLabel())
           setImportant(true)
@@ -174,6 +184,34 @@ constructor(
     bubbleData
   }
 
+
+  /** Publishes the long-lived shortcut a bubble is tied to; returns its id, or null when refused. */
+  private fun pushConversationShortcut(url: String, label: String, icon: Icon): String? = try {
+    val id = "bubble_${url.hashCode()}"
+    val iconCompat = IconCompat.createFromIcon(application, icon)
+    val person = Person.Builder()
+      .setName(label)
+      .setKey(id)
+      .setImportant(true)
+      .apply { iconCompat?.let(::setIcon) }
+      .build()
+    val shortcut = ShortcutInfoCompat.Builder(application, id)
+      .setShortLabel(label.ifBlank { url })
+      .setLongLived(true)
+      .setPerson(person)
+      .setIntent(
+        Intent(application, EmbeddableWebViewActivity::class.java)
+          .setAction(Intent.ACTION_VIEW)
+          .setData(Uri.parse(url)),
+      )
+      .apply { iconCompat?.let(::setIcon) }
+      .build()
+    ShortcutManagerCompat.pushDynamicShortcut(application, shortcut)
+    id
+  } catch (e: Exception) {
+    Timber.e(e, "Could not publish the bubble shortcut")
+    null
+  }
 
   private fun BubbleLoadData.fallbackIcon(): Icon = if (color != Constants.NO_COLOR) {
     val iconSize = 108.dpToPx()
