@@ -5,7 +5,7 @@
 #   1. installs the 2.1.3 debug build (maestro/build-old-apk.sh makes it) on a clean device state
 #   2. passes the intro once (first-run state of an upgrading person)
 #   3. opens five links through the app's own link entry point, so the app records history
-#   4. sets two per-app rules in the 2.1.3 per-app settings screen
+#   4. sets three per-app rules in the 2.1.3 per-app settings screen
 #   5. pins a home-screen shortcut through the 2.1.3 shortcut creator
 #   6. merges seed/default_preferences.xml (every settings key, non-default values) into the
 #      app's settings file while the app is stopped
@@ -107,10 +107,10 @@ echo "settings: all 35 keys hold the fixture values" | tee "$d/checks.txt"
 
 a exec-out run-as "$PKG" tar -cf - files/APPS > "$d/paper-APPS.tar"
 tar -tvf - < "$d/paper-APPS.tar" > "$d/paper-APPS-listing.txt"
-for p in com.google.android.calendar com.google.android.deskclock; do
+for p in com.google.android.calendar com.google.android.deskclock com.google.android.apps.messaging; do
   grep -q "files/APPS/$p.pt" "$d/paper-APPS-listing.txt" || fail "no per-app entry for $p"
 done
-echo "per-app rules: entries for com.google.android.calendar and com.google.android.deskclock" | tee -a "$d/checks.txt"
+echo "per-app rules: entries for com.google.android.calendar, com.google.android.deskclock and com.google.android.apps.messaging" | tee -a "$d/checks.txt"
 
 a exec-out run-as "$PKG" cat databases/History > "$d/History.db"
 if a exec-out run-as "$PKG" ls databases | grep -q 'History-journal'; then

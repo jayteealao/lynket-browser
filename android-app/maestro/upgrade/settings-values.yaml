@@ -1,0 +1,57 @@
+# Upgrade check, settings screens: the legacy settings group is in front (upgrade-check.sh starts
+# it). Each screen must show the value the 2.1.3 seed stored (maestro/seed/default_preferences.xml):
+# animation 2 = "Slide Up", speed 2 = "Short", preferred action 2 = "Favourite share app",
+# web head spawn 2 = "Left", web head size 2 = "Small", article theme 4 = "Black",
+# minimize 2 = "Minimize and open Web Head always".
+appId: arun.com.chromer.debug
+---
+- extendedWaitUntil:
+    visible: "Browsing mode"
+    timeout: 15000
+- takeScreenshot: ${OUT}/settings-group
+- tapOn: "Browsing mode"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/settings-browsing-mode
+- back
+- tapOn: "Look & feel"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Slide Up"
+    timeout: 10000
+- assertVisible: "Short"
+- assertVisible: "Favourite share app"
+- takeScreenshot: ${OUT}/settings-look-and-feel-1
+- scrollUntilVisible:
+    element:
+      text: "Left"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      text: "Small"
+    direction: DOWN
+- takeScreenshot: ${OUT}/settings-look-and-feel-2
+- scrollUntilVisible:
+    element:
+      text: "Black"
+    direction: DOWN
+- takeScreenshot: ${OUT}/settings-look-and-feel-3
+- back
+- tapOn: "Browsing options"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/settings-browsing-options-1
+- scrollUntilVisible:
+    element:
+      text: "Minimize and open Web Head always"
+    direction: DOWN
+- takeScreenshot: ${OUT}/settings-browsing-options-2
+- back
+- back
+# The Compose settings screen of the launcher reads the same store.
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 15000
+- tapOn: "Settings"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/compose-settings

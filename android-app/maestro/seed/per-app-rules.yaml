@@ -1,6 +1,7 @@
 # Upgrade seed, part 2: per-app rules set through the 2.1.3 per-app settings screen, so the old
-# app writes them to its own store. Calendar gets the secondary-browser rule, Clock the incognito
-# rule, and the per-app switch is turned on (needs usage access, granted by seed-upgrade.sh).
+# app writes them to its own store. Calendar and Messages get the secondary-browser rule, Clock
+# the incognito rule, and the per-app switch is turned on (needs usage access, granted by
+# seed-upgrade.sh).
 appId: arun.com.chromer.debug
 ---
 - launchApp:
@@ -36,6 +37,16 @@ appId: arun.com.chromer.debug
 - extendedWaitUntil:
     visible: "ON"
     timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "com.google.android.apps.messaging"
+    direction: DOWN
+- tapOn:
+    id: ".*blacklistIcon"
+    childOf:
+      id: ".*blacklist_template_root"
+      containsDescendants:
+        - text: "com.google.android.apps.messaging"
 - takeScreenshot: ${OUT}/per-app-rules
 - back
 - back
