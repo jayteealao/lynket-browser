@@ -23,10 +23,10 @@ package arun.com.chromer
 import android.app.Application
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.app.NotificationManagerCompat
 import androidx.multidex.MultiDex
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
-import arun.com.chromer.util.ServiceManager
 import arun.com.chromer.util.drawer.GlideDrawerImageLoader
 import com.airbnb.epoxy.EpoxyController
 import com.mikepenz.materialdrawer.util.DrawerImageLoader
@@ -67,7 +67,9 @@ open class Lynket : Application() {
       // RxDogTag.install()
       Timber.plant(Timber.DebugTree())
     }
-    ServiceManager.takeCareOfServices(applicationContext)
+    // Links now name their source app when they open, so the old app-detection service and its
+    // notification channel are gone; remove the channel earlier versions created.
+    NotificationManagerCompat.from(this).deleteNotificationChannel(OLD_APP_DETECTION_CHANNEL)
 
     initMaterialDrawer()
 
@@ -89,6 +91,8 @@ open class Lynket : Application() {
   }
 
   companion object {
+    private const val OLD_APP_DETECTION_CHANNEL = "App detection service"
+
     init {
       AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
     }

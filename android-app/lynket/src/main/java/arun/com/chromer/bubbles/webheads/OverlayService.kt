@@ -34,7 +34,6 @@ import android.widget.Toast.LENGTH_LONG
 import androidx.annotation.IntRange
 import arun.com.chromer.R
 import arun.com.chromer.shared.base.service.BaseService
-import arun.com.chromer.util.ServiceManager
 import arun.com.chromer.util.Utils
 import timber.log.Timber
 
@@ -65,7 +64,6 @@ abstract class OverlayService : BaseService() {
 
   protected fun stopService() {
     Timber.d("Stopping service.")
-    ServiceManager.restartAppDetectionService(this) // Temp hack for Oreo.
     stopForeground(true)
     (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(getNotificationId())
     stopSelf()

@@ -42,7 +42,6 @@ import arun.com.chromer.settings.onSettingChanges
 import arun.com.chromer.settings.widgets.AppPreferenceCardView
 import arun.com.chromer.shared.Constants.TEXT_SHARE_INTENT
 import arun.com.chromer.shared.Constants.WEB_INTENT
-import arun.com.chromer.shared.ServiceManager
 import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.shared.views.IntentPickerBottomSheet

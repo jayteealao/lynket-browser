@@ -42,7 +42,6 @@ import arun.com.chromer.extenstions.watch
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.activity.BaseActivity
-import arun.com.chromer.util.ServiceManager
 import arun.com.chromer.util.Utils
 import com.afollestad.materialdialogs.MaterialDialog
 import com.google.android.material.snackbar.Snackbar
@@ -177,7 +176,6 @@ class PerAppSettingsActivity : BaseActivity(), CompoundButton.OnCheckedChangeLis
     } else {
       snack(if (isChecked) getString(R.string.per_apps_on) else getString(R.string.per_apps_off))
       preferences.perAppSettings(isChecked)
-      ServiceManager.takeCareOfServices(applicationContext)
     }
   }
 

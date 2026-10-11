@@ -38,6 +38,7 @@ Run from `android-app/`:
 - `./gradlew :lynket:assembleBenchmark :benchmark:assembleBenchmark` - Build the minified benchmark app and the benchmarks
 - `./gradlew :lynket:installDebug` - Install the debug build on a device
 - `bash maestro/upgrade/upgrade-check.sh <serial> <dir>` / `maestro/upgrade/tile-check.sh` - Device checks that settings and per-app rules survive an update from release 2.1.3 and that the web heads tile reaches every reader (debug build; it dumps both stores with the debug-only `StoreDumpReceiver`)
+- `bash maestro/upgrade/link-source-check.sh <serial> <dir>` - After the upgrade check: no app-detection service or notification, and a link from a blacklisted app follows its per-app rule
 
 ### Build System
 
@@ -104,7 +105,6 @@ The app supports multiple browsing modes:
 
 ### Services
 
-- `AppDetectService` - Detects installed browser apps
 - `AppColorExtractorJob` - Extracts app colors for theming (JobService)
 - `WebHeadService` - Manages floating web head bubbles
 - `KeepAliveService` - Keeps custom tabs connection alive
@@ -134,7 +134,7 @@ The app supports multiple browsing modes:
 Required permissions include:
 - Internet and network access
 - System alert window (for web heads)
-- Package usage stats
+- Package usage stats (read when a link opens, to find the app it came from; no background service)
 - Foreground service
 - Query all packages
 

@@ -21,53 +21,79 @@
 package arun.com.chromer.appdetect
 
 import android.app.Application
-import android.text.TextUtils
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
+import android.os.Build
 import arun.com.chromer.settings.Preferences
+import arun.com.chromer.util.Utils
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Created by Arunkumar on 21-01-2017.
+ * Finds the app a link came from, at the moment the link opens.
+ *
+ * When a link arrives, [detectLinkSource] reads the usage events of the last few seconds and keeps
+ * the most recent app that came to the foreground, other than Lynket. Per-app rules read
+ * [nonFilteredPackage]; the app-based toolbar colour reads [filteredPackage], which also skips
+ * system UI, the Custom Tab provider and the Google search box. Without usage access both stay empty,
+ * so links open as they do without per-app rules.
  */
 @Singleton
 class AppDetectionManager
 @Inject
-constructor(private val application: Application) {
+constructor(
+  private val application: Application,
+  private val preferences: Preferences,
+) {
 
-  // Last detected package name of app;
+  // App the last link came from, for the toolbar colour.
+  @get:Synchronized
   var filteredPackage = ""
+    private set
 
+  // App the last link came from, for per-app rules.
   @get:Synchronized
   var nonFilteredPackage = ""
     private set
 
+  /** Reads the app the link being opened now came from. Call it when an external link arrives. */
   @Synchronized
-  fun logPackage(appPackage: String) {
-    if (TextUtils.isEmpty(appPackage)) {
+  fun detectLinkSource(now: Long = System.currentTimeMillis()) {
+    clear()
+    if (!Utils.canReadUsageStats(application)) {
+      Timber.d("Link source: no usage access")
       return
     }
-    if (!nonFilteredPackage.equals(appPackage, ignoreCase = true) && nonFilterPackage(appPackage)) {
-      nonFilteredPackage = appPackage
+    val usageStatsManager = application.getSystemService(UsageStatsManager::class.java) ?: return
+    val events = try {
+      usageStatsManager.queryEvents(now - LOOKBACK_MS, now)
+    } catch (e: SecurityException) {
+      Timber.e(e, "Link source: usage events not readable")
+      return
+    } ?: return
+    val event = UsageEvents.Event()
+    // Events come oldest first, so the last match is the most recent one.
+    while (events.hasNextEvent()) {
+      events.getNextEvent(event)
+      if (event.eventType != FOREGROUND_EVENT) continue
+      val appPackage = event.packageName ?: continue
+      if (nonFilterPackage(appPackage)) nonFilteredPackage = appPackage
+      if (filterPackage(appPackage)) filteredPackage = appPackage
     }
-    if (!filteredPackage.equals(appPackage, ignoreCase = true) && filterPackage(appPackage)) {
-      filteredPackage = appPackage
-    }
-    Timber.d("Current package: %s", appPackage)
+    Timber.d("Link source: %s (for colour: %s)", nonFilteredPackage, filteredPackage)
   }
 
   @Synchronized
   fun clear() {
     nonFilteredPackage = ""
-    filteredPackage = nonFilteredPackage
+    filteredPackage = ""
   }
-
 
   private fun nonFilterPackage(appPackage: String): Boolean {
     return if (appPackage.equals("android", ignoreCase = true)) {   // Ignore system pop ups
       false
     } else !appPackage.equals(application.packageName, ignoreCase = true) // Ignore our app
-
   }
 
   private fun filterPackage(packageName: String): Boolean {
@@ -82,18 +108,24 @@ constructor(private val application: Application) {
 
     // Chances are that we picked the opening custom tab, so let's ignore our default provider
     // to be safe
-    if (packageName.equals(
-        Preferences.get(application).customTabPackage()!!,
-        ignoreCase = true
-      )
-    ) return false
+    if (packageName.equals(preferences.customTabPackage() ?: "", ignoreCase = true)) return false
 
     // Ignore google quick search box
     return !packageName.equals("com.google.android.googlequicksearchbox", ignoreCase = true)
-    // There can also be cases where there is no default provider set, so lets ignore all possible
-    // custom tab providers to be sure. This is safe since browsers don't call our app anyways.
+  }
 
-    // Commenting, research needed
-    // if (mCustomTabPackages.contains(packageName)) return true;
+  private companion object {
+    // How far back a link-open looks for the app the person was in. Covers the time a chooser
+    // dialog stays open before Lynket starts.
+    const val LOOKBACK_MS = 10_000L
+
+    // ACTIVITY_RESUMED (API 29) replaced MOVE_TO_FOREGROUND; both have the value 1.
+    val FOREGROUND_EVENT: Int =
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        UsageEvents.Event.ACTIVITY_RESUMED
+      } else {
+        @Suppress("DEPRECATION") // sdlc-debt: MOVE_TO_FOREGROUND is the only name below API 29; drop when minSdk reaches 29
+        UsageEvents.Event.MOVE_TO_FOREGROUND
+      }
   }
 }

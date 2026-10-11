@@ -41,7 +41,6 @@ import arun.com.chromer.settings.widgets.SubCheckBoxPreference
 import arun.com.chromer.shared.Constants.ACTION_TOOLBAR_COLOR_SET
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import arun.com.chromer.shared.Constants.NO_COLOR
-import arun.com.chromer.util.ServiceManager
 import arun.com.chromer.util.Utils
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.color.ColorChooserDialog
@@ -171,7 +170,6 @@ class PersonalizationPreferenceFragment : BasePreferenceFragment() {
         if (!Utils.canReadUsageStats(requireActivity())) {
           requestUsagePermission()
         }
-        handleAppDetectionService()
       }
       updateDynamicSummary()
     }
@@ -227,14 +225,6 @@ class PersonalizationPreferenceFragment : BasePreferenceFragment() {
         dynamicAppPreference?.isChecked = Utils.canReadUsageStats(requireContext())
       }
       .show()
-  }
-
-  private fun handleAppDetectionService() {
-    if (Preferences.get(requireContext()).isAppBasedToolbar() || Preferences.get(requireContext()).perAppSettings()) {
-      ServiceManager.startAppDetectionService(requireContext())
-    } else {
-      ServiceManager.stopAppDetectionService(requireContext())
-    }
   }
 
   companion object {

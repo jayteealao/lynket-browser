@@ -67,7 +67,6 @@ import arun.com.chromer.util.events.EventBus
 import arun.com.chromer.util.events.Event
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.Theme
-import arun.com.chromer.shared.ServiceManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -267,16 +266,23 @@ constructor(
         val safeIntent = SafeIntent(intent)
         val url = safeIntent.dataString ?: return@withContext
         var proceed = true
+        // Find the app this link came from, for per-app rules and the app-based toolbar colour.
+        if (preferences.perAppSettings() || preferences.isAppBasedToolbar()) {
+          appDetectionManager.detectLinkSource()
+        }
         // The first thing to check is if we should blacklist.
         if (preferences.perAppSettings()) {
           val lastApp = appDetectionManager.nonFilteredPackage
           if (lastApp.isNotEmpty()) {
-            if (appRepository.isPackageBlacklisted(lastApp)) {
+            val blacklisted = appRepository.isPackageBlacklisted(lastApp)
+            val incognito = !blacklisted && appRepository.isPackageIncognito(lastApp)
+            Timber.d("Per-app rule for %s: blacklisted=%b incognito=%b", lastApp, blacklisted, incognito)
+            if (blacklisted) {
               withContext(Dispatchers.Main) {
                 doBlacklistAction(activity, safeIntent)
               }
               proceed = false
-            } else if (appRepository.isPackageIncognito(lastApp)) {
+            } else if (incognito) {
               withContext(Dispatchers.Main) {
                 doIncognitoAction(activity, url)
               }
@@ -483,9 +489,7 @@ constructor(
 
         if (preferences.dynamicToolbarOnApp()) {
           val lastApp = appDetectionManager.filteredPackage
-          if (lastApp.isEmpty()) {
-            ServiceManager.startAppDetectionService(application)
-          } else {
+          if (lastApp.isNotEmpty()) {
             appColor = appRepository.getPackageColorSync(lastApp)
           }
         }
