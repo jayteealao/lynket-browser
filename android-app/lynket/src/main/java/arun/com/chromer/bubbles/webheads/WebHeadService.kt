@@ -519,7 +519,12 @@ class WebHeadService : OverlayService(), WebHeadContract, CustomTabManager.Conne
         notificationFilter.addAction(ACTION_STOP_WEBHEAD_SERVICE)
         notificationFilter.addAction(ACTION_OPEN_CONTEXT_ACTIVITY)
         notificationFilter.addAction(ACTION_OPEN_NEW_TAB)
-        registerReceiver(notificationActionReceiver, notificationFilter)
+        ContextCompat.registerReceiver(
+            this,
+            notificationActionReceiver,
+            notificationFilter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     private fun unregisterReceivers() {
