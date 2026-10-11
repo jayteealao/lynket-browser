@@ -52,7 +52,9 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 open class WebViewActivity : BrowsingActivity() {
-  private lateinit var binding: ActivityWebViewBinding
+  // Inflated on first use: BrowsingActivity.onCreate can ask for the current URL or apply a known
+  // toolbar colour (a bubble passes the site colour) before this class's onCreate continues.
+  private val binding by lazy { ActivityWebViewBinding.inflate(layoutInflater) }
   @Inject
   lateinit var menuDelegate: MenuDelegate
 
@@ -64,7 +66,6 @@ open class WebViewActivity : BrowsingActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    binding = ActivityWebViewBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
     // Back goes through the page history first; with predictive back (targetSdk 36) the system no

@@ -39,7 +39,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
@@ -72,11 +73,13 @@ constructor(
 ) : FloatingBubble {
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-  private val loadQueue = MutableSharedFlow<BubbleLoadData>(extraBufferCapacity = Int.MAX_VALUE)
+  // A channel keeps a link sent before the collector below has started; a shared flow without
+  // subscribers dropped the first link after a cold start.
+  private val loadQueue = Channel<BubbleLoadData>(Channel.UNLIMITED)
 
   init {
     scope.launch {
-      loadQueue
+      loadQueue.receiveAsFlow()
         .mapNotNull { bubbleData ->
           try {
             showBubble(bubbleData)
@@ -105,7 +108,7 @@ constructor(
       }
       return false
     }
-    loadQueue.tryEmit(
+    loadQueue.trySend(
       BubbleLoadData(
         website = website,
         fromMinimize = fromMinimize,
