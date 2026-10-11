@@ -247,8 +247,6 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.8.0") // Added for Activities viewModels() delegate
 
     // Legacy: Other
-    implementation("com.facebook.rebound:rebound:0.3.8")
-    implementation("com.github.nekocode:Badge:1.2")
     implementation("com.github.duanhong169:drawabletoolbox:1.0.7")
 
     // Disk LRU cache module
