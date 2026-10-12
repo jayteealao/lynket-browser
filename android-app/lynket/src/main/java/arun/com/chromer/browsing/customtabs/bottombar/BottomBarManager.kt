@@ -1,22 +1,12 @@
 /*
- * Phase 7: Converted from Java to Kotlin
- *
  *  Lynket
  *
- *  Copyright (C) 2022 Arunkumar
+ *  Copyright (C) 2026 Arunkumar
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package arun.com.chromer.browsing.customtabs.bottombar
@@ -24,106 +14,85 @@ package arun.com.chromer.browsing.customtabs.bottombar
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.view.View
+import android.content.res.Configuration
+import android.graphics.drawable.Icon
 import android.widget.RemoteViews
-import com.mikepenz.community_material_typeface_library.CommunityMaterial
-import com.mikepenz.iconics.IconicsDrawable
+import androidx.annotation.ColorInt
+import androidx.annotation.DrawableRes
+import androidx.annotation.IdRes
+import androidx.compose.ui.graphics.toArgb
 import arun.com.chromer.R
+import arun.com.chromer.browsing.customtabs.callbackBroadcast
+import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants
-import arun.com.chromer.util.ColorUtil
-import arun.com.chromer.util.Utils
+import arun.com.chromer.ui.theme.ThemeMode
+import arun.com.chromer.ui.theme.chromerColorScheme
+import arun.com.chromer.ui.theme.themeSettings
 import java.util.Random
 
 /**
- * Created by Arun on 06/11/2016.
+ * The Custom Tab bottom bar (board custom-tab--default): five actions in the old order, New tab,
+ * Share, Tabs, Minimize and Article, each an icon over its label, on the app's neutral surface.
  */
 object BottomBarManager {
-    private var shareImageDrawable: IconicsDrawable? = null
-    private var newTabDrawable: IconicsDrawable? = null
-    private var minimizeDrawable: IconicsDrawable? = null
-    private var articleDrawable: IconicsDrawable? = null
-    private var tabsDrawable: IconicsDrawable? = null
 
-    fun createBottomBarRemoteViews(context: Context, toolbarColor: Int): RemoteViews {
-        val iconColor = ColorUtil.getForegroundWhiteOrBlack(toolbarColor)
+  /** Colours of the bar in the current theme: the surface and the icon and label colour. */
+  data class BarColours(@ColorInt val background: Int, @ColorInt val content: Int)
 
-        val remoteViews = RemoteViews(context.packageName, R.layout.widget_bottom_bar_layout)
-        remoteViews.setInt(R.id.bottom_bar_root, "setBackgroundColor", toolbarColor)
-
-        if (!Utils.ANDROID_LOLLIPOP) {
-            remoteViews.setViewVisibility(R.id.bottom_bar_minimize_tab, View.GONE)
-            remoteViews.setViewVisibility(R.id.bottom_bar_tabs, View.GONE)
-        }
-
-        if (shareImageDrawable == null) {
-            shareImageDrawable = IconicsDrawable(context)
-                .icon(CommunityMaterial.Icon.cmd_share_variant)
-                .sizeDp(24)
-        }
-        if (newTabDrawable == null) {
-            newTabDrawable = IconicsDrawable(context)
-                .icon(CommunityMaterial.Icon.cmd_plus)
-                .sizeDp(24)
-        }
-        if (minimizeDrawable == null) {
-            minimizeDrawable = IconicsDrawable(context)
-                .icon(CommunityMaterial.Icon.cmd_arrow_down)
-                .sizeDp(24)
-        }
-
-        if (articleDrawable == null) {
-            articleDrawable = IconicsDrawable(context)
-                .icon(CommunityMaterial.Icon.cmd_file_document)
-                .sizeDp(24)
-        }
-
-        if (tabsDrawable == null) {
-            tabsDrawable = IconicsDrawable(context)
-                .icon(CommunityMaterial.Icon.cmd_view_agenda)
-                .sizeDp(24)
-        }
-
-        val shareImage = shareImageDrawable!!.color(iconColor).toBitmap()
-        val openInNewTabImage = newTabDrawable!!.color(iconColor).toBitmap()
-        val minimize = minimizeDrawable!!.color(iconColor).toBitmap()
-        val article = articleDrawable!!.color(iconColor).toBitmap()
-        val tab = tabsDrawable!!.color(iconColor).toBitmap()
-
-        remoteViews.setBitmap(R.id.bottom_bar_open_in_new_tab_img, "setImageBitmap", openInNewTabImage)
-        remoteViews.setTextColor(R.id.bottom_bar_open_in_new_tab_text, iconColor)
-        remoteViews.setBitmap(R.id.bottom_bar_share_img, "setImageBitmap", shareImage)
-        remoteViews.setTextColor(R.id.bottom_bar_share_text, iconColor)
-        remoteViews.setBitmap(R.id.bottom_bar_tabs_img, "setImageBitmap", tab)
-        remoteViews.setTextColor(R.id.bottom_bar_tabs_text, iconColor)
-        remoteViews.setBitmap(R.id.bottom_bar_minimize_img, "setImageBitmap", minimize)
-        remoteViews.setTextColor(R.id.bottom_bar_minimize_text, iconColor)
-        remoteViews.setBitmap(R.id.bottom_bar_article_view_img, "setImageBitmap", article)
-        remoteViews.setTextColor(R.id.bottom_bar_article_view_text, iconColor)
-        return remoteViews
+  fun barColours(context: Context): BarColours {
+    val settings = Preferences.get(context).themeSettings()
+    val systemDark = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+      Configuration.UI_MODE_NIGHT_YES
+    val dark = when (settings.themeMode) {
+      ThemeMode.Auto -> systemDark
+      ThemeMode.Light -> false
+      ThemeMode.Dark, ThemeMode.Black -> true
     }
+    val scheme = chromerColorScheme(
+      context,
+      dark = dark,
+      black = settings.themeMode == ThemeMode.Black,
+      useWallpaperColours = settings.useWallpaperColours,
+      primaryColour = settings.primaryColour,
+    )
+    return BarColours(scheme.surfaceContainer.toArgb(), scheme.onSurfaceVariant.toArgb())
+  }
 
-    fun getClickableIDs(): IntArray {
-        return intArrayOf(
-            R.id.bottom_bar_open_in_new_tab,
-            R.id.bottom_bar_share,
-            R.id.bottom_bar_tabs,
-            R.id.bottom_bar_minimize_tab,
-            R.id.bottom_bar_article_view
-        )
-    }
+  @ColorInt
+  fun bottomBarColor(context: Context): Int = barColours(context).background
 
-    /**
-     * @return The PendingIntent that will be triggered when the user clicks on the Views listed by
-     * [BottomBarManager.getClickableIDs].
-     */
-    fun getOnClickPendingIntent(context: Context, url: String): PendingIntent {
-        val broadcastIntent = Intent(context, BottomBarReceiver::class.java)
-        broadcastIntent.putExtra(Constants.EXTRA_KEY_ORIGINAL_URL, url)
-        var flags = PendingIntent.FLAG_UPDATE_CURRENT
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            flags = flags or PendingIntent.FLAG_IMMUTABLE
-        }
-        return PendingIntent.getBroadcast(context, Random().nextInt(), broadcastIntent, flags)
+  /** The actions in their old order: container id, icon view, label view, icon. */
+  private data class Action(@IdRes val id: Int, @IdRes val image: Int, @IdRes val text: Int, @DrawableRes val icon: Int)
+
+  private val actions = listOf(
+    Action(R.id.bottom_bar_open_in_new_tab, R.id.bottom_bar_open_in_new_tab_img, R.id.bottom_bar_open_in_new_tab_text, R.drawable.ic_plus_24dp),
+    Action(R.id.bottom_bar_share, R.id.bottom_bar_share_img, R.id.bottom_bar_share_text, R.drawable.ic_share_24dp),
+    Action(R.id.bottom_bar_tabs, R.id.bottom_bar_tabs_img, R.id.bottom_bar_tabs_text, R.drawable.ic_tabs_24dp),
+    Action(R.id.bottom_bar_minimize_tab, R.id.bottom_bar_minimize_img, R.id.bottom_bar_minimize_text, R.drawable.ic_bottom_bar_minimize),
+    Action(R.id.bottom_bar_article_view, R.id.bottom_bar_article_view_img, R.id.bottom_bar_article_view_text, R.drawable.ic_article_24dp),
+  )
+
+  fun createBottomBarRemoteViews(context: Context): RemoteViews {
+    val colours = barColours(context)
+    val remoteViews = RemoteViews(context.packageName, R.layout.widget_bottom_bar_layout)
+    remoteViews.setInt(R.id.bottom_bar_root, "setBackgroundColor", colours.background)
+    actions.forEach { action ->
+      val icon = Icon.createWithResource(context, action.icon).setTint(colours.content)
+      remoteViews.setImageViewIcon(action.image, icon)
+      remoteViews.setTextColor(action.text, colours.content)
     }
+    return remoteViews
+  }
+
+  fun getClickableIDs(): IntArray = actions.map { it.id }.toIntArray()
+
+  /**
+   * The PendingIntent the provider sends when one of [getClickableIDs] is tapped. It is mutable and
+   * names [BottomBarReceiver], so the provider can add the page address and the clicked view id.
+   */
+  fun getOnClickPendingIntent(context: Context, url: String): PendingIntent {
+    val broadcastIntent = Intent(context, BottomBarReceiver::class.java)
+      .putExtra(Constants.EXTRA_KEY_ORIGINAL_URL, url)
+    return callbackBroadcast(context, Random().nextInt(), broadcastIntent)
+  }
 }

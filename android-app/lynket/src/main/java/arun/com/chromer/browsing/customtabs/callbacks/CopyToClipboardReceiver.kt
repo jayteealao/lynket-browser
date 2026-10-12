@@ -21,6 +21,7 @@
 package arun.com.chromer.browsing.customtabs.callbacks
 
 import android.content.BroadcastReceiver
+import arun.com.chromer.browsing.customtabs.browsingUrl
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -35,7 +36,7 @@ import arun.com.chromer.R
  */
 class CopyToClipboardReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val urlToCopy = intent.dataString
+        val urlToCopy = intent.browsingUrl()
         if (urlToCopy != null) {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText(context.packageName, urlToCopy)

@@ -21,6 +21,7 @@
 package arun.com.chromer.browsing.customtabs.callbacks
 
 import android.content.BroadcastReceiver
+import arun.com.chromer.browsing.customtabs.browsingUrl
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -36,7 +37,7 @@ import arun.com.chromer.settings.Preferences
 class FavShareBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val url = intent.dataString
+        val url = intent.browsingUrl()
         if (url != null) {
             val openAppIntent = Intent(Intent.ACTION_SEND).apply {
                 putExtra(Intent.EXTRA_TEXT, url)

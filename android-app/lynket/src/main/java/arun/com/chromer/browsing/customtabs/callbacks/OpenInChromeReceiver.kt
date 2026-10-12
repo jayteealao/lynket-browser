@@ -21,6 +21,7 @@
 package arun.com.chromer.browsing.customtabs.callbacks
 
 import android.content.ActivityNotFoundException
+import arun.com.chromer.browsing.customtabs.browsingUrl
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -35,7 +36,7 @@ import arun.com.chromer.util.Utils
  */
 class OpenInChromeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val url = intent.dataString
+        val url = intent.browsingUrl()
         if (url != null) {
             val customTabPkg = Preferences.get(context).customTabPackage()
             if (Utils.isPackageInstalled(context, customTabPkg)) {

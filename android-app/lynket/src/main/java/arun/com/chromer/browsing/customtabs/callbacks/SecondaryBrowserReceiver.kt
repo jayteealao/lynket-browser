@@ -22,6 +22,7 @@
 package arun.com.chromer.browsing.customtabs.callbacks
 
 import android.annotation.SuppressLint
+import arun.com.chromer.browsing.customtabs.browsingUrl
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -39,7 +40,7 @@ import timber.log.Timber
 class SecondaryBrowserReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val url = intent.dataString
+        val url = intent.browsingUrl()
         if (url != null) {
             val webIntentExplicit = Intent(ACTION_VIEW, Uri.parse(url))
             webIntentExplicit.flags = FLAG_ACTIVITY_NEW_TASK

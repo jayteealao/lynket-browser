@@ -21,6 +21,7 @@
 package arun.com.chromer.browsing.customtabs.callbacks
 
 import android.content.BroadcastReceiver
+import arun.com.chromer.browsing.customtabs.browsingUrl
 import android.content.Context
 import android.content.Intent
 import arun.com.chromer.util.Utils
@@ -32,6 +33,6 @@ import arun.com.chromer.util.Utils
  */
 class ShareBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        Utils.shareText(context, intent.dataString)
+        Utils.shareText(context, intent.browsingUrl())
     }
 }

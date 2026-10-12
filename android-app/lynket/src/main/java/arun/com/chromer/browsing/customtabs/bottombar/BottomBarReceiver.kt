@@ -26,6 +26,7 @@ import android.content.Intent
 import androidx.browser.customtabs.CustomTabsIntent
 import arun.com.chromer.R
 import arun.com.chromer.browsing.customtabs.CustomTabActivity
+import arun.com.chromer.browsing.customtabs.browsingUrl
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.tabs.TabsManager
@@ -42,7 +43,8 @@ class BottomBarReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
 
     val clickedId = intent.getIntExtra(CustomTabsIntent.EXTRA_REMOTEVIEWS_CLICKED_ID, -1)
-    val url = intent.dataString
+    // The provider fills in the page's current address; the address the tab opened with is the fallback.
+    val url = intent.browsingUrl()
     val orgUrl = intent.getStringExtra(Constants.EXTRA_KEY_ORIGINAL_URL)
     if (url == null || clickedId == -1) {
       Timber.d("Skipped bottom bar callback")

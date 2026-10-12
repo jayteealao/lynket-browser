@@ -23,9 +23,6 @@ package arun.com.chromer.browsing.customtabs
 
 import android.annotation.TargetApi
 import android.app.Activity
-import android.app.PendingIntent
-import android.app.PendingIntent.FLAG_IMMUTABLE
-import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -44,6 +41,7 @@ import androidx.core.graphics.ColorUtils
 import com.mikepenz.community_material_typeface_library.CommunityMaterial
 import com.mikepenz.iconics.IconicsDrawable
 import arun.com.chromer.R
+import arun.com.chromer.browsing.customtabs.bottombar.BottomBarManager.bottomBarColor
 import arun.com.chromer.browsing.customtabs.bottombar.BottomBarManager.createBottomBarRemoteViews
 import arun.com.chromer.browsing.customtabs.bottombar.BottomBarManager.getClickableIDs
 import arun.com.chromer.browsing.customtabs.bottombar.BottomBarManager.getOnClickPendingIntent
@@ -157,7 +155,10 @@ class CustomTabs @Inject constructor(
         builder!!.setShowTitle(true)
         builder!!.enableUrlBarHiding()
         builder!!.addDefaultShareMenuItem()
-        builder!!.setToolbarColor(toolbarColor).setSecondaryToolbarColor(toolbarColor)
+        builder!!.setToolbarColor(toolbarColor)
+        // The bottom bar sits on a neutral surface (board custom-tab--default); the secondary
+        // toolbar takes the same colour so no strip of the toolbar colour shows around it.
+        activity?.let { builder!!.setSecondaryToolbarColor(bottomBarColor(it)) }
 
         prepareAnimations()
         prepareActionButton()
@@ -254,7 +255,7 @@ class CustomTabs @Inject constructor(
                     val icon = getAppIconBitmap(pakage)
                     icon?.let {
                         val intent = Intent(act, SecondaryBrowserReceiver::class.java)
-                        val openBrowserPending = PendingIntent.getBroadcast(act, 0, intent, getPendingIntentFlags())
+                        val openBrowserPending = callbackBroadcast(act, 0, intent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
                         builder!!.setActionButton(it, act.getString(R.string.choose_secondary_browser), openBrowserPending)
                     }
                 }
@@ -265,7 +266,7 @@ class CustomTabs @Inject constructor(
                     val icon = getAppIconBitmap(pakage)
                     icon?.let {
                         val intent = Intent(act, FavShareBroadcastReceiver::class.java)
-                        val favSharePending = PendingIntent.getBroadcast(act, 0, intent, getPendingIntentFlags())
+                        val favSharePending = callbackBroadcast(act, 0, intent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
                         builder!!.setActionButton(it, act.getString(R.string.fav_share_app), favSharePending)
                     }
                 }
@@ -276,7 +277,7 @@ class CustomTabs @Inject constructor(
                     .color(WHITE)
                     .sizeDp(24).toBitmap()
                 val intent = Intent(act, ShareBroadcastReceiver::class.java)
-                val sharePending = PendingIntent.getBroadcast(act, 0, intent, getPendingIntentFlags())
+                val sharePending = callbackBroadcast(act, 0, intent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
                 builder!!.setActionButton(shareIcon, act.getString(R.string.share_via), sharePending, true)
             }
         }
@@ -303,12 +304,7 @@ class CustomTabs @Inject constructor(
         moreMenuActivity.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
         moreMenuActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
         moreMenuActivity.putExtra(EXTRA_KEY_ORIGINAL_URL, url)
-        val moreMenuPending = PendingIntent.getActivity(
-            act,
-            0,
-            moreMenuActivity,
-            getPendingIntentFlags()
-        )
+        val moreMenuPending = callbackActivity(act, 0, moreMenuActivity)
         builder!!.addMenuItem(act.getString(R.string.chromer_options), moreMenuPending)
     }
 
@@ -320,8 +316,7 @@ class CustomTabs @Inject constructor(
         val act = activity ?: return
         if (!Preferences.get(act).bottomBar() && Utils.ANDROID_LOLLIPOP) {
             val minimizeIntent = Intent(act, MinimizeBroadcastReceiver::class.java)
-            minimizeIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url)
-            val pendingMin = PendingIntent.getBroadcast(act, Random().nextInt(), minimizeIntent, getPendingIntentFlags())
+            val pendingMin = callbackBroadcast(act, Random().nextInt(), minimizeIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
             builder!!.addMenuItem(act.getString(R.string.minimize), pendingMin)
         }
     }
@@ -340,7 +335,7 @@ class CustomTabs @Inject constructor(
                     val app = Utils.getAppNameWithPackage(act, pkg) ?: ""
                     val label = String.format(act.getString(R.string.share_with), app)
                     val shareIntent = Intent(act, FavShareBroadcastReceiver::class.java)
-                    val pendingShareIntent = PendingIntent.getBroadcast(act, 0, shareIntent, getPendingIntentFlags())
+                    val pendingShareIntent = callbackBroadcast(act, 0, shareIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
                     builder!!.addMenuItem(label, pendingShareIntent)
                 }
             }
@@ -351,7 +346,7 @@ class CustomTabs @Inject constructor(
                         val app = Utils.getAppNameWithPackage(act, pkg) ?: ""
                         val label = String.format(act.getString(R.string.open_in_browser), app)
                         val browseIntent = Intent(act, SecondaryBrowserReceiver::class.java)
-                        val pendingBrowseIntent = PendingIntent.getBroadcast(act, 0, browseIntent, getPendingIntentFlags())
+                        val pendingBrowseIntent = callbackBroadcast(act, 0, browseIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
                         builder!!.addMenuItem(label, pendingBrowseIntent)
                     } else {
                         Timber.d("Excluded secondary browser menu as it was Chrome")
@@ -364,8 +359,7 @@ class CustomTabs @Inject constructor(
     private fun prepareCopyLink() {
         val act = activity ?: return
         val clipboardIntent = Intent(act, CopyToClipboardReceiver::class.java)
-        clipboardIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url)
-        val serviceIntentPending = PendingIntent.getBroadcast(act, 0, clipboardIntent, getPendingIntentFlags())
+        val serviceIntentPending = callbackBroadcast(act, 0, clipboardIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
         builder!!.addMenuItem(act.getString(R.string.copy_link), serviceIntentPending)
     }
 
@@ -381,7 +375,7 @@ class CustomTabs @Inject constructor(
                 customTabPkg.equals(STABLE_PACKAGE, ignoreCase = true)
             ) {
                 val chromeReceiver = Intent(act, OpenInChromeReceiver::class.java)
-                val openChromePending = PendingIntent.getBroadcast(act, 0, chromeReceiver, getPendingIntentFlags())
+                val openChromePending = callbackBroadcast(act, 0, chromeReceiver.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
 
                 val app = Utils.getAppNameWithPackage(act, customTabPkg ?: "") ?: ""
                 val label = String.format(act.getString(R.string.open_in_browser), app)
@@ -394,7 +388,7 @@ class CustomTabs @Inject constructor(
         val act = activity ?: return
         val openWithActivity = Intent(act, OpenIntentWithActivity::class.java)
         openWithActivity.putExtra(EXTRA_KEY_ORIGINAL_URL, url)
-        val openWithActivityPending = PendingIntent.getActivity(act, 0, openWithActivity, getPendingIntentFlags())
+        val openWithActivityPending = callbackActivity(act, 0, openWithActivity)
         builder!!.addMenuItem(act.getString(R.string.open_with), openWithActivityPending)
     }
 
@@ -407,7 +401,7 @@ class CustomTabs @Inject constructor(
             return
         }
         builder!!.setSecondaryToolbarViews(
-            createBottomBarRemoteViews(act, toolbarColor),
+            createBottomBarRemoteViews(act),
             getClickableIDs(),
             getOnClickPendingIntent(act, url!!)
         )
@@ -503,17 +497,6 @@ class CustomTabs @Inject constructor(
             }
         }
 
-        /**
-         * Helper method to get the correct PendingIntent flags for Android 12+
-         * Android 12 (API 31) requires FLAG_IMMUTABLE or FLAG_MUTABLE
-         */
-        private fun getPendingIntentFlags(): Int {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
-            } else {
-                FLAG_UPDATE_CURRENT
-            }
-        }
 
         /**
          * Attempts to find the custom the best custom tab package to use.

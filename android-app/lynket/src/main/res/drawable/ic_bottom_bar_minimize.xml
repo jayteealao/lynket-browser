@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bubble outline (Material Symbols "bubble"): minimize turns the page into a web head. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24"
+  android:viewportHeight="24">
+  <path
+    android:fillColor="#FF000000"
+    android:pathData="M8,20C5.79,20 4,18.21 4,16C4,13.79 5.79,12 8,12C10.21,12 12,13.79 12,16C12,18.21 10.21,20 8,20ZM8,18C9.1,18 10,17.1 10,16C10,14.9 9.1,14 8,14C6.9,14 6,14.9 6,16C6,17.1 6.9,18 8,18ZM15.5,14C13.01,14 11,11.99 11,9.5C11,7.01 13.01,5 15.5,5C17.99,5 20,7.01 20,9.5C20,11.99 17.99,14 15.5,14ZM15.5,12C16.88,12 18,10.88 18,9.5C18,8.12 16.88,7 15.5,7C14.12,7 13,8.12 13,9.5C13,10.88 14.12,12 15.5,12ZM6.5,9C5.12,9 4,7.88 4,6.5C4,5.12 5.12,4 6.5,4C7.88,4 9,5.12 9,6.5C9,7.88 7.88,9 6.5,9Z" />
+</vector>
