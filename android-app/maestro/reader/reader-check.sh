@@ -199,19 +199,32 @@ webview_mode() {  # $1 = on|off
   destination ProviderSelection
   if [ "$1" = on ]; then
     [ "$(stored use_webview_pref)" = true ] && { a shell input keyevent KEYCODE_HOME; return 0; }
-    scroll_to 'resource-id="provider-webview"' || fail "no Use WebView row"
-    tap_on 'resource-id="provider-webview"'
-    sleep 1
-    tap_on 'text="Yes"' || true
+    local attempt
+    for attempt in 1 2 3; do
+      [ "$attempt" = 1 ] || destination ProviderSelection
+      scroll_to 'resource-id="provider-webview"' || fail "no Use WebView row"
+      tap_on 'resource-id="provider-webview"'
+      wait_for 'text="Are you sure?"' || true
+      sleep 1  # the dialog's enter animation can swallow an early tap
+      # The confirm dialog's positive button reads OK (it read Yes before the Compose dialogs).
+      tap_on 'text="OK"' || tap_on 'text="Yes"' || true
+      sleep 2
+      [ "$(stored use_webview_pref)" = true ] && break
+      ui_dump > "$OUT/webview-mode-attempt-$attempt.xml" || true
+    done
   else
     [ "$(stored use_webview_pref)" = true ] || { a shell input keyevent KEYCODE_HOME; return 0; }
     tap_on 'resource-id="provider-com.android.chrome"'
-    sleep 1
-    tap_on 'resource-id="provider-confirm"' || true
+    wait_for 'text="Use"' || true
+    tap_on 'resource-id="provider-confirm"' || tap_on 'text="Use"' || true
   fi
   sleep 1
   a shell input keyevent KEYCODE_HOME
-  log "web view mode $1 -> use_webview_pref $(stored use_webview_pref)"
+  local now; now="$(stored use_webview_pref)"
+  log "web view mode $1 -> use_webview_pref $now"
+  if [ "$1" = on ]; then [ "$now" = true ] || fail "Web View mode did not turn on"
+  else [ "$now" = true ] && fail "Web View mode did not turn off"; fi
+  return 0
 }
 
 open_reader() {  # $1 = url; opens it through the app's own entry point with article mode on
