@@ -12,6 +12,7 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinParcelize)
+    alias(libs.plugins.kotlin.serialization)
     // Temporary: runs the Butterknife and Epoxy processors, which have no KSP version.
     // Removed together with the last View-based screens.
     alias(libs.plugins.legacyKapt)
@@ -139,14 +140,20 @@ dependencies {
     implementation(libs.androidx.material3.window)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    implementation(libs.kotlinx.serialization.core)
+    // navigation-compose stays until every screen is on Navigation 3 keys
+    implementation("androidx.navigation:navigation-compose:2.8.5")
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // Hilt Dependency Injection - Phase 1.1: Enabled
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // Hilt Testing
     testImplementation(libs.hilt.android.testing)
@@ -244,7 +251,7 @@ dependencies {
     implementation("androidx.palette:palette-ktx:1.0.0")
     implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
     implementation("androidx.fragment:fragment-ktx:1.6.2") // Updated for viewModels() delegate
-    implementation("androidx.activity:activity-ktx:1.8.0") // Added for Activities viewModels() delegate
+    implementation(libs.androidx.activity.ktx)
 
     // Legacy: Other
     implementation("com.github.duanhong169:drawabletoolbox:1.0.7")
