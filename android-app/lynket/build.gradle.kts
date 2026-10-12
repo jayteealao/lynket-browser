@@ -234,10 +234,6 @@ dependencies {
     // Phase 8: RxJava dependencies removed - migrated to Kotlin Coroutines/Flows
 
     // Legacy: UI Libraries
-    // Icon font drawables for the remaining View screens; MaterialDrawer brought this same
-    // version before the drawer moved to Compose.
-    implementation("com.mikepenz:iconics-core:3.1.0")
-    implementation("com.mikepenz:community-material-typeface:2.0.46.1@aar")
 
     // Legacy: AndroidX (old versions, will be updated)
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")

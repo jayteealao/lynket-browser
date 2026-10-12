@@ -37,9 +37,9 @@ import android.widget.Toast
 import androidx.annotation.ColorInt
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.CustomTabsSession
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
-import com.mikepenz.community_material_typeface_library.CommunityMaterial
-import com.mikepenz.iconics.IconicsDrawable
+import androidx.core.graphics.drawable.toBitmap
 import arun.com.chromer.R
 import arun.com.chromer.browsing.customtabs.bottombar.BottomBarManager.bottomBarColor
 import arun.com.chromer.browsing.customtabs.bottombar.BottomBarManager.createBottomBarRemoteViews
@@ -272,10 +272,9 @@ class CustomTabs @Inject constructor(
                 }
             }
             Preferences.PREFERRED_ACTION_GEN_SHARE -> {
-                val shareIcon = IconicsDrawable(act)
-                    .icon(CommunityMaterial.Icon.cmd_share_variant)
-                    .color(WHITE)
-                    .sizeDp(24).toBitmap()
+                val shareIcon = ContextCompat.getDrawable(act, R.drawable.ic_share_24dp)!!.mutate().apply {
+                    setTint(WHITE)
+                }.toBitmap()
                 val intent = Intent(act, ShareBroadcastReceiver::class.java)
                 val sharePending = callbackBroadcast(act, 0, intent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
                 builder!!.setActionButton(shareIcon, act.getString(R.string.share_via), sharePending, true)

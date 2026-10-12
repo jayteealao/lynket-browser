@@ -20,14 +20,11 @@
 
 package arun.com.chromer.bubbles.webheads.qs
 
-import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.annotation.RequiresApi
 import arun.com.chromer.R
 import arun.com.chromer.shared.base.PreferenceQuickSettingsTile
-import com.mikepenz.community_material_typeface_library.CommunityMaterial
-import com.mikepenz.iconics.IconicsDrawable
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -50,10 +47,5 @@ class WebHeadTile : PreferenceQuickSettingsTile() {
   override fun preference(): Boolean = preferences.webHeads()
 
   private fun label() = getString(R.string.web_heads)
-  private fun icon() = Icon.createWithBitmap(
-    IconicsDrawable(this)
-      .icon(CommunityMaterial.Icon.cmd_chart_bubble)
-      .color(Color.WHITE)
-      .sizeDp(24).toBitmap()
-  )
+  private fun icon() = Icon.createWithResource(this, R.drawable.ic_bubble_chart_white_24dp)
 }
