@@ -23,9 +23,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
+import arun.com.chromer.ui.navigation.LynketNavigator
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -49,7 +49,7 @@ import coil.compose.AsyncImage
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
-    navController: NavController,
+    navigator: LynketNavigator,
     viewModel: ModernHistoryViewModel = hiltViewModel()
 ) {
     // Collect state
@@ -69,7 +69,7 @@ fun HistoryScreen(
                 searchQuery = searchQuery,
                 onSearchQueryChange = viewModel::onSearchQueryChanged,
                 onClearSearch = viewModel::clearSearch,
-                onBackClick = { navController.popBackStack() },
+                onBackClick = { navigator.back() },
                 onClearAllClick = viewModel::showClearAllDialog,
                 totalCount = uiState.totalCount
             )
@@ -87,7 +87,7 @@ fun HistoryScreen(
                         results = searchResults,
                         isSearching = uiState.isSearching,
                         onWebsiteClick = { website ->
-                            navController.navigateToBrowser(website.url)
+                            navigator.navigateToBrowser(website.url)
                         },
                         onDeleteClick = viewModel::deleteWebsite,
                         onBookmarkClick = viewModel::toggleBookmark
@@ -98,7 +98,7 @@ fun HistoryScreen(
                     HistoryList(
                         pagedHistory = pagedHistory,
                         onWebsiteClick = { website ->
-                            navController.navigateToBrowser(website.url)
+                            navigator.navigateToBrowser(website.url)
                         },
                         onDeleteClick = viewModel::deleteWebsite,
                         onBookmarkClick = viewModel::toggleBookmark,

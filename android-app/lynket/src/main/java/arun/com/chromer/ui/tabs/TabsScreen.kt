@@ -24,9 +24,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
+import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.tabs.TabsManager.Tab
 import arun.com.chromer.tabs.ui.ModernTabsViewModel
 import arun.com.chromer.tabs.ui.ModernTabsViewModel.TabsUiState
@@ -49,7 +49,7 @@ import coil.compose.AsyncImage
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TabsScreen(
-    navController: NavController,
+    navigator: LynketNavigator,
     viewModel: ModernTabsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -57,7 +57,7 @@ fun TabsScreen(
     Scaffold(
         topBar = {
             TabsTopBar(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = { navigator.back() },
                 onCloseAllClick = viewModel::showCloseAllDialog,
                 onRefreshClick = viewModel::refresh,
                 tabCount = when (val state = uiState) {
@@ -84,7 +84,7 @@ fun TabsScreen(
                             tabs = state.tabs,
                             onTabClick = { tab ->
                                 // Navigate to the tab's URL
-                                navController.navigateToBrowser(tab.url)
+                                navigator.navigateToBrowser(tab.url)
                             }
                         )
                     }

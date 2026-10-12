@@ -1,0 +1,25 @@
+/*
+ *  Lynket
+ *
+ *  Copyright (C) 2026 Arunkumar
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ */
+
+package arun.com.chromer.util.network
+
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class NetworkModule {
+
+  @Binds
+  abstract fun networkMonitor(monitor: ConnectivityNetworkMonitor): NetworkMonitor
+}

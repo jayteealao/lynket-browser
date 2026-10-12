@@ -66,4 +66,21 @@
   <color name="tutorialBackgrounColor">#20232C</color>
 
   <color name="home_tabs_icon_color">#266DD3</color>
+
+  <!-- Colours the remaining View screens use, with the values the MaterialDrawer dependency
+       (materialize 1.2.0) supplied before the home drawer moved to Compose. -->
+  <color name="accent">@color/colorAccent</color>
+  <color name="primary">@color/colorPrimary</color>
+  <color name="md_blue_500">#2196F3</color>
+  <color name="md_green_500">#4CAF50</color>
+  <color name="md_green_700">#388E3C</color>
+  <color name="md_grey_100">#F5F5F5</color>
+  <color name="md_grey_600">#757575</color>
+  <color name="md_grey_700">#616161</color>
+  <color name="md_grey_900">#212121</color>
+  <color name="md_light_blue_A700">#0091EA</color>
+  <color name="md_light_cards">#FFFFFF</color>
+  <color name="md_light_dividers">#1F000000</color>
+  <color name="md_orange_500">#FF9800</color>
+  <color name="md_red_500">#F44336</color>
 </resources>

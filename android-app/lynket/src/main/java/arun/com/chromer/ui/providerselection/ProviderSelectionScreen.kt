@@ -28,9 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
+import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.browsing.providerselection.ModernProviderSelectionViewModel
 import arun.com.chromer.browsing.providerselection.ModernProviderSelectionViewModel.ProviderSelectionUiState
 import arun.com.chromer.data.apps.model.Provider
@@ -51,7 +51,7 @@ import coil.compose.AsyncImage
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProviderSelectionScreen(
-    navController: NavController,
+    navigator: LynketNavigator,
     viewModel: ModernProviderSelectionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -62,7 +62,7 @@ fun ProviderSelectionScreen(
             TopAppBar(
                 title = { Text("Select Browser") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navigator.back() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
@@ -86,7 +86,7 @@ fun ProviderSelectionScreen(
                     onProviderClick = { provider ->
                         if (provider.installed) {
                             viewModel.selectProvider(provider)
-                            navController.popBackStack()
+                            navigator.back()
                         }
                     },
                     onProviderInstallClick = { provider ->
@@ -113,7 +113,7 @@ fun ProviderSelectionScreen(
                 onConfirm = {
                     viewModel.selectWebView()
                     showWebViewDialog = false
-                    navController.popBackStack()
+                    navigator.back()
                 },
                 onDismiss = {
                     showWebViewDialog = false

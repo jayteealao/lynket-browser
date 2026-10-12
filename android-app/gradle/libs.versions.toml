@@ -48,9 +48,7 @@ glide = "4.14.2"
 butterknife = "10.2.3"
 epoxy = "4.6.4"
 # Phase 8: RxJava versions removed - migrated to Kotlin Coroutines/Flows
-materialDrawer = "6.1.2"
 materialDialogs = "3.3.0"
-appIntro = "4.2.3"
 paperdb = "2.6"
 
 # Testing

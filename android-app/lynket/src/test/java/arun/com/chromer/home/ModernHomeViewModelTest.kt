@@ -19,6 +19,11 @@ import arun.com.chromer.data.history.ModernHistoryRepository
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.UserPreferencesRepository.UserPreferences
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.search.provider.SearchProviders
+import arun.com.chromer.search.suggestion.SuggestionsEngine
+import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.util.network.NetworkMonitor
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.google.common.truth.Truth.assertThat
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
@@ -65,16 +70,29 @@ class ModernHomeViewModelTest {
     private lateinit var application: Application
     private lateinit var historyRepository: ModernHistoryRepository
     private lateinit var preferencesRepository: UserPreferencesRepository
+    private lateinit var tabsManager: TabsManager
+    private lateinit var networkMonitor: FakeNetworkMonitor
+    private lateinit var suggestionsEngine: SuggestionsEngine
+    private lateinit var searchProviders: SearchProviders
 
     // System under test
     private lateinit var viewModel: ModernHomeViewModel
 
     @Before
     fun setup() {
+        // The ViewModel builds provider icon URIs; android.net.Uri has no JVM implementation outside Robolectric.
+        mockkStatic(Uri::class)
+        every { Uri.fromParts(any(), any(), any()) } returns mockk(relaxed = true)
+        // SearchProviders builds its engine icons with Uri.parse when its class loads.
+        every { Uri.parse(any()) } returns mockk(relaxed = true)
         // Create mocks
         application = mockk(relaxed = true)
         historyRepository = mockk()
         preferencesRepository = mockk()
+        tabsManager = mockk(relaxed = true)
+        networkMonitor = FakeNetworkMonitor()
+        suggestionsEngine = mockk(relaxed = true)
+        searchProviders = mockk(relaxed = true)
 
         // Mock application.appName() extension function, which reads applicationContext.packageManager
         val packageManager: PackageManager = mockk(relaxed = true)
@@ -82,9 +100,6 @@ class ModernHomeViewModelTest {
         every { application.applicationContext } returns application
         every { application.packageManager } returns packageManager
 
-        // The ViewModel builds provider icon URIs; android.net.Uri has no JVM implementation outside Robolectric.
-        mockkStatic(Uri::class)
-        every { Uri.fromParts(any(), any(), any()) } returns mockk(relaxed = true)
     }
 
     @After
@@ -100,7 +115,11 @@ class ModernHomeViewModelTest {
         return ModernHomeViewModel(
             application = application,
             historyRepository = historyRepository,
-            preferencesRepository = preferencesRepository
+            preferencesRepository = preferencesRepository,
+            tabsManager = tabsManager,
+            networkMonitor = networkMonitor,
+            suggestionsEngine = suggestionsEngine,
+            searchProviders = searchProviders,
         )
     }
 
@@ -434,6 +453,98 @@ class ModernHomeViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    // ========== Home states: open tabs, no provider, offline ==========
+
+    @Test
+    fun `activeTabs reports the open browsing tabs`() = runTest {
+        coEvery { historyRepository.getRecents() } returns flowOf(emptyList())
+        every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
+        val tab = TabsManager.Tab("https://example.com", arun.com.chromer.tabs.CUSTOM_TAB)
+        coEvery { tabsManager.getActiveTabs() } returns listOf(tab)
+
+        viewModel = createViewModel()
+
+        viewModel.activeTabs.test {
+            assertThat(awaitItem()).isEmpty()
+            assertThat(awaitItem()).containsExactly(tab)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `providerInfo marks no provider when no Custom Tabs browser is installed`() = runTest {
+        mockkObject(arun.com.chromer.browsing.customtabs.CustomTabs.Companion)
+        every { arun.com.chromer.browsing.customtabs.CustomTabs.getCustomTabSupportingPackages(any()) } returns emptyList()
+        try {
+            coEvery { historyRepository.getRecents() } returns flowOf(emptyList())
+            every { preferencesRepository.userPreferencesFlow } returns flowOf(
+                UserPreferences(preferredCustomTabPackage = null, useWebView = false, incognitoMode = false)
+            )
+
+            viewModel = createViewModel()
+
+            viewModel.providerInfo.test {
+                awaitItem() // initial value
+                val info = awaitItem()
+                assertThat(info.noProviderInstalled).isTrue()
+                assertThat(info.allowChange).isTrue()
+                cancelAndIgnoreRemainingEvents()
+            }
+        } finally {
+            unmockkObject(arun.com.chromer.browsing.customtabs.CustomTabs.Companion)
+        }
+    }
+
+    @Test
+    fun `providerInfo has a provider when Chrome is chosen`() = runTest {
+        coEvery { historyRepository.getRecents() } returns flowOf(emptyList())
+        every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
+
+        viewModel = createViewModel()
+
+        viewModel.providerInfo.test {
+            awaitItem()
+            assertThat(awaitItem().noProviderInstalled).isFalse()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `isOnline follows the network monitor`() = runTest {
+        coEvery { historyRepository.getRecents() } returns flowOf(emptyList())
+        every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
+
+        viewModel = createViewModel()
+
+        viewModel.isOnline.test {
+            assertThat(awaitItem()).isTrue()
+            networkMonitor.online.value = false
+            assertThat(awaitItem()).isFalse()
+            networkMonitor.online.value = true
+            assertThat(awaitItem()).isTrue()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `openWebsite goes through the tabs manager`() = runTest {
+        coEvery { historyRepository.getRecents() } returns flowOf(emptyList())
+        every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
+        viewModel = createViewModel()
+        val website = createSampleWebsites().first()
+
+        viewModel.openWebsite(application, website)
+
+        verify { tabsManager.openUrl(application, website) }
+    }
+}
+
+/** A network monitor whose connection a test sets. */
+class FakeNetworkMonitor : NetworkMonitor {
+    val online = MutableStateFlow(true)
+    override val isOnline = online
+    override fun isOnlineNow(): Boolean = online.value
 }
 
 /**

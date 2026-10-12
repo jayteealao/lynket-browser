@@ -354,4 +354,33 @@
   <string name="bubbles_notification_explainer_body">Native bubbles are shown as notifications, so Lynket needs to post notifications. Android asks you next.</string>
   <string name="share_website">Share %1$s</string>
   <string name="close_website">Close %1$s</string>
+  <!-- Home, drawer, first run and shared states (English only) -->
+  <string name="drawer_more">More</string>
+  <string name="open_menu">Open menu</string>
+  <string name="voice_search">Voice search</string>
+  <string name="clear_search">Clear</string>
+  <string name="custom_tab_provider">Custom Tab provider</string>
+  <string name="home_tips_title">Tips</string>
+  <string name="home_tips_body">Learn the gestures and shortcuts that make Lynket faster.</string>
+  <string name="recents_empty_title">Recents appear here</string>
+  <string name="recents_empty_body">Open a link from any app and it shows up here for quick access.</string>
+  <string name="provider_missing_title">No browser for Custom Tabs</string>
+  <string name="provider_missing_body">Install a browser that supports Custom Tabs, such as Chrome. Until then, links open in Lynket\'s own web view.</string>
+  <string name="retry">Retry</string>
+  <string name="offline_message">You\'re offline. Pages open when you reconnect.</string>
+  <string name="link_error_title">This link cannot be opened</string>
+  <string name="go_back">Go back</string>
+  <string name="active_tabs_count">%1$d open tabs</string>
+  <string name="add_bookmark">Bookmark</string>
+  <string name="remove_bookmark">Remove bookmark</string>
+  <string name="remove_from_history">Remove from history</string>
+  <string name="intro_next">Next</string>
+  <string name="intro_done">Done</string>
+  <string name="intro_page_indicator">Page %1$d of %2$d</string>
+  <string name="default_browser_title">Make Lynket your browser</string>
+  <string name="default_browser_body">Lynket opens links from other apps only when it is the default browser. Android asks you to confirm next.</string>
+  <string name="default_browser_set">Set as default browser</string>
+  <string name="later">Later</string>
+  <string name="close">Close</string>
+  <string name="back">Back</string>
 </resources>

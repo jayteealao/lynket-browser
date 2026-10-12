@@ -134,13 +134,6 @@
         android:resource="@xml/shortcuts" />
     </activity>
 
-    <!-- Legacy Home Activity (kept for backward compatibility) -->
-    <activity
-      android:name=".home.HomeActivity"
-      android:exported="false"
-      android:theme="@style/AppTheme.Launcher"
-      android:windowSoftInputMode="adjustResize" />
-
     <!-- Entry point for browser activity -->
     <activity
       android:name=".browsing.browserintercept.BrowserInterceptActivity"
@@ -168,11 +161,11 @@
     <activity
       android:name=".settings.SettingsGroupActivity"
       android:label="@string/title_activity_settings"
-      android:parentActivityName=".home.HomeActivity"
+      android:parentActivityName=".MainActivity"
       android:theme="@style/AppTheme.NoActionBar">
       <meta-data
         android:name="android.support.PARENT_ACTIVITY"
-        android:value="arun.com.chromer.home.HomeActivity" />
+        android:value="arun.com.chromer.MainActivity" />
     </activity>
     <activity
       android:name=".browsing.customtabs.CustomTabActivity"
@@ -193,10 +186,6 @@
       android:label="@string/app_name"
       android:theme="@style/ArticleTheme" />
     <activity
-      android:name=".intro.ChromerIntroActivity"
-      android:label="@string/intro"
-      android:theme="@style/AppTheme.Tutorial" />
-    <activity
       android:name=".browsing.shareintercept.ShareInterceptActivity"
       android:excludeFromRecents="true"
       android:exported="true"
@@ -216,9 +205,6 @@
         <data android:mimeType="text/plain" />
       </intent-filter>
     </activity>
-    <activity
-      android:name=".about.AboutAppActivity"
-      android:theme="@style/AppTheme.NoActionBar" />
     <activity
       android:name=".perapp.PerAppSettingsActivity"
       android:label="@string/per_app_settings"
@@ -299,10 +285,6 @@
     <activity
       android:name=".browsing.providerselection.ProviderSelectionActivity"
       android:label="@string/choose_provider"
-      android:theme="@style/AppTheme.NoActionBar" />
-    <activity
-      android:name=".tips.TipsActivity"
-      android:label="@string/tips"
       android:theme="@style/AppTheme.NoActionBar" />
     <activity
       android:name=".browsing.article.ImageViewActivity"

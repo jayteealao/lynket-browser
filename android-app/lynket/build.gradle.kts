@@ -144,8 +144,6 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.kotlinx.serialization.core)
-    // navigation-compose stays until every screen is on Navigation 3 keys
-    implementation("androidx.navigation:navigation-compose:2.8.5")
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
@@ -153,7 +151,6 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // Hilt Testing
     testImplementation(libs.hilt.android.testing)
@@ -237,10 +234,9 @@ dependencies {
     // Legacy: UI Libraries
     implementation("com.afollestad.material-dialogs:core:0.9.6.0")
     implementation("com.afollestad.material-dialogs:commons:0.9.6.0")
-    implementation("com.github.apl-devs:appintro:v4.2.3")
-    implementation("com.mikepenz:materialdrawer:6.1.2@aar") {
-        isTransitive = true
-    }
+    // Icon font drawables for the remaining View screens; MaterialDrawer brought this same
+    // version before the drawer moved to Compose.
+    implementation("com.mikepenz:iconics-core:3.1.0")
     implementation("com.mikepenz:community-material-typeface:2.0.46.1@aar")
     implementation("com.github.chrisbanes:PhotoView:2.3.0")
 

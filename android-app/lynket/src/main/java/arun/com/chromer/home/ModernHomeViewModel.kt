@@ -12,6 +12,7 @@
 package arun.com.chromer.home
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arun.com.chromer.R
@@ -21,281 +22,294 @@ import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.extenstions.StringResource
 import arun.com.chromer.extenstions.appName
-import arun.com.chromer.home.epoxycontroller.model.CustomTabProviderInfo
+import arun.com.chromer.search.provider.SearchProvider
+import arun.com.chromer.search.provider.SearchProviders
+import arun.com.chromer.search.suggestion.SuggestionsEngine
+import arun.com.chromer.search.suggestion.items.SuggestionItem
+import arun.com.chromer.search.suggestion.items.SuggestionType
 import arun.com.chromer.shared.Constants
+import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
+import arun.com.chromer.util.network.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Phase 2: Modern HomeViewModel using Hilt + StateFlow
- *
- * Replaces HomeActivityViewModel (RxJava + manual Dagger) with modern implementation:
- * - @HiltViewModel for automatic injection
- * - StateFlow for reactive state management
- * - Kotlin Coroutines instead of RxJava
- * - Modern repository with Flow
- * - Lifecycle-aware (automatic cleanup via viewModelScope)
- *
- * Migration benefits:
- * - No manual subscription management (viewModelScope handles cleanup)
- * - Type-safe state with sealed classes
- * - Better testability (easy to mock Flow)
- * - No threading issues (Flow handles dispatchers)
- * - Simpler code (300 lines → 150 lines)
+ * State and actions of the home: recents, the provider card, open tabs, the connection, and the
+ * search bar's suggestions. Links open through [TabsManager.openUrl], the old home's path, so the
+ * person's browsing mode (Custom Tab, web heads, web view) is honoured.
  */
 @HiltViewModel
 class ModernHomeViewModel @Inject constructor(
-    private val application: Application,
-    private val historyRepository: ModernHistoryRepository,
-    private val preferencesRepository: UserPreferencesRepository
+  private val application: Application,
+  private val historyRepository: ModernHistoryRepository,
+  private val preferencesRepository: UserPreferencesRepository,
+  private val tabsManager: TabsManager,
+  private val networkMonitor: NetworkMonitor,
+  private val suggestionsEngine: SuggestionsEngine,
+  private val searchProviders: SearchProviders,
 ) : ViewModel() {
 
-    /**
-     * UI State for the home screen.
-     * Sealed class ensures exhaustive when() statements.
-     */
-    sealed interface HomeUiState {
-        data object Loading : HomeUiState
-        data class Success(
-            val recentWebsites: List<Website>,
-            val providerInfo: CustomTabProviderInfo
-        ) : HomeUiState
-        data class Error(val message: String) : HomeUiState
+  sealed interface HomeUiState {
+    data object Loading : HomeUiState
+    data class Success(
+      val recentWebsites: List<Website>,
+      val providerInfo: CustomTabProviderInfo,
+    ) : HomeUiState
+    data class Error(val message: String) : HomeUiState
+  }
+
+  /** Suggestions for the search bar, grouped as the old search view listed them. */
+  data class Suggestions(
+    val query: String = "",
+    val copy: List<SuggestionItem> = emptyList(),
+    val google: List<SuggestionItem> = emptyList(),
+    val history: List<SuggestionItem> = emptyList(),
+  ) {
+    val all: List<SuggestionItem> get() = copy + google + history
+  }
+
+  /** Bumped by the provider card's Retry, so the installed browsers are looked up again. */
+  private val providerScan = MutableStateFlow(0)
+
+  // One flat combine, so the first recents and the provider arrive in the same pass.
+  val uiState: StateFlow<HomeUiState> = combine(
+    historyRepository.getRecents(),
+    preferencesRepository.userPreferencesFlow,
+    providerScan,
+  ) { recents, prefs, _ ->
+    HomeUiState.Success(recentWebsites = recents, providerInfo = providerInfoFor(prefs)) as HomeUiState
+  }
+    .catch { exception ->
+      Timber.e(exception, "Error loading home screen data")
+      emit(HomeUiState.Error(exception.message ?: "Unknown error"))
     }
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState.Loading)
 
-    /**
-     * StateFlow of UI state.
-     * Combines recents and provider info into a single stream.
-     */
-    val uiState: StateFlow<HomeUiState> = combine(
-        historyRepository.getRecents(),
-        getProviderInfoFlow()
-    ) { recents, providerInfo ->
-        HomeUiState.Success(
-            recentWebsites = recents,
-            providerInfo = providerInfo
-        ) as HomeUiState  // Explicitly cast to supertype to allow Error emission in catch
+  val recentWebsites: StateFlow<List<Website>> = historyRepository.getRecents()
+    .catch { exception ->
+      Timber.e(exception, "Error loading recent websites")
+      emit(emptyList())
     }
-        .catch { exception ->
-            Timber.e(exception, "Error loading home screen data")
-            emit(HomeUiState.Error(exception.message ?: "Unknown error"))
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000), // Keep active 5s after last subscriber
-            initialValue = HomeUiState.Loading
-        )
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /**
-     * Recent websites as a separate Flow for direct access.
-     * UI can observe this or uiState depending on needs.
-     */
-    val recentWebsites: StateFlow<List<Website>> = historyRepository.getRecents()
-        .catch { exception ->
-            Timber.e(exception, "Error loading recent websites")
-            emit(emptyList())
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+  val providerInfo: StateFlow<CustomTabProviderInfo> = getProviderInfoFlow()
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), webViewProviderInfo(incognito = false))
 
-    /**
-     * Provider info as a separate Flow.
-     * Combines preferences to determine which browser provider to show.
-     */
-    val providerInfo: StateFlow<CustomTabProviderInfo> = getProviderInfoFlow()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = CustomTabProviderInfo(
-                iconUri = ApplicationIcon.createUri(Constants.SYSTEM_WEBVIEW),
-                providerDescription = StringResource(
-                    R.string.tab_provider_status_message_home,
-                    resourceArgs = listOf(R.string.system_webview)
-                ),
-                providerReason = StringResource(0),
-                allowChange = true
-            )
-        )
-
-    /**
-     * Creates a Flow that determines the current browser provider info.
-     * Reacts to preference changes in real-time.
-     */
-    private fun getProviderInfoFlow(): Flow<CustomTabProviderInfo> {
-        return preferencesRepository.userPreferencesFlow
-            .map { prefs ->
-                val customTabPackage = prefs.preferredCustomTabPackage
-                val isIncognito = prefs.incognitoMode
-                val isWebView = prefs.useWebView
-
-                when {
-                    // Incognito or WebView mode - use system WebView
-                    isIncognito || isWebView || customTabPackage == null -> {
-                        CustomTabProviderInfo(
-                            iconUri = ApplicationIcon.createUri(Constants.SYSTEM_WEBVIEW),
-                            providerDescription = StringResource(
-                                R.string.tab_provider_status_message_home,
-                                resourceArgs = listOf(R.string.system_webview)
-                            ),
-                            providerReason = if (isIncognito)
-                                StringResource(R.string.provider_web_view_incognito_reason)
-                            else StringResource(0),
-                            allowChange = !isIncognito
-                        )
-                    }
-                    // Custom tab provider specified
-                    else -> {
-                        val appName = application.appName(customTabPackage)
-                        CustomTabProviderInfo(
-                            iconUri = ApplicationIcon.createUri(customTabPackage),
-                            providerDescription = StringResource(
-                                R.string.tab_provider_status_message_home,
-                                listOf(appName)
-                            ),
-                            providerReason = StringResource(0),
-                            allowChange = true
-                        )
-                    }
-                }
-            }
+  /** Open browsing tabs, read while the home is on screen (the old home polled every 750 ms). */
+  val activeTabs: StateFlow<List<TabsManager.Tab>> = flow {
+    while (true) {
+      emit(runCatching { tabsManager.getActiveTabs() }.getOrElse { emptyList() })
+      delay(ACTIVE_TABS_POLL_MS)
     }
+  }
+    .distinctUntilChanged()
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // ========== Actions ==========
+  val isOnline: StateFlow<Boolean> = networkMonitor.isOnline
+    .catch { emit(true) }
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    /**
-     * Refresh recent history.
-     * In Flow-based architecture, this happens automatically,
-     * but we can trigger a manual refresh if needed.
-     */
-    fun refreshRecents() {
-        viewModelScope.launch {
-            try {
-                // Flow automatically updates, but we can force a refresh
-                // by re-querying the database
-                historyRepository.getCount()
-                Timber.d("Refreshed recents")
-            } catch (e: Exception) {
-                Timber.e(e, "Error refreshing recents")
+  private val query = MutableStateFlow("")
+
+  val suggestions: StateFlow<Suggestions> = query
+    .debounce(SUGGESTIONS_DEBOUNCE_MS)
+    .flatMapLatest { text ->
+      if (text.isBlank()) {
+        flowOf(Suggestions(query = text))
+      } else {
+        with(suggestionsEngine) {
+          flowOf(text)
+            .suggestionsTransformer()
+            .distinctSuggestionsPublish()
+            .runningFold(Suggestions(query = text)) { acc, (type, items) ->
+              when (type) {
+                SuggestionType.COPY -> acc.copy(copy = items)
+                SuggestionType.GOOGLE -> acc.copy(google = items)
+                SuggestionType.HISTORY -> acc.copy(history = items)
+              }
             }
         }
+      }
     }
+    .catch { e ->
+      Timber.e(e, "Search suggestions failed")
+      emit(Suggestions())
+    }
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Suggestions())
 
-    /**
-     * Delete a website from history.
-     */
-    fun deleteWebsite(website: Website) {
-        viewModelScope.launch {
-            val success = historyRepository.delete(website)
-            if (success) {
-                Timber.d("Deleted website: ${website.url}")
-            } else {
-                Timber.e("Failed to delete website: ${website.url}")
-            }
-        }
-    }
+  val searchEngines: List<SearchProvider> get() = searchProviders.availableProviders
 
-    /**
-     * Clear all history.
-     */
-    fun clearAllHistory() {
-        viewModelScope.launch {
-            try {
-                val count = historyRepository.deleteAll()
-                Timber.d("Cleared all history: $count items")
-            } catch (e: Exception) {
-                Timber.e(e, "Error clearing history")
-            }
-        }
-    }
+  val selectedSearchEngine: StateFlow<SearchProvider> = searchProviders.selectedProvider
+    .catch { emit(SearchProviders.GOOGLE_SEARCH_PROVIDER) }
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SearchProviders.GOOGLE_SEARCH_PROVIDER)
 
-    /**
-     * Toggle bookmark for a website.
-     */
-    fun toggleBookmark(website: Website) {
-        viewModelScope.launch {
-            try {
-                historyRepository.toggleBookmark(website.url)
-                Timber.d("Toggled bookmark for: ${website.url}")
-            } catch (e: Exception) {
-                Timber.e(e, "Error toggling bookmark")
-            }
-        }
-    }
+  fun onQueryChange(text: String) {
+    query.value = text
+  }
 
-    /**
-     * Update custom tab provider preference.
-     */
-    fun setCustomTabProvider(packageName: String) {
-        viewModelScope.launch {
-            try {
-                preferencesRepository.setCustomTabPackage(packageName)
-                Timber.d("Set custom tab provider: $packageName")
-            } catch (e: Exception) {
-                Timber.e(e, "Error setting custom tab provider")
-            }
-        }
-    }
+  fun selectSearchEngine(provider: SearchProvider) {
+    searchProviders.select(provider)
+  }
 
-    /**
-     * Get the default custom tab app from the system.
-     */
-    suspend fun getDefaultCustomTabApp(): String? {
-        return try {
-            if (CustomTabs.isPackageSupportCustomTabs(application, Constants.CHROME_PACKAGE)) {
-                Constants.CHROME_PACKAGE
-            } else {
-                val supportingPackages = CustomTabs.getCustomTabSupportingPackages(application)
-                supportingPackages.firstOrNull()
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Error getting default custom tab app")
-            null
-        }
+  /** Opens typed text: a web address as is, anything else as a search with the chosen engine. */
+  fun submitSearch(context: Context, text: String) {
+    if (text.isBlank()) return
+    viewModelScope.launch {
+      val url = runCatching { searchProviders.selectedProvider.first() }
+        .getOrDefault(SearchProviders.GOOGLE_SEARCH_PROVIDER)
+        .getSearchUrl(text.trim())
+      openUrl(context, url)
     }
+  }
 
-    /**
-     * Initialize default custom tab provider if not set.
-     */
-    fun initializeDefaultProvider() {
-        viewModelScope.launch {
-            val prefs = preferencesRepository.userPreferencesFlow.first()
-            if (prefs.preferredCustomTabPackage == null) {
-                val defaultApp = getDefaultCustomTabApp()
-                if (defaultApp != null) {
-                    setCustomTabProvider(defaultApp)
-                }
-            }
-        }
+  fun openUrl(context: Context, url: String) {
+    tabsManager.openUrl(context, Website(url))
+  }
+
+  fun openWebsite(context: Context, website: Website) {
+    tabsManager.openUrl(context, website)
+  }
+
+  fun showTabs() {
+    tabsManager.showTabsActivity()
+  }
+
+  private fun webViewProviderInfo(incognito: Boolean, noProvider: Boolean = false) = CustomTabProviderInfo(
+    iconUri = ApplicationIcon.createUri(Constants.SYSTEM_WEBVIEW),
+    providerDescription = StringResource(
+      R.string.tab_provider_status_message_home,
+      resourceArgs = listOf(R.string.system_webview),
+    ),
+    providerReason = if (incognito) StringResource(R.string.provider_web_view_incognito_reason) else StringResource(0),
+    allowChange = !incognito,
+    noProviderInstalled = noProvider,
+  )
+
+  private fun getProviderInfoFlow(): Flow<CustomTabProviderInfo> =
+    combine(preferencesRepository.userPreferencesFlow, providerScan) { prefs, _ -> providerInfoFor(prefs) }
+
+  private fun providerInfoFor(prefs: UserPreferencesRepository.UserPreferences): CustomTabProviderInfo {
+    val customTabPackage = prefs.preferredCustomTabPackage
+    val isIncognito = prefs.incognitoMode
+    return when {
+      isIncognito || prefs.useWebView -> webViewProviderInfo(incognito = isIncognito)
+      customTabPackage == null -> webViewProviderInfo(
+        incognito = false,
+        noProvider = !hasCustomTabProvider(),
+      )
+      else -> CustomTabProviderInfo(
+        iconUri = ApplicationIcon.createUri(customTabPackage),
+        providerDescription = StringResource(
+          R.string.tab_provider_status_message_home,
+          listOf(application.appName(customTabPackage)),
+        ),
+        providerReason = StringResource(0),
+        allowChange = true,
+      )
     }
+  }
+
+  private fun hasCustomTabProvider(): Boolean =
+    runCatching { CustomTabs.getCustomTabSupportingPackages(application).isNotEmpty() }
+      .getOrDefault(true)
+
+  // ========== Actions ==========
+
+  fun refreshRecents() {
+    viewModelScope.launch {
+      try {
+        historyRepository.getCount()
+      } catch (e: Exception) {
+        Timber.e(e, "Error refreshing recents")
+      }
+    }
+  }
+
+  /** The provider card's Retry: picks a provider if one is now installed and looks again. */
+  fun rescanProviders() {
+    initializeDefaultProvider()
+    providerScan.value++
+  }
+
+  fun deleteWebsite(website: Website) {
+    viewModelScope.launch {
+      val success = historyRepository.delete(website)
+      if (!success) Timber.e("Failed to delete website: ${website.url}")
+    }
+  }
+
+  fun clearAllHistory() {
+    viewModelScope.launch {
+      try {
+        historyRepository.deleteAll()
+      } catch (e: Exception) {
+        Timber.e(e, "Error clearing history")
+      }
+    }
+  }
+
+  fun toggleBookmark(website: Website) {
+    viewModelScope.launch {
+      try {
+        historyRepository.toggleBookmark(website.url)
+      } catch (e: Exception) {
+        Timber.e(e, "Error toggling bookmark")
+      }
+    }
+  }
+
+  fun setCustomTabProvider(packageName: String) {
+    viewModelScope.launch {
+      try {
+        preferencesRepository.setCustomTabPackage(packageName)
+      } catch (e: Exception) {
+        Timber.e(e, "Error setting custom tab provider")
+      }
+    }
+  }
+
+  suspend fun getDefaultCustomTabApp(): String? = try {
+    if (CustomTabs.isPackageSupportCustomTabs(application, Constants.CHROME_PACKAGE)) {
+      Constants.CHROME_PACKAGE
+    } else {
+      CustomTabs.getCustomTabSupportingPackages(application).firstOrNull()
+    }
+  } catch (e: Exception) {
+    Timber.e(e, "Error getting default custom tab app")
+    null
+  }
+
+  fun initializeDefaultProvider() {
+    viewModelScope.launch {
+      val prefs = preferencesRepository.userPreferencesFlow.first()
+      if (prefs.preferredCustomTabPackage == null) {
+        getDefaultCustomTabApp()?.let { setCustomTabProvider(it) }
+      }
+    }
+  }
+
+  private companion object {
+    const val ACTIVE_TABS_POLL_MS = 750L
+    const val SUGGESTIONS_DEBOUNCE_MS = 200L
+  }
 }
-
-/**
- * Example usage in Compose:
- *
- * ```kotlin
- * @Composable
- * fun HomeScreen(viewModel: ModernHomeViewModel = hiltViewModel()) {
- *     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
- *
- *     when (val state = uiState) {
- *         is HomeUiState.Loading -> LoadingIndicator()
- *         is HomeUiState.Success -> {
- *             HomeContent(
- *                 recents = state.recentWebsites,
- *                 providerInfo = state.providerInfo,
- *                 onDeleteClick = viewModel::deleteWebsite,
- *                 onBookmarkClick = viewModel::toggleBookmark
- *             )
- *         }
- *         is HomeUiState.Error -> ErrorMessage(state.message)
- *     }
- * }
- * ```
- */

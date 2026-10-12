@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.browsing.article.ArticleActivity
 import timber.log.Timber
 
@@ -46,7 +46,7 @@ import timber.log.Timber
 @Composable
 fun ArticleScreen(
     url: String,
-    navController: NavController
+    navigator: LynketNavigator
 ) {
     val context = LocalContext.current
 
@@ -65,7 +65,7 @@ fun ArticleScreen(
 
             // Navigate back immediately - the article display happens in ArticleActivity
             // This matches the behavior of the legacy flow
-            navController.popBackStack()
+            navigator.back()
         } catch (e: Exception) {
             Timber.e(e, "Error launching article mode for URL: $url")
             // Stay on screen to show error

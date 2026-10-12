@@ -11,246 +11,134 @@
 
 package arun.com.chromer.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.scene.DialogSceneStrategy
+import androidx.navigation3.ui.NavDisplay
+import arun.com.chromer.R
 import arun.com.chromer.ui.about.AboutScreen
+import arun.com.chromer.ui.changelog.ChangelogDialog
+import arun.com.chromer.ui.components.ErrorState
+import arun.com.chromer.ui.intro.IntroScreen
+import arun.com.chromer.ui.tips.TipsScreen
+import arun.com.chromer.util.Utils
 import arun.com.chromer.ui.article.ArticleScreen
 import arun.com.chromer.ui.browser.BrowserScreen
-import arun.com.chromer.ui.home.HomeScreen
 import arun.com.chromer.ui.history.HistoryScreen
+import arun.com.chromer.ui.home.HomeScreen
 import arun.com.chromer.ui.providerselection.ProviderSelectionScreen
 import arun.com.chromer.ui.settings.SettingsScreen
 import arun.com.chromer.ui.tabs.TabsScreen
 
 /**
- * Phase 3.1: Navigation setup for Lynket Browser
+ * The single navigation display of [arun.com.chromer.MainActivity]: one back stack of [LynketKey]s,
+ * each shown with its own saveable state and view model store. No other activity hosts a
+ * [NavDisplay]; entry activities show one Compose destination or hand a key to MainActivity.
  *
- * Defines all app screens and navigation routes using Jetpack Navigation Compose.
- * Type-safe navigation with sealed class hierarchy.
- */
-sealed class Screen(val route: String) {
-    /**
-     * Home screen - main launcher
-     */
-    data object Home : Screen("home")
-
-    /**
-     * History screen - browsing history list
-     */
-    data object History : Screen("history")
-
-    /**
-     * Tabs screen - active tabs list
-     */
-    data object Tabs : Screen("tabs")
-
-    /**
-     * Settings root screen
-     */
-    data object Settings : Screen("settings")
-
-    /**
-     * Browser screen with URL parameter
-     */
-    data object Browser : Screen("browser/{url}") {
-        fun createRoute(url: String) = "browser/$url"
-    }
-
-    /**
-     * Per-app settings with package name parameter
-     */
-    data object PerAppSettings : Screen("per_app_settings/{package}") {
-        fun createRoute(packageName: String) = "per_app_settings/$packageName"
-    }
-
-    /**
-     * Provider selection screen
-     */
-    data object ProviderSelection : Screen("provider_selection")
-
-    /**
-     * Article mode viewer
-     */
-    data object Article : Screen("article/{url}") {
-        fun createRoute(url: String) = "article/$url"
-    }
-
-    /**
-     * Web Heads management
-     */
-    data object WebHeads : Screen("webheads")
-
-    /**
-     * About screen
-     */
-    data object About : Screen("about")
-}
-
-/**
- * Main navigation graph for Lynket Browser.
- *
- * @param modifier Modifier for the NavHost
- * @param navController NavHostController for navigation actions
- * @param startDestination Initial destination (defaults to Home)
+ * At the root the display does not handle back, so the system closes the activity as before.
  */
 @Composable
-fun ChromerNavGraph(
-    modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController(),
-    startDestination: String = Screen.Home.route
+fun LynketNavDisplay(
+  navigator: LynketNavigator,
+  modifier: Modifier = Modifier,
+  entries: LynketEntries = LynketEntries.Default,
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        modifier = modifier
-    ) {
-        // Home Screen
-        composable(Screen.Home.route) {
-            HomeScreen(navController = navController)
+  NavDisplay(
+    backStack = navigator.backStack,
+    modifier = modifier,
+    onBack = { navigator.back() },
+    entryDecorators = listOf(
+      rememberSaveableStateHolderNavEntryDecorator(),
+      rememberViewModelStoreNavEntryDecorator(),
+    ),
+    sceneStrategies = listOf(DialogSceneStrategy()),
+    entryProvider = entryProvider<NavKey> {
+      entry<LynketKey.Home> { entries.home(navigator) }
+      entry<LynketKey.History> { entries.history(navigator) }
+      entry<LynketKey.Tabs> { entries.tabs(navigator) }
+      entry<LynketKey.Settings> { SettingsScreen(navigator = navigator) }
+      entry<LynketKey.ProviderSelection> { ProviderSelectionScreen(navigator = navigator) }
+      entry<LynketKey.About> { AboutScreen(navigator = navigator) }
+      entry<LynketKey.Tips> { TipsScreen(navigator = navigator) }
+      entry<LynketKey.Intro> { entries.intro(navigator) }
+      entry<LynketKey.Changelog>(metadata = DialogSceneStrategy.dialog()) { entries.changelog(navigator) }
+      entry<LynketKey.Browser> { key ->
+        if (WebUrl.parseOrNull(key.url) == null) {
+          LinkErrorScreen(url = key.url, onBack = { navigator.back() })
+        } else {
+          BrowserScreen(url = key.url, navigator = navigator)
         }
-
-        // History Screen
-        composable(Screen.History.route) {
-            HistoryScreen(navController = navController)
-        }
-
-        // Tabs Screen
-        composable(Screen.Tabs.route) {
-            TabsScreen(navController = navController)
-        }
-
-        // Settings Screen
-        composable(Screen.Settings.route) {
-            SettingsScreen(navController = navController)
-        }
-
-        // Browser Screen with URL argument
-        composable(
-            route = Screen.Browser.route,
-            arguments = listOf(
-                navArgument("url") {
-                    type = NavType.StringType
-                }
-            )
-        ) { backStackEntry ->
-            val url = backStackEntry.arguments?.getString("url") ?: ""
-            BrowserScreen(url = url, navController = navController)
-        }
-
-        // Per-App Settings with package argument
-        composable(
-            route = Screen.PerAppSettings.route,
-            arguments = listOf(
-                navArgument("package") {
-                    type = NavType.StringType
-                }
-            )
-        ) { backStackEntry ->
-            val packageName = backStackEntry.arguments?.getString("package") ?: ""
-            // PerAppSettingsScreen(packageName = packageName, navController = navController)
-            PlaceholderScreen(title = "Per-App: $packageName")
-        }
-
-        // Provider Selection Screen
-        composable(Screen.ProviderSelection.route) {
-            ProviderSelectionScreen(navController = navController)
-        }
-
-        // Article Screen with URL argument
-        composable(
-            route = Screen.Article.route,
-            arguments = listOf(
-                navArgument("url") {
-                    type = NavType.StringType
-                }
-            )
-        ) { backStackEntry ->
-            val url = backStackEntry.arguments?.getString("url") ?: ""
-            ArticleScreen(url = url, navController = navController)
-        }
-
-        // Web Heads Management
-        composable(Screen.WebHeads.route) {
-            // WebHeadsScreen(navController = navController)
-            PlaceholderScreen(title = "Web Heads")
-        }
-
-        // About Screen
-        composable(Screen.About.route) {
-            AboutScreen(navController = navController)
-        }
-    }
+      }
+      entry<LynketKey.Article> { key -> ArticleScreen(url = key.url, navigator = navigator) }
+      entry<LynketKey.PerAppSettings> { key -> PlaceholderScreen(title = "Per-App: ${key.packageName}") }
+      entry<LynketKey.WebHeads> { PlaceholderScreen(title = "Web Heads") }
+    },
+  )
 }
 
-/**
- * Placeholder screen for development.
- * Will be replaced with actual screen implementations.
- */
+/** Screens that tests replace with fakes; the app uses [Default]. */
+class LynketEntries(
+  val home: @Composable (LynketNavigator) -> Unit,
+  val history: @Composable (LynketNavigator) -> Unit,
+  val tabs: @Composable (LynketNavigator) -> Unit,
+  val intro: @Composable (LynketNavigator) -> Unit,
+  val changelog: @Composable (LynketNavigator) -> Unit = { navigator -> Changelog(navigator) },
+) {
+  companion object {
+    val Default = LynketEntries(
+      home = { navigator -> HomeScreen(navigator = navigator) },
+      history = { navigator -> HistoryScreen(navigator = navigator) },
+      tabs = { navigator -> TabsScreen(navigator = navigator) },
+      intro = { navigator -> IntroScreen(navigator = navigator) },
+    )
+  }
+}
+
+@Composable
+private fun Changelog(navigator: LynketNavigator) {
+  val context = LocalContext.current
+  ChangelogDialog(
+    onOk = { navigator.remove(LynketKey.Changelog) },
+    onRate = { Utils.openPlayStore(context, context.packageName) },
+  )
+}
+
+/** A link that is not a web address: the shared error state with the text as it arrived. */
+@Composable
+internal fun LinkErrorScreen(url: String, onBack: () -> Unit) {
+  Box(
+    modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
+    contentAlignment = Alignment.Center,
+  ) {
+    ErrorState(
+      title = stringResource(R.string.link_error_title),
+      body = url,
+      actionLabel = stringResource(R.string.go_back),
+      onAction = onBack,
+      modifier = Modifier.testTag("link-error"),
+    )
+  }
+}
+
+/** Placeholder for destinations whose screens later work brings (per-app settings, web heads). */
 @Composable
 private fun PlaceholderScreen(title: String) {
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
-    ) {
-        androidx.compose.material3.Text(
-            text = title,
-            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
-        )
-    }
+  Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Text(text = title, style = MaterialTheme.typography.headlineMedium)
+  }
 }
-
-/**
- * Navigation extensions for type-safe navigation
- *
- * Note: These are extension functions on NavController (not NavHostController)
- * so they can be used from any Composable that receives a NavController parameter.
- */
-fun androidx.navigation.NavController.navigateToHome() {
-    navigate(Screen.Home.route) {
-        popUpTo(Screen.Home.route) { inclusive = true }
-    }
-}
-
-fun androidx.navigation.NavController.navigateToHistory() {
-    navigate(Screen.History.route)
-}
-
-fun androidx.navigation.NavController.navigateToTabs() {
-    navigate(Screen.Tabs.route)
-}
-
-fun androidx.navigation.NavController.navigateToSettings() {
-    navigate(Screen.Settings.route)
-}
-
-fun androidx.navigation.NavController.navigateToBrowser(url: String) {
-    navigate(Screen.Browser.createRoute(url))
-}
-
-fun androidx.navigation.NavController.navigateToPerAppSettings(packageName: String) {
-    navigate(Screen.PerAppSettings.createRoute(packageName))
-}
-
-fun androidx.navigation.NavController.navigateToProviderSelection() {
-    navigate(Screen.ProviderSelection.route)
-}
-
-fun androidx.navigation.NavController.navigateToArticle(url: String) {
-    navigate(Screen.Article.createRoute(url))
-}
-
-fun androidx.navigation.NavController.navigateToWebHeads() {
-    navigate(Screen.WebHeads.route)
-}
-
-fun androidx.navigation.NavController.navigateToAbout() {
-    navigate(Screen.About.route)
-}
-

@@ -55,7 +55,7 @@ data class SearchProvider(
 class SearchProviders
 @Inject
 constructor(
-  rxPreferences: RxPreferences
+  private val rxPreferences: RxPreferences
 ) {
 
   // Application-level scope for this singleton
@@ -93,6 +93,11 @@ constructor(
     }
     .flowOn(Dispatchers.Default)
     .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
+
+  /** Saves [provider] as the search engine for typed searches. */
+  fun select(provider: SearchProvider) {
+    rxPreferences.searchEngine.set(provider.name)
+  }
 
   companion object {
     const val GOOGLE = "Google"

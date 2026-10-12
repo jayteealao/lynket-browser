@@ -11,286 +11,241 @@
 
 package arun.com.chromer.ui.about
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Brush
+import androidx.compose.material.icons.outlined.Shop
+import androidx.compose.material.icons.outlined.ShowChart
+import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.material.icons.outlined.Work
+import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import androidx.core.net.toUri
 import arun.com.chromer.BuildConfig
+import arun.com.chromer.R
+import arun.com.chromer.shared.Constants
+import arun.com.chromer.ui.navigation.LynketNavigator
+import arun.com.chromer.ui.navigation.navigateToChangelog
+import timber.log.Timber
 
-/**
- * Phase 3.3: AboutScreen
- *
- * Modern Compose UI for app information and links.
- *
- * Features:
- * - App version and build info
- * - License information (GPL-3.0)
- * - Social media links (Twitter, Reddit)
- * - GitHub source repository
- * - Developer information
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** One About row: a title, an optional line under it, and where a tap goes (null: no action). */
+data class AboutRow(
+  val title: String,
+  val subtitle: String? = null,
+  val icon: ImageVector? = null,
+  @DrawableRes val image: Int? = null,
+  val link: String? = null,
+  val opensChangelog: Boolean = false,
+)
+
+data class AboutSection(val title: String, val rows: List<AboutRow>)
+
+/** The rows of the old About screen, in its order: the app, the author, the credits. */
 @Composable
-fun AboutScreen(
-    navController: NavController
-) {
-    val context = LocalContext.current
+fun aboutSections(): List<AboutSection> = listOf(
+  AboutSection(
+    stringResource(R.string.app_name),
+    listOf(
+      AboutRow(stringResource(R.string.version), BuildConfig.VERSION_NAME, Icons.Outlined.Info),
+      AboutRow(stringResource(R.string.changelog), stringResource(R.string.see_whats_new), Icons.Outlined.ShowChart, opensChangelog = true),
+      AboutRow(stringResource(R.string.follow_twitter), icon = Icons.Outlined.AlternateEmail, link = "https://twitter.com/LynketApp"),
+      AboutRow(stringResource(R.string.discuss_on_reddit), icon = Icons.Outlined.Forum, link = "https://www.reddit.com/r/lynket/"),
+      AboutRow(
+        stringResource(R.string.licenses),
+        icon = Icons.Outlined.Badge,
+        link = "https://htmlpreview.github.io/?https://github.com/arunkumar9t2/lynket-browser/blob/main/notices.html",
+      ),
+      AboutRow(
+        stringResource(R.string.translations),
+        stringResource(R.string.help_translations),
+        Icons.Outlined.Translate,
+        link = "http://os0l2aw.oneskyapp.com/collaboration/project/62112",
+      ),
+      AboutRow(
+        stringResource(R.string.source),
+        stringResource(R.string.contribute_to_chromer),
+        Icons.Outlined.AccountTree,
+        link = "https://github.com/arunkumar9t2/lynket-browser",
+      ),
+    ),
+  ),
+  AboutSection(
+    stringResource(R.string.author),
+    listOf(
+      AboutRow(Constants.ME, Constants.LOCATION, image = R.drawable.arun),
+      AboutRow(stringResource(R.string.add_to_circles), icon = Icons.Outlined.AddCircleOutline, link = "http://google.com/+arunkumar5592"),
+      AboutRow(stringResource(R.string.follow_twitter), icon = Icons.Outlined.AlternateEmail, link = "https://twitter.com/arunkumar_9t2"),
+      AboutRow(stringResource(R.string.connect_linkedIn), icon = Icons.Outlined.Work, link = "http://in.linkedin.com/in/arunkumar9t2"),
+      AboutRow(stringResource(R.string.fork_on_github), icon = Icons.Outlined.Code, link = "https://github.com/arunkumar9t2/"),
+      AboutRow(
+        stringResource(R.string.more_apps),
+        icon = Icons.Outlined.Shop,
+        link = "https://play.google.com/store/apps/dev?id=9082544673727889961",
+      ),
+    ),
+  ),
+  AboutSection(
+    stringResource(R.string.credits),
+    listOf(
+      AboutRow("Patryk Goworowski", stringResource(R.string.icon_design), Icons.Outlined.Palette, link = "https://plus.google.com/+PatrykGoworowski"),
+      AboutRow(
+        "Max Patchs",
+        stringResource(R.string.illustrations_and_video),
+        Icons.Outlined.Brush,
+        link = "https://plus.google.com/+Windows10-tutorialsBlogspot",
+      ),
+      AboutRow(
+        stringResource(R.string.beta_testers),
+        icon = Icons.Outlined.Groups,
+        link = "https://plus.google.com/communities/109754631011301174504",
+      ),
+    ),
+  ),
+)
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("About") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(vertical = 8.dp)
-        ) {
-            // App Section
-            item {
-                SectionHeader("App Information")
-            }
-
-            item {
-                AboutItem(
-                    icon = Icons.Default.Info,
-                    title = "Version",
-                    subtitle = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                    onClick = null
-                )
-            }
-
-            item {
-                AboutItem(
-                    icon = Icons.Default.Gavel,
-                    title = "License",
-                    subtitle = "GNU General Public License v3.0",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://www.gnu.org/licenses/gpl-3.0.html")
-                        }
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            item {
-                AboutItem(
-                    icon = Icons.Default.Code,
-                    title = "Source Code",
-                    subtitle = "View on GitHub",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://github.com/arunkumar9t2/lynket-browser")
-                        }
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            item {
-                AboutItem(
-                    icon = Icons.Default.BugReport,
-                    title = "Report Issues",
-                    subtitle = "GitHub Issues",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://github.com/arunkumar9t2/lynket-browser/issues")
-                        }
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            // Community Section
-            item {
-                SectionHeader("Community")
-            }
-
-            item {
-                AboutItem(
-                    icon = Icons.Default.ChatBubble,
-                    title = "Reddit Community",
-                    subtitle = "r/lynket",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://www.reddit.com/r/lynket/")
-                        }
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            item {
-                AboutItem(
-                    icon = Icons.Default.Tag,
-                    title = "Twitter",
-                    subtitle = "@LynketApp",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://twitter.com/LynketApp")
-                        }
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            // Developer Section
-            item {
-                SectionHeader("Developer")
-            }
-
-            item {
-                AboutItem(
-                    icon = Icons.Default.Person,
-                    title = "Arunkumar",
-                    subtitle = "Developer",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://github.com/arunkumar9t2")
-                        }
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            // Legal Section
-            item {
-                SectionHeader("Legal")
-            }
-
-            item {
-                AboutItem(
-                    icon = Icons.Default.Article,
-                    title = "Open Source Licenses",
-                    subtitle = "Third-party libraries",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://htmlpreview.github.io/?https://github.com/arunkumar9t2/lynket-browser/blob/main/notices.html")
-                        }
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            // Footer
-            item {
-                Spacer(modifier = Modifier.height(32.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Lynket Browser",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Fast, customizable browser for Android",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Copyright © 2025 Arunkumar",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-                Spacer(modifier = Modifier.height(32.dp))
-            }
-        }
-    }
+@Composable
+fun AboutScreen(navigator: LynketNavigator) {
+  val context = LocalContext.current
+  AboutContent(
+    onBack = { navigator.back() },
+    onRow = { row ->
+      when {
+        row.opensChangelog -> navigator.navigateToChangelog()
+        row.link != null -> openLink(context, row.link)
+      }
+    },
+  )
 }
 
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-    )
+private fun openLink(context: Context, link: String) {
+  try {
+    context.startActivity(Intent(Intent.ACTION_VIEW, link.toUri()))
+  } catch (e: ActivityNotFoundException) {
+    Timber.e(e, "No app for %s", link)
+  }
 }
 
+/** About, stateless: a large title under a small top bar, then one grouped card per section. */
 @Composable
-private fun AboutItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: (() -> Unit)?,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(onClick = onClick)
-                } else {
-                    Modifier
-                }
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+fun AboutContent(onBack: () -> Unit, onRow: (AboutRow) -> Unit) {
+  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+  val sections = aboutSections()
+  Scaffold(
+    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection).testTag("about"),
+    contentWindowInsets = WindowInsets.safeDrawing,
+    topBar = {
+      LargeTopAppBar(
+        title = { Text(stringResource(R.string.about), fontWeight = FontWeight.SemiBold) },
+        navigationIcon = {
+          IconButton(onClick = onBack) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+          }
+        },
+        scrollBehavior = scrollBehavior,
+      )
+    },
+  ) { padding ->
+    LazyColumn(
+      modifier = Modifier.fillMaxSize().padding(padding),
+      contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
+      horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp)
-        )
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        if (onClick != null) {
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Open",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
+      sections.forEach { section ->
+        item(key = section.title) { AboutSectionCard(section, onRow) }
+      }
     }
+  }
+}
+
+@Composable
+private fun AboutSectionCard(section: AboutSection, onRow: (AboutRow) -> Unit) {
+  Card(
+    modifier = Modifier.fillMaxWidth().widthIn(max = 680.dp),
+    shape = RoundedCornerShape(16.dp),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+  ) {
+    Column {
+      Text(
+        text = section.title,
+        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
+      )
+      section.rows.forEachIndexed { index, row ->
+        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(start = 56.dp))
+        ListItem(
+          headlineContent = { Text(row.title) },
+          supportingContent = row.subtitle?.let { { Text(it) } },
+          leadingContent = {
+            when {
+              row.image != null -> Image(
+                painter = painterResource(row.image),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp).clip(CircleShape),
+              )
+              row.icon != null -> Icon(row.icon, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
+            }
+          },
+          colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+          modifier = if (row.link != null || row.opensChangelog) {
+            Modifier.clickable { onRow(row) }
+          } else {
+            Modifier
+          },
+        )
+      }
+    }
+  }
 }

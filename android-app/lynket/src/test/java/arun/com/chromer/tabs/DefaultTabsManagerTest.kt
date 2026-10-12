@@ -25,7 +25,7 @@ import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.browsing.amp.AmpResolverActivity
 import arun.com.chromer.bubbles.webheads.WebHeadService
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.home.HomeActivity
+import arun.com.chromer.MainActivity
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Ignore
 import org.junit.Test
@@ -57,7 +57,7 @@ class DefaultTabsManagerTest : LynketRobolectricSuite() {
     preferences.mergeTabs(false)
     preferences.webHeads(false)
 
-    val homeActivity = Robolectric.buildActivity(HomeActivity::class.java).create().get()
+    val homeActivity = Robolectric.buildActivity(MainActivity::class.java).create().get()
 
     tabs.openUrl(application, Website(url), fromApp = false)
     assert(homeActivity.isFinishing)

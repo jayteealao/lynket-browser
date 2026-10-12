@@ -27,9 +27,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.multidex.MultiDex
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
-import arun.com.chromer.util.drawer.GlideDrawerImageLoader
 import com.airbnb.epoxy.EpoxyController
-import com.mikepenz.materialdrawer.util.DrawerImageLoader
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -43,9 +41,6 @@ import javax.inject.Inject
  */
 @HiltAndroidApp
 open class Lynket : Application() {
-
-  @Inject
-  lateinit var glideDrawerImageLoader: GlideDrawerImageLoader
 
   // Injecting the two stores starts their hot copies on the IO scope without blocking.
   @Inject
@@ -71,18 +66,11 @@ open class Lynket : Application() {
     // notification channel are gone; remove the channel earlier versions created.
     NotificationManagerCompat.from(this).deleteNotificationChannel(OLD_APP_DETECTION_CHANNEL)
 
-    initMaterialDrawer()
-
     initEpoxy()
   }
 
   private fun initEpoxy() {
     EpoxyController.setGlobalDebugLoggingEnabled(true)
-  }
-
-  private fun initMaterialDrawer() {
-    DrawerImageLoader.init(glideDrawerImageLoader)
-      .withHandleAllUris(true)
   }
 
   override fun attachBaseContext(base: Context) {

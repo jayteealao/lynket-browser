@@ -14,9 +14,8 @@ package arun.com.chromer.screenshot
 import android.app.Application
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import arun.com.chromer.ui.about.AboutScreen
+import arun.com.chromer.ui.about.AboutContent
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -42,7 +41,7 @@ class SampleGoldenTest {
   fun aboutScreen_light() {
     composeRule.setContent {
       ChromerTheme(themeMode = ThemeMode.Light) {
-        AboutScreen(navController = rememberNavController())
+        AboutContent(onBack = {}, onRow = {})
       }
     }
     composeRule.onRoot().captureRoboImage()

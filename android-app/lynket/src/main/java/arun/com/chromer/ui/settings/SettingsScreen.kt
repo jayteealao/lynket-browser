@@ -22,9 +22,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
+import arun.com.chromer.ui.navigation.LynketNavigator
+import arun.com.chromer.ui.navigation.navigateToAbout
 import arun.com.chromer.settings.ModernSettingsViewModel
 
 /**
@@ -39,7 +40,7 @@ import arun.com.chromer.settings.ModernSettingsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    navController: NavController,
+    navigator: LynketNavigator,
     viewModel: ModernSettingsViewModel = hiltViewModel()
 ) {
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
@@ -49,7 +50,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text("Settings") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navigator.back() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
@@ -214,7 +215,7 @@ fun SettingsScreen(
                 Preference(
                     title = "Version",
                     summary = "2.1.3 (Modern)",
-                    onClick = { /* Show about */ }
+                    onClick = { navigator.navigateToAbout() }
                 )
             }
         }

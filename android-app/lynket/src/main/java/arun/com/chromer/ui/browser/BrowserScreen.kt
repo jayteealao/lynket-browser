@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import timber.log.Timber
 
@@ -41,7 +41,7 @@ import timber.log.Timber
 @Composable
 fun BrowserScreen(
     url: String,
-    navController: NavController
+    navigator: LynketNavigator
 ) {
     val context = LocalContext.current
 
@@ -60,7 +60,7 @@ fun BrowserScreen(
 
             // Navigate back immediately - the browsing happens in CustomTabActivity
             // This matches the behavior of the legacy flow
-            navController.popBackStack()
+            navigator.back()
         } catch (e: Exception) {
             Timber.e(e, "Error launching browser for URL: $url")
             // Stay on screen to show error

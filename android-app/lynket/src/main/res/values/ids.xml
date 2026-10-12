@@ -28,4 +28,7 @@
   <item name="menu_share" type="id" />
   <item name="menu_share_with" type="id" />
   <item name="menu_text_size" type="id" />
+  <!-- Declared by the old home navigation menu; the browsing menu and BaseActivity still use them. -->
+  <item name="home" type="id" />
+  <item name="tabs" type="id" />
 </resources>
