@@ -9,6 +9,7 @@ Lynket is an Android browser application that provides custom tabs functionality
 - **lynket**: The application module. Hilt is the only dependency injection system.
 - **disk-cache**: A Kotlin disk LRU cache library for Parcelable values (website and article caches).
 - **benchmark**: Macrobenchmarks for link-open start-up and web head drag (runs against the `benchmark` build type of `:lynket`).
+- **baselineprofile**: Generates the app's Baseline Profile (a link open and the home screen); the profile ships in every non-debug build.
 
 ## Build Configuration
 
@@ -22,10 +23,10 @@ Lynket is an Android browser application that provides custom tabs functionality
 - **Android Gradle Plugin**: 9.4.1, with AGP's built-in Kotlin (no `org.jetbrains.kotlin.android` plugin).
 - **Gradle**: 9.8.1 (wrapper).
 - **Kotlin**: 2.4.21. AGP 9 brings KGP 2.2.10, so the root `build.gradle.kts` puts KGP 2.4.21 and the KSP Gradle plugin on the `buildscript` classpath.
-- **KSP**: 2.3.12. Hilt 2.60.1, Glide (KSP artifact), Room 3 (`androidx.room3` 3.0.3, Gradle plugin `androidx.room3`) and Moshi run on KSP. Glide's KSP processor generates no `GlideApp`; load images with `Glide.with`.
-- **Temporary legacy-kapt bridge**: `com.android.legacy-kapt` runs only the Butterknife and Epoxy processors, which have no KSP version. It leaves with the last View-based screens, together with `android.enableAppCompileTimeRClass=false`, `android.nonFinalResIds=false` and `android.r8.optimizedResourceShrinking=false` in `gradle.properties`.
+- **KSP**: 2.3.12. Hilt 2.60.1, Room 3 (`androidx.room3` 3.0.3, Gradle plugin `androidx.room3`) and Moshi run on KSP. There is no kapt; `scripts/check-compose-only.sh` fails if kapt, the Kotlin Android plugin or an AGP opt-out flag comes back.
+- **gradle.properties**: AGP 9 defaults (non-transitive and final R class, optimized resource shrinking, Hilt's install-in check). Jetifier is off; no dependency needs it.
 - **SDK levels**: compileSdk 37 (Compose BOM 2026.09.00 / Compose UI 1.12 needs it), targetSdk 36, minSdk 24. Do not raise targetSdk to 37.
-- **Libraries**: Compose BOM 2026.09.00, Robolectric 4.17 (tests pin `sdk = [34]`), Roborazzi 1.76.0.
+- **Libraries**: Compose BOM 2026.09.00, Coil 3.6.3, Robolectric 4.17 (tests pin `sdk = [34]`), Roborazzi 1.76.0, Baseline Profile plugin and Macrobenchmark 1.5.0, ProfileInstaller 1.4.1.
 - **Back handling**: targetSdk 36 turns on predictive back, and the system no longer calls `onBackPressed`. Use `OnBackPressedDispatcher` callbacks.
 
 ### Gradle Commands
@@ -33,10 +34,13 @@ Lynket is an Android browser application that provides custom tabs functionality
 Run from `android-app/`:
 - `./gradlew :lynket:assembleDebug` - Build the debug APK
 - `./gradlew :lynket:testDebugUnitTest` - Run the JVM unit tests
-- `./gradlew :lynket:verifyRoborazziDebug` - Compare the screenshot goldens
+- `./gradlew :lynket:verifyRoborazziDebug` - Compare the screenshot goldens (`lynket/src/test/screenshots`); `recordRoborazziDebug` records them again. `ThemeMatrixGoldenTest` draws every screen in the light, dark and black themes at a phone and a fold size
+- `bash scripts/check-compose-only.sh` - Fails on an XML layout other than the Custom Tab bottom bar's RemoteViews layout, a menu or preference XML, a View, Fragment or Adapter subclass, `setContentView` with a layout, kapt, or an AGP opt-out flag
 - `./gradlew :disk-cache:testDebugUnitTest` - Run the disk cache journal tests
 - `./gradlew :lynket:assembleBenchmark :benchmark:assembleBenchmark` - Build the minified benchmark app and the benchmarks
 - `./gradlew :lynket:installDebug` - Install the debug build on a device
+- `./gradlew :lynket:generateBaselineProfile` - Regenerate the Baseline Profile on a connected device or emulator (API 33 or later) into `lynket/src/main/generated/baselineProfiles/`; commit both files
+- `bash maestro/charter/charter-check.sh <phone> <fold> <dir>` - The whole path of a user who updates from release 2.1.3: the update on the phone, a link through the intercept activity, a Chrome Custom Tab with the bottom bar, the Lynket options sheet, web heads through the permission explainer, the drag recording, a native bubble, History from the drawer (read against the database) and the 2.1.3 pinned shortcut; then the update, the drag recording and History on the fold. Each step writes PASS or FAIL to `charter.txt`
 - `bash maestro/upgrade/upgrade-check.sh <serial> <dir>` / `maestro/upgrade/tile-check.sh` - Device checks that settings and per-app rules survive an update from release 2.1.3 and that the web heads tile reaches every reader (debug build; it dumps both stores with the debug-only `StoreDumpReceiver`)
 - `bash maestro/upgrade/link-source-check.sh <serial> <dir>` - After the upgrade check: no app-detection service or notification, and a link from a blacklisted app follows its per-app rule
 - `bash maestro/upgrade/history-check.sh <serial> <dir>` - Device check that 500 history rows of release 2.1.3 (5 written by the app, 495 appended in its format) survive an update and show in the History screen
@@ -53,19 +57,16 @@ Run from `android-app/`:
 ### Build System
 
 - Gradle version catalog (`gradle/libs.versions.toml`) for dependency management.
-- KSP for annotation processing; legacy-kapt only for Butterknife and Epoxy (see above).
+- KSP for annotation processing; no kapt.
 
 ## Module Structure
 
-### lynket (Legacy Module)
+### lynket
 
-Production module with extensive feature set:
-- **Dependency Injection**: Traditional Dagger 2 with manual component setup
-- **UI**: Mix of XML layouts and Jetpack Compose
-- **Reactive Programming**: RxJava 1.x and RxJava 2.x with RxKotlin
-- **View Binding**: Butterknife for view injection
-- **Lists**: Airbnb Epoxy for RecyclerViews
-- **Image Loading**: Glide
+The application. Every screen is Jetpack Compose with Material 3; the only XML layout is the Custom Tab bottom bar, which Chrome draws as RemoteViews.
+- **Dependency Injection**: Hilt only
+- **Async**: Kotlin coroutines and Flow (no RxJava, no LiveData)
+- **Image Loading**: Coil 3. `Lynket` is the `SingletonImageLoader.Factory`; `util/image/ApplicationIconFetcher` loads app icons from `application-icon:<package>` addresses, and `util/image/WebsiteIconLoader` gives favicons (or the 56 dp letter placeholder) as bitmaps for bubbles, task descriptions and shortcuts
 - **Storage**: settings in one Preferences DataStore (`user_preferences`, every key listed in `data/preferences/SettingsSchema.kt`; read synchronously through the `settings/Preferences` facade); per-app rules in a second DataStore (`per_app_rules`); history in Room 3 (`chromer.db`, schemas in `lynket/schemas/`, opened on first use by `data/database/HistoryDatabase`, which moves a broken file to `files/history-broken/` and starts empty). The 2.1.3 history file (`databases/History`) is read once, merged by URL, and kept in `files/history-migration/`. Both DataStores migrate once from the old stores (the settings SharedPreferences file, release 2.1.3's PaperDB `files/APPS` book), back them up and never delete them. PaperDB 2.6 is a dependency only for that one-time read.
 
 Key packages:
@@ -75,21 +76,14 @@ Key packages:
 - `ui/navigation/` - The Navigation 3 shell: keys, the navigator and the one `NavDisplay`
 - `ui/home/`, `ui/intro/`, `ui/about/`, `ui/tips/`, `ui/changelog/` - The Compose home (search bar, drawer, feed), first run, About, Tips and the changelog dialog
 - `settings/` - App settings and preferences
-- `di/` - Dependency injection components (AppComponent, ActivityComponent, ServiceComponent, FragmentComponent, ViewComponent)
+- `di/` - Hilt modules
 - `data/` - Data layer and repositories
 - `tabs/` - Tab management
 - `history/` - Browsing history
 
-### Dependency Injection Architecture
+### Dependency Injection
 
-**lynket module** uses hierarchical Dagger components:
-- `AppComponent` (@Singleton) - Application-scoped dependencies
-- `ActivityComponent` - Activity-scoped dependencies
-- `ServiceComponent` - Service-scoped dependencies
-- `FragmentComponent` - Fragment-scoped dependencies
-- `ViewComponent` - View-scoped dependencies
-
-Every activity, fragment, view, service and receiver is injected by Hilt with `@AndroidEntryPoint`; there is no other component.
+Every activity, service and receiver is injected by Hilt with `@AndroidEntryPoint`; there is no other component.
 
 ## Key Application Components
 
@@ -98,11 +92,10 @@ Every activity, fragment, view, service and receiver is injected by Hilt with `@
 1. **MainActivity** (`MainActivity.kt`) - The launcher activity and the only host of in-app navigation
 2. **BrowserInterceptActivity** (`browsing/browserintercept/BrowserInterceptActivity.kt`) - Handles VIEW intents for http/https URLs
 3. **Lynket** Application class initializes:
-   - Dagger/Whetstone DI
+   - Hilt
    - the settings and per-app rule stores (DataStore)
-   - RxDogTag (debug builds)
    - Timber logging (debug builds)
-   - Epoxy
+   - the Coil image loader
    - MultiDex
 
 ### In-app navigation (Navigation 3)
@@ -145,16 +138,15 @@ The app supports multiple browsing modes:
 
 ## Version Configuration
 
-`settings.gradle` includes `:lynket`, `:disk-cache` and `:benchmark`.
+`settings.gradle` includes `:lynket`, `:disk-cache`, `:benchmark` and `:baselineprofile`.
 
 ## Dependencies of Note
 
-- **AndroidX**: Core KTX, Browser, Lifecycle, Paging, ConstraintLayout
-- **Compose**: Material, UI, Tooling (in both modules, different versions)
-- **Reactive**: RxJava, RxAndroid, RxBinding, RxKotlin, RxRelay, RxKPrefs
-- **DI**: Dagger 2.42 (lynket), Dagger 2.50 + Whetstone 0.6.0 (playground)
-- **UI Libraries**: MaterialDialogs, Iconics core (icons of the remaining View screens), Navigation 3
-- **Personal Libraries**: Custom utils from `dev.arunkumar.android` (snapshots)
+- **AndroidX**: Core KTX, Browser (Custom Tabs), Lifecycle, Paging, Navigation 3, DataStore, Room 3, SwipeRefreshLayout (pull to refresh around the web view), Palette (website and app colours), ProfileInstaller
+- **Compose**: BOM 2026.09.00, Material 3
+- **Network**: OkHttp, Retrofit, Moshi
+- **Images**: Coil 3 (`coil`, `coil-compose`, `coil-network-okhttp`)
+- **Storage migration**: PaperDB 2.6, only for the one-time read of release 2.1.3's per-app rules
 
 ## Permissions
 
@@ -165,63 +157,6 @@ Required permissions include:
 - Foreground service
 - Query all packages
 
----
+## Further Reading
 
-## Modernization Effort
-
-> **📋 SINGLE SOURCE OF TRUTH**: See **`REWRITE.md`** for the complete, detailed modernization plan.
-
-### Current Status (Quick Reference)
-
-**Phase**: Phase 0 Complete ✅ → Starting Phase 1
-**App Status**: ✅ Building successfully
-**Timeline**: 22-24 weeks total (started Week 1)
-
-### Phase 0 Achievements ✅
-- Upgraded Dagger from 2.42 to 2.50
-- Created ViewModelKey annotation
-- App builds successfully
-- Foundation ready for modernization
-
-### Architectural Goals
-1. **100% Compose UI** - Eliminate all XML layouts (89 files)
-2. **Kotlin Flow** - Remove all RxJava (342 usages in 52 files)
-3. **MVI with Molecule** - Modern state management pattern
-4. **Clean Architecture** - Proper layering (UI → Domain → Data)
-5. **70%+ Test Coverage** - Comprehensive testing
-6. **Performance** - <2s startup, 60fps scrolling
-
-### Key Migrations
-- **UI**: XML + Butterknife → Jetpack Compose + Material 3
-- **Reactive**: RxJava → Kotlin Flow + Coroutines
-- **DI**: Manual Dagger → Whetstone (Anvil + Dagger)
-- **State**: LiveData + RxRelay → StateFlow + Molecule
-- **Lists**: Epoxy → Compose LazyColumn/Grid
-- **Images**: Glide → Coil
-- **Storage**: PaperDB/SharedPrefs → Room + DataStore
-- **Architecture**: Mixed → Clean Architecture + MVI
-
-### Documentation
-
-- **`REWRITE.md`** ⭐ - Complete migration plan with 8 phases, weekly tracking, feature inventory
-- **`CLAUDE.md`** - This file, project context for Claude Code
-
-All other markdown files have been archived/removed to maintain a single source of truth.
-
-### Quick Start for Development
-
-1. **Check Current Phase**: See `REWRITE.md` → Weekly Tracking section
-2. **Find Next Task**: See current phase's task list
-3. **Follow Migration Workflow**: See `REWRITE.md` → Migration Strategy
-4. **Update Progress**: Update weekly tracking section
-5. **Run Tests**: Maintain >70% coverage
-
-### Common Build Issues
-
-**"JAVA_HOME not set"**: Install JDK 11+ and set JAVA_HOME environment variable
-
-**Compilation errors**: Most likely related to current migration work. Check `REWRITE.md` for current phase progress.
-
-**Dependency issues**: See `REWRITE.md` → Technical Specifications → Dependency Changes
-
-For detailed troubleshooting, migration patterns, and architectural guidance, see **`REWRITE.md`**.
+- `docs/architecture.md` - How the app fits together: the back stack and the entry activities, the stores and their migrations, history, Hilt, the web head overlay service, image loading and the Baseline Profile

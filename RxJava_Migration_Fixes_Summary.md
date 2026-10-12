@@ -1,3 +1,5 @@
+> Superseded: this document describes an earlier plan. See android-app/docs/architecture.md and android-app/CLAUDE.md.
+
 # RxJava Migration Compilation Errors - Fix Summary
 
 ## Date: 2025-11-16

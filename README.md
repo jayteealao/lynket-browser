@@ -32,19 +32,25 @@ If you have got some time, read the introduction post on [my blog](https://arunk
 
 
 ## Architecture and Code Structure
-Lynket is written on a MVVM Architecture and uses Dagger 2 for dependency injection. The source code is packaged based on feature.
+Lynket is an all-Compose app in Kotlin. One activity holds every in-app screen on a single back stack; the browsing, dialog and web head entry points are thin activities and a service that each host one Compose screen. Hilt injects every Android component, settings and per-app rules live in DataStore, history in Room, and Coil loads images. The source is packaged by feature. [android-app/docs/architecture.md](android-app/docs/architecture.md) explains the parts and how they fit together.
 
-```
-app/src/java/<package>
-	<feature_1>\
-	<feature_2>\
-	shared\
-	utils\
-```
-### Architecture
-Below outlines sample structure of most screens. 
-![enter image description here](https://raw.githubusercontent.com/arunkumar9t2/chromer/master/art/Chromer%20Architecture.png)
+## Building
 
+The Gradle project lives in `android-app/`. You need JDK 17 or later and the Android SDK with platform 37 (`compileSdk`; the app targets SDK 36). Run these from `android-app/`:
+
+| Task | Command |
+|---|---|
+| Debug APK | `./gradlew :lynket:assembleDebug` |
+| Release APK (minified, with the Baseline Profile) | `./gradlew :lynket:assembleRelease` |
+| Unit tests (JVM, Robolectric) | `./gradlew :lynket:testDebugUnitTest` |
+| Compare the screenshot goldens | `./gradlew :lynket:verifyRoborazziDebug` |
+| Record the screenshot goldens again after a deliberate UI change | `./gradlew :lynket:recordRoborazziDebug` |
+| Check that no XML layout, View screen or kapt came back | `bash scripts/check-compose-only.sh` |
+| Build the benchmark app and the macrobenchmarks | `./gradlew :lynket:assembleBenchmark :benchmark:assembleBenchmark` |
+| Run the macrobenchmarks on a connected device | `./gradlew :benchmark:connectedBenchmarkAndroidTest` |
+| Generate the Baseline Profile on a connected device (API 33 or later) | `./gradlew :lynket:generateBaselineProfile` |
+
+The screenshot goldens are in `android-app/lynket/src/test/screenshots`; every screen has one in the light, dark and black themes at a phone and a fold window size. Device checks are bash scripts under `android-app/maestro/` that drive an emulator with adb and [Maestro](https://maestro.mobile.dev); each script's header says what it checks and what it needs. `maestro/charter/charter-check.sh <phone> <fold> <dir>` runs the whole path of a user who updates from release 2.1.3.
 
 ### Code Style
 

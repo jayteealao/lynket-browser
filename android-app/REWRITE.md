@@ -1,3 +1,5 @@
+> Superseded: this document describes an earlier plan. See android-app/docs/architecture.md and android-app/CLAUDE.md.
+
 # Lynket Browser - Compose Rewrite Plan
 
 > **Automated Migration Plan**: Sequential steps for Claude to execute

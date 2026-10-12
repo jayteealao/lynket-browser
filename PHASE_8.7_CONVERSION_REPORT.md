@@ -1,3 +1,5 @@
+> Superseded: this document describes an earlier plan. See android-app/docs/architecture.md and android-app/CLAUDE.md.
+
 # Phase 8.7: RxJava to Kotlin Coroutines Conversion - FINAL BATCH
 
 ## Summary

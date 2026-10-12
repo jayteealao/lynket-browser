@@ -1,3 +1,5 @@
+> Superseded: this document describes an earlier plan. See android-app/docs/architecture.md and android-app/CLAUDE.md.
+
 # Lynket Browser Modernization - Session Summary
 
 **Session Date**: 2025-01-13
