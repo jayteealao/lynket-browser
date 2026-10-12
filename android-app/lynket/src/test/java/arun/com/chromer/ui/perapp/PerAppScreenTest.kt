@@ -15,6 +15,7 @@ import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasTestTag
@@ -135,6 +136,14 @@ class PerAppScreenTest {
     update(PerAppState(apps = apps, query = "nothing like this"))
     composeRule.waitForIdle()
     composeRule.onNodeWithTag("per-app-no-match").assertExists()
+  }
+
+  @Test
+  fun theSearchFieldShowsOnScreenWhenSearchIsTapped() {
+    show(PerAppState(apps = apps))
+    composeRule.onNodeWithTag("per-app-search-toggle").performClick()
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("per-app-search").assertIsDisplayed()
   }
 
   @Test

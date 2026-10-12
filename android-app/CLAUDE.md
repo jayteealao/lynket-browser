@@ -112,7 +112,7 @@ Every activity, fragment, view, service and receiver is injected by Hilt with `@
 - `MainActivity` exposes Compose test tags as resource ids for the device checks. Tests swap screens through `LynketEntries`; text with links never goes idle inside a Robolectric dialog window, so back stack tests fake the changelog content and `ShellGoldenTest` covers the real one.
 - Settings, Browsing mode, Look and feel, Browsing options, Per app settings and Custom Tab provider selection are Compose screens on the same back stack (`ui/settings/`, `ui/perapp/`, `ui/providerselection/`). `ui/settings/SettingsKeyTable.kt` lists every stored key with its screen, group, order and control (or the code that reads it), and `SettingsRules.kt` holds the dependent rows and dialogs of the old preference screens; `SettingsViewModel` writes each change and its dependent values in one store edit. There is no androidx.preference.
 - Another activity or a device check opens a settings screen by name: `adb shell am start -n arun.com.chromer.debug/arun.com.chromer.MainActivity -f 0x24000000 --es arun.com.chromer.extra.DESTINATION BrowsingMode` (`Destination` in `LynketKeys.kt`; allowed: Settings, BrowsingMode, LookAndFeel, BrowsingOptions, PerApp, ProviderSelection; anything else is ignored).
-- Debug builds can slow the per-app list to show its loading state: `adb shell run-as arun.com.chromer.debug sh -c 'mkdir -p files/debug-faults && echo 4000 > files/debug-faults/per-app-slow-load'` (see `PerAppLoadFaults`).
+- Debug builds can slow the per-app list to show its loading state: `adb shell "run-as arun.com.chromer.debug sh -c 'mkdir -p files/debug-faults && echo 4000 > files/debug-faults/per-app-slow-load'"` (see `PerAppLoadFaults`).
 
 ### Browsing Modes
 

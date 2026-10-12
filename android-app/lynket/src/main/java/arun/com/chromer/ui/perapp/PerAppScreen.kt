@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -159,6 +160,10 @@ fun PerAppContent(
   snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
   var searching by rememberSaveable { mutableStateOf(state.query.isNotEmpty()) }
+  val listState = rememberLazyListState()
+  // The search field is the first item; the list keeps its first visible item in place, so it
+  // would open above the screen without this scroll.
+  LaunchedEffect(searching) { if (searching) listState.scrollToItem(0) }
   val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
   Scaffold(
     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection).testTag("per-app"),
@@ -190,6 +195,7 @@ fun PerAppContent(
       modifier = Modifier.fillMaxSize().padding(padding),
     ) {
       LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize().testTag("per-app-list"),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
         // No gap between items: the app rows form one container; the items above it pad themselves.

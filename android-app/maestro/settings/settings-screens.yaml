@@ -102,9 +102,9 @@ appId: arun.com.chromer.debug
       visible: "Wait"
     commands:
       - tapOn: "Wait"
+# The sheet is its own window, which does not export test tags as resource ids; match its text.
 - extendedWaitUntil:
-    visible:
-      id: "colour-hex"
+    visible: "Hex colour"
     timeout: 10000
 - runFlow:
     when:

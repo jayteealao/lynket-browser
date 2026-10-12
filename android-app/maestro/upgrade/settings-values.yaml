@@ -14,11 +14,19 @@ appId: arun.com.chromer.debug
 - back
 - tapOn: "Look & feel"
 - waitForAnimationToEnd
-- extendedWaitUntil:
-    visible: "Slide Up"
-    timeout: 10000
-- assertVisible: "Short"
-- assertVisible: "Favourite share app"
+# The theme group sits above the personalization rows, so the values are below the first screen.
+- scrollUntilVisible:
+    element:
+      text: "Favourite share app"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      text: "Slide Up"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      text: "Short"
+    direction: DOWN
 - takeScreenshot: ${OUT}/settings-look-and-feel-1
 - scrollUntilVisible:
     element:
@@ -45,12 +53,4 @@ appId: arun.com.chromer.debug
 - takeScreenshot: ${OUT}/settings-browsing-options-2
 - back
 - back
-# The Compose settings screen of the launcher reads the same store.
-- launchApp:
-    clearState: false
-- extendedWaitUntil:
-    visible: "Settings"
-    timeout: 15000
-- tapOn: "Settings"
-- waitForAnimationToEnd
-- takeScreenshot: ${OUT}/compose-settings
+# The screens above are the Compose settings screens; the app has no other settings screen.

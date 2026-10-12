@@ -74,6 +74,16 @@ capture_scrolls() {  # $1 = name
   log "$1: $n scroll position(s)"
 }
 
+# Taps the node with this text once it shows; a busy emulator draws a dialog seconds late.
+wait_tap() {  # $1 = text
+  local _
+  for _ in $(seq 1 10); do
+    tap_text "$1" && return 0
+    sleep 2
+  done
+  return 1
+}
+
 restore_chrome() { a shell pm enable --user 0 "$CHROME" >/dev/null 2>&1 || true; }
 clear_fault() { a shell run-as "$PKG" rm -f "$FAULT_DIR/per-app-slow-load" >/dev/null 2>&1 || true; }
 on_exit() { restore_chrome; clear_fault; }
@@ -98,11 +108,19 @@ settle
 flow settings-screens.yaml
 
 # 4. Per app settings: the loading list first (slow-load fault), then the list and search.
-a shell run-as "$PKG" sh -c "mkdir -p $FAULT_DIR && echo 6000 > $FAULT_DIR/per-app-slow-load"
+# One string: adb joins its arguments and the device shell splits them again. 25 s, because a
+# cold start on a busy emulator takes up to 13 s and a shorter delay ends before the first dump.
+a shell "run-as $PKG sh -c 'mkdir -p $FAULT_DIR && echo 25000 > $FAULT_DIR/per-app-slow-load'"
 a shell am force-stop "$PKG"
 open_screen PerApp
+# A slow cold start can still show the splash, or fail the dump: poll until the screen draws, and
+# fail only when the app rows show without the loading list.
+for _ in $(seq 1 10); do
+  ui_xml > "$OUT/per-app-loading.xml"
+  grep -q -e 'resource-id="loading-list"' -e 'resource-id="app-' "$OUT/per-app-loading.xml" && break
+  sleep 2
+done
 shot per-app-loading
-ui_xml > "$OUT/per-app-loading.xml"
 grep -q 'resource-id="loading-list"' "$OUT/per-app-loading.xml" || fail "no loading list while the apps load"
 clear_fault
 a shell pm list packages | tr -d '\r' | sed 's/^package://' | sort > "$OUT/packages.txt"
@@ -123,9 +141,8 @@ log "Chrome enabled again"
 # 6. With Chrome back, Chrome is chosen again (the error flow chose WebView) and a link opens in
 #    a Custom Tab.
 open_screen ProviderSelection
-tap_text "Chrome" || fail "no Chrome row after enabling it"
-sleep 2
-tap_text "Use" || fail "no Use button in the Chrome details"
+wait_tap "Chrome" || fail "no Chrome row after enabling it"
+wait_tap "Use" || fail "no Use button in the Chrome details"
 sleep 2
 open_link "https://example.com/"
 sleep 6
