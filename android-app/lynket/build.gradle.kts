@@ -111,6 +111,9 @@ android {
                 // Robolectric's API 36 sandbox sets up shared memory through these JDK internals.
                 it.jvmArgs("--add-exports", "java.base/jdk.internal.access=ALL-UNNAMED")
                 it.jvmArgs("--add-opens", "java.base/java.io=ALL-UNNAMED")
+                // One test JVM holds a Robolectric sandbox per configuration (themes, qualifiers,
+                // native graphics); the default 512 MB heap ran out once the dialog tests joined.
+                it.maxHeapSize = "3g"
             }
         }
     }
