@@ -59,7 +59,7 @@
       android:ellipsize="marquee"
       android:paddingBottom="2dp"
       android:singleLine="true"
-      android:textAppearance="@style/Preference_TextAppearanceMaterialSubhead"
+      android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
       android:textSize="14sp"
       tools:ignore="SelectableText"
       tools:text="Test" />

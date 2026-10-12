@@ -242,7 +242,6 @@ dependencies {
 
     // Legacy: AndroidX (old versions, will be updated)
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
-    implementation("androidx.legacy:legacy-preference-v14:1.0.0")
     implementation("androidx.cardview:cardview:1.0.0")
     implementation("androidx.palette:palette-ktx:1.0.0")
     implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")

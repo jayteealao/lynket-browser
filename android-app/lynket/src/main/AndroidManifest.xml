@@ -159,15 +159,6 @@
     </activity-alias>
 
     <activity
-      android:name=".settings.SettingsGroupActivity"
-      android:label="@string/title_activity_settings"
-      android:parentActivityName=".MainActivity"
-      android:theme="@style/AppTheme.NoActionBar">
-      <meta-data
-        android:name="android.support.PARENT_ACTIVITY"
-        android:value="arun.com.chromer.MainActivity" />
-    </activity>
-    <activity
       android:name=".browsing.customtabs.CustomTabActivity"
       android:label="@string/app_name"
       android:theme="@style/Theme.AppCompat.Translucent" />
@@ -206,11 +197,6 @@
       </intent-filter>
     </activity>
     <activity
-      android:name=".perapp.PerAppSettingsActivity"
-      android:label="@string/per_app_settings"
-      android:parentActivityName=".settings.browsingoptions.BrowsingOptionsActivity"
-      android:theme="@style/AppTheme.NoActionBar" />
-    <activity
       android:name="arun.com.chromer.bubbles.webheads.ui.context.WebHeadContextActivity"
       android:excludeFromRecents="true"
       android:noHistory="true"
@@ -244,33 +230,6 @@
       android:noHistory="true"
       android:theme="@style/DialogTheme" />
     <activity
-      android:name=".settings.browsingmode.BrowsingModeActivity"
-      android:label="@string/title_activity_browsing_mode"
-      android:parentActivityName=".settings.SettingsGroupActivity"
-      android:theme="@style/AppTheme.NoActionBar">
-      <meta-data
-        android:name="android.support.PARENT_ACTIVITY"
-        android:value=".settings.SettingsGroupActivity" />
-    </activity>
-    <activity
-      android:name=".settings.lookandfeel.LookAndFeelActivity"
-      android:label="@string/title_activity_look_and_feel"
-      android:parentActivityName=".settings.SettingsGroupActivity"
-      android:theme="@style/AppTheme.NoActionBar">
-      <meta-data
-        android:name="android.support.PARENT_ACTIVITY"
-        android:value=".settings.SettingsGroupActivity" />
-    </activity>
-    <activity
-      android:name=".settings.browsingoptions.BrowsingOptionsActivity"
-      android:label="@string/title_activity_browsing_options"
-      android:parentActivityName=".settings.SettingsGroupActivity"
-      android:theme="@style/AppTheme.NoActionBar">
-      <meta-data
-        android:name="android.support.PARENT_ACTIVITY"
-        android:value=".settings.SettingsGroupActivity" />
-    </activity>
-    <activity
       android:name=".history.HistoryActivity"
       android:label="@string/title_history"
       android:theme="@style/AppTheme.NoActionBar" />
@@ -282,10 +241,6 @@
       android:launchMode="singleInstance"
       android:theme="@style/AppTheme.NoActionBar"
       tools:targetApi="lollipop" />
-    <activity
-      android:name=".browsing.providerselection.ProviderSelectionActivity"
-      android:label="@string/choose_provider"
-      android:theme="@style/AppTheme.NoActionBar" />
     <activity
       android:name=".browsing.article.ImageViewActivity"
       android:theme="@style/ArticleImageViewTheme" />
