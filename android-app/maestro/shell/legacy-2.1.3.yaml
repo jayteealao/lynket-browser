@@ -1,0 +1,61 @@
+# Captures of store release 2.1.3 (fresh install): the eight intro pages, the changelog dialog,
+# the home, the home menu sheet, About and Tips. Run by legacy-2.1.3-captures.sh.
+appId: arun.com.chromer.debug
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "arun.com.chromer.debug:id/titleTv"
+    timeout: 30000
+- takeScreenshot: ${OUT}/intro-1-app
+- tapOn: { id: "arun.com.chromer.debug:id/next" }
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/intro-2-slide-over
+- tapOn: { id: "arun.com.chromer.debug:id/next" }
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/intro-3-provider
+- tapOn: { id: "arun.com.chromer.debug:id/next" }
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/intro-4-web-heads
+- tapOn: { id: "arun.com.chromer.debug:id/next" }
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/intro-5-amp
+- tapOn: { id: "arun.com.chromer.debug:id/next" }
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/intro-6-article
+- tapOn: { id: "arun.com.chromer.debug:id/next" }
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/intro-7-merge-tabs
+- tapOn: { id: "arun.com.chromer.debug:id/next" }
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/intro-8-per-app
+- tapOn: { id: "arun.com.chromer.debug:id/done" }
+- extendedWaitUntil:
+    visible: "Changelog"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/changelog
+- tapOn: "OK"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/home
+- tapOn: { id: "arun.com.chromer.debug:id/msvLeftIcon", optional: true }
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/home-menu
+- runFlow:
+    when:
+      visible: "About"
+    commands:
+      - tapOn: "About"
+      - waitForAnimationToEnd
+      - takeScreenshot: ${OUT}/about
+      - scroll
+      - takeScreenshot: ${OUT}/about-2
+      - back
+- back
+- waitForAnimationToEnd
+- tapOn: { id: "arun.com.chromer.debug:id/tipsIcon", optional: true }
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/tips
+- scroll
+- takeScreenshot: ${OUT}/tips-2
