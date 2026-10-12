@@ -29,7 +29,6 @@ import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.data.Result
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.extenstions.observeUntilOnDestroy
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
@@ -97,23 +96,20 @@ abstract class BrowsingActivity : BaseActivity() {
   private fun observeViewModel(savedInstanceState: Bundle?) {
     browsingViewModel.apply {
       isIncognito = incognito
-      websiteLiveData.observeUntilOnDestroy(this@BrowsingActivity) { result ->
-        when (result) {
-          is Result.Success<*> -> {
-            website = result.data as Website
-            onWebsiteLoaded(website!!)
-          }
-          else -> {
+      // Collected from create to destroy, also while the activity is in the background.
+      lifecycleScope.launch {
+        website.collect { result ->
+          if (result is Result.Success<*>) {
+            this@BrowsingActivity.website = result.data as Website
+            onWebsiteLoaded(this@BrowsingActivity.website!!)
           }
         }
       }
-
-      toolbarColor.observeUntilOnDestroy(this@BrowsingActivity) { color ->
-        onToolbarColorSet(color)
+      lifecycleScope.launch {
+        toolbarColor.collect { color -> onToolbarColorSet(color) }
       }
-
-      activityDescription.observeUntilOnDestroy(this@BrowsingActivity) { task ->
-        setTaskDescription(task)
+      lifecycleScope.launch {
+        activityDescription.collect { task -> setTaskDescription(task) }
       }
     }
 
@@ -123,11 +119,11 @@ abstract class BrowsingActivity : BaseActivity() {
           intent.getParcelableExtra<Website>(EXTRA_KEY_WEBSITE)
               ?: Website(getCurrentUrl())
         )
-        browsingViewModel.websiteLiveData.value = websiteResult
-        browsingViewModel.toolbarColor.value = intent.getIntExtra(
+        browsingViewModel.website.tryEmit(websiteResult)
+        browsingViewModel.toolbarColor.tryEmit(intent.getIntExtra(
           EXTRA_KEY_TOOLBAR_COLOR,
           ContextCompat.getColor(this@BrowsingActivity, R.color.colorPrimary)
-        )
+        ))
         loadWebsiteDetails(getCurrentUrl())
       }
       else -> {

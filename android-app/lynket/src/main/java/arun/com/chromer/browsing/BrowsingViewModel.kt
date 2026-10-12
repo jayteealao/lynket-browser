@@ -26,7 +26,6 @@ import android.app.ActivityManager
 import android.app.Application
 import android.os.Build
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arun.com.chromer.R
@@ -71,12 +70,17 @@ constructor(
   private val websiteQueue = MutableSharedFlow<String>(extraBufferCapacity = Int.MAX_VALUE)
   private val taskDescriptionQueue = MutableSharedFlow<Website>(extraBufferCapacity = Int.MAX_VALUE)
 
-  val toolbarColor = MutableLiveData<Int>()
-  val websiteLiveData = MutableLiveData<Result<Website>>()
-  val activityDescription = MutableLiveData<ActivityManager.TaskDescription>()
+  // Each stream keeps its latest value for a new collector and delivers every value, equal or
+  // not, as the earlier LiveData fields did.
+  val toolbarColor = MutableSharedFlow<Int>(replay = 1, extraBufferCapacity = Int.MAX_VALUE)
+  val website = MutableSharedFlow<Result<Website>>(replay = 1, extraBufferCapacity = Int.MAX_VALUE)
+  val activityDescription =
+    MutableSharedFlow<ActivityManager.TaskDescription>(replay = 1, extraBufferCapacity = Int.MAX_VALUE)
+
+  private val currentToolbarColor: Int get() = toolbarColor.replayCache.last()
 
   init {
-    toolbarColor.value = ContextCompat.getColor(application, R.color.colorPrimary)
+    toolbarColor.tryEmit(ContextCompat.getColor(application, R.color.colorPrimary))
 
     // Monitor website requests
     viewModelScope.launch {
@@ -90,7 +94,7 @@ constructor(
         }
         .catch { e -> Timber.e(e) }
         .collect { result ->
-          websiteLiveData.value = result
+          website.tryEmit(result)
           if (result is Result.Success) {
             taskDescriptionQueue.tryEmit(result.data!!)
           }
@@ -103,13 +107,13 @@ constructor(
         .onEach { website ->
           // First update with basic info
           setTaskDescription(
-            TaskDescriptionCompat(website.safeLabel(), null, toolbarColor.value!!)
+            TaskDescriptionCompat(website.safeLabel(), null, currentToolbarColor)
           )
         }
         .map { website ->
           val iconColor = websiteRepository.getWebsiteIconWithPlaceholderAndColor(website)
           val selectedToolbarColor = when {
-            !preferences.dynamiceToolbarEnabledAndWebEnabled() -> toolbarColor.value!!
+            !preferences.dynamiceToolbarEnabledAndWebEnabled() -> currentToolbarColor
             website.themeColor() != Constants.NO_COLOR -> website.themeColor()
             else -> iconColor.second
           }
@@ -133,9 +137,9 @@ constructor(
 
   private fun setTaskDescription(task: TaskDescriptionCompat?) {
     task?.let {
-      toolbarColor.postValue(task.color)
+      toolbarColor.tryEmit(task.color)
       if (Utils.ANDROID_LOLLIPOP) {
-        activityDescription.postValue(task.toActivityTaskDescription())
+        activityDescription.tryEmit(task.toActivityTaskDescription())
       }
     }
   }
