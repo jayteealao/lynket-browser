@@ -53,7 +53,6 @@ import arun.com.chromer.R
 import arun.com.chromer.browsing.customtabs.CustomTabs
 import arun.com.chromer.data.common.App
 import arun.com.chromer.shared.Constants
-import arun.com.chromer.shared.views.IntentPickerBottomSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.NotNull
@@ -152,29 +151,6 @@ object Utils {
 
     fun isDefaultBrowser(context: Context): Boolean {
         return getDefaultBrowserPackage(context).equals(context.packageName, ignoreCase = true)
-    }
-
-    fun getCustomTabActivityInfos(context: Context): List<IntentPickerBottomSheet.ActivityInfo> {
-        val apps = ArrayList<IntentPickerBottomSheet.ActivityInfo>()
-        val pm = context.applicationContext.packageManager
-        @SuppressLint("InlinedApi")
-        val resolvedActivityList = pm.queryIntentActivities(Constants.WEB_INTENT, PackageManager.MATCH_ALL)
-        for (info in resolvedActivityList) {
-            val packageName = info.activityInfo.packageName
-            if (CustomTabs.isPackageSupportCustomTabs(context, packageName)) {
-                val componentName = ComponentName(info.activityInfo.packageName, info.activityInfo.name)
-                val icon = info.loadIcon(pm)
-                val label = info.loadLabel(pm).toString()
-                val activityInfo = IntentPickerBottomSheet.ActivityInfo(
-                    info,
-                    label,
-                    componentName,
-                    icon
-                )
-                apps.add(activityInfo)
-            }
-        }
-        return apps
     }
 
     fun drawableToBitmap(drawable: Drawable): Bitmap {
