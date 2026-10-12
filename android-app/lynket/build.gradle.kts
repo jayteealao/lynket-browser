@@ -244,7 +244,6 @@ dependencies {
     // version before the drawer moved to Compose.
     implementation("com.mikepenz:iconics-core:3.1.0")
     implementation("com.mikepenz:community-material-typeface:2.0.46.1@aar")
-    implementation("com.github.chrisbanes:PhotoView:2.3.0")
 
     // Legacy: AndroidX (old versions, will be updated)
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
