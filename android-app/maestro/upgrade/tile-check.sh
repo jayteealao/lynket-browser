@@ -58,8 +58,8 @@ echo "after click: stored=$after reader=$after_reader" | tee -a "$OUT/tile.txt"
 [ "$after" != "$before" ] || fail "the tile did not change $KEY"
 [ "$after" = "$after_reader" ] || fail "stored and reader values differ"
 
-# 3. The legacy Browsing mode screen (debug build only, DUMP-guarded start).
-a shell am start -W -n "$PKG/arun.com.chromer.settings.browsingmode.BrowsingModeActivity" >/dev/null
+# 3. The Browsing mode screen, opened by name through the main activity.
+a shell am start -W -n "$PKG/arun.com.chromer.MainActivity" --es arun.com.chromer.extra.DESTINATION BrowsingMode >/dev/null
 sleep 2
 android layout --device="$SERIAL" --pretty > "$OUT/browsing-mode.layout.txt"
 a exec-out screencap -p > "$OUT/browsing-mode.png"

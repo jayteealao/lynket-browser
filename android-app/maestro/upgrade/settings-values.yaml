@@ -1,5 +1,4 @@
-# Upgrade check, settings screens: the legacy settings group is in front (upgrade-check.sh starts
-# it). Each screen must show the value the 2.1.3 seed stored (maestro/seed/default_preferences.xml):
+# Upgrade check, settings screens: the settings screen is in front (upgrade-check.sh opens it). Each screen must show the value the 2.1.3 seed stored (maestro/seed/default_preferences.xml):
 # animation 2 = "Slide Up", speed 2 = "Short", preferred action 2 = "Favourite share app",
 # web head spawn 2 = "Left", web head size 2 = "Small", article theme 4 = "Black",
 # minimize 2 = "Minimize and open Web Head always".

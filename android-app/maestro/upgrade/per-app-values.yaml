@@ -1,4 +1,4 @@
-# Upgrade check, per-app screen: the per-app settings screen is in front (upgrade-check.sh starts
+# Upgrade check, per-app screen: the per-app settings screen is in front (upgrade-check.sh opens
 # it). The three apps the 2.1.3 seed gave a rule (Calendar and Messages blacklisted, Clock
 # incognito) sort to the top of the list with their rule icon set.
 appId: arun.com.chromer.debug

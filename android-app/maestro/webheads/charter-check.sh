@@ -62,7 +62,7 @@ a shell input keyevent HOME
 # 3. Web heads with the permission explainer.
 a shell am force-stop "$PKG"
 a shell appops set "$PKG" SYSTEM_ALERT_WINDOW deny
-a shell am start -W -n "$PKG/$BROWSING_MODE" >/dev/null
+a shell am start -W -n "$PKG/$MAIN" --es "$DESTINATION" BrowsingMode >/dev/null
 sleep 2
 maestro --device "$SERIAL" test --test-output-dir "$OUT/permission-flow" "$(hostpath "$HERE/permission.yaml")" | tee -a "$OUT/charter.txt"
 # The person switches "Allow display over other apps" on; appops does the same here.

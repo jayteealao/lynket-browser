@@ -1,0 +1,29 @@
+# Settings check, per app settings: the screen is open (settings-check.sh). The master switch
+# shows, the list scrolls, and search narrows it by name or package.
+appId: arun.com.chromer.debug
+---
+- extendedWaitUntil:
+    visible:
+      id: "row-blacklist_preference"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: "loading-list"
+    timeout: 30000
+- takeScreenshot: ${OUT}/per-app-list
+- scroll
+- takeScreenshot: ${OUT}/per-app-scrolled
+- tapOn:
+    id: "per-app-search-toggle"
+- tapOn:
+    id: "per-app-search"
+- inputText: "com.android.settings"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "app-com.android.settings"
+    timeout: 10000
+- takeScreenshot: ${OUT}/per-app-search
+- tapOn:
+    id: "per-app-search-toggle"
+- back

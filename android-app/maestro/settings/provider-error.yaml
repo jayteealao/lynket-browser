@@ -1,0 +1,15 @@
+# Settings check, no provider: Chrome is disabled and provider selection is in front
+# (settings-check.sh). The error state offers WebView and Chrome; Use WebView goes back.
+appId: arun.com.chromer.debug
+---
+- extendedWaitUntil:
+    visible:
+      id: "no-provider"
+    timeout: 15000
+- assertVisible: "Use WebView"
+- assertVisible: "Get Chrome"
+- takeScreenshot: ${OUT}/provider-error-flow
+- tapOn: "Use WebView"
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: "no-provider"

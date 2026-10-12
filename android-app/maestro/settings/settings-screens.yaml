@@ -1,0 +1,58 @@
+# Settings check, rows and dialogs: the settings screen is in front (settings-check.sh opens it).
+# Each group opens its screen; look and feel changes the theme and opens the colour sheet.
+appId: arun.com.chromer.debug
+---
+- extendedWaitUntil:
+    visible:
+      id: "row-browsing-mode"
+    timeout: 15000
+- takeScreenshot: ${OUT}/flow-settings
+- tapOn:
+    id: "row-browsing-mode"
+- extendedWaitUntil:
+    visible:
+      id: "mode-slide-over"
+    timeout: 10000
+- assertVisible:
+    id: "mode-web-heads"
+- takeScreenshot: ${OUT}/flow-browsing-mode
+- back
+- tapOn:
+    id: "row-look-and-feel"
+- extendedWaitUntil:
+    visible:
+      id: "theme-dark"
+    timeout: 10000
+- tapOn:
+    id: "theme-dark"
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/flow-look-and-feel-dark
+- tapOn:
+    id: "theme-auto"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "row-toolbar_color"
+    direction: DOWN
+- tapOn:
+    id: "row-toolbar_color"
+- extendedWaitUntil:
+    visible:
+      id: "colour-hex"
+    timeout: 10000
+- takeScreenshot: ${OUT}/flow-colour-sheet
+- back
+- back
+- tapOn:
+    id: "row-browsing-options"
+- extendedWaitUntil:
+    visible:
+      id: "row-preferred_package"
+    timeout: 10000
+- takeScreenshot: ${OUT}/flow-browsing-options
+- scrollUntilVisible:
+    element:
+      id: "row-minimize_behavior_preference"
+    direction: DOWN
+- takeScreenshot: ${OUT}/flow-browsing-options-bottom
+- back

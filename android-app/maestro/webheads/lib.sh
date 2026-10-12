@@ -5,7 +5,9 @@
 export MSYS_NO_PATHCONV=1
 PKG=arun.com.chromer.debug
 INTERCEPT=arun.com.chromer.browsing.browserintercept.BrowserInterceptActivity
-BROWSING_MODE=arun.com.chromer.settings.browsingmode.BrowsingModeActivity
+MAIN=arun.com.chromer.MainActivity
+# Opens a settings screen by name: am start -n "$PKG/$MAIN" --es "$DESTINATION" BrowsingMode
+DESTINATION=arun.com.chromer.extra.DESTINATION
 WEB_HEAD_SERVICE=arun.com.chromer.bubbles.webheads.WebHeadService
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -93,10 +95,10 @@ close_all_heads() {
   sleep 1
 }
 
-# The browsing mode screen; picks a mode by its title. The debug build exports the screen.
+# The browsing mode screen, opened through the main activity; picks a mode by its title.
 choose_mode() {
   dismiss_anr
-  a shell am start -W -n "$PKG/$BROWSING_MODE" >/dev/null
+  a shell am start -W -n "$PKG/$MAIN" --es "$DESTINATION" BrowsingMode >/dev/null
   sleep 2
   tap_text "$1" || fail "no \"$1\" row on the browsing mode screen"
   sleep 2

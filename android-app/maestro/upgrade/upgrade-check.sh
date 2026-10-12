@@ -118,11 +118,11 @@ grep -q "APPS-[0-9]*" "$OUT/migration-files.txt" || fail "no per-app backup"
 grep -q " ${PKG}_preferences\.xml$" "$OUT/migration-files.txt" || fail "the old settings file is gone"
 echo "backups: settings and per-app present; old settings file present" | tee -a "$OUT/compare.txt"
 
-# 6. The screens show the values. The legacy settings screens are started directly (debug build
-#    only, DUMP-guarded), because the seeded web heads setting sends links to web heads.
-a shell am start -W -n "$PKG/arun.com.chromer.settings.SettingsGroupActivity" >/dev/null
+# 6. The screens show the values. The settings screens are opened by name through the main
+#    activity, because the seeded web heads setting sends links to web heads.
+a shell am start -W -n "$PKG/arun.com.chromer.MainActivity" --es arun.com.chromer.extra.DESTINATION Settings >/dev/null
 flow "$here/settings-values.yaml"
-a shell am start -W -n "$PKG/arun.com.chromer.perapp.PerAppSettingsActivity" >/dev/null
+a shell am start -W -n "$PKG/arun.com.chromer.MainActivity" --es arun.com.chromer.extra.DESTINATION PerApp >/dev/null
 flow "$here/per-app-values.yaml"
 
 # 7. No crash.

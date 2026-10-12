@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# Device check of the settings screens on the debug build:
+#   - every settings screen opened by name through the main activity, captured at each scroll
+#     position with its UI dump (<screen>-scroll-01.png ...)
+#   - settings-screens.yaml: the root, browsing mode, look and feel (theme chips, colour sheet) and
+#     browsing options rows
+#   - per app settings: the loading list (with the debug slow-load fault), the full list, search
+#     (per-app.yaml)
+#   - provider selection with Chrome disabled: the no-provider state (provider-error.yaml); Chrome
+#     is enabled again on exit, and a link then opens in a Custom Tab
+#   - no crash in the crash buffer
+#
+# Usage: maestro/settings/settings-check.sh <serial> <evidence-dir>   (from android-app/)
+# Installs the debug build over the current one (the app's data stays). Disables Chrome for the
+# provider step and enables it again on exit.
+set -euo pipefail
+
+USAGE="usage: settings-check.sh <serial> <evidence-dir>"
+SERIAL="${1:?$USAGE}"
+OUT="${2:?$USAGE}"
+source "$(dirname "$0")/../webheads/lib.sh"
+HERE_SETTINGS="$(cd "$(dirname "$0")" && pwd)"
+APK="$HERE_SETTINGS/../../lynket/build/outputs/apk/debug/lynket-debug.apk"
+CHROME=com.android.chrome
+FAULT_DIR=files/debug-faults
+mkdir -p "$OUT"
+OUT="$(hostpath "$(cd "$OUT" && pwd)")"
+LOG_NAME=settings
+CHECK_NAME="settings check"
+: > "$OUT/settings.txt"
+
+flow() {
+  maestro --device "$SERIAL" test -e OUT="$OUT" --test-output-dir "$OUT/maestro" \
+    "$(hostpath "$HERE_SETTINGS/$1")" | tee -a "$OUT/maestro.txt"
+}
+
+open_screen() {  # $1 = destination name
+  dismiss_anr
+  a shell am start -W -n "$PKG/$MAIN" --es "$DESTINATION" "$1" >/dev/null
+  sleep 3
+  dismiss_anr
+}
+
+ui_xml() {
+  a shell rm -f /sdcard/settings-ui.xml
+  a shell uiautomator dump /sdcard/settings-ui.xml >/dev/null 2>&1 || true
+  a exec-out cat /sdcard/settings-ui.xml 2>/dev/null | tr -d '\r'
+}
+
+# Captures every scroll position of the screen in front, a screenshot and a UI dump each, until a
+# swipe no longer changes the dump.
+capture_scrolls() {  # $1 = name
+  local n=1 before after w h tag
+  read -r w h < <(screen_size)
+  while [ "$n" -le 8 ]; do
+    tag="$(printf '%s-scroll-%02d' "$1" "$n")"
+    shot "$tag"
+    before="$(ui_xml)"
+    echo "$before" > "$OUT/$tag.xml"
+    a shell input swipe $((w / 2)) $((h * 3 / 4)) $((w / 2)) $((h / 4)) 400
+    sleep 2
+    after="$(ui_xml)"
+    [ "$before" = "$after" ] && break
+    n=$((n + 1))
+  done
+  log "$1: $n scroll position(s)"
+}
+
+restore_chrome() { a shell pm enable --user 0 "$CHROME" >/dev/null 2>&1 || true; }
+clear_fault() { a shell run-as "$PKG" rm -f "$FAULT_DIR/per-app-slow-load" >/dev/null 2>&1 || true; }
+on_exit() { restore_chrome; clear_fault; }
+trap on_exit EXIT
+
+# 1. The debug build, data kept.
+[ -f "$APK" ] || fail "missing $APK; run ./gradlew :lynket:assembleDebug"
+a install -r "$(hostpath "$APK")" >/dev/null
+a logcat -c
+a logcat -b crash -c
+
+# 2. Every screen at every scroll position.
+for screen in Settings BrowsingMode LookAndFeel BrowsingOptions PerApp ProviderSelection; do
+  open_screen "$screen"
+  capture_scrolls "$(echo "$screen" | sed -E 's/([a-z])([A-Z])/\1-\2/g' | tr 'A-Z' 'a-z')"
+done
+
+# 3. The rows and their dialogs.
+open_screen Settings
+flow settings-screens.yaml
+
+# 4. Per app settings: the loading list first (slow-load fault), then the list and search.
+a shell run-as "$PKG" sh -c "mkdir -p $FAULT_DIR && echo 6000 > $FAULT_DIR/per-app-slow-load"
+a shell am force-stop "$PKG"
+open_screen PerApp
+shot per-app-loading
+ui_xml > "$OUT/per-app-loading.xml"
+grep -q 'resource-id="loading-list"' "$OUT/per-app-loading.xml" || fail "no loading list while the apps load"
+clear_fault
+a shell pm list packages | tr -d '\r' | sed 's/^package://' | sort > "$OUT/packages.txt"
+log "packages on the device: $(wc -l < "$OUT/packages.txt")"
+flow per-app.yaml
+
+# 5. No provider: Chrome disabled, the error state offers WebView or Chrome.
+a shell pm disable-user --user 0 "$CHROME" >/dev/null
+a shell am force-stop "$PKG"
+open_screen ProviderSelection
+shot provider-error
+flow provider-error.yaml
+restore_chrome
+log "Chrome enabled again"
+
+# 6. With Chrome back, Chrome is chosen again (the error flow chose WebView) and a link opens in
+#    a Custom Tab.
+open_screen ProviderSelection
+tap_text "Chrome" || fail "no Chrome row after enabling it"
+sleep 2
+tap_text "Use" || fail "no Use button in the Chrome details"
+sleep 2
+open_link "https://example.com/"
+sleep 6
+a shell dumpsys activity activities | tr -d '\r' | grep -m1 -E "topResumedActivity|mResumedActivity" > "$OUT/link-activity.txt" || true
+log "after the link: $(cat "$OUT/link-activity.txt")"
+grep -q -e "$CHROME" -e "CustomTab" "$OUT/link-activity.txt" || fail "the link did not open in a Custom Tab"
+shot link-custom-tab
+
+# 7. No crash.
+a logcat -d -b crash | tr -d '\r' > "$OUT/logcat-crash.txt"
+if grep -q "$PKG" "$OUT/logcat-crash.txt"; then fail "the crash buffer holds an entry for $PKG"; fi
+log "settings check passed"

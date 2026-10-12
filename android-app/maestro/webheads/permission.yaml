@@ -1,7 +1,7 @@
 # The overlay explainer on the browsing mode screen, then the system "Display over other apps"
-# screen. Start the screen first (the debug build exports it) with the permission denied:
+# screen. Open the screen first, through the main activity, with the permission denied:
 #   adb shell appops set arun.com.chromer.debug SYSTEM_ALERT_WINDOW deny
-#   adb shell am start -n arun.com.chromer.debug/arun.com.chromer.settings.browsingmode.BrowsingModeActivity
+#   adb shell am start -n arun.com.chromer.debug/arun.com.chromer.MainActivity --es arun.com.chromer.extra.DESTINATION BrowsingMode
 # Run: maestro --device <serial> test android-app/maestro/webheads/permission.yaml
 appId: arun.com.chromer.debug
 ---
