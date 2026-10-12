@@ -176,7 +176,9 @@ row() {  # entry point | intent | observed
 }
 
 top_activity() {
-  a shell dumpsys activity activities | tr -d '\r' | awk '/topResumedActivity/ { for (i = 1; i <= NF; i++) if ($i ~ /\//) { print $i; exit } }'
+  # awk reads to the end: an early exit would break the pipe (a fold lists several displays) and
+  # pipefail would end the script with status 141.
+  a shell dumpsys activity activities | tr -d '\r' | awk '!done && /topResumedActivity/ { for (i = 1; i <= NF; i++) if ($i ~ /\//) { print $i; done = 1; break } }'
 }
 
 a logcat -c
@@ -306,10 +308,11 @@ entry-points)
   a shell am start -a android.intent.action.VIEW -d "https://example.com/?ep=alias" -n "$PKG/$ALIAS" >/dev/null
   sleep 10; capture ep-alias; row ".activities.BrowserInterceptActivity alias" "VIEW https" "$(top_activity)"
   a shell input keyevent KEYCODE_HOME; quiet_chrome
-  a shell am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "see https://example.com/?ep=send" -n "$PKG/$SHARE" >/dev/null
+  # One quoted string: adb shell joins its arguments, so text with spaces must stay quoted on the device.
+  a shell "am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT 'see https://example.com/?ep=send' -n $PKG/$SHARE" >/dev/null
   sleep 10; capture ep-send; row ShareInterceptActivity "SEND text/plain (URL)" "$(top_activity)"
   a shell input keyevent KEYCODE_HOME; quiet_chrome
-  a shell am start -a android.intent.action.PROCESS_TEXT -t text/plain --es android.intent.extra.PROCESS_TEXT "compose navigation" -n "$PKG/$SHARE" >/dev/null
+  a shell "am start -a android.intent.action.PROCESS_TEXT -t text/plain --es android.intent.extra.PROCESS_TEXT 'compose navigation' -n $PKG/$SHARE" >/dev/null
   sleep 10; capture ep-process-text; row ShareInterceptActivity "PROCESS_TEXT (words: search)" "$(top_activity)"
   a shell input keyevent KEYCODE_HOME
   a shell am start -W -n "$PKG/$MAIN" >/dev/null; sleep 4; capture ep-main; row MainActivity "MAIN launcher" "$(top_activity)"
@@ -374,8 +377,9 @@ amp-error)
   tap_on 'text="Open normal page"'
   sleep 10
   capture amp-open-normal
-  log "after Open normal page: $(top_activity)"
-  top_activity | grep -q "com.android.chrome" || fail "Open normal page did not open the page"
+  top="$(top_activity)"  # read once: the log line and the check must judge the same state
+  log "after Open normal page: $top"
+  [[ "$top" == *com.android.chrome* ]] || fail "Open normal page did not open the page"
   set_tile "$AMP_TILE" amp_mode_pref false
   crash_check amp-error
   ;;
