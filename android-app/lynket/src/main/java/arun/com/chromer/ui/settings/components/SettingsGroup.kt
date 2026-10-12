@@ -156,7 +156,7 @@ fun SettingsScaffold(
 }
 
 /** One item of a settings list, as wide as the screen up to the 680 dp column. */
-fun Modifier.settingsColumn(): Modifier = fillMaxWidth().widthIn(max = 680.dp)
+fun Modifier.settingsColumn(): Modifier = widthIn(max = 680.dp).fillMaxWidth()
 
 @Preview
 @Composable

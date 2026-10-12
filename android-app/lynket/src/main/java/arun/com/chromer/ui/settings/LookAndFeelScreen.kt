@@ -81,12 +81,15 @@ fun LookAndFeelScreen(navigator: LynketNavigator, viewModel: SettingsViewModel =
   val dialogs by viewModel.dialogs.collectAsStateWithLifecycle()
   LookAndFeelContent(
     values = values,
-    showWallpaperColours = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
+    showWallpaperColours = wallpaperColoursAvailable(),
     onBack = { navigator.back() },
     onSet = viewModel::set,
   )
   SettingsDialogHost(dialogs.firstOrNull(), viewModel)
 }
+
+/** Colours from the wallpaper exist from Android 12; earlier versions show no switch for them. */
+internal fun wallpaperColoursAvailable(sdk: Int = Build.VERSION.SDK_INT): Boolean = sdk >= Build.VERSION_CODES.S
 
 private val ThemeChips = listOf(
   ThemeMode.Auto to R.string.theme_auto,

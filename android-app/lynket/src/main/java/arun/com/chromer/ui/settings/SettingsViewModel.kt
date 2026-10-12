@@ -125,21 +125,21 @@ class SettingsViewModel @Inject constructor(
   }
 
   private suspend fun loadAppLabels() {
-      labels.value = withContext(Dispatchers.IO) {
-        // The provider row reads the provider the way the old card did: a missing package falls
-        // back to the default provider, which is stored.
-        val provider = preferences.customTabPackage()
-        val secondary = preferences.secondaryBrowserPackage()
-        val favShare = preferences.favSharePackage()
-        AppLabels(
-          providerPackage = provider,
-          providerName = provider?.let { Utils.getAppNameWithPackage(context, it) },
-          secondaryPackage = secondary,
-          secondaryName = secondary?.let { Utils.getAppNameWithPackage(context, it) },
-          favSharePackage = favShare,
-          favShareName = favShare?.let { Utils.getAppNameWithPackage(context, it) },
-        )
-      }
+    labels.value = withContext(Dispatchers.IO) {
+      // The provider row reads the provider the way the old card did: a missing package falls
+      // back to the default provider, which is stored.
+      val provider = preferences.customTabPackage()
+      val secondary = preferences.secondaryBrowserPackage()
+      val favShare = preferences.favSharePackage()
+      AppLabels(
+        providerPackage = provider,
+        providerName = provider?.let { Utils.getAppNameWithPackage(context, it) },
+        secondaryPackage = secondary,
+        secondaryName = secondary?.let { Utils.getAppNameWithPackage(context, it) },
+        favSharePackage = favShare,
+        favShareName = favShare?.let { Utils.getAppNameWithPackage(context, it) },
+      )
+    }
   }
 
   fun setApp(key: String, component: ComponentName) = set(key, component.flattenToString())

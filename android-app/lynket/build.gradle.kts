@@ -108,6 +108,9 @@ android {
                 // PaperDB's Kryo setup reflects into java.util, which JDK 17+ closes to the
                 // classpath; Android has no module system, so this is needed on the JVM only.
                 it.jvmArgs("--add-opens", "java.base/java.util=ALL-UNNAMED")
+                // Robolectric's API 36 sandbox sets up shared memory through these JDK internals.
+                it.jvmArgs("--add-exports", "java.base/jdk.internal.access=ALL-UNNAMED")
+                it.jvmArgs("--add-opens", "java.base/java.io=ALL-UNNAMED")
             }
         }
     }

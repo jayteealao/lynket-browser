@@ -192,7 +192,7 @@ fun PerAppContent(
       LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("per-app-list"),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        // No gap between items: the app rows form one container; the items above it pad themselves.
         horizontalAlignment = Alignment.CenterHorizontally,
       ) {
         if (searching) {
@@ -203,12 +203,12 @@ fun PerAppContent(
               singleLine = true,
               label = { Text(stringResource(R.string.search_apps)) },
               leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-              modifier = Modifier.settingsColumn().testTag("per-app-search"),
+              modifier = Modifier.settingsColumn().padding(bottom = 16.dp).testTag("per-app-search"),
             )
           }
         }
         item(key = "master") {
-          SettingsGroup(label = null, modifier = Modifier.settingsColumn()) {
+          SettingsGroup(label = null, modifier = Modifier.settingsColumn().padding(bottom = 16.dp)) {
             row {
               SettingsRow(
                 title = stringResource(R.string.per_app_enable),

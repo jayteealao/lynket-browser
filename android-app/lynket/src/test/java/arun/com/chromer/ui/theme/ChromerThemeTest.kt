@@ -16,6 +16,10 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.preferencesOf
+import arun.com.chromer.data.preferences.SettingsSchema
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
@@ -82,5 +86,39 @@ class ChromerThemeTest {
   @Test
   fun the_shapes_follow_the_expressive_scale() {
     assertThat(ChromerShapes.extraLarge).isNotEqualTo(ChromerShapes.small)
+  }
+
+  @Test
+  fun every_stored_theme_code_maps_to_its_mode() {
+    assertThat(themeModeOf(0)).isEqualTo(ThemeMode.Auto)
+    assertThat(themeModeOf(1)).isEqualTo(ThemeMode.Light)
+    assertThat(themeModeOf(2)).isEqualTo(ThemeMode.Dark)
+    assertThat(themeModeOf(3)).isEqualTo(ThemeMode.Black)
+    assertThat(themeModeOf(9)).isEqualTo(ThemeMode.Auto)
+    assertThat(themeModeOf(-1)).isEqualTo(ThemeMode.Auto)
+  }
+
+  @Test
+  fun an_update_without_the_setting_keeps_auto_and_no_wallpaper_colours() {
+    val settings = themeSettingsOf(emptyPreferences(), context)
+    assertThat(settings.themeMode).isEqualTo(ThemeMode.Auto)
+    assertThat(settings.useWallpaperColours).isFalse()
+  }
+
+  @Test
+  fun the_stored_theme_is_read_for_each_mode() {
+    ThemeMode.entries.forEach { mode ->
+      val stored = preferencesOf(intPreferencesKey(SettingsSchema.THEME_MODE) to mode.ordinal)
+      assertThat(themeSettingsOf(stored, context).themeMode).isEqualTo(mode)
+    }
+  }
+
+  @Test
+  fun auto_follows_the_system() {
+    // The test device is in light mode, so Auto draws the light scheme.
+    val light = chromerColorScheme(context, dark = false, black = false, useWallpaperColours = false, primaryColour = null)
+    val auto = schemeIn(ThemeMode.Auto)
+    assertThat(auto.primary).isEqualTo(light.primary)
+    assertThat(auto.surface).isEqualTo(light.surface)
   }
 }
