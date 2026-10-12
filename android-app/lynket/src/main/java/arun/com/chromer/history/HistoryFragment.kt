@@ -48,7 +48,6 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import arun.com.chromer.databinding.FragmentHistoryBinding
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.browsingoptions.BrowsingOptionsActivity
 import arun.com.chromer.shared.FabHandler
 import arun.com.chromer.shared.base.Snackable
 import arun.com.chromer.shared.base.fragment.BaseFragment

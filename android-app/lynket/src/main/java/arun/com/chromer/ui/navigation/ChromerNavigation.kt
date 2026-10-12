@@ -42,6 +42,10 @@ import arun.com.chromer.ui.browser.BrowserScreen
 import arun.com.chromer.ui.history.HistoryScreen
 import arun.com.chromer.ui.home.HomeScreen
 import arun.com.chromer.ui.providerselection.ProviderSelectionScreen
+import arun.com.chromer.ui.perapp.PerAppScreen
+import arun.com.chromer.ui.settings.BrowsingModeScreen
+import arun.com.chromer.ui.settings.BrowsingOptionsScreen
+import arun.com.chromer.ui.settings.LookAndFeelScreen
 import arun.com.chromer.ui.settings.SettingsScreen
 import arun.com.chromer.ui.tabs.TabsScreen
 
@@ -85,7 +89,10 @@ fun LynketNavDisplay(
         }
       }
       entry<LynketKey.Article> { key -> ArticleScreen(url = key.url, navigator = navigator) }
-      entry<LynketKey.PerAppSettings> { key -> PlaceholderScreen(title = "Per-App: ${key.packageName}") }
+      entry<LynketKey.BrowsingMode> { BrowsingModeScreen(navigator = navigator) }
+      entry<LynketKey.LookAndFeel> { LookAndFeelScreen(navigator = navigator) }
+      entry<LynketKey.BrowsingOptions> { BrowsingOptionsScreen(navigator = navigator) }
+      entry<LynketKey.PerApp> { PerAppScreen(navigator = navigator) }
       entry<LynketKey.WebHeads> { PlaceholderScreen(title = "Web Heads") }
     },
   )
@@ -135,7 +142,7 @@ internal fun LinkErrorScreen(url: String, onBack: () -> Unit) {
   }
 }
 
-/** Placeholder for destinations whose screens later work brings (per-app settings, web heads). */
+/** Placeholder for destinations whose screens later work brings (web heads). */
 @Composable
 private fun PlaceholderScreen(title: String) {
   Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

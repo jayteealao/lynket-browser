@@ -25,6 +25,8 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -32,6 +34,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import arun.com.chromer.data.preferences.SettingsSchema
+import arun.com.chromer.data.preferences.readBoolean
+import arun.com.chromer.data.preferences.readInt
 import arun.com.chromer.settings.Preferences
 import com.google.android.material.color.MaterialColors
 
@@ -225,17 +230,40 @@ fun ChromerTheme(
   )
 }
 
+/** The theme mode stored as [code] (0 Auto, 1 Light, 2 Dark, 3 Black); unknown codes are Auto. */
+fun themeModeOf(code: Int): ThemeMode = ThemeMode.entries.getOrElse(code) { ThemeMode.Auto }
+
 /** Theme choices from the settings store, read once. */
 fun Preferences.themeSettings(): ThemeSettings = ThemeSettings(
+  themeMode = themeModeOf(themeMode()),
   useWallpaperColours = useWallpaperColours(),
   primaryColour = Color(toolbarColor()),
 )
 
-/** [ChromerTheme] with the person's colour and wallpaper option, read once per composition. */
+/** Theme choices from stored settings values. */
+internal fun themeSettingsOf(stored: androidx.datastore.preferences.core.Preferences, context: Context): ThemeSettings {
+  val schema = { name: String -> SettingsSchema.require(name).default(context) }
+  return ThemeSettings(
+    themeMode = themeModeOf(stored.readInt(SettingsSchema.THEME_MODE, schema(SettingsSchema.THEME_MODE) as Int)),
+    useWallpaperColours = stored.readBoolean(
+      SettingsSchema.USE_WALLPAPER_COLOURS,
+      schema(SettingsSchema.USE_WALLPAPER_COLOURS) as Boolean,
+    ),
+    primaryColour = Color(stored.readInt("toolbar_color", schema("toolbar_color") as Int)),
+  )
+}
+
+/**
+ * [ChromerTheme] with the person's theme, colour and wallpaper option. It follows the settings
+ * store, so a change on the Look and feel screen applies at once.
+ */
 @Composable
 fun ChromerThemeFromSettings(content: @Composable () -> Unit) {
   val context = LocalContext.current
-  val settings = remember(context) { Preferences.get(context).themeSettings() }
+  val repository = remember(context) { Preferences.entryPoint(context).userPreferencesRepository() }
+  val initial = remember(context) { Preferences.get(context).themeSettings() }
+  val stored by repository.snapshot.collectAsState()
+  val settings = stored?.let { themeSettingsOf(it, context) } ?: initial
   ChromerTheme(
     themeMode = settings.themeMode,
     useWallpaperColours = settings.useWallpaperColours,

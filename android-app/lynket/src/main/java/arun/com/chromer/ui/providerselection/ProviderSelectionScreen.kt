@@ -11,438 +11,239 @@
 
 package arun.com.chromer.ui.providerselection
 
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import arun.com.chromer.ui.navigation.LynketNavigator
+import arun.com.chromer.R
 import arun.com.chromer.browsing.providerselection.ModernProviderSelectionViewModel
 import arun.com.chromer.browsing.providerselection.ModernProviderSelectionViewModel.ProviderSelectionUiState
 import arun.com.chromer.data.apps.model.Provider
+import arun.com.chromer.shared.Constants
+import arun.com.chromer.ui.components.ErrorState
+import arun.com.chromer.ui.components.LoadingList
+import arun.com.chromer.ui.navigation.LynketNavigator
+import arun.com.chromer.ui.settings.components.RowControl
+import arun.com.chromer.ui.settings.components.RowIcon
+import arun.com.chromer.ui.settings.components.SettingsGroup
+import arun.com.chromer.ui.settings.components.SettingsRow
+import arun.com.chromer.ui.settings.components.SettingsScaffold
+import arun.com.chromer.ui.settings.components.settingsColumn
+import arun.com.chromer.util.Utils
 import coil.compose.AsyncImage
 
 /**
- * Phase 3.3: ProviderSelectionScreen
- *
- * Modern Compose UI for selecting Custom Tab provider.
- *
- * Features:
- * - Grid of available Custom Tab providers
- * - WebView fallback option
- * - Install providers via Play Store
- * - Shows selected provider
- * - Confirmation for WebView selection
+ * Custom Tab provider: the System WebView first, then every known or installed provider, as on the
+ * old screen. A provider opens its details with Use or Install; WebView asks first. With no
+ * provider at all the screen offers WebView or Chrome.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProviderSelectionScreen(
-    navigator: LynketNavigator,
-    viewModel: ModernProviderSelectionViewModel = hiltViewModel()
+  navigator: LynketNavigator,
+  viewModel: ModernProviderSelectionViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showWebViewDialog by remember { mutableStateOf(false) }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Select Browser") },
-                navigationIcon = {
-                    IconButton(onClick = { navigator.back() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-    ) { padding ->
-        when (val state = uiState) {
-            is ProviderSelectionUiState.Loading -> {
-                LoadingState()
-            }
-            is ProviderSelectionUiState.Success -> {
-                ProviderSelectionContent(
-                    providers = state.providers,
-                    selectedPackage = state.selectedPackage,
-                    usingWebView = state.usingWebView,
-                    onProviderClick = { provider ->
-                        if (provider.installed) {
-                            viewModel.selectProvider(provider)
-                            navigator.back()
-                        }
-                    },
-                    onProviderInstallClick = { provider ->
-                        // Open Play Store for non-installed providers
-                        // (handled in provider grid item)
-                    },
-                    onWebViewClick = {
-                        showWebViewDialog = true
-                    },
-                    modifier = Modifier.padding(padding)
-                )
-            }
-            is ProviderSelectionUiState.Error -> {
-                ErrorState(
-                    message = state.message,
-                    onRetry = viewModel::refresh
-                )
-            }
-        }
-
-        // WebView confirmation dialog
-        if (showWebViewDialog) {
-            WebViewConfirmationDialog(
-                onConfirm = {
-                    viewModel.selectWebView()
-                    showWebViewDialog = false
-                    navigator.back()
-                },
-                onDismiss = {
-                    showWebViewDialog = false
-                }
-            )
-        }
-    }
+  val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val context = LocalContext.current
+  ProviderSelectionContent(
+    state = state,
+    onBack = navigator::back,
+    onUseProvider = { provider ->
+      viewModel.selectProvider(provider)
+      navigator.back()
+    },
+    onInstall = { provider -> Utils.openPlayStore(context, provider.packageName) },
+    onUseWebView = {
+      viewModel.selectWebView()
+      navigator.back()
+    },
+    onGetChrome = { Utils.openPlayStore(context, Constants.CHROME_PACKAGE) },
+    onRetry = viewModel::refresh,
+  )
 }
 
+/** The stateless screen, for tests and goldens. */
 @Composable
-private fun ProviderSelectionContent(
-    providers: List<Provider>,
-    selectedPackage: String?,
-    usingWebView: Boolean,
-    onProviderClick: (Provider) -> Unit,
-    onProviderInstallClick: (Provider) -> Unit,
-    onWebViewClick: () -> Unit,
-    modifier: Modifier = Modifier
+fun ProviderSelectionContent(
+  state: ProviderSelectionUiState,
+  onBack: () -> Unit,
+  onUseProvider: (Provider) -> Unit,
+  onInstall: (Provider) -> Unit,
+  onUseWebView: () -> Unit,
+  onGetChrome: () -> Unit,
+  onRetry: () -> Unit,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // WebView option card
-        WebViewCard(
-            selected = usingWebView,
-            onClick = onWebViewClick
+  var detailsFor by rememberSaveable { mutableStateOf<String?>(null) }
+  var askWebView by rememberSaveable { mutableStateOf(false) }
+
+  SettingsScaffold(title = stringResource(R.string.custom_tab_provider), onBack = onBack) {
+    when (state) {
+      ProviderSelectionUiState.Loading -> item("loading") { LoadingList(Modifier.settingsColumn()) }
+      is ProviderSelectionUiState.Error -> item("error") {
+        ErrorState(
+          title = stringResource(R.string.no_provider_title),
+          body = state.message,
+          retryLabel = stringResource(R.string.retry),
+          onRetry = onRetry,
+          modifier = Modifier.settingsColumn(),
         )
-
-        // Divider
-        HorizontalDivider()
-
-        // Custom Tab providers section
-        Text(
-            text = "Custom Tab Providers",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
+      }
+      is ProviderSelectionUiState.NoProvider -> item("no-provider") {
+        ErrorState(
+          title = stringResource(R.string.no_provider_title),
+          body = stringResource(R.string.no_provider_body),
+          retryLabel = stringResource(R.string.use_webview),
+          onRetry = onUseWebView,
+          actionLabel = stringResource(R.string.get_chrome),
+          onAction = onGetChrome,
+          modifier = Modifier.settingsColumn().testTag("no-provider"),
         )
-
-        if (providers.isEmpty()) {
-            EmptyProvidersState()
-        } else {
-            // Provider grid
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                contentPadding = PaddingValues(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(providers, key = { it.packageName }) { provider ->
-                    ProviderGridItem(
-                        provider = provider,
-                        isSelected = !usingWebView && provider.packageName == selectedPackage,
-                        onClick = {
-                            if (provider.installed) {
-                                onProviderClick(provider)
-                            } else {
-                                onProviderInstallClick(provider)
-                            }
-                        }
-                    )
-                }
-            }
-        }
+      }
+      is ProviderSelectionUiState.Success -> providerList(
+        state = state,
+        onWebView = { askWebView = true },
+        onProvider = { detailsFor = it.packageName },
+      )
     }
-}
+  }
 
-@Composable
-private fun WebViewCard(
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected)
-                MaterialTheme.colorScheme.primaryContainer
-            else
-                MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (selected) 4.dp else 2.dp
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Web,
-                contentDescription = "WebView",
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "System WebView",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Fallback option, may have limited features",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Selected",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProviderGridItem(
-    provider: Provider,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-
-    Card(
-        modifier = modifier
-            .aspectRatio(1f)
-            .clickable {
-                if (!provider.installed) {
-                    // Open Play Store
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        data = Uri.parse("market://details?id=${provider.packageName}")
-                        setPackage("com.android.vending")
-                    }
-                    try {
-                        context.startActivity(intent)
-                    } catch (e: Exception) {
-                        // Fallback to browser
-                        val browserIntent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://play.google.com/store/apps/details?id=${provider.packageName}")
-                        }
-                        context.startActivity(browserIntent)
-                    }
-                } else {
-                    onClick()
-                }
-            },
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                isSelected -> MaterialTheme.colorScheme.primaryContainer
-                !provider.installed -> MaterialTheme.colorScheme.surfaceVariant
-                else -> MaterialTheme.colorScheme.surface
-            }
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 4.dp else 2.dp
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // App icon
-            AsyncImage(
-                model = provider.iconUri,
-                contentDescription = provider.appName,
-                modifier = Modifier.size(48.dp)
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // App name
-            Text(
-                text = provider.appName,
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                color = if (provider.installed)
-                    MaterialTheme.colorScheme.onSurface
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // Selected indicator
-            if (isSelected) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Selected",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // Install indicator
-            if (!provider.installed) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Icon(
-                    imageVector = Icons.Default.Download,
-                    contentDescription = "Install",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WebViewConfirmationDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Use WebView?") },
-        text = {
-            Text(
-                "WebView is a fallback option and may have limited features compared to Custom Tabs:\n\n" +
-                        "• No tab sharing with browser\n" +
-                        "• No password autofill\n" +
-                        "• No payment integration\n" +
-                        "• Slower page loading\n\n" +
-                        "Are you sure you want to use WebView?"
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Yes, Use WebView")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+  val providers = (state as? ProviderSelectionUiState.Success)?.providers.orEmpty()
+  providers.firstOrNull { it.packageName == detailsFor }?.let { provider ->
+    ProviderDialog(
+      provider = provider,
+      onConfirm = {
+        detailsFor = null
+        if (provider.installed) onUseProvider(provider) else onInstall(provider)
+      },
+      onDismiss = { detailsFor = null },
     )
+  }
+  if (askWebView) {
+    AlertDialog(
+      onDismissRequest = { askWebView = false },
+      title = { Text(stringResource(R.string.are_you_sure)) },
+      text = { Text(stringResource(R.string.webview_disadvantages)) },
+      confirmButton = {
+        TextButton(onClick = {
+          askWebView = false
+          onUseWebView()
+        }) { Text(stringResource(android.R.string.yes)) }
+      },
+      dismissButton = { TextButton(onClick = { askWebView = false }) { Text(stringResource(android.R.string.cancel)) } },
+      modifier = Modifier.testTag("webview-dialog"),
+    )
+  }
 }
 
-@Composable
-private fun EmptyProvidersState() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.SearchOff,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
-            Text(
-                text = "No Custom Tab providers found",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "Install a browser like Chrome to use Custom Tabs",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoadingState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun ErrorState(
-    message: String,
-    onRetry: () -> Unit
+private fun LazyListScope.providerList(
+  state: ProviderSelectionUiState.Success,
+  onWebView: () -> Unit,
+  onProvider: (Provider) -> Unit,
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Error,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.error
-            )
-            Text(
-                text = "Error loading providers",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.error
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Button(onClick = onRetry) {
-                Text("Retry")
-            }
+  item("providers") {
+    SettingsGroup(label = stringResource(R.string.tab_providers), modifier = Modifier.settingsColumn()) {
+      row {
+        SettingsRow(
+          title = stringResource(R.string.system_webview),
+          summary = androidx.compose.ui.text.AnnotatedString(stringResource(R.string.webViewPros)),
+          icon = RowIcon(Icons.Outlined.Public),
+          control = RowControl.Radio(state.usingWebView),
+          modifier = Modifier.testTag("provider-webview"),
+          onClick = onWebView,
+        )
+      }
+      state.providers.forEach { provider ->
+        row {
+          ProviderRow(
+            provider = provider,
+            selected = !state.usingWebView && provider.packageName == state.selectedPackage,
+            onClick = { onProvider(provider) },
+          )
         }
+      }
     }
+  }
+}
+
+@Composable
+private fun ProviderRow(provider: Provider, selected: Boolean, onClick: () -> Unit) {
+  val status = when {
+    selected -> R.string.provider_current
+    provider.installed -> R.string.provider_installed
+    else -> R.string.provider_not_installed
+  }
+  Row(
+    modifier = Modifier
+      .heightIn(min = 56.dp)
+      .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+      .padding(horizontal = 16.dp, vertical = 12.dp)
+      .testTag("provider-${provider.packageName}"),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(16.dp),
+  ) {
+    AsyncImage(model = provider.iconUri, contentDescription = null, modifier = Modifier.size(40.dp))
+    Column(Modifier.weight(1f)) {
+      Text(provider.appName, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+      Text(
+        stringResource(status),
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+    if (provider.installed) {
+      RadioButton(selected = selected, onClick = null)
+    } else {
+      Text(stringResource(R.string.install), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+    }
+  }
+}
+
+/** The old provider details: icon, features when known, and Use or Install. */
+@Composable
+private fun ProviderDialog(provider: Provider, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    icon = { AsyncImage(model = provider.iconUri, contentDescription = null, modifier = Modifier.size(48.dp)) },
+    title = { Text(provider.appName) },
+    text = if (provider.features.isNotEmpty()) {
+      {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Text(stringResource(R.string.features), style = MaterialTheme.typography.titleSmall)
+          Text(provider.features.toString())
+        }
+      }
+    } else null,
+    confirmButton = {
+      TextButton(onClick = onConfirm, modifier = Modifier.testTag("provider-confirm")) {
+        Text(stringResource(if (provider.installed) R.string.use else R.string.install))
+      }
+    },
+    dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) } },
+    modifier = Modifier.testTag("provider-dialog"),
+  )
 }

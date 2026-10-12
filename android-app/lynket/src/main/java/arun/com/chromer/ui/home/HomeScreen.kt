@@ -11,7 +11,6 @@
 
 package arun.com.chromer.ui.home
 
-import android.content.Intent
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -97,7 +96,6 @@ import arun.com.chromer.home.ModernHomeViewModel.Suggestions
 import arun.com.chromer.search.provider.SearchProvider
 import arun.com.chromer.search.provider.SearchProviders
 import arun.com.chromer.search.suggestion.items.SuggestionItem
-import arun.com.chromer.settings.SettingsGroupActivity
 import arun.com.chromer.ui.components.EmptyState
 import arun.com.chromer.ui.components.ErrorState
 import arun.com.chromer.ui.components.LoadingTiles
@@ -107,6 +105,7 @@ import arun.com.chromer.ui.navigation.navigateToAbout
 import arun.com.chromer.ui.navigation.navigateToHistory
 import arun.com.chromer.ui.navigation.navigateToIntro
 import arun.com.chromer.ui.navigation.navigateToProviderSelection
+import arun.com.chromer.ui.navigation.navigateToSettings
 import arun.com.chromer.ui.navigation.navigateToTabs
 import arun.com.chromer.ui.navigation.navigateToTips
 import arun.com.chromer.util.glide.appicon.ApplicationIcon
@@ -204,8 +203,7 @@ fun HomeScreen(
         DrawerItem.Home -> Unit
         DrawerItem.History -> navigator.navigateToHistory()
         DrawerItem.Tabs -> navigator.navigateToTabs()
-        // The full legacy settings until the Compose settings screens hold every key.
-        DrawerItem.Settings -> context.startActivity(Intent(context, SettingsGroupActivity::class.java))
+        DrawerItem.Settings -> navigator.navigateToSettings()
         DrawerItem.Tips -> navigator.navigateToTips()
         DrawerItem.Intro -> navigator.navigateToIntro()
         DrawerItem.Feedback -> HomeDrawerIntents.feedback(context)

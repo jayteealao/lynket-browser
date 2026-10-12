@@ -30,6 +30,7 @@ import arun.com.chromer.settings.Preferences
 import arun.com.chromer.ui.navigation.LynketKey
 import arun.com.chromer.ui.navigation.LynketNavDisplay
 import arun.com.chromer.ui.navigation.LynketNavigator
+import arun.com.chromer.ui.navigation.Destination
 import arun.com.chromer.ui.navigation.WebUrlDeepLinkMatcher
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import dagger.hilt.android.AndroidEntryPoint
@@ -74,7 +75,7 @@ class MainActivity : ComponentActivity() {
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
-    val key = WebUrlDeepLinkMatcher.keyFor(intent) ?: return
+    val key = WebUrlDeepLinkMatcher.keyFor(intent) ?: Destination.keyFor(intent) ?: return
     navigator?.navigate(key) ?: run { pendingLink = key }
   }
 
@@ -84,7 +85,7 @@ class MainActivity : ComponentActivity() {
     return LynketNavigator.initialKeys(
       isFirstRun = preferences.isFirstRun,
       showChangelog = Changelog.shouldShow(preferences, BuildConfig.VERSION_CODE),
-      deepLink = intent?.let(WebUrlDeepLinkMatcher::keyFor),
+      deepLink = intent?.let { WebUrlDeepLinkMatcher.keyFor(it) ?: Destination.keyFor(it) },
     )
   }
 }

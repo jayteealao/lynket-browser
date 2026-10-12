@@ -33,7 +33,9 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.databinding.ActivityMoreMenuBinding
 import arun.com.chromer.databinding.ActivityMoreMenuItemTemplateBinding
 import arun.com.chromer.history.HistoryActivity
-import arun.com.chromer.settings.SettingsGroupActivity
+import arun.com.chromer.MainActivity
+import arun.com.chromer.ui.navigation.Destination
+import arun.com.chromer.ui.navigation.LynketKey
 import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_ARTICLE
 import arun.com.chromer.shared.Constants.EXTRA_KEY_ORIGINAL_URL
 import arun.com.chromer.shared.base.activity.BaseActivity
@@ -121,10 +123,9 @@ class ChromerOptionsActivity : BaseActivity() {
           holder.binding.menuText.setText(R.string.settings)
           holder.itemView.setOnClickListener {
             startActivity(
-              Intent(
-                activity,
-                SettingsGroupActivity::class.java
-              )
+              Intent(activity, MainActivity::class.java)
+                .putExtra(Destination.EXTRA, Destination.nameOf(LynketKey.Settings))
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             )
             activity.finish()
           }

@@ -18,6 +18,7 @@ import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.UserPreferencesRepository.UserPreferences
 import arun.com.chromer.home.MainDispatcherRule
+import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
 import io.mockk.*
@@ -143,12 +144,11 @@ class ModernProviderSelectionViewModelTest {
             val loading = awaitItem()
             assertThat(loading).isInstanceOf(ModernProviderSelectionViewModel.ProviderSelectionUiState.Loading::class.java)
 
-            // Then transition to Success with empty list
+            // With no provider at all the screen shows the no-provider state
             advanceUntilIdle()
-            val success = awaitItem() as ModernProviderSelectionViewModel.ProviderSelectionUiState.Success
-            assertThat(success.providers).isEmpty()
-            assertThat(success.selectedPackage).isEqualTo("com.android.chrome")
-            assertThat(success.usingWebView).isFalse()
+            val none = awaitItem() as ModernProviderSelectionViewModel.ProviderSelectionUiState.NoProvider
+            assertThat(none.providers).isEmpty()
+            assertThat(none.usingWebView).isFalse()
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -273,9 +273,10 @@ class ModernProviderSelectionViewModelTest {
         viewModel.selectProvider(chrome)
         advanceUntilIdle()
 
-        // Then: Should disable WebView
-        coVerify { preferencesRepository.setUseWebView(false) }
+        // Then: the package is stored; the same edit turns WebView off
         coVerify { preferencesRepository.setCustomTabPackage("com.android.chrome") }
+        coVerify(exactly = 0) { preferencesRepository.setUseWebView(any()) }
+        verify { eventBus.tryEmit(Event.SettingsEvent.ProviderChanged) }
     }
 
     @Test
@@ -356,9 +357,10 @@ class ModernProviderSelectionViewModelTest {
         viewModel.selectWebView()
         advanceUntilIdle()
 
-        // Then: Should enable WebView and clear custom tab package
+        // Then: WebView is on and the stored provider package is kept, as on the old screen
         coVerify { preferencesRepository.setUseWebView(true) }
-        coVerify { preferencesRepository.setCustomTabPackage("") }
+        coVerify(exactly = 0) { preferencesRepository.setCustomTabPackage(any()) }
+        verify { eventBus.tryEmit(Event.SettingsEvent.ProviderChanged) }
     }
 
     @Test
@@ -520,9 +522,22 @@ class ModernProviderSelectionViewModelTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        // Then: Should handle gracefully
-        val state = viewModel.uiState.value as ModernProviderSelectionViewModel.ProviderSelectionUiState.Success
+        // Then: the no-provider state
+        val state = viewModel.uiState.value as ModernProviderSelectionViewModel.ProviderSelectionUiState.NoProvider
         assertThat(state.providers).isEmpty()
+    }
+
+    @Test
+    fun `providers that are all missing show the no-provider state`() = runTest {
+        coEvery { appRepository.allProviders() } returns createSampleProviders().map { it.copy(installed = false) }
+        every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences(useWebView = true))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as ModernProviderSelectionViewModel.ProviderSelectionUiState.NoProvider
+        assertThat(state.providers).hasSize(3)
+        assertThat(state.usingWebView).isTrue()
     }
 
     @Test
@@ -554,15 +569,14 @@ class ModernProviderSelectionViewModelTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        var state = viewModel.uiState.value as ModernProviderSelectionViewModel.ProviderSelectionUiState.Success
-        assertThat(state.providers).isEmpty()
+        assertThat(viewModel.uiState.value).isInstanceOf(ModernProviderSelectionViewModel.ProviderSelectionUiState.NoProvider::class.java)
 
         // When: Manually calling loadProviders
         viewModel.loadProviders()
         advanceUntilIdle()
 
         // Then: Should reload
-        state = viewModel.uiState.value as ModernProviderSelectionViewModel.ProviderSelectionUiState.Success
+        val state = viewModel.uiState.value as ModernProviderSelectionViewModel.ProviderSelectionUiState.Success
         assertThat(state.providers).hasSize(3)
     }
 }

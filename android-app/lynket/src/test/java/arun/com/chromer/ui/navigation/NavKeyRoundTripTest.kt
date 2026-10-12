@@ -12,6 +12,7 @@
 package arun.com.chromer.ui.navigation
 
 import android.app.Application
+import android.content.Intent
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.serialization.NavBackStackSerializer
@@ -41,7 +42,7 @@ class NavKeyRoundTripTest {
   private val allKeys: List<NavKey> = listOf(
     LynketKey.Home, LynketKey.History, LynketKey.Tabs, LynketKey.Settings, LynketKey.ProviderSelection,
     LynketKey.About, LynketKey.Tips, LynketKey.Intro, LynketKey.Changelog, LynketKey.WebHeads,
-    LynketKey.PerAppSettings("com.example.app"),
+    LynketKey.BrowsingMode, LynketKey.LookAndFeel, LynketKey.BrowsingOptions, LynketKey.PerApp,
   ) + urls.map { LynketKey.Browser(it) } + urls.map { LynketKey.Article(it) }
 
   @Test
@@ -56,5 +57,23 @@ class NavKeyRoundTripTest {
     restored.filterIsInstance<LynketKey.Browser>().forEachIndexed { index, key ->
       assertThat(key.url).isEqualTo(urls[index])
     }
+  }
+
+  @Test
+  fun destinationExtraOpensOnlyAllowedScreens() {
+    val allowed = listOf(
+      LynketKey.Settings, LynketKey.BrowsingMode, LynketKey.LookAndFeel,
+      LynketKey.BrowsingOptions, LynketKey.PerApp, LynketKey.ProviderSelection,
+    )
+    allowed.forEach { key ->
+      val name = Destination.nameOf(key)
+      assertThat(name).isNotNull()
+      assertThat(Destination.keyFor(Intent().putExtra(Destination.EXTRA, name))).isEqualTo(key)
+    }
+    listOf("Home", "Browser", "Changelog", "WebHeads", "settings", "", "../Settings").forEach { value ->
+      assertThat(Destination.keyFor(Intent().putExtra(Destination.EXTRA, value))).isNull()
+    }
+    assertThat(Destination.keyFor(Intent())).isNull()
+    assertThat(Destination.nameOf(LynketKey.Home)).isNull()
   }
 }

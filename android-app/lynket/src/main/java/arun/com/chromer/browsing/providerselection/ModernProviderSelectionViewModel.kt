@@ -16,28 +16,22 @@ import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.preferences.UserPreferencesRepository
+import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Phase 8: Modern ProviderSelectionViewModel (Fully Coroutines)
- *
- * Manages Custom Tab provider selection with modern reactive patterns.
- * Uses native suspend functions from AppRepository.
- *
- * Features:
- * - Load available Custom Tab providers
- * - Select provider (set as default)
- * - WebView fallback option
- * - Install provider via Play Store
- *
- * Changes in Phase 8:
- * - Updated to use native suspend functions from AppRepository
- * - No extension functions needed (AppRepository now uses Coroutines directly)
+ * Provider selection: the System WebView and every known or installed Custom Tabs provider. The
+ * rules are the old screen's: choosing a provider stores its package and turns WebView off;
+ * choosing WebView turns WebView on and keeps the stored package. With no enabled provider the
+ * screen shows the no-provider error state.
  */
 @HiltViewModel
 class ModernProviderSelectionViewModel @Inject constructor(
@@ -46,105 +40,75 @@ class ModernProviderSelectionViewModel @Inject constructor(
     private val eventBus: EventBus
 ) : ViewModel() {
 
-    /**
-     * UI State for provider selection screen
-     */
     sealed interface ProviderSelectionUiState {
         data object Loading : ProviderSelectionUiState
+
         data class Success(
             val providers: List<Provider>,
             val selectedPackage: String?,
             val usingWebView: Boolean
         ) : ProviderSelectionUiState
+
+        /** No enabled package can render Custom Tabs. */
+        data class NoProvider(val providers: List<Provider>, val usingWebView: Boolean) : ProviderSelectionUiState
+
         data class Error(val message: String) : ProviderSelectionUiState
     }
 
-    /**
-     * UI state flow
-     */
-    private val _uiState = MutableStateFlow<ProviderSelectionUiState>(
-        ProviderSelectionUiState.Loading
-    )
+    private val _uiState = MutableStateFlow<ProviderSelectionUiState>(ProviderSelectionUiState.Loading)
     val uiState: StateFlow<ProviderSelectionUiState> = _uiState.asStateFlow()
 
     init {
         loadProviders()
     }
 
-    /**
-     * Load all Custom Tab providers
-     */
     fun loadProviders() {
         viewModelScope.launch {
             try {
                 _uiState.value = ProviderSelectionUiState.Loading
-
-                // Use native suspend function from AppRepository
                 val providers = appRepository.allProviders()
-
-                // Get current preferences
                 val preferences = preferencesRepository.userPreferencesFlow.first()
-
-                _uiState.value = ProviderSelectionUiState.Success(
-                    providers = providers,
-                    selectedPackage = preferences.preferredCustomTabPackage,
-                    usingWebView = preferences.useWebView
-                )
-
+                _uiState.value = if (providers.none { it.installed }) {
+                    ProviderSelectionUiState.NoProvider(providers, preferences.useWebView)
+                } else {
+                    ProviderSelectionUiState.Success(
+                        providers = providers,
+                        selectedPackage = preferences.preferredCustomTabPackage,
+                        usingWebView = preferences.useWebView
+                    )
+                }
                 Timber.d("Loaded ${providers.size} Custom Tab providers")
             } catch (e: Exception) {
                 Timber.e(e, "Error loading providers")
-                _uiState.value = ProviderSelectionUiState.Error(
-                    e.message ?: "Failed to load providers"
-                )
+                _uiState.value = ProviderSelectionUiState.Error(e.message ?: "Failed to load providers")
             }
         }
     }
 
-    /**
-     * Select a Custom Tab provider
-     */
+    /** Stores [provider] as the Custom Tab provider and turns WebView off; not-installed ones are ignored. */
     fun selectProvider(provider: Provider) {
+        if (!provider.installed) {
+            Timber.w("Cannot select non-installed provider: ${provider.packageName}")
+            return
+        }
         viewModelScope.launch {
             try {
-                if (provider.installed) {
-                    // Set as default Custom Tab provider
-                    preferencesRepository.setCustomTabPackage(provider.packageName)
-                    // Disable WebView if it was previously enabled
-                    if ((_uiState.value as? ProviderSelectionUiState.Success)?.usingWebView == true) {
-                        preferencesRepository.setUseWebView(false)
-                    }
-                    Timber.d("Selected provider: ${provider.appName} (${provider.packageName})")
-
-                    // Notify that provider changed
-                    notifyProviderChanged()
-
-                    // Reload to update UI
-                    loadProviders()
-                } else {
-                    Timber.w("Cannot select non-installed provider: ${provider.packageName}")
-                }
+                // Stores the package and turns WebView off in one edit.
+                preferencesRepository.setCustomTabPackage(provider.packageName)
+                notifyProviderChanged()
+                loadProviders()
             } catch (e: Exception) {
                 Timber.e(e, "Error selecting provider")
             }
         }
     }
 
-    /**
-     * Select WebView as browsing method
-     */
+    /** Uses the System WebView; the stored provider package stays, as before. */
     fun selectWebView() {
         viewModelScope.launch {
             try {
                 preferencesRepository.setUseWebView(true)
-                // Clear custom tab package preference
-                preferencesRepository.setCustomTabPackage("")
-                Timber.d("Selected WebView as browsing method")
-
-                // Notify that provider changed
                 notifyProviderChanged()
-
-                // Reload to update UI
                 loadProviders()
             } catch (e: Exception) {
                 Timber.e(e, "Error selecting WebView")
@@ -152,25 +116,10 @@ class ModernProviderSelectionViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Notify system that provider changed
-     * (Sends event for other screens to update)
-     */
     private fun notifyProviderChanged() {
-        viewModelScope.launch {
-            try {
-                // TODO: Define modern event type when migrating BrowsingOptionsActivity
-                // For now, we rely on DataStore flow updates
-                Timber.d("Provider changed notification sent")
-            } catch (e: Exception) {
-                Timber.e(e, "Error notifying provider change")
-            }
-        }
+        eventBus.tryEmit(Event.SettingsEvent.ProviderChanged)
     }
 
-    /**
-     * Refresh providers list
-     */
     fun refresh() {
         loadProviders()
     }

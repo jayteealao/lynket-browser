@@ -11,294 +11,272 @@
 
 package arun.com.chromer.ui.settings
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
+import androidx.compose.material.icons.outlined.AutoFixHigh
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import arun.com.chromer.BuildConfig
+import arun.com.chromer.R
+import arun.com.chromer.shared.Constants
+import arun.com.chromer.ui.navigation.LynketKey
 import arun.com.chromer.ui.navigation.LynketNavigator
-import arun.com.chromer.ui.navigation.navigateToAbout
-import arun.com.chromer.settings.ModernSettingsViewModel
+import arun.com.chromer.ui.settings.components.RowControl
+import arun.com.chromer.ui.settings.components.RowIcon
+import arun.com.chromer.ui.settings.components.SettingsGroup
+import arun.com.chromer.ui.settings.components.SettingsRow
+import arun.com.chromer.ui.settings.components.SettingsScaffold
+import arun.com.chromer.ui.settings.components.settingsColumn
+import arun.com.chromer.util.Utils
+import timber.log.Timber
 
-/**
- * Phase 3: Modern SettingsScreen
- *
- * Demonstrates DataStore + Compose preferences:
- * - Real-time preference updates
- * - Material3 components
- * - Organized into categories
- * - Instant UI reactivity (no manual refresh needed!)
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** The settings root: the default browser card, the three groups and About, in the legacy order. */
 @Composable
-fun SettingsScreen(
-    navigator: LynketNavigator,
-    viewModel: ModernSettingsViewModel = hiltViewModel()
-) {
-    val preferences by viewModel.preferences.collectAsStateWithLifecycle()
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = { navigator.back() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(vertical = 8.dp)
-        ) {
-            // Web Heads Section
-            item {
-                PreferenceCategory("Web Heads")
-            }
-            item {
-                SwitchPreference(
-                    title = "Enable Web Heads",
-                    summary = "Show floating bubble heads for links",
-                    checked = preferences.webHeadsEnabled,
-                    onCheckedChange = viewModel::setWebHeadsEnabled
-                )
-            }
-            item {
-                SwitchPreference(
-                    title = "Show Favicons",
-                    summary = "Display website icons in web heads",
-                    checked = preferences.webHeadsFavicons,
-                    onCheckedChange = viewModel::setWebHeadsFavicons,
-                    enabled = preferences.webHeadsEnabled
-                )
-            }
-            item {
-                SwitchPreference(
-                    title = "Close on Open",
-                    summary = "Close web head when opening link",
-                    checked = preferences.webHeadsCloseOnOpen,
-                    onCheckedChange = viewModel::setWebHeadsCloseOnOpen,
-                    enabled = preferences.webHeadsEnabled
-                )
-            }
-
-            // Browser Features Section
-            item {
-                PreferenceCategory("Browser Features")
-            }
-            item {
-                SwitchPreference(
-                    title = "Incognito Mode",
-                    summary = "Browse privately without saving history",
-                    checked = preferences.incognitoMode,
-                    onCheckedChange = viewModel::setIncognitoMode
-                )
-            }
-            item {
-                SwitchPreference(
-                    title = "AMP Mode",
-                    summary = "Load AMP versions of pages when available",
-                    checked = preferences.ampMode,
-                    onCheckedChange = viewModel::setAmpMode
-                )
-            }
-            item {
-                SwitchPreference(
-                    title = "Article Mode",
-                    summary = "Extract and display article content",
-                    checked = preferences.articleMode,
-                    onCheckedChange = viewModel::setArticleMode
-                )
-            }
-            item {
-                SwitchPreference(
-                    title = "Use WebView",
-                    summary = "Use system WebView instead of custom tabs",
-                    checked = preferences.useWebView,
-                    onCheckedChange = viewModel::setUseWebView
-                )
-            }
-
-            // Appearance Section
-            item {
-                PreferenceCategory("Appearance")
-            }
-            item {
-                SwitchPreference(
-                    title = "Dynamic Toolbar",
-                    summary = "Match toolbar color to website theme",
-                    checked = preferences.dynamicToolbar,
-                    onCheckedChange = viewModel::setDynamicToolbar
-                )
-            }
-            item {
-                SwitchPreference(
-                    title = "Bottom Bar",
-                    summary = "Show action bar at bottom",
-                    checked = preferences.bottomBarEnabled,
-                    onCheckedChange = viewModel::setBottomBar
-                )
-            }
-
-            // Performance Section
-            item {
-                PreferenceCategory("Performance")
-            }
-            item {
-                SwitchPreference(
-                    title = "Warm Up",
-                    summary = "Pre-initialize browser for faster loading",
-                    checked = preferences.warmUp,
-                    onCheckedChange = viewModel::setWarmUp
-                )
-            }
-            item {
-                SwitchPreference(
-                    title = "Pre-fetch Links",
-                    summary = "Load pages in background",
-                    checked = preferences.preFetch,
-                    onCheckedChange = viewModel::setPreFetch
-                )
-            }
-            item {
-                SwitchPreference(
-                    title = "Aggressive Loading",
-                    summary = "Use more resources for faster loading",
-                    checked = preferences.aggressiveLoading,
-                    onCheckedChange = viewModel::setAggressiveLoading
-                )
-            }
-
-            // Advanced Section
-            item {
-                PreferenceCategory("Advanced")
-            }
-            item {
-                SwitchPreference(
-                    title = "Per-App Settings",
-                    summary = "Configure behavior for specific apps",
-                    checked = preferences.perAppSettings,
-                    onCheckedChange = viewModel::setPerAppSettings
-                )
-            }
-            item {
-                SwitchPreference(
-                    title = "Merge Tabs and Apps",
-                    summary = "Combine tabs with recent apps",
-                    checked = preferences.mergeTabsAndApps,
-                    onCheckedChange = viewModel::setMergeTabs
-                )
-            }
-
-            // About Section
-            item {
-                PreferenceCategory("About")
-            }
-            item {
-                Preference(
-                    title = "Version",
-                    summary = "2.1.3 (Modern)",
-                    onClick = { navigator.navigateToAbout() }
-                )
-            }
-        }
-    }
+fun SettingsScreen(navigator: LynketNavigator) {
+  val context = LocalContext.current
+  var isDefault by remember { mutableStateOf(true) }
+  LifecycleResumeEffect(Unit) {
+    isDefault = Utils.isDefaultBrowser(context)
+    onPauseOrDispose { }
+  }
+  SettingsRootContent(
+    showDefaultBrowserCard = !isDefault,
+    version = BuildConfig.VERSION_NAME,
+    onBack = { navigator.back() },
+    onSetDefault = { openDefaultBrowserSettings(context) },
+    onOpen = { navigator.navigate(it) },
+  )
 }
 
-@Composable
-private fun PreferenceCategory(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-    )
-}
-
-@Composable
-private fun SwitchPreference(
-    title: String,
-    summary: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    enabled: Boolean = true
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled) { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+/** The default browser card's click, as the old settings screen did it. */
+private fun openDefaultBrowserSettings(context: Context) {
+  val defaultBrowser = Utils.getDefaultBrowserPackage(context)
+  try {
+    if (defaultBrowser.equals("android", ignoreCase = true) ||
+      defaultBrowser.startsWith("org.cyanogenmod") ||
+      defaultBrowser.equals("com.huawei.android.internal.app", ignoreCase = true)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (enabled)
-                    MaterialTheme.colorScheme.onSurface
-                else
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-            )
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (enabled)
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-            )
+      // No default yet: opening a link shows the chooser, where Lynket can be made the default.
+      context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.GOOGLE_URL)))
+    } else {
+      Toast.makeText(
+        context,
+        "${Utils.getAppNameWithPackage(context, defaultBrowser)} ${context.getString(R.string.default_clear_msg)}",
+        Toast.LENGTH_LONG,
+      ).show()
+      context.startActivity(
+        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$defaultBrowser")),
+      )
+    }
+  } catch (e: ActivityNotFoundException) {
+    Timber.e(e, "Cannot open the default browser settings")
+  }
+}
+
+@Composable
+fun SettingsRootContent(
+  showDefaultBrowserCard: Boolean,
+  version: String,
+  onBack: () -> Unit,
+  onSetDefault: () -> Unit,
+  onOpen: (LynketKey) -> Unit,
+) {
+  SettingsScaffold(title = stringResource(R.string.settings), onBack = onBack, modifier = Modifier.testTag("settings")) {
+    if (showDefaultBrowserCard) {
+      item(key = "default-browser") { DefaultBrowserCard(onSetDefault) }
+    }
+    item(key = "groups") {
+      SettingsGroup(label = null, modifier = Modifier.settingsColumn()) {
+        row {
+          SettingsRow(
+            title = stringResource(R.string.settings_browsing_mode),
+            icon = RowIcon(Icons.Outlined.Language),
+            modifier = Modifier.testTag("row-browsing-mode"),
+            onClick = { onOpen(LynketKey.BrowsingMode) },
+          )
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            enabled = enabled
+        row {
+          SettingsRow(
+            title = stringResource(R.string.settings_look_and_feel),
+            icon = RowIcon(Icons.Outlined.Palette),
+            modifier = Modifier.testTag("row-look-and-feel"),
+            onClick = { onOpen(LynketKey.LookAndFeel) },
+          )
+        }
+        row {
+          SettingsRow(
+            title = stringResource(R.string.settings_browsing_options),
+            icon = RowIcon(Icons.Outlined.Settings),
+            modifier = Modifier.testTag("row-browsing-options"),
+            onClick = { onOpen(LynketKey.BrowsingOptions) },
+          )
+        }
+      }
+    }
+    item(key = "about") {
+      SettingsGroup(label = null, modifier = Modifier.settingsColumn()) {
+        row {
+          SettingsRow(
+            title = stringResource(R.string.about),
+            summary = AnnotatedString(stringResource(R.string.settings_about_version, version)),
+            icon = RowIcon(
+              Icons.Outlined.Info,
+              container = MaterialTheme.colorScheme.tertiaryContainer,
+              tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            ),
+            modifier = Modifier.testTag("row-about"),
+            onClick = { onOpen(LynketKey.About) },
+          )
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun DefaultBrowserCard(onSetDefault: () -> Unit) {
+  Card(
+    onClick = onSetDefault,
+    shape = RoundedCornerShape(16.dp),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+    modifier = Modifier.settingsColumn().testTag("default-browser-card"),
+  ) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(16.dp),
+      modifier = Modifier.padding(16.dp),
+    ) {
+      androidx.compose.material3.Icon(
+        Icons.Outlined.AutoFixHigh,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+      )
+      Column(Modifier.weight(1f)) {
+        Text(
+          stringResource(R.string.set_default_chromer),
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.SemiBold,
+          color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
+        Text(
+          stringResource(R.string.default_pref_xpln),
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+      }
+      Button(onClick = onSetDefault) { Text(stringResource(R.string.settings_set)) }
     }
+  }
 }
 
+/** A switch row for [key], enabled as the rules say; a tap sets the opposite value. */
 @Composable
-private fun Preference(
-    title: String,
-    summary: String,
-    onClick: () -> Unit
+internal fun SwitchRow(
+  key: String,
+  @androidx.annotation.StringRes title: Int,
+  @androidx.annotation.StringRes summary: Int?,
+  values: SettingsValues,
+  onSet: (String, Any?) -> Unit,
+  icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+  val checked = values.bool(key)
+  SettingsRow(
+    title = stringResource(title),
+    summary = summary?.let { AnnotatedString(stringResource(it)) },
+    icon = icon?.let { RowIcon(it) },
+    control = RowControl.Switch(checked),
+    enabled = SettingsRules.isEnabled(key, values),
+    modifier = Modifier.testTag("row-$key"),
+    onClick = { onSet(key, !checked) },
+  )
+}
+
+/** A checkbox row for [key]; [indent] for the dynamic colour boxes under their switch. */
+@Composable
+internal fun CheckboxRow(
+  key: String,
+  @androidx.annotation.StringRes title: Int,
+  @androidx.annotation.StringRes summary: Int?,
+  values: SettingsValues,
+  onSet: (String, Any?) -> Unit,
+  icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+  indent: Boolean = false,
+) {
+  val checked = values.bool(key)
+  SettingsRow(
+    title = stringResource(title),
+    summary = summary?.let { AnnotatedString(stringResource(it)) },
+    icon = icon?.let { RowIcon(it) },
+    control = RowControl.Checkbox(checked),
+    enabled = SettingsRules.isEnabled(key, values),
+    indent = indent,
+    modifier = Modifier.testTag("row-$key"),
+    onClick = { onSet(key, !checked) },
+  )
+}
+
+/** The choices of a list setting from its label and key arrays, typed as the store keeps the key. */
+@Composable
+internal fun listChoices(
+  key: String,
+  @androidx.annotation.ArrayRes labels: Int,
+  @androidx.annotation.ArrayRes keys: Int,
+): List<arun.com.chromer.ui.settings.components.ListChoice<Any>> {
+  val names = androidx.compose.ui.res.stringArrayResource(labels)
+  val stored = androidx.compose.ui.res.stringArrayResource(keys)
+  val asInt = arun.com.chromer.data.preferences.SettingsSchema[key]?.type == arun.com.chromer.data.preferences.SettingType.INT
+  return names.zip(stored).map { (label, value) ->
+    arun.com.chromer.ui.settings.components.ListChoice<Any>(if (asInt) value.toInt() else value, label)
+  }
+}
+
+/** A list row: the title and the label of the stored choice; a tap opens the choice dialog. */
+@Composable
+internal fun ListRow(
+  key: String,
+  @androidx.annotation.StringRes title: Int,
+  choices: List<arun.com.chromer.ui.settings.components.ListChoice<Any>>,
+  values: SettingsValues,
+  icon: androidx.compose.ui.graphics.vector.ImageVector?,
+  onClick: () -> Unit,
+) {
+  val current = values.values[key]
+  SettingsRow(
+    title = stringResource(title),
+    summary = choices.firstOrNull { it.value == current }?.label?.let(::AnnotatedString),
+    icon = icon?.let { RowIcon(it) },
+    enabled = SettingsRules.isEnabled(key, values),
+    modifier = Modifier.testTag("row-$key"),
+    onClick = onClick,
+  )
 }

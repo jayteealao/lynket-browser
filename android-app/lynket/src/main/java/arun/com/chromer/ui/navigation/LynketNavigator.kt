@@ -77,8 +77,6 @@ fun LynketNavigator.navigateToHistory() = navigate(LynketKey.History)
 fun LynketNavigator.navigateToTabs() = navigate(LynketKey.Tabs)
 fun LynketNavigator.navigateToSettings() = navigate(LynketKey.Settings)
 fun LynketNavigator.navigateToBrowser(url: String) = navigate(LynketKey.Browser(url))
-fun LynketNavigator.navigateToPerAppSettings(packageName: String) =
-  navigate(LynketKey.PerAppSettings(packageName))
 fun LynketNavigator.navigateToProviderSelection() = navigate(LynketKey.ProviderSelection)
 fun LynketNavigator.navigateToArticle(url: String) = navigate(LynketKey.Article(url))
 fun LynketNavigator.navigateToWebHeads() = navigate(LynketKey.WebHeads)

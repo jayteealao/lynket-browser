@@ -23,6 +23,7 @@ package arun.com.chromer.data.apps.store
 
 import android.app.Application
 import android.content.Intent
+import android.content.pm.PackageManager
 import arun.com.chromer.browsing.customtabs.CustomTabs
 import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.data.common.App
@@ -197,27 +198,44 @@ constructor(
     }
   }.flowOn(Dispatchers.IO)
 
+  /**
+   * A package counts as a provider only when it is enabled and answers the Custom Tabs service
+   * query; an installed but disabled browser cannot render Custom Tabs.
+   */
+  private fun isProvider(packageName: String): Boolean {
+    val enabled = try {
+      application.packageManager.getApplicationInfo(packageName, 0).enabled
+    } catch (e: PackageManager.NameNotFoundException) {
+      false
+    }
+    return enabled && CustomTabs.isPackageSupportCustomTabs(application, packageName)
+  }
+
   override suspend fun allProviders(): List<Provider> = withContext(Dispatchers.IO) {
-    val preLoadedProviders = allProviders.map { provider ->
-      if (Utils.isPackageInstalled(application, provider.packageName)) {
-        provider.iconUri = createUri(provider.packageName)
-        provider.appName = getAppNameWithPackage(application, provider.packageName)
-        provider.installed = true
+    val knownProviders = allProviders.map { provider ->
+      if (isProvider(provider.packageName)) {
+        provider.copy(
+          iconUri = createUri(provider.packageName),
+          appName = getAppNameWithPackage(application, provider.packageName),
+          installed = true,
+        )
+      } else {
+        provider.copy(installed = false)
       }
-      provider
     }
-
-    val installedProviders = CustomTabs.getCustomTabSupportingPackages(application).map { packageName ->
-      Provider(
-        packageName,
-        getAppNameWithPackage(application, packageName),
-        createUri(packageName)
-      ).apply { installed = true }
-    }
-
-    (preLoadedProviders + installedProviders)
+    val installedProviders = CustomTabs.getCustomTabSupportingPackages(application)
+      .filter(::isProvider)
+      .map { packageName ->
+        Provider(
+          packageName,
+          getAppNameWithPackage(application, packageName),
+          createUri(packageName)
+        ).apply { installed = true }
+      }
+    (knownProviders + installedProviders)
       .distinctBy { it.packageName }
       .sortedBy { it.appName }
   }
+
 }
 
