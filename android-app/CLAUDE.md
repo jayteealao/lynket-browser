@@ -47,6 +47,7 @@ Run from `android-app/`:
 - `bash maestro/settings/settings-check.sh <serial> <dir>` - Every settings screen at every scroll position, the rows and dialogs, the per-app loading list and search, and the no-provider state with Chrome disabled (enabled again on exit), then a link in a Custom Tab
 - `bash maestro/shell/legacy-2.1.3-captures.sh <serial> <dir>` - Reference captures of release 2.1.3's intro, changelog, home, menu, About and Tips (installs the existing 2.1.3 APK, then removes it)
 - `bash maestro/browsing/browsing-check.sh <serial> <dir> <legacy|captures|entry-points|amp-error|bottom-bar|recreate>` - The browsing dialogs are Compose (`ui/browsing/`: the Lynket options sheet, New tab, the AMP lookup with its offline error, the shortcut creator; Open with uses `AppPickerSheet`); `ChromerOptionsActivity`, `OpenIntentWithActivity`, `NewTabDialogActivity`, `AmpResolverActivity` and `HomeScreenShortcutCreatorActivity` stay and each host one of them on `Theme.Lynket.Translucent`. Custom Tab menu, action button and bottom-bar callbacks are mutable, explicit PendingIntents (`browsing/customtabs/CallbackPendingIntents.kt`) so Chrome can add the page address and the clicked view; receivers read it with `browsingUrl()`. Chrome's bottom-bar views have no resource ids in a UI dump, so the check taps them by label. A tile click only registers with Quick Settings open (`cmd statusbar expand-settings` first)
+- `bash maestro/reader/reader-check.sh <serial> <dir> <legacy|captures|error|image|webview|bubble|recreate>` - The article reader, the image viewer and the web view are Compose (`ui/reader/`, `ui/webview/`); `ArticleActivity`, `ImageViewActivity`, `WebViewActivity` and `EmbeddableWebViewActivity` keep their names and each host one screen. The reader and the web view share one menu model (`browsing/menu/MenuDelegate`: `menuItems()`, `bottomBarItems()`, `handleItemSelected`) and one top-bar and bottom-bar component (`ui/browsing/BrowsingBars.kt`). The web view's WebView is a View inside an `AndroidView`, wrapped by a `SwipeRefreshLayout`; the manifest handles rotation, fold, bubble resize and night mode for both web view activities, so the page and its history stay, and `saveState` covers process death (one `WebView created` log line per instance). The check serves `maestro/reader/fixtures/` from this host with `python -m http.server` on a free port and reaches it through `adb reverse`, so every run reads the same article (legacy and captures reinstall the debug build)
 - `bash maestro/history-tabs/history-tabs-check.sh <serial> <dir> <captures|clear-all|tabs-reorder|back-gesture>` - History and Tabs are Compose screens (`ui/history/`, `ui/tabs/`); `HistoryActivity` and `TabsActivity` stay as shortcut targets and each host one of them. The check captures both (500 rows; `SEED=direct` writes them straight into the database), deletes all and compares the count with the store, taps a tab and checks its own task comes forward with no new one, and holds a back swipe from History (reinstalls the debug build)
 
 ### Build System
@@ -120,8 +121,8 @@ Every activity, fragment, view, service and receiver is injected by Hilt with `@
 
 The app supports multiple browsing modes:
 - **Custom Tabs** (`browsing/customtabs/`) - Chrome Custom Tabs integration
-- **Web View** (`browsing/webview/`) - Built-in WebView
-- **Article Mode** (`browsing/article/`) - Reader-friendly article view
+- **Web View** (`browsing/webview/`) - Built-in WebView in a Compose screen (`ui/webview/WebViewScreen.kt`)
+- **Article Mode** (`browsing/article/`) - Reader-friendly article view in Compose (`ui/reader/`); a page with no article shows the error state with Retry and Open in browser
 - **AMP Mode** (`browsing/amp/`) - Accelerated Mobile Pages
 - **Web Heads** (`bubbles/webheads/`) - Floating bubble browser windows
   - Each head and the trash is its own `TYPE_APPLICATION_OVERLAY` window holding a `ComposeView` (`overlay/OverlayWindow.kt`); the service owns their lifecycle, saved state and view model store (`overlay/OverlayLifecycleOwner.kt`).
@@ -152,7 +153,7 @@ The app supports multiple browsing modes:
 - **Compose**: Material, UI, Tooling (in both modules, different versions)
 - **Reactive**: RxJava, RxAndroid, RxBinding, RxKotlin, RxRelay, RxKPrefs
 - **DI**: Dagger 2.42 (lynket), Dagger 2.50 + Whetstone 0.6.0 (playground)
-- **UI Libraries**: MaterialDialogs, PhotoView, Iconics core (icons of the remaining View screens), Navigation 3
+- **UI Libraries**: MaterialDialogs, Iconics core (icons of the remaining View screens), Navigation 3
 - **Personal Libraries**: Custom utils from `dev.arunkumar.android` (snapshots)
 
 ## Permissions
