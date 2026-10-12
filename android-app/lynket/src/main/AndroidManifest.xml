@@ -205,30 +205,30 @@
       android:name=".browsing.newtab.NewTabDialogActivity"
       android:excludeFromRecents="true"
       android:noHistory="true"
-      android:theme="@style/DialogTheme" />
+      android:theme="@style/Theme.Lynket.Translucent" />
     <activity
       android:name=".browsing.amp.AmpResolverActivity"
       android:excludeFromRecents="true"
       android:noHistory="true"
-      android:theme="@style/DialogTheme" />
+      android:theme="@style/Theme.Lynket.Translucent" />
     <activity
       android:name=".browsing.openwith.OpenIntentWithActivity"
       android:excludeFromRecents="true"
       android:label="@string/title_activity_open_with"
       android:noHistory="true"
-      android:theme="@style/Theme.AppCompat.Translucent" />
+      android:theme="@style/Theme.Lynket.Translucent" />
     <activity
       android:name=".browsing.optionspopup.ChromerOptionsActivity"
       android:excludeFromRecents="true"
       android:label="@string/chromer_options"
       android:noHistory="true"
-      android:theme="@style/DialogTheme" />
+      android:theme="@style/Theme.Lynket.Translucent" />
     <activity
       android:name=".shortcuts.HomeScreenShortcutCreatorActivity"
       android:excludeFromRecents="true"
       android:label="@string/add_to_homescreen"
       android:noHistory="true"
-      android:theme="@style/DialogTheme" />
+      android:theme="@style/Theme.Lynket.Translucent" />
     <activity
       android:name=".history.HistoryActivity"
       android:label="@string/title_history"

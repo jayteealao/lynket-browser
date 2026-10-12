@@ -83,6 +83,7 @@ fun AppPickerSheet(
   intent: Intent,
   onPick: (PickableApp) -> Unit,
   onDismiss: () -> Unit,
+  subtitle: String? = null,
 ) {
   val context = LocalContext.current
   var apps by remember { mutableStateOf<List<PickableApp>?>(null) }
@@ -94,6 +95,16 @@ fun AppPickerSheet(
   ) {
     Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 16.dp)) {
       Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
+      subtitle?.let {
+        Text(
+          it,
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp).testTag("app-picker-subtitle"),
+        )
+      }
       val loaded = apps
       when {
         loaded == null -> Text(

@@ -433,4 +433,9 @@
   <string name="tabs_close_all">Close all tabs</string>
   <string name="tabs_error_title">Tabs could not be loaded</string>
   <string name="yes_close">Yes, close</string>
+  <!-- Browsing dialogs -->
+  <string name="amp_error_title">No AMP version found</string>
+  <string name="amp_error_body">The page could not be checked for an AMP version because the device is offline. You can open the normal page or try again.</string>
+  <string name="amp_try_again">Try again</string>
+  <string name="amp_open_normal">Open normal page</string>
 </resources>

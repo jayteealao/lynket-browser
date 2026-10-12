@@ -73,11 +73,11 @@ class ShareInterceptActivity : BaseActivity() {
       }
       if (text?.isNotEmpty() == true) {
         findAndOpenLink(text)
+      } else {
+        finish()
       }
     } catch (exception: Exception) {
       invalidLink()
-    } finally {
-      finish()
     }
   }
 
@@ -95,11 +95,13 @@ class ShareInterceptActivity : BaseActivity() {
           openLink(searchUrl)
         } catch (e: Exception) {
           Timber.e(e)
+          finish()
         }
       }
     }
   }
 
+  /** Hands the link on, then finishes; plain text is first turned into a search, which waits for the engine. */
   private fun openLink(url: String?) {
     when (url) {
       null -> invalidLink()

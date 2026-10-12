@@ -1,21 +1,12 @@
 /*
- *
  *  Lynket
  *
- *  Copyright (C) 2025 Arunkumar
+ *  Copyright (C) 2026 Arunkumar
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package arun.com.chromer.browsing.openwith
@@ -24,45 +15,53 @@ import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import arun.com.chromer.R
-import arun.com.chromer.shared.views.IntentPickerBottomSheet
+import arun.com.chromer.browsing.customtabs.browsingUrl
+import arun.com.chromer.shared.base.activity.BaseActivity
+import arun.com.chromer.ui.settings.components.AppPickerSheet
+import arun.com.chromer.ui.theme.ChromerThemeFromSettings
+import dagger.hilt.android.AndroidEntryPoint
 
-/**
- * Activity that shows a bottom sheet picker for opening a URL with different apps.
- * Modernized to use Material Design BottomSheetDialogFragment instead of Flipboard BottomSheet.
- */
-class OpenIntentWithActivity : AppCompatActivity() {
+/** "Open with…": a sheet of the apps that open the page (Lynket excluded); a pick opens it there. */
+@AndroidEntryPoint
+class OpenIntentWithActivity : BaseActivity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_open_with)
+  override val layoutRes: Int
+    get() = 0
 
-        val intentData = intent?.data
-        if (intentData != null) {
-            val webSiteIntent = Intent(ACTION_VIEW, intentData)
-
-            val bottomSheet = IntentPickerBottomSheet.newInstance(
-                intent = webSiteIntent,
-                titleRes = R.string.open_with,
-                listener = IntentPickerBottomSheet.OnIntentPickedListener { activityInfo ->
-                    webSiteIntent.component = activityInfo.componentName
-                    webSiteIntent.flags = FLAG_ACTIVITY_CLEAR_TASK or FLAG_ACTIVITY_NEW_TASK
-                    startActivity(webSiteIntent)
-                    finish()
-                }
-            ).setFilter(IntentPickerBottomSheet.selfPackageExcludeFilter(this))
-
-            bottomSheet.show(supportFragmentManager, "intent_picker")
-        } else {
-            invalidLink()
-        }
+  override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge()
+    super.onCreate(savedInstanceState)
+    val url = intent.browsingUrl()
+    if (url == null) {
+      Toast.makeText(this, getString(R.string.invalid_link), Toast.LENGTH_SHORT).show()
+      finish()
+      return
     }
-
-    private fun invalidLink() {
-        Toast.makeText(this, getString(R.string.invalid_link), Toast.LENGTH_SHORT).show()
-        finish()
+    val webSiteIntent = Intent(ACTION_VIEW, Uri.parse(url))
+    setContent {
+      ChromerThemeFromSettings {
+        AppPickerSheet(
+          title = getString(R.string.open_with),
+          subtitle = url,
+          intent = webSiteIntent,
+          onPick = { app ->
+            startActivity(
+              Intent(webSiteIntent).apply {
+                component = app.component
+                flags = FLAG_ACTIVITY_CLEAR_TASK or FLAG_ACTIVITY_NEW_TASK
+              },
+            )
+            finish()
+          },
+          onDismiss = ::finish,
+        )
+      }
     }
+  }
 }

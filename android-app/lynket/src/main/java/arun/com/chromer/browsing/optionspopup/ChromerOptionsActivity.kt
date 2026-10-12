@@ -1,225 +1,88 @@
 /*
- *
  *  Lynket
  *
- *  Copyright (C) 2022 Arunkumar
+ *  Copyright (C) 2026 Arunkumar
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package arun.com.chromer.browsing.optionspopup
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import arun.com.chromer.R
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import arun.com.chromer.MainActivity
+import arun.com.chromer.browsing.customtabs.browsingUrl
 import arun.com.chromer.browsing.openwith.OpenIntentWithActivity
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.databinding.ActivityMoreMenuBinding
-import arun.com.chromer.databinding.ActivityMoreMenuItemTemplateBinding
 import arun.com.chromer.history.HistoryActivity
-import arun.com.chromer.MainActivity
-import arun.com.chromer.ui.navigation.Destination
-import arun.com.chromer.ui.navigation.LynketKey
 import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_ARTICLE
 import arun.com.chromer.shared.Constants.EXTRA_KEY_ORIGINAL_URL
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.shortcuts.HomeScreenShortcutCreatorActivity
 import arun.com.chromer.tabs.TabsManager
-import com.mikepenz.community_material_typeface_library.CommunityMaterial
-import com.mikepenz.iconics.IconicsDrawable
+import arun.com.chromer.ui.browsing.OptionItem
+import arun.com.chromer.ui.browsing.OptionsSheet
+import arun.com.chromer.ui.browsing.optionItems
+import arun.com.chromer.ui.navigation.Destination
+import arun.com.chromer.ui.navigation.LynketKey
+import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
-
+/**
+ * The "Lynket Options" item of the Custom Tab menu (and of the article and web view menus): one
+ * Compose sheet over the page with Settings, Tabs, New tab, History, Add to Home Screen, Open with…
+ * and Open article view.
+ */
 @AndroidEntryPoint
 class ChromerOptionsActivity : BaseActivity() {
-
-  private lateinit var binding: ActivityMoreMenuBinding
-  private var fromArticle: Boolean = false
 
   @Inject
   lateinit var tabsManager: TabsManager
 
   override val layoutRes: Int
-    get() = R.layout.activity_more_menu
+    get() = 0
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge()
     super.onCreate(savedInstanceState)
-    binding = ActivityMoreMenuBinding.inflate(layoutInflater)
-    setContentView(binding.root)
-    fromArticle = intent.getBooleanExtra(EXTRA_KEY_FROM_ARTICLE, false)
-    binding.moreMenuList.layoutManager = LinearLayoutManager(this)
-    binding.moreMenuList.adapter = MenuListAdapter()
+    val url = intent.browsingUrl()
+    val items = optionItems(fromArticle = intent.getBooleanExtra(EXTRA_KEY_FROM_ARTICLE, false))
+    setContent {
+      ChromerThemeFromSettings {
+        OptionsSheet(items = items, urlKnown = url != null, onPick = { pick(it, url) }, onDismiss = ::finish)
+      }
+    }
   }
 
-
-  inner class MenuListAdapter
-  internal
-  constructor() : RecyclerView.Adapter<MenuListAdapter.MenuItemHolder>() {
-    private val settings = "settings"
-    private val history = "history"
-    private val addToHomeScreen = "addToHomeScreen"
-    private val openWith = "openWith"
-    private val article = "article"
-    private val tabs = "tabs"
-    private val newTab = "newTab"
-
-    private val items = mutableListOf(
-      settings,
-      tabs,
-      newTab,
-      history,
-      addToHomeScreen,
-      openWith,
-      article
-    )
-
-    init {
-      if (fromArticle) {
-        items.remove(article)
-      }
-    }
-
-
-    override fun onCreateViewHolder(
-      parent: ViewGroup,
-      viewType: Int
-    ): MenuItemHolder {
-      val binding = ActivityMoreMenuItemTemplateBinding.inflate(
-        LayoutInflater.from(parent.context),
-        parent,
-        false
+  private fun pick(item: OptionItem, url: String?) {
+    when (item) {
+      OptionItem.Settings -> startActivity(
+        Intent(this, MainActivity::class.java)
+          .putExtra(Destination.EXTRA, Destination.nameOf(LynketKey.Settings))
+          .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
       )
-      return MenuItemHolder(binding)
-    }
-
-
-    override fun onBindViewHolder(holder: MenuItemHolder, position: Int) {
-      val activity = this@ChromerOptionsActivity
-      when (items[position]) {
-        settings -> {
-          holder.binding.menuImage.setImageDrawable(
-            IconicsDrawable(holder.itemView.context)
-              .icon(CommunityMaterial.Icon.cmd_settings)
-              .colorRes(R.color.accent)
-              .sizeDp(24)
-          )
-          holder.binding.menuText.setText(R.string.settings)
-          holder.itemView.setOnClickListener {
-            startActivity(
-              Intent(activity, MainActivity::class.java)
-                .putExtra(Destination.EXTRA, Destination.nameOf(LynketKey.Settings))
-                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            )
-            activity.finish()
-          }
-        }
-        tabs -> {
-          holder.binding.menuImage.setImageResource(R.drawable.ic_tabs_24dp)
-          holder.binding.menuText.setText(R.string.title_tabs)
-          holder.itemView.setOnClickListener {
-            tabsManager.showTabsActivity()
-            activity.finish()
-          }
-        }
-        newTab -> {
-          holder.binding.menuImage.setImageResource(R.drawable.ic_plus_24dp)
-          holder.binding.menuText.setText(R.string.new_tab_text)
-          holder.itemView.setOnClickListener {
-            tabsManager.openNewTab(activity, "")
-            activity.finish()
-          }
-        }
-        history -> {
-          holder.binding.menuImage.setImageDrawable(
-            IconicsDrawable(holder.itemView.context)
-              .icon(CommunityMaterial.Icon.cmd_history)
-              .colorRes(R.color.accent)
-              .sizeDp(24)
-          )
-          holder.binding.menuText.setText(R.string.title_history)
-          holder.itemView.setOnClickListener {
-            startActivity(
-              Intent(
-                activity,
-                HistoryActivity::class.java
-              )
-            )
-            activity.finish()
-          }
-        }
-        addToHomeScreen -> {
-          holder.binding.menuImage.setImageDrawable(
-            IconicsDrawable(holder.itemView.context)
-              .icon(CommunityMaterial.Icon.cmd_home_variant)
-              .colorRes(R.color.accent)
-              .sizeDp(24)
-          )
-          holder.binding.menuText.setText(R.string.add_to_homescreen)
-          holder.itemView.setOnClickListener {
-            startActivity(
-              Intent(
-                activity,
-                HomeScreenShortcutCreatorActivity::class.java
-              ).setData(intent.data)
-            )
-            activity.finish()
-          }
-        }
-        openWith -> {
-          holder.binding.menuImage.setImageDrawable(
-            IconicsDrawable(holder.itemView.context)
-              .icon(CommunityMaterial.Icon.cmd_open_in_new)
-              .colorRes(R.color.accent)
-              .sizeDp(24)
-          )
-          holder.binding.menuText.setText(R.string.open_with)
-          holder.itemView.setOnClickListener {
-            startActivity(Intent(activity, OpenIntentWithActivity::class.java).apply {
-              data = intent.data
-              putExtra(EXTRA_KEY_ORIGINAL_URL, intent.dataString)
-            })
-            activity.finish()
-          }
-        }
-        article -> {
-          holder.binding.menuImage.setImageDrawable(
-            IconicsDrawable(holder.itemView.context)
-              .icon(CommunityMaterial.Icon.cmd_file_document)
-              .colorRes(R.color.accent)
-              .sizeDp(24)
-          )
-          holder.binding.menuText.setText(R.string.open_article_view)
-          holder.itemView.setOnClickListener {
-            tabsManager.openArticle(
-              activity,
-              Website(intent.dataString!!)
-            )
-            activity.finish()
-          }
-        }
+      OptionItem.Tabs -> tabsManager.showTabsActivity()
+      OptionItem.NewTab -> tabsManager.openNewTab(this, "")
+      OptionItem.History -> startActivity(Intent(this, HistoryActivity::class.java))
+      OptionItem.AddToHomeScreen -> url?.let {
+        startActivity(Intent(this, HomeScreenShortcutCreatorActivity::class.java).setData(Uri.parse(it)))
       }
+      OptionItem.OpenWith -> url?.let {
+        startActivity(
+          Intent(this, OpenIntentWithActivity::class.java)
+            .setData(Uri.parse(it))
+            .putExtra(EXTRA_KEY_ORIGINAL_URL, it),
+        )
+      }
+      OptionItem.ArticleView -> url?.let { tabsManager.openArticle(this, Website(it)) }
     }
-
-    override fun getItemCount() = items.size
-
-    inner class MenuItemHolder(val binding: ActivityMoreMenuItemTemplateBinding) :
-      RecyclerView.ViewHolder(binding.root)
+    finish()
   }
 }
