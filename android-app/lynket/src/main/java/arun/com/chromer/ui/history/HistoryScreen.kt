@@ -78,6 +78,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.fromHtml
@@ -321,7 +322,7 @@ fun HistoryContent(
   when (state.dialog) {
     HistoryDialog.ClearConfirm -> AlertDialog(
       onDismissRequest = actions.onDismissDialog,
-      modifier = Modifier.testTag("clear-dialog"),
+      modifier = Modifier.testTag("clear-dialog").semantics { testTagsAsResourceId = true },
       icon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
       title = { Text(stringResource(R.string.are_you_sure)) },
       text = { Text(stringResource(R.string.history_deletion_confirmation_content)) },
@@ -338,7 +339,7 @@ fun HistoryContent(
     )
     HistoryDialog.IncognitoExplanation -> AlertDialog(
       onDismissRequest = actions.onDismissDialog,
-      modifier = Modifier.testTag("incognito-dialog"),
+      modifier = Modifier.testTag("incognito-dialog").semantics { testTagsAsResourceId = true },
       icon = { Icon(Icons.Outlined.VisibilityOff, contentDescription = null) },
       title = { Text(stringResource(R.string.incognito_mode)) },
       text = { Text(stringResource(R.string.full_incognito_mode_explanation)) },

@@ -55,6 +55,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -200,7 +202,7 @@ fun TabsContent(state: TabsUiState, closeIcon: Boolean, actions: TabsActions) {
   if ((state as? TabsUiState.Loaded)?.confirmCloseAll == true) {
     AlertDialog(
       onDismissRequest = actions.onDismissCloseAll,
-      modifier = Modifier.testTag("close-all-dialog"),
+      modifier = Modifier.testTag("close-all-dialog").semantics { testTagsAsResourceId = true },
       title = { Text(stringResource(R.string.are_you_sure)) },
       text = { Text(stringResource(R.string.tab_deletion_confirmation_content)) },
       confirmButton = {
