@@ -158,7 +158,7 @@ stored() {  # $1 = settings key: the value the debug dump receiver reports
 click_tile() {  # $1 = tile class
   a shell cmd statusbar add-tile "$PKG/$1" >/dev/null 2>&1 || true
   a shell cmd statusbar expand-settings >/dev/null 2>&1 || true
-  sleep 4
+  sleep 6  # a busy emulator opens Quick Settings slowly, and a click before that is lost
   a shell cmd statusbar click-tile "$PKG/$1" >/dev/null
   sleep 2
   a shell cmd statusbar collapse >/dev/null 2>&1 || true
@@ -166,7 +166,12 @@ click_tile() {  # $1 = tile class
 }
 
 article_mode() {  # $1 = true|false
-  [ "$(stored article_mode_pref)" = "$1" ] || click_tile "$ARTICLE_TILE"
+  local attempt
+  for attempt in 1 2 3; do
+    [ "$(stored article_mode_pref)" = "$1" ] && return 0
+    [ "$attempt" = 1 ] || log "article mode still not $1; clicking the Article tile again (attempt $attempt)"
+    click_tile "$ARTICLE_TILE"
+  done
   [ "$(stored article_mode_pref)" = "$1" ] || fail "the Article tile did not set article mode to $1"
 }
 
@@ -406,9 +411,10 @@ image)
   wait_for 'resource-id="image-viewer"' || fail "the image viewer did not open"
   capture image-before-zoom
   read -r W H < <(screen_size)
-  a shell input tap $((W / 2)) $((H / 2))
-  sleep 0.2
-  a shell input tap $((W / 2)) $((H / 2))
+  # Both taps in one shell call with a device-side gap: two adb round trips on a busy host can
+  # exceed the double-tap timeout (300 ms), and taps closer than the double-tap minimum (40 ms)
+  # do not count as a double tap either.
+  a shell "input tap $((W / 2)) $((H / 2)); sleep 0.12; input tap $((W / 2)) $((H / 2))"
   sleep 2
   capture image-after-zoom
   ui_dump | grep -qF 'resource-id="image-zoomed"' && log "double tap zoomed in" || fail "double tap did not zoom"
@@ -460,17 +466,53 @@ webview)
   ;;
 
 bubble)
+  # webheads-check.sh ac23 leaves the bubble collapsed. Folding locks the screen, as on a real
+  # device, and the system collapses an open bubble then; the page must survive in the same
+  # activity, so each step expands the bubble again from the shell's stack position.
+  expand_bubble() {
+    a shell input keyevent KEYCODE_WAKEUP
+    a shell wm dismiss-keyguard
+    sleep 2
+    local xy _
+    xy="$(a shell dumpsys activity service com.android.systemui/.SystemUIService WMShell | tr -d '\r' |
+      sed -nE 's/.*currentStackPos: *PointF\((-?[0-9.]+), *(-?[0-9.]+)\).*/\1 \2/p' | head -1 |
+      awk 'NF == 2 { x = $1 < 0 ? 0 : $1; print int(x + 70), int($2 + 70) }' || true)"
+    [ -n "$xy" ] || fail "no bubble on screen; run webheads-check.sh <serial> <dir> ac23 first"
+    for _ in 1 2 3; do
+      top_activity | grep -q "EmbeddableWebViewActivity" && return 0
+      # shellcheck disable=SC2086
+      a shell input tap $xy
+      sleep 4
+    done
+    top_activity | grep -q "EmbeddableWebViewActivity"
+  }
+  bubble_record() {  # the activity record of the bubble's page (same record = same activity)
+    a shell dumpsys activity activities | tr -d '\r' | grep -m1 -oE "ActivityRecord\{[0-9a-f]+ u0 $PKG/[^ ]*EmbeddableWebViewActivity" || true
+  }
+  a shell input keyevent KEYCODE_WAKEUP
+  a shell wm dismiss-keyguard
+  a shell input keyevent KEYCODE_HOME
+  sleep 2
   a logcat -c
-  log "top before fold: $(top_activity)"
+  expand_bubble || fail "the bubble did not open the page"
+  before="$(bubble_record)"
+  log "top before fold: $(top_activity) ($before)"
   capture bubble-unfolded
   a emu fold >/dev/null 2>&1 || log "emu fold not supported here"
   sleep 4
+  expand_bubble || fail "the bubble did not open the page on the folded screen"
   capture bubble-folded
+  log "top folded: $(top_activity) ($(bubble_record))"
   a emu unfold >/dev/null 2>&1 || true
   sleep 4
+  expand_bubble || fail "the bubble did not open the page after unfold"
   capture bubble-unfolded-again
+  after="$(bubble_record)"
+  log "top after unfold: $(top_activity) ($after)"
+  [ -n "$before" ] && [ "$before" = "$after" ] || fail "the bubble's page activity changed across fold and unfold"
+  grep -qF 'resource-id="webview-top-bar"' "$OUT/bubble-unfolded-again.xml" || fail "no web view in the bubble after unfold"
   log "WebView created lines after fold and unfold: $(created_count)"
-  [ "$(created_count)" -le 1 ] || fail "fold or unfold created a second WebView"
+  [ "$(created_count)" = 0 ] || fail "fold or unfold created a new WebView"
   crash_check bubble
   ;;
 
