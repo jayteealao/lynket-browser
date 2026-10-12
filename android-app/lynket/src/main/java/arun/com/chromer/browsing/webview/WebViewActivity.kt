@@ -70,8 +70,6 @@ open class WebViewActivity : BrowsingActivity() {
   @Inject
   lateinit var menuDelegate: MenuDelegate
 
-  override val layoutRes: Int = 0
-
   private var webView: WebView? = null
   private var swipeRefresh: SwipeRefreshLayout? = null
   private val bars = WebViewBarsState()

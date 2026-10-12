@@ -41,8 +41,6 @@ class BrowserInterceptActivity : BaseActivity() {
   @Inject
   lateinit var defaultTabsManager: TabsManager
 
-  override val layoutRes: Int get() = 0
-
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     intent?.let {

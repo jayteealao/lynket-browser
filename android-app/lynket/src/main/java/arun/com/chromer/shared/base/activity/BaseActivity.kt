@@ -23,14 +23,10 @@
 
 package arun.com.chromer.shared.base.activity
 
-import android.os.Bundle
 import android.view.MenuItem
-import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import arun.com.chromer.R
 import arun.com.chromer.util.lifecycle.ActivityLifecycleEvents
-import butterknife.ButterKnife
-import butterknife.Unbinder
 import javax.inject.Inject
 
 /**
@@ -42,26 +38,8 @@ import javax.inject.Inject
  */
 abstract class BaseActivity : AppCompatActivity() {
 
-  protected var unbinder: Unbinder? = null
-
-  @get:LayoutRes
-  protected abstract val layoutRes: Int
-
   @Inject
   lateinit var lifecycleEvents: ActivityLifecycleEvents
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    if (layoutRes != 0) {
-      setContentView(layoutRes)
-      unbinder = ButterKnife.bind(this)
-    }
-  }
-
-  override fun onDestroy() {
-    unbinder?.unbind()
-    super.onDestroy()
-  }
 
   override fun onOptionsItemSelected(item: MenuItem): Boolean {
     if (item.itemId == R.id.home) {

@@ -17,7 +17,6 @@ coreKtx = "1.15.0"
 appcompat = "1.7.0"
 material = "1.12.0"
 browser = "1.8.0"
-constraintlayout = "2.2.0"
 lifecycleRuntimeKtx = "2.10.0"
 
 # Dependency Injection - Hilt
@@ -43,8 +42,6 @@ coil = "3.6.3"
 
 # Legacy dependencies (will be removed)
 # Keep temporarily during migration
-butterknife = "10.2.3"
-epoxy = "4.6.4"
 # Phase 8: RxJava versions removed - migrated to Kotlin Coroutines/Flows
 paperdb = "2.6"
 
@@ -74,7 +71,6 @@ ksp-gradle-plugin = { group = "com.google.devtools.ksp", name = "symbol-processi
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
-androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-multidex = { group = "androidx.multidex", name = "multidex", version.ref = "multidex" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
@@ -162,10 +158,6 @@ roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "robora
 
 # Legacy - TO BE REMOVED
 # Keep during migration, will be removed in Steps 9-10
-butterknife = { group = "com.jakewharton", name = "butterknife", version.ref = "butterknife" }
-butterknife-compiler = { group = "com.jakewharton", name = "butterknife-compiler", version.ref = "butterknife" }
-epoxy = { group = "com.airbnb.android", name = "epoxy", version.ref = "epoxy" }
-epoxy-processor = { group = "com.airbnb.android", name = "epoxy-processor", version.ref = "epoxy" }
 # Phase 8: RxJava library declarations removed - migrated to Kotlin Coroutines/Flows
 
 [plugins]

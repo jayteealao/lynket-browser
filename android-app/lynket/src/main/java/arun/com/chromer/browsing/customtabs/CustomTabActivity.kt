@@ -67,5 +67,4 @@ class CustomTabActivity : BrowsingActivity() {
 
   }
 
-  override val layoutRes: Int get() = 0
 }

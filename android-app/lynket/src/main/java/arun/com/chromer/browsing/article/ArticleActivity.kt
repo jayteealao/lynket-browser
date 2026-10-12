@@ -66,8 +66,6 @@ import javax.inject.Inject
 class ArticleActivity : BrowsingActivity() {
   private val viewModel: BrowsingArticleViewModel by viewModels()
 
-  override val layoutRes: Int get() = 0
-
   @Inject
   lateinit var tabsManager: TabsManager
 

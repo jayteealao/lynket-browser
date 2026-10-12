@@ -55,9 +55,6 @@ class ShareInterceptActivity : BaseActivity() {
   @Inject
   lateinit var searchProviders: SearchProviders
 
-  override val layoutRes: Int
-    get() = 0
-
   @TargetApi(Build.VERSION_CODES.M)
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)

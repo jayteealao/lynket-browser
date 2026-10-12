@@ -31,9 +31,6 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class OpenIntentWithActivity : BaseActivity() {
 
-  override val layoutRes: Int
-    get() = 0
-
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)

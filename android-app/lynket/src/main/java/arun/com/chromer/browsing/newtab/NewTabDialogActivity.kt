@@ -33,9 +33,6 @@ class NewTabDialogActivity : BaseActivity() {
 
   private val viewModel: NewTabViewModel by viewModels()
 
-  override val layoutRes: Int
-    get() = 0
-
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)

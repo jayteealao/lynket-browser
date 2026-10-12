@@ -39,8 +39,6 @@ class HomeScreenShortcutCreatorActivity : BrowsingActivity() {
 
   private val viewModel: ShortcutCreatorViewModel by viewModels()
 
-  override val layoutRes: Int get() = 0
-
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)

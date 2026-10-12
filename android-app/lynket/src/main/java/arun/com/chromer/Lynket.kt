@@ -31,7 +31,6 @@ import arun.com.chromer.util.image.ApplicationIconFetcher
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import com.airbnb.epoxy.EpoxyController
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -69,12 +68,6 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
     // Links now name their source app when they open, so the old app-detection service and its
     // notification channel are gone; remove the channel earlier versions created.
     NotificationManagerCompat.from(this).deleteNotificationChannel(OLD_APP_DETECTION_CHANNEL)
-
-    initEpoxy()
-  }
-
-  private fun initEpoxy() {
-    EpoxyController.setGlobalDebugLoggingEnabled(true)
   }
 
   /**

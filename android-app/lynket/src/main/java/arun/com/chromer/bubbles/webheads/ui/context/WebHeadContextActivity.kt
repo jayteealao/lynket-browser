@@ -61,9 +61,6 @@ class WebHeadContextActivity : BaseActivity(), WebHeadContextActions {
   /** The sites on the sheet, kept in sync with the heads through the service's broadcasts. */
   internal val websites = mutableStateListOf<Website>()
 
-  override val layoutRes: Int
-    get() = 0
-
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)

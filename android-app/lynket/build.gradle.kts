@@ -52,7 +52,6 @@ android {
         buildConfig = true
         resValues = true // AGP 9 turns resValue off by default; every build type sets app_name
         compose = true
-        viewBinding = true // Temporary - will be removed after migration
     }
 
     buildTypes {
@@ -126,7 +125,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.browser)
-    implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.multidex)
     implementation(libs.material)
 
@@ -216,35 +214,10 @@ dependencies {
     androidTestImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    // =============================================
-    // LEGACY DEPENDENCIES - TO BE REMOVED
-    // Keep temporarily during migration (Steps 3-9)
-    // =============================================
-
-    // Butterknife and Epoxy have no KSP processor; they run on the temporary legacy-kapt bridge
-    // and leave with the last View-based screens.
-    // Legacy: View Binding - Butterknife
-    implementation(libs.butterknife)
-    kapt(libs.butterknife.compiler)
-
-    // Legacy: RecyclerView - Epoxy
-    implementation(libs.epoxy)
-    kapt(libs.epoxy.processor)
-
-    // Phase 8: RxJava dependencies removed - migrated to Kotlin Coroutines/Flows
-
-    // Legacy: UI Libraries
-
-    // Legacy: AndroidX (old versions, will be updated)
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
-    implementation("androidx.cardview:cardview:1.0.0")
-    implementation("androidx.palette:palette-ktx:1.0.0")
-    implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
-    implementation("androidx.fragment:fragment-ktx:1.6.2") // Updated for viewModels() delegate
+    // AndroidX libraries without a catalog entry
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0") // pull to refresh in the web view
+    implementation("androidx.palette:palette-ktx:1.0.0") // website and app colours
     implementation(libs.androidx.activity.ktx)
-
-    // Legacy: Other
-    implementation("com.github.duanhong169:drawabletoolbox:1.0.7")
 
     // Disk LRU cache module
     implementation(project(":disk-cache"))
