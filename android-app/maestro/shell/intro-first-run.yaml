@@ -1,0 +1,36 @@
+# A fresh install shows the intro once: the first launch opens on its first page and Skip leads to
+# home; the second launch opens on home with no intro. Run by shell-check.sh intro, right after a
+# fresh install of the debug build.
+appId: arun.com.chromer.debug
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: { id: "intro" }
+    timeout: 30000
+- assertVisible: { id: "intro-skip" }
+- assertVisible: { id: "intro-next" }
+- takeScreenshot: ${OUT}/intro-launch-1
+- tapOn: { id: "intro-skip" }
+- waitForAnimationToEnd
+# The changelog of a fresh install sits under the intro; OK closes it.
+- runFlow:
+    when:
+      visible: "Changelog"
+    commands:
+      - takeScreenshot: ${OUT}/intro-changelog
+      - tapOn: "OK"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: { id: "home-search-field" }
+    timeout: 10000
+- takeScreenshot: ${OUT}/intro-home-after-skip
+- stopApp
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: { id: "home-search-field" }
+    timeout: 30000
+- assertNotVisible: { id: "intro" }
+- assertNotVisible: "Changelog"
+- takeScreenshot: ${OUT}/intro-launch-2
