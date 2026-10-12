@@ -41,6 +41,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import kotlin.time.Duration.Companion.seconds
+import androidx.paging.PagingSource
+import arun.com.chromer.data.database.entity.toEntity
 
 /**
  * Phase 5: Integration tests for ModernHistoryRepository
@@ -555,5 +557,43 @@ class ModernHistoryRepositoryTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ========== History screen: full search and undo ==========
+
+    @Test
+    fun `searchPaged returns every match beyond five, newest first`() = runTest {
+        repeat(12) { n ->
+            websiteDao.insert(
+                createSampleWebsite(url = "https://match.example/$n", title = "Match $n").toEntity()
+                    .copy(createdAt = 1_000L + n)
+            )
+        }
+        websiteDao.insert(createSampleWebsite(url = "https://other.example", title = "Other").toEntity())
+
+        val page = websiteDao.searchPaged("match")
+            .load(PagingSource.LoadParams.Refresh(key = null, loadSize = 50, placeholdersEnabled = false))
+            as PagingSource.LoadResult.Page
+
+        assertThat(page.data.map { it.url }).containsExactlyElementsIn(
+            (11 downTo 0).map { "https://match.example/$it" }
+        ).inOrder()
+        assertThat(repository.search("match")).hasSize(5)
+    }
+
+    @Test
+    fun `restore puts a deleted row back with its time and visit count`() = runTest {
+        val site = createSampleWebsite(url = "https://undo.example", visitCount = 4, isBookmarked = true)
+        websiteDao.insert(site.toEntity().copy(createdAt = 42_000L))
+        val stored = repository.getByUrl("https://undo.example")!!
+
+        assertThat(repository.delete(stored)).isTrue()
+        assertThat(repository.getByUrl("https://undo.example")).isNull()
+
+        assertThat(repository.restore(stored)).isTrue()
+        val back = repository.getByUrl("https://undo.example")!!
+        assertThat(back.createdAt).isEqualTo(42_000L)
+        assertThat(back.count).isEqualTo(4)
+        assertThat(back.bookmarked).isTrue()
     }
 }
