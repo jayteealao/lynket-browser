@@ -43,6 +43,8 @@ Run from `android-app/`:
 - `bash maestro/webheads/webheads-check.sh <serial> <dir> <ac19|ac22|ac23>` - Web heads on a device: a head and the trash window and their removal (ac19); the permission explainer, the special-use foreground start and the tab fallback when the start is refused (ac22); a native bubble that opens its page (ac23)
 - `bash maestro/webheads/drag-check.sh <serial> <dir>` - Records drag, fling, edge snap, trash, queue, list and tap; a person watches `drag.mp4` and signs `feel-checklist.md`
 - `bash maestro/webheads/charter-check.sh <serial> <dir>` - From a 2.1.3 install: upgrade, a link in a tab, web heads turned on through the explainer, the drag check and a native bubble
+- `bash maestro/shell/shell-check.sh <serial> <dir> <intro|seed-recents|captures|offline|back-gesture|deeplink>` - Home and first run on a device: the intro once on a fresh install, captures of every shell screen, the offline message, a held back swipe from About, Tips and the drawer, and a web link handed to the launcher (intro, captures and offline reinstall the debug build)
+- `bash maestro/shell/legacy-2.1.3-captures.sh <serial> <dir>` - Reference captures of release 2.1.3's intro, changelog, home, menu, About and Tips (installs the existing 2.1.3 APK, then removes it)
 
 ### Build System
 
@@ -65,7 +67,9 @@ Production module with extensive feature set:
 Key packages:
 - `browsing/` - Core browsing functionality including custom tabs, webview, article mode, AMP support
 - `bubbles/webheads/` - Floating bubble-style browser windows
-- `home/` - Main launcher activity
+- `home/` - The home's view model (`ModernHomeViewModel`) and provider info
+- `ui/navigation/` - The Navigation 3 shell: keys, the navigator and the one `NavDisplay`
+- `ui/home/`, `ui/intro/`, `ui/about/`, `ui/tips/`, `ui/changelog/` - The Compose home (search bar, drawer, feed), first run, About, Tips and the changelog dialog
 - `settings/` - App settings and preferences
 - `di/` - Dependency injection components (AppComponent, ActivityComponent, ServiceComponent, FragmentComponent, ViewComponent)
 - `data/` - Data layer and repositories
@@ -87,16 +91,25 @@ Every activity, fragment, view, service and receiver is injected by Hilt with `@
 
 ### Main Entry Points
 
-1. **HomeActivity** (`home/HomeActivity.kt`) - Main launcher activity
+1. **MainActivity** (`MainActivity.kt`) - The launcher activity and the only host of in-app navigation
 2. **BrowserInterceptActivity** (`browsing/browserintercept/BrowserInterceptActivity.kt`) - Handles VIEW intents for http/https URLs
 3. **Lynket** Application class initializes:
    - Dagger/Whetstone DI
    - the settings and per-app rule stores (DataStore)
    - RxDogTag (debug builds)
    - Timber logging (debug builds)
-   - Material Drawer with Glide
    - Epoxy
    - MultiDex
+
+### In-app navigation (Navigation 3)
+
+- Every in-app screen is a `@Serializable` `LynketKey` (`ui/navigation/LynketKeys.kt`) on one back stack, `rememberNavBackStack` in `MainActivity`, shown by `LynketNavDisplay` (`ui/navigation/ChromerNavigation.kt`), the only `NavDisplay`. Screens take a `LynketNavigator` (`navigate`, `back`, `remove`); there is no NavHost or NavController.
+- A fresh start (no saved state) builds the first stack once with `LynketNavigator.initialKeys`: home, the changelog when the version changed (`Changelog.shouldShow`), the intro on a first run (`Preferences.isFirstRun`) and a web link handed to the activity. A restored process keeps its saved stack.
+- The changelog is a dialog destination (`DialogSceneStrategy`). Back pops one key; at the root the activity finishes. Predictive back previews the previous destination.
+- Links reach the activity through `WebUrlDeepLinkMatcher` (http and https only); a malformed one shows the link error state.
+- Shared states live in `ui/components/`: `EmptyState`, `ErrorState`, `LoadingList`/`LoadingTiles` and `showTransientError` for snackbars. `NetworkMonitor` (`util/network/`) reports connectivity for the offline message.
+- `MainActivity` exposes Compose test tags as resource ids for the device checks. Tests swap screens through `LynketEntries`; text with links never goes idle inside a Robolectric dialog window, so back stack tests fake the changelog content and `ShellGoldenTest` covers the real one.
+- Settings still opens the View-based `SettingsGroupActivity`, whose parent is now `MainActivity`.
 
 ### Browsing Modes
 
@@ -134,7 +147,7 @@ The app supports multiple browsing modes:
 - **Compose**: Material, UI, Tooling (in both modules, different versions)
 - **Reactive**: RxJava, RxAndroid, RxBinding, RxKotlin, RxRelay, RxKPrefs
 - **DI**: Dagger 2.42 (lynket), Dagger 2.50 + Whetstone 0.6.0 (playground)
-- **UI Libraries**: Material Drawer, MaterialDialogs, AppIntro, PhotoView
+- **UI Libraries**: MaterialDialogs, PhotoView, Iconics core (icons of the remaining View screens), Navigation 3
 - **Personal Libraries**: Custom utils from `dev.arunkumar.android` (snapshots)
 
 ## Permissions
