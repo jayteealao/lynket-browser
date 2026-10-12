@@ -13,11 +13,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinParcelize)
     alias(libs.plugins.kotlin.serialization)
-    // Temporary: runs the Butterknife and Epoxy processors, which have no KSP version.
-    // Removed together with the last View-based screens.
-    alias(libs.plugins.legacyKapt)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt) // Phase 1.1: Enabled for modernization
+    alias(libs.plugins.hilt)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.roborazzi)
     alias(libs.plugins.room3)
@@ -242,14 +239,6 @@ kotlin {
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
             "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
         )
-    }
-}
-
-// KAPT Configuration (legacy-kapt bridge: Butterknife and Epoxy only)
-kapt {
-    correctErrorTypes = true
-    javacOptions {
-        option("-Xmaxerrs", "500")
     }
 }
 

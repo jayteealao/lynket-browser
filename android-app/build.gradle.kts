@@ -10,7 +10,6 @@ buildscript {
 plugins {
   alias(libs.plugins.androidApplication) apply false
   alias(libs.plugins.androidLibrary) apply false
-  alias(libs.plugins.legacyKapt) apply false
   alias(libs.plugins.kotlinParcelize) apply false
   alias(libs.plugins.kotlin.serialization) apply false
   alias(libs.plugins.ksp) apply false
