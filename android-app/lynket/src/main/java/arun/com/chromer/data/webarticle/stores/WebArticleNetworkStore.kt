@@ -27,6 +27,7 @@ import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.util.parser.RxParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -62,6 +63,7 @@ class WebArticleNetworkStore @Inject constructor() : WebArticleStore {
                 null
             }
         } catch (e: Exception) {
+            Timber.e(e, "Article extraction failed for %s", url)
             null
         }
     }
