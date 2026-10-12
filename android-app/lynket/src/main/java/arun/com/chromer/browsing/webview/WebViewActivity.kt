@@ -21,230 +21,201 @@
 package arun.com.chromer.browsing.webview
 
 import android.annotation.SuppressLint
-import android.content.res.ColorStateList
 import android.graphics.Bitmap
-import android.graphics.drawable.ColorDrawable
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
-import android.text.TextUtils
-import android.view.InflateException
-import android.view.Menu
-import android.view.MenuItem
+import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import arun.com.chromer.R
 import arun.com.chromer.browsing.BrowsingActivity
-import arun.com.chromer.browsing.EXTRA_CURRENT_LOADING_URL
 import arun.com.chromer.browsing.menu.MenuDelegate
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.databinding.ActivityWebViewBinding
-import arun.com.chromer.extenstions.applyColor
-import arun.com.chromer.extenstions.setAutoHideProgress
 import arun.com.chromer.shared.Constants
+import arun.com.chromer.ui.theme.ChromerThemeFromSettings
+import arun.com.chromer.ui.webview.WebViewBarsState
+import arun.com.chromer.ui.webview.WebViewPage
+import arun.com.chromer.ui.webview.WebViewScreen
 import arun.com.chromer.util.ColorUtil
-import arun.com.chromer.util.Utils
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
 
+/**
+ * The built-in web view. It keeps its class name and manifest entry (tab detection and native
+ * Bubbles, through [EmbeddableWebViewActivity], start it by name). The WebView is a View created
+ * once per activity and shown inside the Compose screen through an AndroidView, wrapped by a
+ * SwipeRefreshLayout for pull to refresh. The manifest handles rotation, fold and bubble resize
+ * itself, so the page and its history stay; saveState covers process death.
+ */
 @AndroidEntryPoint
 open class WebViewActivity : BrowsingActivity() {
-  // Inflated on first use: BrowsingActivity.onCreate can ask for the current URL or apply a known
-  // toolbar colour (a bubble passes the site colour) before this class's onCreate continues.
-  private val binding by lazy { ActivityWebViewBinding.inflate(layoutInflater) }
   @Inject
   lateinit var menuDelegate: MenuDelegate
 
-  private var themeColor = 0
-  private var fgColorStateList: ColorStateList = ColorStateList.valueOf(0)
-  private var foregroundColor = 0
+  override val layoutRes: Int = 0
 
-  override val layoutRes: Int = 0 // Using ViewBinding instead
+  private var webView: WebView? = null
+  private var swipeRefresh: SwipeRefreshLayout? = null
+  private val bars = WebViewBarsState()
+  private var page by mutableStateOf(WebViewPage(title = "", address = "", progress = 0))
+  private var toolbarColour by mutableIntStateOf(0)
 
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    setContentView(binding.root)
-
-    // Back goes through the page history first; with predictive back (targetSdk 36) the system no
-    // longer calls onBackPressed, so the callback is enabled only while the page can go back.
-    onBackPressedDispatcher.addCallback(this, webBackCallback)
-
-    setupToolbar()
-    setupSwipeRefresh()
-    setupWebView(savedInstanceState)
-    setupBottomBar()
-  }
-
+  // Back goes through the page history first; with predictive back (targetSdk 36) the system no
+  // longer calls onBackPressed, so the callback is enabled only while the page can go back.
   private val webBackCallback = object : OnBackPressedCallback(false) {
     override fun handleOnBackPressed() {
-      binding.activityWebViewContent.webView.goBack()
+      webView?.goBack()
     }
   }
 
-  override fun getCurrentUrl(): String {
-    return if (binding.activityWebViewContent.webView.url != null)
-      binding.activityWebViewContent.webView.url!!
-    else super.getCurrentUrl()
+  override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge()
+    super.onCreate(savedInstanceState)
+    val url = intent?.dataString ?: return // BrowsingActivity already closed with a message.
+    toolbarColour = intent.getIntExtra(Constants.EXTRA_KEY_TOOLBAR_COLOR, ContextCompat.getColor(this, R.color.colorPrimary))
+    page = page.copy(title = website?.safeLabel() ?: url, address = url)
+
+    val view = try {
+      WebView(this)
+    } catch (e: Exception) {
+      // The WebView package is missing or disabled.
+      Timber.e(e)
+      Toast.makeText(this, R.string.web_view_not_found, Toast.LENGTH_LONG).show()
+      finish()
+      return
+    }
+    Timber.d("WebView created")
+    webView = view
+    setupWebView(view)
+    val restored = savedInstanceState?.getBundle(KEY_WEB_VIEW_STATE)?.let { view.restoreState(it) } != null
+    if (!restored) view.loadUrl(url)
+    onBackPressedDispatcher.addCallback(this, webBackCallback)
+
+    val menuItems = menuDelegate.menuItems()
+    val bottomBarItems = menuDelegate.bottomBarItems()
+    setContent {
+      ChromerThemeFromSettings {
+        WebViewScreen(
+          page = page,
+          toolbarColour = Color(toolbarColour),
+          menuItems = menuItems,
+          bottomBarItems = bottomBarItems,
+          bars = bars,
+          onClose = ::finish,
+          onMenuItem = { menuDelegate.handleItemSelected(it.id) },
+          modifier = Modifier.semantics { testTagsAsResourceId = true },
+        ) { modifier ->
+          AndroidView(
+            factory = { context ->
+              SwipeRefreshLayout(context).apply {
+                (view.parent as? ViewGroup)?.removeView(view)
+                addView(view, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                setOnRefreshListener { view.reload() }
+                setColorSchemeColors(toolbarColour, ColorUtil.getClosestAccentColor(toolbarColour))
+                swipeRefresh = this
+              }
+            },
+            onRelease = { layout ->
+              layout.removeAllViews()
+              swipeRefresh = null
+            },
+            modifier = modifier,
+          )
+        }
+      }
+    }
   }
 
-  override fun onCreateOptionsMenu(menu: Menu) = menuDelegate.createOptionsMenu(menu)
+  @SuppressLint("SetJavaScriptEnabled")
+  private fun setupWebView(view: WebView) {
+    view.webViewClient = object : WebViewClient() {
+      override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+        super.onPageStarted(view, url, favicon)
+        url?.let {
+          page = page.copy(address = it)
+          loadWebsiteDetails(it)
+        }
+      }
 
-  override fun onPrepareOptionsMenu(menu: Menu) = menuDelegate.prepareOptionsMenu(menu)
+      override fun onPageFinished(view: WebView?, url: String?) {
+        super.onPageFinished(view, url)
+        swipeRefresh?.isRefreshing = false
+      }
 
-  override fun onOptionsItemSelected(item: MenuItem): Boolean {
-    return menuDelegate.handleItemSelected(item.itemId)
+      override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+        super.doUpdateVisitedHistory(view, url, isReload)
+        webBackCallback.isEnabled = view?.canGoBack() == true
+      }
+    }
+    view.webChromeClient = object : WebChromeClient() {
+      override fun onReceivedTitle(view: WebView?, title: String?) {
+        super.onReceivedTitle(view, title)
+        if (!title.isNullOrEmpty()) page = page.copy(title = title)
+      }
+
+      override fun onProgressChanged(view: WebView?, newProgress: Int) {
+        super.onProgressChanged(view, newProgress)
+        page = page.copy(progress = newProgress)
+      }
+    }
+    view.settings.javaScriptEnabled = true
+    view.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY -> bars.onPageScroll(scrollY, oldScrollY) }
   }
 
-  private fun setupBottomBar() {
-    menuDelegate.setupBottombar(binding.bottomNavigation)
-  }
-
-  override fun onDestroy() {
-    binding.activityWebViewContent.webView.destroy()
-    super.onDestroy()
-  }
+  override fun getCurrentUrl(): String = webView?.url ?: super.getCurrentUrl()
 
   override fun onWebsiteLoaded(website: Website) {
-    val title = website.safeLabel()
-    setToolbarTitle(title)
-    setToolbarSubtitle(website.url)
+    page = page.copy(title = website.safeLabel(), address = website.url)
   }
 
   override fun onToolbarColorSet(websiteThemeColor: Int) {
     super.onToolbarColorSet(websiteThemeColor)
-    setAppBarColor(websiteThemeColor)
+    toolbarColour = websiteThemeColor
+    swipeRefresh?.setColorSchemeColors(websiteThemeColor, ColorUtil.getClosestAccentColor(websiteThemeColor))
+    // Status bar icons in the toolbar's foreground colour, as the legacy toolbar's content.
+    val lightContent = ColorUtil.getForegroundWhiteOrBlack(websiteThemeColor) == AndroidColor.WHITE
+    enableEdgeToEdge(
+      statusBarStyle = if (lightContent) {
+        SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+      } else {
+        SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+      },
+    )
   }
 
-  private fun setupSwipeRefresh() {
-    with(binding.activityWebViewContent.swipeRefreshLayout) {
-      setOnRefreshListener {
-        binding.activityWebViewContent.webView.reload()
-      }
-      setColorSchemeColors(
-        ContextCompat.getColor(context, R.color.primary),
-        ContextCompat.getColor(context, R.color.accent)
-      )
+  override fun onSaveInstanceState(outState: Bundle) {
+    super.onSaveInstanceState(outState)
+    webView?.let { view -> outState.putBundle(KEY_WEB_VIEW_STATE, Bundle().also { view.saveState(it) }) }
+  }
+
+  override fun onDestroy() {
+    webView?.let { view ->
+      (view.parent as? ViewGroup)?.removeView(view)
+      view.destroy()
     }
+    webView = null
+    super.onDestroy()
   }
 
-  private fun setupToolbar() {
-    setSupportActionBar(binding.toolbar)
-    supportActionBar?.apply {
-      setDisplayHomeAsUpEnabled(true)
-      setHomeAsUpIndicator(R.drawable.article_ic_close)
-      title = website?.safeLabel() ?: intent.dataString
-    }
-    val toolbarColor = intent.getIntExtra(Constants.EXTRA_KEY_TOOLBAR_COLOR, 0)
-    setAppBarColor(toolbarColor)
-  }
-
-  @SuppressLint("SetJavaScriptEnabled")
-  private fun setupWebView(savedInstanceState: Bundle?) {
-    try {
-      binding.activityWebViewContent.webView.apply {
-        webViewClient = object : WebViewClient() {
-          override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-            super.onPageStarted(view, url, favicon)
-            url?.let {
-              setToolbarSubtitle(url)
-              loadWebsiteDetails(url)
-            }
-          }
-
-          override fun onPageFinished(view: WebView?, url: String?) {
-            super.onPageFinished(view, url)
-            hideLoading()
-          }
-
-          override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
-            super.doUpdateVisitedHistory(view, url, isReload)
-            webBackCallback.isEnabled = view?.canGoBack() == true
-          }
-        }
-        webChromeClient = object : WebChromeClient() {
-          override fun onReceivedTitle(view: WebView?, title: String?) {
-            super.onReceivedTitle(view, title)
-            setToolbarTitle(title)
-          }
-
-          override fun onProgressChanged(view: WebView?, newProgress: Int) {
-            super.onProgressChanged(view, newProgress)
-            setLoadingProgress(newProgress)
-          }
-        }
-        settings.javaScriptEnabled = true
-        val previousUrl = savedInstanceState?.getString(EXTRA_CURRENT_LOADING_URL)
-        if (previousUrl == null) {
-          loadUrl(intent.dataString!!)
-        } else {
-          loadUrl(previousUrl)
-        }
-      }
-
-    } catch (e: InflateException) {
-      Timber.e(e)
-      Toast.makeText(this, R.string.web_view_not_found, Toast.LENGTH_LONG).show()
-      finish()
-    }
-  }
-
-  private fun setToolbarTitle(title: String?) {
-    if (!TextUtils.isEmpty(title)) {
-      binding.toolbar.title = title
-    }
-  }
-
-  private fun setToolbarSubtitle(subtitle: String?) {
-    if (!TextUtils.isEmpty(subtitle) && binding.toolbar.title != subtitle) {
-      binding.toolbar.subtitle = subtitle
-    }
-  }
-
-  private fun setAppBarColor(themeColor: Int) {
-    this.themeColor = themeColor
-    foregroundColor = ColorUtil.getForegroundWhiteOrBlack(themeColor)
-    fgColorStateList = ColorStateList.valueOf(foregroundColor)
-
-    binding.toolbar.apply {
-      setBackgroundColor(themeColor)
-      setTitleTextColor(foregroundColor)
-      setSubtitleTextColor(foregroundColor)
-      post {
-        navigationIcon = navigationIcon!!.applyColor(foregroundColor)
-        overflowIcon = overflowIcon!!.applyColor(foregroundColor)
-      }
-    }
-
-    binding.progressBar.apply {
-      useIntrinsicPadding = false
-      progressBackgroundTintList = ColorStateList.valueOf(themeColor)
-      progressTintList = ColorStateList.valueOf(foregroundColor)
-    }
-
-    binding.bottomNavigation.background = ColorDrawable(themeColor)
-    binding.bottomNavigation.itemIconTintList = ColorStateList.valueOf(foregroundColor)
-    binding.bottomNavigation.itemTextColor = ColorStateList.valueOf(foregroundColor)
-
-    binding.activityWebViewContent.swipeRefreshLayout.setColorSchemeColors(themeColor, ColorUtil.getClosestAccentColor(themeColor))
-    if (Utils.ANDROID_LOLLIPOP) {
-      window.statusBarColor = ColorUtil.getDarkenedColorForStatusBar(themeColor)
-    }
-  }
-
-  private fun setLoadingProgress(newProgress: Int) {
-    binding.progressBar.setAutoHideProgress(newProgress, fgColorStateList)
-  }
-
-
-  private fun showLoading() {
-    binding.activityWebViewContent.swipeRefreshLayout.isRefreshing = true
-  }
-
-
-  private fun hideLoading() {
-    binding.activityWebViewContent.swipeRefreshLayout.isRefreshing = false
+  private companion object {
+    const val KEY_WEB_VIEW_STATE = "web_view_state"
   }
 }

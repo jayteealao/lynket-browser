@@ -20,26 +20,47 @@
 
 package arun.com.chromer.browsing.article
 
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import arun.com.chromer.databinding.ActivityImageViewBinding
-import com.bumptech.glide.Glide
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import arun.com.chromer.R
+import arun.com.chromer.ui.reader.ImageViewerScreen
+import arun.com.chromer.ui.theme.ChromerTheme
+import arun.com.chromer.ui.theme.ThemeMode
+import arun.com.chromer.util.Utils
 
 /**
- * Activity for viewing full size images from an article. Images are zoomable. You can pass in the
- * image url from an intent with .setData(url).
+ * Full-size image from an article, with pinch zoom. Pass the image address with .setData(url).
+ * Close returns to the reader; Share sends the image address.
  */
-class ImageViewActivity : AppCompatActivity() {
-
-  private lateinit var binding: ActivityImageViewBinding
+class ImageViewActivity : ComponentActivity() {
 
   public override fun onCreate(savedInstanceState: Bundle?) {
+    val dark = SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+    enableEdgeToEdge(statusBarStyle = dark, navigationBarStyle = dark)
     super.onCreate(savedInstanceState)
-    binding = ActivityImageViewBinding.inflate(layoutInflater)
-    setContentView(binding.root)
-    val url = intent.dataString
-    Glide.with(this)
-      .load(url)
-      .into(binding.imageView)
+    val url = intent?.dataString
+    if (url.isNullOrBlank()) {
+      Toast.makeText(this, R.string.unsupported_link, Toast.LENGTH_SHORT).show()
+      finish()
+      return
+    }
+    setContent {
+      ChromerTheme(themeMode = ThemeMode.Dark) {
+        ImageViewerScreen(
+          url = url,
+          onClose = ::finish,
+          onShare = { Utils.shareText(this, url) },
+          modifier = Modifier.semantics { testTagsAsResourceId = true },
+        )
+      }
+    }
   }
 }

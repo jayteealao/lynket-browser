@@ -164,9 +164,11 @@
       android:theme="@style/Theme.AppCompat.Translucent" />
     <activity
       android:name=".browsing.webview.WebViewActivity"
+      android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboardHidden|uiMode"
       android:theme="@style/AppTheme.NoActionBar" />
     <activity
       android:name=".browsing.webview.EmbeddableWebViewActivity"
+      android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboardHidden|uiMode"
       android:allowEmbedded="true"
       android:documentLaunchMode="always"
       android:resizeableActivity="true"

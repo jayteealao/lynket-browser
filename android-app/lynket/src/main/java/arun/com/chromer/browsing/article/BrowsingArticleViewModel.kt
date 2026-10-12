@@ -1,4 +1,3 @@
-// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -21,60 +20,126 @@
 
 package arun.com.chromer.browsing.article
 
-import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import arun.com.chromer.data.Result
 import arun.com.chromer.data.webarticle.WebArticleRepository
 import arun.com.chromer.data.webarticle.model.WebArticle
-import arun.com.chromer.search.provider.SearchProvider
 import arun.com.chromer.search.provider.SearchProviders
+import arun.com.chromer.ui.reader.ArticleBlock
+import arun.com.chromer.ui.reader.articleBlocks
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flatMapMerge
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
+/** The article as the reader shows it: metadata and the content blocks in page order. */
+data class ReaderArticle(
+  val url: String,
+  val title: String,
+  val siteName: String,
+  val imageUrl: String,
+  val keywords: List<String>,
+  val blocks: List<ArticleBlock>,
+)
+
+/** Where the reader stands for one link. */
+sealed interface ReaderState {
+  /** The article is being extracted. */
+  data object Loading : ReaderState
+
+  /** The article was extracted and has at least one block. */
+  data class Content(val article: ReaderArticle) : ReaderState
+
+  /** No article: extraction failed or found nothing to read. */
+  data object Error : ReaderState
+}
+
 /**
- * A simple view model delivering a WebArticle from repo.
- *
- * Migrated to Hilt: Uses @HiltViewModel annotation for automatic ViewModel injection.
- * Converted from RxJava to Kotlin Coroutines in Phase 8.
+ * Extracts the article of one link for the reader. The state and the text-size increment survive
+ * recreation; a failed extraction is the error state, never a silent close.
  */
 @HiltViewModel
 class BrowsingArticleViewModel
 @Inject
 constructor(
   private val webArticleRepository: WebArticleRepository,
-  searchProviders: SearchProviders
+  private val searchProviders: SearchProviders,
+  private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-  private val loadingQueue = MutableSharedFlow<String>(extraBufferCapacity = Int.MAX_VALUE)
+  private val _state = MutableStateFlow<ReaderState>(ReaderState.Loading)
+  val state: StateFlow<ReaderState> = _state.asStateFlow()
 
-  val articleLiveData = MutableLiveData<Result<WebArticle>>()
+  /** The text-size increment in sp the slider set; null until the first [initTextSize]. */
+  val textSizeIncrement: StateFlow<Int?> = savedStateHandle.getStateFlow(KEY_TEXT_SIZE, null)
 
-  init {
-    viewModelScope.launch {
-      loadingQueue
-        .flatMapMerge { url ->
-          webArticleRepository
-            .getWebArticle(url)
-            .map { Result.Success(it) as Result<WebArticle> }
-            .catch { e -> emit(Result.Failure(e)) }
-            .flowOn(Dispatchers.IO)
-        }
-        .collect { articleLiveData.value = it }
+  private var url: String? = null
+  private var job: Job? = null
+
+  /** Loads [url] unless it is loaded or loading already (for example after recreation). */
+  fun load(url: String) {
+    if (this.url == url) return
+    this.url = url
+    extract(url)
+  }
+
+  /** Extracts the article again (the error state's Retry). */
+  fun retry() {
+    url?.let(::extract)
+  }
+
+  /** Sets the increment from the stored setting once; a value the slider set wins after recreation. */
+  fun initTextSize(stored: Int) {
+    if (savedStateHandle.get<Int>(KEY_TEXT_SIZE) == null) savedStateHandle[KEY_TEXT_SIZE] = stored
+  }
+
+  fun setTextSize(increment: Int) {
+    savedStateHandle[KEY_TEXT_SIZE] = increment.coerceIn(0, MAX_TEXT_SIZE_INCREMENT)
+  }
+
+  /** The search address of [keyword] with the selected search provider (keyword chips). */
+  suspend fun searchUrl(keyword: String): String = searchProviders.selectedProvider.first().getSearchUrl(keyword)
+
+  private fun extract(url: String) {
+    job?.cancel()
+    _state.value = ReaderState.Loading
+    job = viewModelScope.launch {
+      val article = try {
+        webArticleRepository.getWebArticle(url).firstOrNull()
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e, "Article extraction failed for %s", url)
+        null
+      }
+      _state.value = article?.toReaderArticle(url)?.let { ReaderState.Content(it) } ?: ReaderState.Error
     }
   }
 
-  val selectedSearchProvider: Flow<SearchProvider> = searchProviders.selectedProvider
-
-  fun loadArticle(url: String) {
-    loadingQueue.tryEmit(url)
+  companion object {
+    private const val KEY_TEXT_SIZE = "reader_text_size_increment"
+    const val MAX_TEXT_SIZE_INCREMENT = 15
   }
+}
+
+/** The reader's article, or null when it has fewer than one block to show (the legacy rule). */
+internal fun WebArticle.toReaderArticle(requestedUrl: String): ReaderArticle? {
+  val blocks = elements?.let(::articleBlocks).orEmpty()
+  if (blocks.isEmpty()) return null
+  return ReaderArticle(
+    url = url.ifEmpty { requestedUrl },
+    title = title,
+    siteName = siteName,
+    imageUrl = imageUrl,
+    keywords = keywords.filter { it.isNotBlank() },
+    blocks = blocks,
+  )
 }

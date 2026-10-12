@@ -20,67 +20,53 @@
 
 package arun.com.chromer.browsing.article
 
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
+import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Color as AndroidColor
+import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
 import android.widget.Toast
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.annotation.ColorInt
-import androidx.appcompat.app.AppCompatDelegate.*
-import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import androidx.transition.TransitionManager
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
 import arun.com.chromer.browsing.BrowsingActivity
-import arun.com.chromer.browsing.article.adapter.ArticleAdapter
-import arun.com.chromer.browsing.article.util.ArticleScrollListener
-import arun.com.chromer.browsing.article.util.ArticleUtil.changeProgressBarColors
-import arun.com.chromer.browsing.article.util.ArticleUtil.changeRecyclerOverscrollColors
-import arun.com.chromer.browsing.article.view.ElasticDragDismissFrameLayout
 import arun.com.chromer.browsing.menu.MenuDelegate
-import arun.com.chromer.data.Result
-import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.databinding.ActivityArticleModeBinding
-import arun.com.chromer.extenstions.gone
-import arun.com.chromer.extenstions.show
-import arun.com.chromer.extenstions.watch
-import arun.com.chromer.search.provider.SearchProviders
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.ui.reader.ReaderScreen
+import arun.com.chromer.ui.theme.ChromerTheme
+import arun.com.chromer.ui.theme.ThemeMode
+import arun.com.chromer.ui.theme.themeSettings
 import arun.com.chromer.util.ColorUtil
-import arun.com.chromer.util.Utils
-import com.afollestad.materialdialogs.MaterialDialog
-import com.bumptech.glide.RequestManager
-// TODO: Phase 8 Migration - Remove RxJava imports after migration
-// import com.jakewharton.rxbinding.widget.RxSeekBar
-// import hu.akarnokd.rxjava.interop.RxJavaInterop
-import com.mikepenz.community_material_typeface_library.CommunityMaterial
-import com.mikepenz.iconics.IconicsDrawable
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
+/**
+ * The article reader. It keeps its class name, manifest entry and extras (tab detection, the
+ * Article tile and the browsing tab fallback start it by name) and shows the one Compose reader.
+ */
 @AndroidEntryPoint
 class ArticleActivity : BrowsingActivity() {
-  // Inflated on first use: BrowsingActivity.onCreate can apply a known toolbar colour before this
-  // class's onCreate continues.
-  private val binding by lazy { ActivityArticleModeBinding.inflate(layoutInflater) }
-  private val browsingArticleViewModel: BrowsingArticleViewModel by viewModels()
+  private val viewModel: BrowsingArticleViewModel by viewModels()
 
-  private var url: String? = null
-
-  override val layoutRes: Int get() = R.layout.activity_article_mode
-
-  private var primaryColor: Int = 0
-  private var accentColor: Int = 0
-
-  private lateinit var articleAdapter: ArticleAdapter
-
-  private var articleScrollListener: ArticleScrollListener? = null
+  override val layoutRes: Int get() = 0
 
   @Inject
   lateinit var tabsManager: TabsManager
@@ -88,288 +74,107 @@ class ArticleActivity : BrowsingActivity() {
   @Inject
   lateinit var menuDelegate: MenuDelegate
 
-  @Inject
-  lateinit var requestManager: RequestManager
-
-  @Inject
-  lateinit var searchProviders: SearchProviders
-
-  private val textSizeIcon: IconicsDrawable by lazy {
-    IconicsDrawable(this)
-      .icon(CommunityMaterial.Icon.cmd_format_size)
-      .color(ContextCompat.getColor(this, R.color.article_secondaryText))
-      .sizeDp(24)
-  }
-
-  private val dismissIcon: IconicsDrawable by lazy {
-    IconicsDrawable(this)
-      .icon(CommunityMaterial.Icon.cmd_close)
-      .color(ContextCompat.getColor(this, R.color.article_secondaryText))
-      .sizeDp(24)
-  }
+  /** The website colour BrowsingActivity reports; it becomes the accent under the legacy rule. */
+  private var websiteColour by mutableStateOf<Int?>(null)
 
   public override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    setContentView(binding.root)
-
-    readCustomizations()
-    url = intent.dataString
-
-    setupToolbar()
-    setupCloseListeners()
-    setupBottombar()
-    setupTheme()
-
-    articleScrollListener = ArticleScrollListener(
-      binding.toolbar,
-      binding.statusBar,
-      primaryColor
-    ).also(binding.recyclerView::addOnScrollListener)
-    binding.recyclerView.addOnScrollListener(systemUiLowProfileOnScrollListener)
-
-    observeViewModel()
-    if (savedInstanceState == null) {
-      browsingArticleViewModel.loadArticle(url!!)
+    val themeMode = articleThemeMode(Preferences.get(this).articleTheme())
+    val dark = when (themeMode) {
+      ThemeMode.Light -> false
+      ThemeMode.Dark, ThemeMode.Black -> true
+      ThemeMode.Auto -> resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
     }
-  }
+    val bars = if (dark) SystemBarStyle.dark(AndroidColor.TRANSPARENT) else SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+    enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+    super.onCreate(savedInstanceState)
+    val url = intent?.dataString ?: return // BrowsingActivity already closed with a message.
 
-  private fun observeViewModel() {
-    browsingArticleViewModel.articleLiveData.watch(this) { result ->
-      when (result) {
-        is Result.Success -> {
-          val webArticle = result.data
-          if (webArticle == null) {
-            onArticleLoadingFailed()
-          } else {
-            onArticleLoaded(webArticle)
-          }
-        }
-        is Result.Failure -> onArticleLoadingFailed()
-        else -> {
-        }
+    viewModel.initTextSize(preferences.articleTextSizeIncrement())
+    viewModel.load(url)
+    val settings = preferences.themeSettings()
+    val menuItems = menuDelegate.menuItems()
+    val bottomBarItems = menuDelegate.bottomBarItems()
+
+    setContent {
+      ChromerTheme(themeMode = themeMode, useWallpaperColours = settings.useWallpaperColours, primaryColour = settings.primaryColour) {
+        val state by viewModel.state.collectAsStateWithLifecycle()
+        val increment by viewModel.textSizeIncrement.collectAsStateWithLifecycle()
+        var saved by remember { mutableIntStateOf(preferences.articleTextSizeIncrement()) }
+        val accent = websiteColour?.takeIf { canUseAsAccentColour(it) }?.let(::Color) ?: MaterialTheme.colorScheme.primary
+        ReaderScreen(
+          state = state,
+          menuItems = menuItems,
+          bottomBarItems = bottomBarItems,
+          textSizeIncrement = increment ?: saved,
+          savedTextSizeIncrement = saved,
+          accent = accent,
+          onClose = ::finish,
+          onMenuItem = { menuDelegate.handleItemSelected(it.id) },
+          onRetry = viewModel::retry,
+          onOpenInBrowser = { openInBrowser(url) },
+          onImage = ::openImage,
+          onKeyword = ::searchKeyword,
+          onTextSizeChange = viewModel::setTextSize,
+          onSaveTextSize = {
+            preferences.articleTextSizeIncrement(it)
+            saved = it
+          },
+          modifier = Modifier.semantics { testTagsAsResourceId = true },
+        )
       }
     }
-  }
-
-  override fun onResume() {
-    super.onResume()
-    setLowProfileSystemUi()
   }
 
   override fun onWebsiteLoaded(website: Website) {}
 
   override fun onToolbarColorSet(websiteThemeColor: Int) {
-    primaryColor = websiteThemeColor
-    accentColor = ContextCompat.getColor(this, R.color.accent)
-
-    changeRecyclerOverscrollColors(binding.recyclerView, primaryColor)
-    changeProgressBarColors(binding.progressBar, primaryColor)
-    articleScrollListener?.setPrimaryColor(primaryColor)
-
-    if (preferences.dynamiceToolbarEnabledAndWebEnabled() && canUseAsAccentColor(primaryColor)) {
-      accentColor = primaryColor
-    }
-
-    if (::articleAdapter.isInitialized) {
-      articleAdapter.setAccentColor(accentColor)
-    }
+    websiteColour = websiteThemeColor
   }
 
-  override fun onCreateOptionsMenu(menu: Menu) = menuDelegate.createOptionsMenu(menu)
-
-  override fun onPrepareOptionsMenu(menu: Menu) = menuDelegate.prepareOptionsMenu(menu)
-
-  override fun onOptionsItemSelected(item: MenuItem) = if (item.itemId == R.id.menu_text_size) {
-    TransitionManager.beginDelayedTransition(binding.articleBottomLinearLayout)
-    binding.articleTextSizeCard.show()
-    true
-  } else menuDelegate.handleItemSelected(item.itemId)
-
-  private fun onArticleLoadingFailed() {
-    hideLoading()
-    // Loading failed, try to go back to normal url tab if it exists, else start a new normal
-    // rendering tab.
-    finish()
-    Toast.makeText(this, R.string.article_loading_failed, Toast.LENGTH_SHORT).show()
+  /** The page in a full browsing tab, as the legacy reader did after a failed extraction. */
+  private fun openInBrowser(url: String) {
     tabsManager.openBrowsingTab(
       this,
-      Website(intent.dataString!!),
+      Website(url),
       smart = true,
       fromNewTab = false,
       activityNames = TabsManager.FULL_BROWSING_ACTIVITIES
     )
+    finish()
   }
 
-  private fun onArticleLoaded(webArticle: WebArticle) {
-    val elements = webArticle.elements
-    if (elements != null && elements.size >= MIN_NUM_ELEMENTS) {
-      renderArticle(webArticle)
-    } else {
-      onArticleLoadingFailed()
+  private fun openImage(imageUrl: String) {
+    try {
+      startActivity(Intent(this, ImageViewActivity::class.java).setData(Uri.parse(imageUrl)))
+    } catch (e: Exception) {
+      Timber.w(e, "Could not open the image viewer")
+      Toast.makeText(this, R.string.unsupported_link, Toast.LENGTH_LONG).show()
     }
   }
 
-  private fun setupToolbar() {
-    setSupportActionBar(binding.toolbar)
-    supportActionBar?.setDisplayHomeAsUpEnabled(true)
-    supportActionBar?.setHomeAsUpIndicator(R.drawable.article_ic_close)
-    supportActionBar?.title = null
-  }
-
-  private fun hideLoading() {
-    binding.progressBar.gone()
-  }
-
-  private fun setupCloseListeners() {
-    binding.transparentSide1.setOnClickListener { finish() }
-    binding.transparentSide2.setOnClickListener { finish() }
-    binding.dragDismissLayout.addListener(
-      object : ElasticDragDismissFrameLayout.ElasticDragDismissCallback() {
-        override fun onDragDismissed() {
-          finish()
-        }
-      })
-  }
-
-
-  private fun setupBottombar() {
-    val bg = ContextCompat.getColor(this, R.color.article_windowBackground)
-    binding.bottomNavigation.background = ColorDrawable(bg)
-    menuDelegate.setupBottombar(binding.bottomNavigation)
-
-    // Text size related
-    binding.textSizeIconView.setImageDrawable(textSizeIcon)
-    binding.textSizeDismiss.setImageDrawable(dismissIcon)
-    binding.textSizeDismiss.setOnClickListener { onTextSizeDismiss() }
-    binding.textSizeSeekbar.progress = preferences.articleTextSizeIncrement()
-    // TODO: Phase 8 Migration - Convert RxSeekBar to SeekBar.OnSeekBarChangeListener
-    // Replace RxSeekBar with standard Android listener:
-    // binding.textSizeSeekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-    //   override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-    //     if (fromUser && ::articleAdapter.isInitialized) {
-    //       articleAdapter.textSizeIncrementSp = progress
-    //     }
-    //   }
-    //   override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-    //   override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-    // })
-    /*
-    subs.add(RxSeekBar
-      .changes(binding.textSizeSeekbar)
-      .skip(1)
-      .subscribe { size ->
-        binding.recyclerView.post {
-          if (::articleAdapter.isInitialized) {
-            articleAdapter.textSizeIncrementSp = size
-          }
-        }
-      })
-    */
-  }
-
-  private fun setupTheme() {
-    when (preferences.articleTheme()) {
-      Preferences.THEME_BLACK -> handleBlackTheme()
-      Preferences.THEME_DARK -> setNavigationBarColor(
-        ContextCompat.getColor(
-          this,
-          R.color.article_windowBackground
-        )
-      )
-    }
-    setLowProfileSystemUi()
-  }
-
-  private fun setLowProfileSystemUi() {
-    window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LOW_PROFILE
-  }
-
-  private fun handleBlackTheme() {
-    binding.coordinatorLayout.setBackgroundColor(Color.BLACK)
-    binding.bottomNavigation.setBackgroundColor(Color.BLACK)
-    binding.articleTextSizeCard.setBackgroundColor(Color.BLACK)
-    setNavigationBarColor(Color.BLACK)
-  }
-
-  private fun setNavigationBarColor(@ColorInt color: Int) {
-    if (Utils.ANDROID_LOLLIPOP) {
-      window.navigationBarColor = color
+  /** A keyword chip searches the keyword with the selected search provider (release 2.1.3). */
+  private fun searchKeyword(keyword: String) {
+    lifecycleScope.launch {
+      tabsManager.openUrl(this@ArticleActivity, Website(viewModel.searchUrl(keyword)))
     }
   }
 
-  private fun canUseAsAccentColor(primaryColor: Int): Boolean {
+  /** The legacy rule: with the website colour on, a colour that reads on the reader's surface. */
+  private fun canUseAsAccentColour(colour: Int): Boolean {
+    if (!preferences.dynamiceToolbarEnabledAndWebEnabled()) return false
     val isDark = preferences.articleTheme() != Preferences.THEME_LIGHT
     return if (isDark) {
-      !ColorUtil.shouldUseLightForegroundOnBackground(primaryColor)
+      !ColorUtil.shouldUseLightForegroundOnBackground(colour)
     } else {
-      ColorUtil.shouldUseLightForegroundOnBackground(primaryColor)
+      ColorUtil.shouldUseLightForegroundOnBackground(colour)
     }
   }
+}
 
-
-  private fun readCustomizations() {
-    when (preferences.articleTheme()) {
-      Preferences.THEME_LIGHT -> delegate.localNightMode = MODE_NIGHT_NO
-      Preferences.THEME_DARK, Preferences.THEME_BLACK -> delegate.localNightMode = MODE_NIGHT_YES
-      else -> delegate.localNightMode = MODE_NIGHT_AUTO_BATTERY
-    }
-  }
-
-  private fun renderArticle(webArticle: WebArticle) {
-    articleAdapter = ArticleAdapter(
-      webArticle,
-      accentColor,
-      requestManager,
-      preferences.articleTextSizeIncrement()
-    ).apply {
-      webArticle.elements?.let { setElements(it) }
-      // TODO: Phase 8 Migration - Convert RxJava keyword clicks to Flow
-      // Use lifecycleScope.launch { keywordsClicksFlow().collect { key -> ... } }
-      // Requires migrating ArticleAdapter.keywordsClicks() to Flow
-      /*
-      RxJavaInterop.toV2Observable(keywordsClicks())
-        .switchMap { key ->
-          browsingArticleViewModel
-            .selectedSearchProvider
-            .map { searchProvider -> searchProvider.getSearchUrl(key) }
-        }.takeUntil(lifecycleEvents.destroys)
-        .subscribe { url ->
-          tabsManager.openUrl(this@ArticleActivity, Website(url))
-        }
-      */
-    }
-    binding.recyclerView.apply {
-      layoutManager = LinearLayoutManager(this@ArticleActivity)
-      adapter = articleAdapter
-    }
-    hideLoading()
-  }
-
-  private fun onTextSizeDismiss() {
-    TransitionManager.beginDelayedTransition(binding.articleBottomLinearLayout)
-    binding.articleTextSizeCard.gone()
-
-    val currentIncrement = binding.textSizeSeekbar.progress
-    if (currentIncrement != preferences.articleTextSizeIncrement()) {
-      with(MaterialDialog.Builder(this)) {
-        title(R.string.save_size_dialog_title)
-        content(R.string.save_size_dialog_content)
-        positiveText(android.R.string.yes)
-        negativeText(android.R.string.no)
-        onPositive { _, _ -> preferences.articleTextSizeIncrement(binding.textSizeSeekbar.progress) }
-        build()
-      }.show()
-    }
-  }
-
-
-  private val systemUiLowProfileOnScrollListener = object : RecyclerView.OnScrollListener() {
-    override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-      setLowProfileSystemUi()
-    }
-  }
-
-  companion object {
-    private const val MIN_NUM_ELEMENTS = 1
-  }
+/** The article theme setting (1 Dark, 2 Light, 3 Auto, 4 Black) as a theme mode; unknown codes are Auto. */
+fun articleThemeMode(code: Int): ThemeMode = when (code) {
+  Preferences.THEME_DARK -> ThemeMode.Dark
+  Preferences.THEME_LIGHT -> ThemeMode.Light
+  Preferences.THEME_BLACK -> ThemeMode.Black
+  else -> ThemeMode.Auto
 }

@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
 
 /** Pulse of the skeleton; held still when the person turned animations off. */
 @Composable
-private fun skeletonAlpha(): Float {
+internal fun skeletonAlpha(): Float {
   val resolver = LocalContext.current.contentResolver
   val animationsOff = remember(resolver) {
     Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f

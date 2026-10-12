@@ -24,14 +24,12 @@ import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.style.ImageSpan
-import android.view.Menu
-import android.view.MenuItem
-import androidx.core.content.ContextCompat
+import androidx.annotation.DrawableRes
+import androidx.annotation.IdRes
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
 import arun.com.chromer.R
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.browsing.article.ArticleActivity
@@ -40,9 +38,7 @@ import arun.com.chromer.browsing.customtabs.callbacks.CopyToClipboardReceiver
 import arun.com.chromer.browsing.customtabs.callbacks.FavShareBroadcastReceiver
 import arun.com.chromer.browsing.customtabs.callbacks.SecondaryBrowserReceiver
 import arun.com.chromer.browsing.openwith.OpenIntentWithActivity
-import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.extenstions.gone
 import arun.com.chromer.history.HistoryActivity
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shortcuts.HomeScreenShortcutCreatorActivity
@@ -50,16 +46,110 @@ import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.Utils.isPackageInstalled
 import arun.com.chromer.util.Utils.shareText
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.mikepenz.community_material_typeface_library.CommunityMaterial
-import com.mikepenz.iconics.IconicsDrawable
 import dagger.hilt.android.scopes.ActivityScoped
+import timber.log.Timber
 import javax.inject.Inject
 
+/** Where a browsing menu item shows: always in the top bar, in the top bar if room, or in the overflow. */
+enum class MenuPlacement { Always, IfRoom, Overflow }
+
+/**
+ * One item of the reader's or the web view's menu or bottom bar. [id] is the action id that
+ * [MenuDelegate.handleItemSelected] performs. The icon is a drawable or, for the preferred-action
+ * button, the chosen app's icon.
+ */
+data class BrowsingMenuItem(
+  @IdRes val id: Int,
+  val title: String,
+  val placement: MenuPlacement = MenuPlacement.Overflow,
+  @DrawableRes val iconRes: Int? = null,
+  val appIcon: ImageBitmap? = null,
+)
+
+/** The preferred-action button as it shows. */
+data class ActionButton(val title: String, @DrawableRes val iconRes: Int? = null, val appIcon: ImageBitmap? = null)
+
+/** Which browsing screen a menu belongs to. */
+enum class BrowsingScreen { Article, WebView }
+
+/**
+ * The menu in the old order and with the old rules: Open full page (article, always), the
+ * preferred-action button (always, left out when its app is gone), Text size (article, if room),
+ * then Copy link, Open with, Share, Share with <app> (only with a favourite share app), History,
+ * Add to Home Screen, and with the bottom bar off Tabs and (web view) Article mode.
+ */
+fun browsingMenuItems(
+  screen: BrowsingScreen,
+  bottomBar: Boolean,
+  actionButton: ActionButton?,
+  shareWithApp: String?,
+  text: (Int) -> String,
+): List<BrowsingMenuItem> = buildList {
+  val article = screen == BrowsingScreen.Article
+  if (article) {
+    add(BrowsingMenuItem(R.id.menu_open_full_page, text(R.string.open_full_page), MenuPlacement.Always, R.drawable.ic_open_in_browser_24dp))
+  }
+  if (actionButton != null) {
+    add(BrowsingMenuItem(R.id.menu_action_button, actionButton.title, MenuPlacement.Always, actionButton.iconRes, actionButton.appIcon))
+  }
+  if (article) {
+    add(BrowsingMenuItem(R.id.menu_text_size, text(R.string.text_size), MenuPlacement.IfRoom))
+  }
+  add(BrowsingMenuItem(R.id.menu_copy_link, text(R.string.copy_link)))
+  add(BrowsingMenuItem(R.id.menu_open_with, text(R.string.open_with)))
+  add(BrowsingMenuItem(R.id.menu_share, text(R.string.share)))
+  if (shareWithApp != null) {
+    add(BrowsingMenuItem(R.id.menu_share_with, text(R.string.share_with).format(shareWithApp)))
+  }
+  add(BrowsingMenuItem(R.id.menu_history, text(R.string.title_history)))
+  add(BrowsingMenuItem(R.id.menu_add_to_home_screen, text(R.string.add_to_homescreen)))
+  if (!bottomBar) {
+    add(BrowsingMenuItem(R.id.tabs, text(R.string.title_tabs)))
+    if (!article) add(BrowsingMenuItem(R.id.bottom_bar_article_view, text(R.string.article_mode)))
+  }
+}
+
+/**
+ * The bottom bar in the old order (New tab, Share, Tabs, Minimize, and Article mode in the web
+ * view); empty with the setting off.
+ */
+fun browsingBottomBarItems(screen: BrowsingScreen, bottomBar: Boolean, text: (Int) -> String): List<BrowsingMenuItem> {
+  if (!bottomBar) return emptyList()
+  return buildList {
+    add(BrowsingMenuItem(R.id.bottom_bar_open_in_new_tab, text(R.string.new_tab_text), iconRes = R.drawable.ic_plus_24dp))
+    add(BrowsingMenuItem(R.id.bottom_bar_share, text(R.string.share), iconRes = R.drawable.ic_share_24dp))
+    add(BrowsingMenuItem(R.id.bottom_bar_tabs, text(R.string.title_tabs), iconRes = R.drawable.ic_tabs_24dp))
+    add(BrowsingMenuItem(R.id.bottom_bar_minimize_tab, text(R.string.minimize), iconRes = R.drawable.ic_bottom_bar_minimize))
+    if (screen == BrowsingScreen.WebView) {
+      add(BrowsingMenuItem(R.id.bottom_bar_article_view, text(R.string.article_mode), iconRes = R.drawable.ic_article_24dp))
+    }
+  }
+}
+
+/**
+ * The preferred-action button for [preferredAction]: the secondary browser or the favourite share
+ * app with that app's icon, or Share. [secondaryBrowser] and [favShare] are the stored components,
+ * null when the app is not installed; the button is left out when the app or its icon is gone.
+ */
+fun preferredActionButton(
+  preferredAction: Int,
+  secondaryBrowser: String?,
+  favShare: String?,
+  iconOf: (String) -> ImageBitmap?,
+  text: (Int) -> String,
+): ActionButton? = when (preferredAction) {
+  Preferences.PREFERRED_ACTION_BROWSER ->
+    secondaryBrowser?.let(iconOf)?.let { ActionButton(text(R.string.choose_secondary_browser), appIcon = it) }
+  Preferences.PREFERRED_ACTION_FAV_SHARE ->
+    favShare?.let(iconOf)?.let { ActionButton(text(R.string.fav_share_app), appIcon = it) }
+  Preferences.PREFERRED_ACTION_GEN_SHARE -> ActionButton(text(R.string.share), iconRes = R.drawable.ic_share_24dp)
+  else -> null
+}
 
 /**
  * Created by arunk on 28-01-2018.
- * Delegate to handle common menu functionality across browsing activities.
+ * Common menu of the browsing activities: the item lists the Compose top bar and bottom bar show,
+ * and the action each item performs.
  */
 @ActivityScoped
 class MenuDelegate @Inject constructor(
@@ -79,99 +169,34 @@ class MenuDelegate @Inject constructor(
   private val incognito: Boolean
     get() = (activity as BrowsingActivity).incognito
 
-  private val isArticle = activity is ArticleActivity
-  private val isWebview = activity is WebViewActivity
+  private val screen = if (activity is ArticleActivity) BrowsingScreen.Article else BrowsingScreen.WebView
 
-  private val textSizeIcon: IconicsDrawable by lazy {
-    IconicsDrawable(activity).apply {
-      icon(CommunityMaterial.Icon.cmd_format_size)
-      color(ContextCompat.getColor(activity, R.color.material_dark_light))
-      sizeDp(24)
-    }
+  private val text = { id: Int -> activity.getString(id) }
+
+  /** The top-bar and overflow items in the old order. */
+  fun menuItems(): List<BrowsingMenuItem> {
+    val action = preferredActionButton(
+      preferences.preferredAction(),
+      secondaryBrowser = preferences.secondaryBrowserComponent()
+        ?.takeIf { isPackageInstalled(activity, preferences.secondaryBrowserPackage()) },
+      favShare = preferences.favShareComponent()
+        ?.takeIf { isPackageInstalled(activity, preferences.favSharePackage()) },
+      iconOf = ::activityIcon,
+      text = text,
+    )
+    val shareWith = preferences.favSharePackage()?.let { Utils.getAppNameWithPackage(activity, it) }
+    return browsingMenuItems(screen, preferences.bottomBar(), action, shareWith, text)
   }
 
-  fun createOptionsMenu(menu: Menu): Boolean {
-    with(menu) {
-      if (isArticle) {
-        add(0, R.id.menu_open_full_page, Menu.NONE, R.string.open_full_page).apply {
-          setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-          setIcon(R.drawable.ic_open_in_browser_36dp)
-        }
-      }
-      add(0, R.id.menu_action_button, Menu.NONE, R.string.choose_secondary_browser).apply {
-        setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-      }
-      if (isArticle) {
-        add(0, R.id.menu_text_size, Menu.NONE, getTextSizeMenuItemText()).apply {
-          setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-          icon = textSizeIcon
-        }
-      }
-      add(0, R.id.menu_copy_link, Menu.NONE, R.string.copy_link)
-      add(0, R.id.menu_open_with, Menu.NONE, R.string.open_with)
-      add(0, R.id.menu_share, Menu.NONE, R.string.share)
-      add(0, R.id.menu_share_with, Menu.NONE, "")
-      add(0, R.id.menu_history, Menu.NONE, R.string.title_history)
-      add(0, R.id.menu_add_to_home_screen, Menu.NONE, R.string.add_to_homescreen)
-      if (!preferences.bottomBar()) {
-        if (Utils.ANDROID_LOLLIPOP) add(0, R.id.tabs, Menu.NONE, R.string.title_tabs)
-        if (isWebview) add(0, R.id.bottom_bar_article_view, Menu.NONE, R.string.article_mode)
-      }
-    }
-    return true
-  }
+  /** The bottom-bar items, empty when the bottom bar setting is off. */
+  fun bottomBarItems(): List<BrowsingMenuItem> = browsingBottomBarItems(screen, preferences.bottomBar(), text)
 
-  fun prepareOptionsMenu(menu: Menu): Boolean {
-    val actionButton = menu.findItem(R.id.menu_action_button)
-    when (preferences.preferredAction()) {
-      Preferences.PREFERRED_ACTION_BROWSER -> {
-        val secondaryBrowserPackage = preferences.secondaryBrowserPackage()
-        if (isPackageInstalled(activity, secondaryBrowserPackage)) {
-          actionButton.setTitle(R.string.choose_secondary_browser)
-          val secondaryBrowserComponent = preferences.secondaryBrowserComponent()!!
-          val componentName = ComponentName.unflattenFromString(secondaryBrowserComponent)
-          try {
-            actionButton.icon = activity.packageManager.getActivityIcon(componentName!!)
-          } catch (e: PackageManager.NameNotFoundException) {
-            actionButton.isVisible = false
-          }
-        } else {
-          actionButton.isVisible = false
-        }
-      }
-      Preferences.PREFERRED_ACTION_FAV_SHARE -> {
-        val favSharePackage = preferences.favSharePackage()
-        if (isPackageInstalled(activity, favSharePackage)) {
-          actionButton.setTitle(R.string.fav_share_app)
-          val componentName = ComponentName.unflattenFromString(preferences.favShareComponent()!!)
-          try {
-            actionButton.icon = activity.packageManager.getActivityIcon(componentName!!)
-          } catch (e: PackageManager.NameNotFoundException) {
-            actionButton.isVisible = false
-          }
-        } else {
-          actionButton.isVisible = false
-        }
-      }
-      Preferences.PREFERRED_ACTION_GEN_SHARE -> {
-        actionButton.icon = IconicsDrawable(activity).apply {
-          icon(CommunityMaterial.Icon.cmd_share_variant)
-          color(Color.WHITE)
-          sizeDp(24)
-        }
-        actionButton.setTitle(R.string.share)
-      }
-    }
-    val favoriteShare = menu.findItem(R.id.menu_share_with)
-    val favSharePackage = preferences.favSharePackage()
-    if (favSharePackage != null) {
-      val app = Utils.getAppNameWithPackage(activity, favSharePackage)
-      val label = String.format(activity.getString(R.string.share_with), app)
-      favoriteShare.title = label
-    } else {
-      favoriteShare.isVisible = false
-    }
-    return true
+  private fun activityIcon(component: String): ImageBitmap? = try {
+    ComponentName.unflattenFromString(component)
+      ?.let { activity.packageManager.getActivityIcon(it).toBitmap().asImageBitmap() }
+  } catch (e: PackageManager.NameNotFoundException) {
+    Timber.d(e, "No icon for %s", component)
+    null
   }
 
   private fun shareUrl() {
@@ -205,73 +230,28 @@ class MenuDelegate @Inject constructor(
       )
       R.id.menu_action_button -> when (preferences.preferredAction()) {
         Preferences.PREFERRED_ACTION_BROWSER -> activity.sendBroadcast(
-          Intent(
-            activity,
-            SecondaryBrowserReceiver::class.java
-          ).setData(currentUri)
+          Intent(activity, SecondaryBrowserReceiver::class.java).setData(currentUri)
         )
         Preferences.PREFERRED_ACTION_FAV_SHARE -> activity.sendBroadcast(
-          Intent(
-            activity,
-            FavShareBroadcastReceiver::class.java
-          ).setData(currentUri)
+          Intent(activity, FavShareBroadcastReceiver::class.java).setData(currentUri)
         )
         Preferences.PREFERRED_ACTION_GEN_SHARE -> shareUrl()
       }
       R.id.menu_copy_link -> activity.sendBroadcast(
-        Intent(
-          activity,
-          CopyToClipboardReceiver::class.java
-        ).setData(currentUri)
+        Intent(activity, CopyToClipboardReceiver::class.java).setData(currentUri)
       )
       R.id.menu_open_with -> activity.startActivity(
-        Intent(
-          activity,
-          OpenIntentWithActivity::class.java
-        ).setData(currentUri)
+        Intent(activity, OpenIntentWithActivity::class.java).setData(currentUri)
       )
       R.id.menu_share -> shareUrl()
       R.id.menu_share_with -> activity.sendBroadcast(
-        Intent(
-          activity,
-          FavShareBroadcastReceiver::class.java
-        ).setData(currentUri)
+        Intent(activity, FavShareBroadcastReceiver::class.java).setData(currentUri)
       )
       R.id.menu_history -> activity.startActivity(Intent(activity, HistoryActivity::class.java))
       R.id.menu_add_to_home_screen -> activity.startActivity(
-        Intent(
-          activity,
-          HomeScreenShortcutCreatorActivity::class.java
-        ).setData(currentUri)
+        Intent(activity, HomeScreenShortcutCreatorActivity::class.java).setData(currentUri)
       )
     }
     return true
-  }
-
-  fun setupBottombar(bottomNavigation: BottomNavigationView) {
-    if (preferences.bottomBar()) {
-      bottomNavigation.setOnNavigationItemSelectedListener { menuItem ->
-        handleItemSelected(menuItem.itemId)
-      }
-    } else {
-      bottomNavigation.gone()
-    }
-  }
-
-
-  private fun getTextSizeMenuItemText(): CharSequence {
-    val text = activity.getText(R.string.text_size)
-    return SpannableStringBuilder()
-      .append("*")
-      .append("   ")
-      .append(text)
-      .apply {
-        setSpan(
-          ImageSpan(textSizeIcon),
-          0,
-          1,
-          Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-      }
   }
 }
