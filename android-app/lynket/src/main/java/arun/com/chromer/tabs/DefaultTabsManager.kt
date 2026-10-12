@@ -158,9 +158,10 @@ constructor(
         // Open a proxy activity, attempt an extraction then open the AMP url if exists.
         val ampResolver = Intent(context, AmpResolverActivity::class.java).apply {
           data = website.preferredUri()
-          if (context !is Activity) {
-            addFlags(FLAG_ACTIVITY_NEW_TASK)
-          }
+          // Its own task: a link from outside reaches BrowserInterceptActivity as the root of a
+          // task, which it removes when it finishes (finishAndRemoveTask), and the resolver would
+          // go with it before it can open the page.
+          addFlags(FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
           if (incognito) {
             putExtra(EXTRA_KEY_INCOGNITO, true)
           }
@@ -531,8 +532,11 @@ constructor(
    */
   private fun doBlacklistAction(activity: Activity, safeIntent: SafeIntent) {
     // Perform a safe copy of this intent
-    val intentCopy = Intent().apply {
+    // A VIEW intent for the page, as a browser receives it. Without an action every activity of the
+    // browser that takes the address matched, and Android showed a chooser of them.
+    val intentCopy = Intent(Intent.ACTION_VIEW).apply {
       data = safeIntent.data
+      addCategory(Intent.CATEGORY_BROWSABLE)
       safeIntent.unsafe.extras?.let {
         putExtras(it)
       }
@@ -547,6 +551,10 @@ constructor(
     }
     if (activity.packageManager.isPackageInstalled(secondaryBrowser)) {
       intentCopy.`package` = secondaryBrowser
+      // When the browser has exactly one activity for it, name that activity.
+      activity.packageManager.queryIntentActivities(intentCopy, 0).singleOrNull()?.activityInfo?.let {
+        intentCopy.setClassName(it.packageName, it.name)
+      }
       try {
         activity.startActivity(intentCopy)
         if (BuildConfig.DEBUG) {

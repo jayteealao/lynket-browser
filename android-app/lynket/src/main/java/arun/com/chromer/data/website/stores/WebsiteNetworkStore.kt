@@ -37,6 +37,7 @@ import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
 import com.bumptech.glide.Glide
 import arun.com.chromer.util.parser.RxParser
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -56,22 +57,25 @@ class WebsiteNetworkStore @Inject constructor(
     private val context: Context = application.applicationContext
 
     override fun getWebsite(url: String): Flow<Website?> = flow {
-        try {
-            // RxParser is now a suspend function
+        // The value is worked out first and emitted outside the try: a collector that stops after
+        // the first value (first(), firstOrNull()) aborts this flow from inside emit(), and catching
+        // that abort here and emitting again broke the flow, so the caller lost the result.
+        val website = try {
             val urlArticlePair = RxParser.parseUrl(url)
             val article = urlArticlePair.second
             if (article != null) {
-                val extractedWebsite = Website.fromArticle(article)
                 // We preserve the original url, otherwise breaks cache.
-                extractedWebsite.url = urlArticlePair.first
-                emit(extractedWebsite)
+                Website.fromArticle(article).also { it.url = urlArticlePair.first }
             } else {
-                emit(Website(urlArticlePair.first))
+                Website(urlArticlePair.first)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Timber.e(e)
-            emit(null)
+            null
         }
+        emit(website)
     }.flowOn(Dispatchers.IO)
 
     override suspend fun clearCache() {
