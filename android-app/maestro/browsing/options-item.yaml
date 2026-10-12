@@ -1,0 +1,22 @@
+# The Lynket options sheet over a Custom Tab: all seven items in the old order, then Settings opens
+# the settings screen. Start with a page open in a Custom Tab (browsing-check.sh open_tab).
+# Run: maestro --device <serial> test -e OUT=<dir> maestro/browsing/options-item.yaml
+appId: arun.com.chromer.debug
+---
+- tapOn: { id: "com.android.chrome:id/menu_button" }
+- tapOn: "Lynket Options"
+- extendedWaitUntil:
+    visible: "Open with…"
+    timeout: 15000
+- assertVisible: "Settings"
+- assertVisible: "Tabs"
+- assertVisible: "New tab"
+- assertVisible: "History"
+- assertVisible: "Add to Home Screen"
+- assertVisible: "Open article view"
+- takeScreenshot: ${OUT}/flow-options-sheet
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 15000
+- takeScreenshot: ${OUT}/flow-options-settings

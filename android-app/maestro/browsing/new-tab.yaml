@@ -1,0 +1,21 @@
+# New tab from the Custom Tab bottom bar: the dialog opens with its field, Open stays off until
+# there is text, and Open loads the typed address in a new tab. Start with a page open in a Custom Tab.
+# Run: maestro --device <serial> test -e OUT=<dir> maestro/browsing/new-tab.yaml
+appId: arun.com.chromer.debug
+---
+- tapOn: "New tab"
+- extendedWaitUntil:
+    visible: "Search or type URL"
+    timeout: 15000
+- assertVisible:
+    text: "Open"
+    enabled: false
+- inputText: "example.org"
+- takeScreenshot: ${OUT}/flow-new-tab-typed
+- tapOn:
+    text: "Open"
+    enabled: true
+- extendedWaitUntil:
+    visible: { id: "com.android.chrome:id/menu_button" }
+    timeout: 30000
+- takeScreenshot: ${OUT}/flow-new-tab-opened

@@ -1,0 +1,18 @@
+# Add to Home Screen from the options sheet: the dialog shows the icon and the page name, Create
+# asks the launcher to pin the shortcut. Start with a page open in a Custom Tab.
+# Run: maestro --device <serial> test -e OUT=<dir> maestro/browsing/shortcut-create.yaml
+appId: arun.com.chromer.debug
+---
+- tapOn: { id: "com.android.chrome:id/menu_button" }
+- tapOn: "Lynket Options"
+- tapOn: "Add to Home Screen"
+- extendedWaitUntil:
+    visible: "Create shortcut"
+    timeout: 20000
+- assertVisible: "Cancel"
+- takeScreenshot: ${OUT}/flow-shortcut-dialog
+- tapOn:
+    text: "Create"
+    enabled: true
+- waitForAnimationToEnd
+- takeScreenshot: ${OUT}/flow-shortcut-pin-request

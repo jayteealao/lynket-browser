@@ -1,0 +1,17 @@
+# The launcher's static shortcuts (Tabs, History) still open their screens. Long-press the app
+# icon on the home screen first, or start them with am start -n as browsing-check.sh entry-points does.
+# Run: maestro --device <serial> test -e OUT=<dir> maestro/browsing/static-shortcuts.yaml
+appId: arun.com.chromer.debug
+---
+- launchApp:
+    stopApp: true
+- pressKey: Home
+- longPressOn: "Lynket-dev"
+- runFlow:
+    when:
+      visible: "Tabs"
+    commands:
+      - takeScreenshot: ${OUT}/flow-static-shortcuts
+      - tapOn: "Tabs"
+      - waitForAnimationToEnd
+      - takeScreenshot: ${OUT}/flow-static-tabs
