@@ -59,7 +59,7 @@ echo "after click: stored=$after reader=$after_reader" | tee -a "$OUT/tile.txt"
 [ "$after" = "$after_reader" ] || fail "stored and reader values differ"
 
 # 3. The Browsing mode screen, opened by name through the main activity.
-a shell am start -W -n "$PKG/arun.com.chromer.MainActivity" --es arun.com.chromer.extra.DESTINATION BrowsingMode >/dev/null
+a shell am start -W -n "$PKG/arun.com.chromer.MainActivity" -f 0x24000000 --es arun.com.chromer.extra.DESTINATION BrowsingMode >/dev/null
 sleep 2
 android layout --device="$SERIAL" --pretty > "$OUT/browsing-mode.layout.txt"
 a exec-out screencap -p > "$OUT/browsing-mode.png"

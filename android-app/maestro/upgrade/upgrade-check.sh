@@ -120,9 +120,9 @@ echo "backups: settings and per-app present; old settings file present" | tee -a
 
 # 6. The screens show the values. The settings screens are opened by name through the main
 #    activity, because the seeded web heads setting sends links to web heads.
-a shell am start -W -n "$PKG/arun.com.chromer.MainActivity" --es arun.com.chromer.extra.DESTINATION Settings >/dev/null
+a shell am start -W -n "$PKG/arun.com.chromer.MainActivity" -f 0x24000000 --es arun.com.chromer.extra.DESTINATION Settings >/dev/null
 flow "$here/settings-values.yaml"
-a shell am start -W -n "$PKG/arun.com.chromer.MainActivity" --es arun.com.chromer.extra.DESTINATION PerApp >/dev/null
+a shell am start -W -n "$PKG/arun.com.chromer.MainActivity" -f 0x24000000 --es arun.com.chromer.extra.DESTINATION PerApp >/dev/null
 flow "$here/per-app-values.yaml"
 
 # 7. No crash.

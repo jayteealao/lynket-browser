@@ -1,15 +1,46 @@
 # Settings check, no provider: Chrome is disabled and provider selection is in front
 # (settings-check.sh). The error state offers WebView and Chrome; Use WebView goes back.
 appId: arun.com.chromer.debug
+# A busy emulator can show an "isn't responding" dialog; Wait keeps the app running.
 ---
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
       id: "no-provider"
     timeout: 15000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - assertVisible: "Use WebView"
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - assertVisible: "Get Chrome"
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/provider-error-flow
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn: "Use WebView"
 - waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - assertNotVisible:
     id: "no-provider"

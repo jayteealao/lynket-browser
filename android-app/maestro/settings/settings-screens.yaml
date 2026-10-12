@@ -1,32 +1,88 @@
 # Settings check, rows and dialogs: the settings screen is in front (settings-check.sh opens it).
 # Each group opens its screen; look and feel changes the theme and opens the colour sheet.
 appId: arun.com.chromer.debug
+# A busy emulator can show an "isn't responding" dialog; Wait keeps the app running.
 ---
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
       id: "row-browsing-mode"
     timeout: 15000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/flow-settings
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn:
     id: "row-browsing-mode"
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
       id: "mode-slide-over"
     timeout: 10000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - assertVisible:
     id: "mode-web-heads"
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/flow-browsing-mode
 - back
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn:
     id: "row-look-and-feel"
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
       id: "theme-dark"
     timeout: 10000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn:
     id: "theme-dark"
 - waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/flow-look-and-feel-dark
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn:
     id: "theme-auto"
 - waitForAnimationToEnd
@@ -34,25 +90,60 @@ appId: arun.com.chromer.debug
     element:
       id: "row-toolbar_color"
     direction: DOWN
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn:
     id: "row-toolbar_color"
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
       id: "colour-hex"
     timeout: 10000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/flow-colour-sheet
 - back
 - back
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn:
     id: "row-browsing-options"
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
       id: "row-preferred_package"
     timeout: 10000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/flow-browsing-options
 - scrollUntilVisible:
     element:
       id: "row-minimize_behavior_preference"
     direction: DOWN
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/flow-browsing-options-bottom
 - back

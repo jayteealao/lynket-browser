@@ -63,7 +63,7 @@ ac22() {
   a logcat -c
   # 1. No permission: the explainer, then the system screen.
   a shell appops set "$PKG" SYSTEM_ALERT_WINDOW deny
-  a shell am start -W -n "$PKG/$MAIN" --es "$DESTINATION" BrowsingMode >/dev/null
+  a shell am start -W -n "$PKG/$MAIN" -f 0x24000000 --es "$DESTINATION" BrowsingMode >/dev/null
   sleep 2
   if command -v maestro >/dev/null; then
     maestro --device "$SERIAL" test --test-output-dir "$OUT/permission-flow" "$(hostpath "$HERE/permission.yaml")" | tee -a "$OUT/ac22.txt"

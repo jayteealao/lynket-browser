@@ -1,29 +1,75 @@
 # Settings check, per app settings: the screen is open (settings-check.sh). The master switch
 # shows, the list scrolls, and search narrows it by name or package.
 appId: arun.com.chromer.debug
+# A busy emulator can show an "isn't responding" dialog; Wait keeps the app running.
 ---
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
       id: "row-blacklist_preference"
     timeout: 30000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     notVisible:
       id: "loading-list"
     timeout: 30000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/per-app-list
 - scroll
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/per-app-scrolled
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn:
     id: "per-app-search-toggle"
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn:
     id: "per-app-search"
 - inputText: "com.android.settings"
 - hideKeyboard
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
       id: "app-com.android.settings"
     timeout: 10000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - takeScreenshot: ${OUT}/per-app-search
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
 - tapOn:
     id: "per-app-search-toggle"
 - back

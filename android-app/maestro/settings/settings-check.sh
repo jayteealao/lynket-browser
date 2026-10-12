@@ -36,8 +36,16 @@ flow() {
 
 open_screen() {  # $1 = destination name
   dismiss_anr
-  a shell am start -W -n "$PKG/$MAIN" --es "$DESTINATION" "$1" >/dev/null
+  a shell am start -W -n "$PKG/$MAIN" -f 0x24000000 --es "$DESTINATION" "$1" >/dev/null
   sleep 3
+  dismiss_anr
+}
+
+# Before a flow: a cold start on a busy emulator can raise a late "isn't responding" dialog.
+settle() {
+  sleep 8
+  dismiss_anr
+  sleep 2
   dismiss_anr
 }
 
@@ -83,8 +91,10 @@ for screen in Settings BrowsingMode LookAndFeel BrowsingOptions PerApp ProviderS
   capture_scrolls "$(echo "$screen" | sed -E 's/([a-z])([A-Z])/\1-\2/g' | tr 'A-Z' 'a-z')"
 done
 
-# 3. The rows and their dialogs.
+# 3. The rows and their dialogs, from a fresh stack (step 2 left each screen scrolled).
+a shell am force-stop "$PKG"
 open_screen Settings
+settle
 flow settings-screens.yaml
 
 # 4. Per app settings: the loading list first (slow-load fault), then the list and search.
@@ -97,12 +107,14 @@ grep -q 'resource-id="loading-list"' "$OUT/per-app-loading.xml" || fail "no load
 clear_fault
 a shell pm list packages | tr -d '\r' | sed 's/^package://' | sort > "$OUT/packages.txt"
 log "packages on the device: $(wc -l < "$OUT/packages.txt")"
+settle
 flow per-app.yaml
 
 # 5. No provider: Chrome disabled, the error state offers WebView or Chrome.
 a shell pm disable-user --user 0 "$CHROME" >/dev/null
 a shell am force-stop "$PKG"
 open_screen ProviderSelection
+settle
 shot provider-error
 flow provider-error.yaml
 restore_chrome

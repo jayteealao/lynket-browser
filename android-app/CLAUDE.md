@@ -44,6 +44,7 @@ Run from `android-app/`:
 - `bash maestro/webheads/drag-check.sh <serial> <dir>` - Records drag, fling, edge snap, trash, queue, list and tap; a person watches `drag.mp4` and signs `feel-checklist.md`
 - `bash maestro/webheads/charter-check.sh <serial> <dir>` - From a 2.1.3 install: upgrade, a link in a tab, web heads turned on through the explainer, the drag check and a native bubble
 - `bash maestro/shell/shell-check.sh <serial> <dir> <intro|seed-recents|captures|offline|back-gesture|deeplink>` - Home and first run on a device: the intro once on a fresh install, captures of every shell screen, the offline message, a held back swipe from About, Tips and the drawer, and a web link handed to the launcher (intro, captures and offline reinstall the debug build)
+- `bash maestro/settings/settings-check.sh <serial> <dir>` - Every settings screen at every scroll position, the rows and dialogs, the per-app loading list and search, and the no-provider state with Chrome disabled (enabled again on exit), then a link in a Custom Tab
 - `bash maestro/shell/legacy-2.1.3-captures.sh <serial> <dir>` - Reference captures of release 2.1.3's intro, changelog, home, menu, About and Tips (installs the existing 2.1.3 APK, then removes it)
 
 ### Build System
@@ -109,7 +110,9 @@ Every activity, fragment, view, service and receiver is injected by Hilt with `@
 - Links reach the activity through `WebUrlDeepLinkMatcher` (http and https only); a malformed one shows the link error state.
 - Shared states live in `ui/components/`: `EmptyState`, `ErrorState`, `LoadingList`/`LoadingTiles` and `showTransientError` for snackbars. `NetworkMonitor` (`util/network/`) reports connectivity for the offline message.
 - `MainActivity` exposes Compose test tags as resource ids for the device checks. Tests swap screens through `LynketEntries`; text with links never goes idle inside a Robolectric dialog window, so back stack tests fake the changelog content and `ShellGoldenTest` covers the real one.
-- Settings still opens the View-based `SettingsGroupActivity`, whose parent is now `MainActivity`.
+- Settings, Browsing mode, Look and feel, Browsing options, Per app settings and Custom Tab provider selection are Compose screens on the same back stack (`ui/settings/`, `ui/perapp/`, `ui/providerselection/`). `ui/settings/SettingsKeyTable.kt` lists every stored key with its screen, group, order and control (or the code that reads it), and `SettingsRules.kt` holds the dependent rows and dialogs of the old preference screens; `SettingsViewModel` writes each change and its dependent values in one store edit. There is no androidx.preference.
+- Another activity or a device check opens a settings screen by name: `adb shell am start -n arun.com.chromer.debug/arun.com.chromer.MainActivity -f 0x24000000 --es arun.com.chromer.extra.DESTINATION BrowsingMode` (`Destination` in `LynketKeys.kt`; allowed: Settings, BrowsingMode, LookAndFeel, BrowsingOptions, PerApp, ProviderSelection; anything else is ignored).
+- Debug builds can slow the per-app list to show its loading state: `adb shell run-as arun.com.chromer.debug sh -c 'mkdir -p files/debug-faults && echo 4000 > files/debug-faults/per-app-slow-load'` (see `PerAppLoadFaults`).
 
 ### Browsing Modes
 
