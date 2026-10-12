@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Android 17 brings resizable apps everywhere</title>
+  <meta property="og:title" content="Android 17 brings resizable apps everywhere">
+  <meta property="og:site_name" content="Lynket fixture">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="header.png">
+  <meta name="description" content="A fixed test article for the reader device check.">
+  <meta name="keywords" content="android, compose, large screens">
+  <meta name="theme-color" content="#3F51B5">
+</head>
+<body>
+<article>
+  <h1>Android 17 brings resizable apps everywhere</h1>
+  <p>Google's next release removes orientation locks on large screens, so apps that assumed a portrait phone now have to adapt to any window the person chooses, from a narrow split screen to a wide desktop window.</p>
+  <p>For most Compose apps the change is small: window size classes and adaptive panes do the work, and the layout that served a phone simply gains room. Apps that measured the screen once at start-up and never again are the ones that break.</p>
+  <h2>What changes for readers</h2>
+  <p>Reading apps gain the most. A column of text that stays near sixty-five characters per line is easier to follow than a line that runs across a whole tablet, so a reader keeps its column narrow and centres it in the window.</p>
+  <blockquote>Every app is a large-screen app now, the team said at the developer summit, and the guidance for text is the same as it was for print.</blockquote>
+  <p>Links inside an article still open in the browser: <a href="https://developer.android.com/develop/ui/compose/layouts/adaptive">adaptive layouts in Compose</a> is the starting point the documentation gives.</p>
+  <h3>Three things to check</h3>
+  <ul>
+    <li>Text stays readable at every font scale the person sets.</li>
+    <li>Controls keep a touch target of at least forty-eight density-independent pixels.</li>
+    <li>Content clears the system bars and the display cutout in every orientation.</li>
+  </ul>
+  <p>The release also brings predictive back to every screen, so a partial swipe shows where the person will land before they lift the finger. Screens that handle back themselves need to say so ahead of time.</p>
+  <ol>
+    <li>Turn on edge-to-edge drawing.</li>
+    <li>Pad content with the safe drawing insets.</li>
+    <li>Test the app on a foldable in both postures.</li>
+  </ol>
+  <pre>val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass</pre>
+  <p>None of this needs a new library. The platform and the Compose toolkit already carry what an app needs, and the work is mostly in removing assumptions that were never true on a tablet in the first place.</p>
+  <p>The fixture ends here. It exists so that the reader check sees the same article on every run, with a header image, a title, keywords, headings, a quote, two lists and a code line.</p>
+</article>
+</body>
+</html>
