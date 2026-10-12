@@ -46,6 +46,7 @@ import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Tab
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -250,6 +251,11 @@ fun HomeScreenContent(
   val columns = if (wide) 8 else 4
   val gutter = if (wide) 24.dp else 16.dp
 
+  // Back with the drawer open closes the drawer; the home stays (as the old menu sheet did).
+  BackHandler(enabled = drawerState.isOpen) {
+    scope.launch { drawerState.close() }
+  }
+
   ModalNavigationDrawer(
     drawerState = drawerState,
     drawerContent = {
@@ -272,9 +278,11 @@ fun HomeScreenContent(
         contentAlignment = Alignment.TopCenter,
       ) {
         Column(
+          // The cap comes first: after fillMaxSize the minimum width is the window's, which
+          // widthIn cannot lower.
           modifier = Modifier
-            .fillMaxSize()
-            .widthIn(max = 680.dp),
+            .widthIn(max = 680.dp)
+            .fillMaxSize(),
         ) {
           HomeSearchBar(
             query = state.query,

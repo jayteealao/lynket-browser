@@ -78,7 +78,7 @@ open_link() {
 
 app_logcat() {  # $1 = output name; the app's lines since the last logcat -c, plus the crash buffer
   local pid
-  pid="$(a shell pidof "$PKG" | tr -d '\r')"
+  pid="$(a shell pidof "$PKG" | tr -d '\r' || true)"  # no process (the app handed off and exited)
   if [ -n "$pid" ]; then a logcat -d --pid="$pid" | tr -d '\r' > "$OUT/$1.logcat.txt"; else a logcat -d | tr -d '\r' | grep -F "$PKG" > "$OUT/$1.logcat.txt" || true; fi
   a logcat -d -b crash | tr -d '\r' > "$OUT/$1.crash.txt"
 }

@@ -217,6 +217,7 @@ back_gesture() {
   sleep 2
   back_swipe back-drawer-mid
   if has_id home-drawer; then fail "back did not close the drawer"; fi
+  has_id home-search-field || fail "back from the drawer left home"
   crash_check back-gesture
   log "back-gesture passed"
 }

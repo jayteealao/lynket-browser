@@ -53,13 +53,16 @@ class ConnectivityNetworkMonitor @Inject constructor(
       awaitClose()
       return@callbackFlow
     }
+    // Reads of ConnectivityManager inside these callbacks can still return the network just lost
+    // (NetworkCallback.onLost javadoc), so the callbacks report from their own arguments only. The
+    // default network request asks for internet, so a new default network means online.
     val callback = object : ConnectivityManager.NetworkCallback() {
       override fun onAvailable(network: Network) {
-        trySend(isOnlineNow())
+        trySend(true)
       }
 
       override fun onLost(network: Network) {
-        trySend(isOnlineNow())
+        trySend(false)
       }
 
       override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
