@@ -1,0 +1,23 @@
+# Delete all from the History screen (history-tabs-check.sh starts it with the seeded rows).
+# COUNT is the number of rows the store held before, read from the debug store dump.
+appId: arun.com.chromer.debug
+---
+- extendedWaitUntil:
+    visible:
+      id: history-clear-all
+    timeout: 30000
+- tapOn:
+    id: history-clear-all
+- assertVisible: 'Are you sure\?'
+- takeScreenshot: ${OUT}/clear-all-dialog
+- tapOn: 'Yes, delete'
+- extendedWaitUntil:
+    visible: '${COUNT} items deleted\.'
+    timeout: 20000
+- takeScreenshot: ${OUT}/clear-all-snackbar
+- extendedWaitUntil:
+    visible: 'No history yet'
+    timeout: 20000
+- assertNotVisible:
+    id: history-clear-all
+- takeScreenshot: ${OUT}/clear-all-empty

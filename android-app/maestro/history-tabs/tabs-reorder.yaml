@@ -1,0 +1,11 @@
+# The Tabs screen with two tabs open (history-tabs-check.sh opens them and starts the screen).
+# A tap on the row of URL_RE must bring that tab's task forward; the script compares the recent
+# tasks before and after.
+appId: arun.com.chromer.debug
+---
+- extendedWaitUntil:
+    visible: '.*${URL_RE}.*'
+    timeout: 30000
+- assertVisible: '.*${OTHER_RE}.*'
+- takeScreenshot: ${OUT}/tabs-reorder-before
+- tapOn: '.*${URL_RE}.*'
