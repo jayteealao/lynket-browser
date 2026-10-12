@@ -109,8 +109,8 @@ class LynketEntries(
   companion object {
     val Default = LynketEntries(
       home = { navigator -> HomeScreen(navigator = navigator) },
-      history = { navigator -> HistoryScreen(navigator = navigator) },
-      tabs = { navigator -> TabsScreen(navigator = navigator) },
+      history = { navigator -> HistoryScreen(onBack = { navigator.back() }) },
+      tabs = { navigator -> TabsScreen(onBack = { navigator.back() }, closeIcon = false) },
       intro = { navigator -> IntroScreen(navigator = navigator) },
     )
   }

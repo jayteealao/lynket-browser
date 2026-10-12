@@ -21,65 +21,39 @@
 package arun.com.chromer.tabs.ui
 
 import android.os.Bundle
-import android.view.MenuItem
-import arun.com.chromer.R
-import arun.com.chromer.databinding.ActivityTabsBinding
-import arun.com.chromer.shared.FabHandler
-import arun.com.chromer.shared.base.Snackable
-import arun.com.chromer.shared.base.activity.BaseActivity
-import com.google.android.material.snackbar.Snackbar
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import arun.com.chromer.ui.tabs.TabsScreen
+import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * The Tabs screen in its own task (`singleInstance` in the manifest), for home, the Custom Tab
+ * menu and bottom bar and the launcher shortcut. It shows the one Compose Tabs screen with the
+ * close icon of the old toolbar.
+ */
 @AndroidEntryPoint
-class TabsActivity : BaseActivity(), Snackable {
-
-  private lateinit var binding: ActivityTabsBinding
-
-  override val layoutRes: Int get() = R.layout.activity_tabs
+class TabsActivity : ComponentActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge()
     super.onCreate(savedInstanceState)
-    binding = ActivityTabsBinding.inflate(layoutInflater)
-    setContentView(binding.root)
-
-    setSupportActionBar(binding.toolbar)
-
-    supportActionBar?.let {
-      it.setDisplayHomeAsUpEnabled(true)
-      it.setHomeAsUpIndicator(R.drawable.article_ic_close)
-    }
-
-    binding.fab.setOnClickListener {
-      supportFragmentManager.fragments
-        .asSequence()
-        .filter { !it.isHidden && it is FabHandler }
-        .map { it as FabHandler }
-        .first()
-        .onFabClick()
-    }
-
-    if (savedInstanceState == null) {
-      supportFragmentManager
-        .beginTransaction()
-        .replace(R.id.fragment_container, TabsFragment())
-        .commit()
+    setContent {
+      ChromerThemeFromSettings {
+        Surface(
+          modifier = Modifier.fillMaxSize().semantics { testTagsAsResourceId = true },
+          color = MaterialTheme.colorScheme.background,
+        ) {
+          TabsScreen(onBack = ::finish, closeIcon = true)
+        }
+      }
     }
   }
-
-  override fun snack(textToSnack: String) {
-    Snackbar.make(binding.coordinatorLayout, textToSnack, Snackbar.LENGTH_SHORT).show()
-  }
-
-  override fun snackLong(textToSnack: String) {
-    Snackbar.make(binding.coordinatorLayout, textToSnack, Snackbar.LENGTH_LONG).show()
-  }
-
-  override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-    android.R.id.home -> {
-      finish()
-      true
-    }
-    else -> super.onOptionsItemSelected(item)
-  }
-
 }

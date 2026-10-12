@@ -1,7 +1,7 @@
 /*
  *  Lynket
  *
- *  Copyright (C) 2025 Arunkumar
+ *  Copyright (C) 2026 Arunkumar
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -11,163 +11,89 @@
 
 package arun.com.chromer.tabs.ui
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.website.WebsiteRepository
+import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.TabsManager.Tab
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
+/** State of the Tabs screen. */
+sealed interface TabsUiState {
+  data object Loading : TabsUiState
+  data class Loaded(val tabs: List<Tab>, val confirmCloseAll: Boolean = false, val refreshing: Boolean = false) : TabsUiState
+  data class Error(val message: String) : TabsUiState
+}
+
 /**
- * Phase 8: Modern TabsViewModel (Updated for Coroutine-based TabsManager)
- *
- * Manages active browser tabs using:
- * - StateFlow for reactive state
- * - Kotlin Coroutines for async operations
- * - Direct suspend function calls to TabsManager
- *
- * Features:
- * - Load active tabs
- * - Close individual tabs
- * - Close all tabs
- * - Real-time updates
- *
- * Updates in Phase 8:
- * - TabsManager now uses Kotlin Coroutines instead of RxJava
- * - WebsiteRepository uses Flows instead of RxJava
- * - No more extension functions needed - TabsManager is fully coroutine-based
+ * Tabs: the browsing tasks Lynket has open. A tap brings that task forward; it never opens the page
+ * again. A swipe or the close icon finishes the task; close all asks first.
  */
 @HiltViewModel
 class ModernTabsViewModel @Inject constructor(
-    private val tabsManager: TabsManager,
-    private val websiteRepository: WebsiteRepository
+  private val tabsManager: TabsManager,
+  private val websiteRepository: WebsiteRepository,
 ) : ViewModel() {
 
-    /**
-     * UI State for tabs screen
-     */
-    sealed interface TabsUiState {
-        data object Loading : TabsUiState
-        data class Success(
-            val tabs: List<Tab>,
-            val showCloseAllDialog: Boolean = false
-        ) : TabsUiState
-        data class Error(val message: String) : TabsUiState
-    }
+  private val _uiState = MutableStateFlow<TabsUiState>(TabsUiState.Loading)
+  val uiState: StateFlow<TabsUiState> = _uiState.asStateFlow()
 
-    /**
-     * StateFlow of UI state
-     */
-    private val _uiState = MutableStateFlow<TabsUiState>(TabsUiState.Loading)
-    val uiState: StateFlow<TabsUiState> = _uiState.asStateFlow()
-
-    /**
-     * Active tabs as a separate flow
-     */
-    val tabs: StateFlow<List<Tab>> = flow {
-        // This is a one-time load, tabs don't auto-update
-        // In a real implementation, we'd have a database or observable source
-        emit(emptyList<Tab>())
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Lazily,
-        initialValue = emptyList()
-    )
-
-    init {
-        loadTabs()
-    }
-
-    /**
-     * Load active tabs
-     */
-    fun loadTabs() {
-        viewModelScope.launch {
-            _uiState.value = TabsUiState.Loading
-            try {
-                // Use TabsManager suspend functions directly
-                val activeTabs = tabsManager.getActiveTabs()
-
-                // Enrich tabs with website data
-                val enrichedTabs = activeTabs.map { tab ->
-                    try {
-                        val website = websiteRepository.getWebsite(tab.url).first()
-                        tab.apply { this.website = website }
-                    } catch (e: Exception) {
-                        // If website fetch fails, return tab as-is
-                        Timber.w(e, "Failed to fetch website for: ${tab.url}")
-                        tab
-                    }
-                }
-
-                _uiState.value = TabsUiState.Success(tabs = enrichedTabs)
-                Timber.d("Loaded ${enrichedTabs.size} tabs")
-            } catch (e: Exception) {
-                Timber.e(e, "Error loading tabs")
-                _uiState.value = TabsUiState.Error(
-                    message = e.message ?: "Failed to load tabs"
-                )
-            }
+  /** Reads the open tasks, with the stored site of each page when there is one. */
+  fun load() {
+    _uiState.update { if (it is TabsUiState.Loaded) it.copy(refreshing = true) else it }
+    viewModelScope.launch {
+      try {
+        val tabs = tabsManager.getActiveTabs().map { tab ->
+          tab.website = try {
+            websiteRepository.getWebsiteReadOnly(tab.url).first()
+          } catch (e: Exception) {
+            Timber.w(e, "No stored site for a tab")
+            null
+          }
+          tab
         }
+        _uiState.update { TabsUiState.Loaded(tabs, confirmCloseAll = (it as? TabsUiState.Loaded)?.confirmCloseAll == true && tabs.isNotEmpty()) }
+      } catch (e: Exception) {
+        Timber.e(e, "Error loading tabs")
+        _uiState.value = TabsUiState.Error(e.message ?: "")
+      }
     }
+  }
 
-    /**
-     * Show close all confirmation dialog
-     */
-    fun showCloseAllDialog() {
-        val currentState = _uiState.value
-        if (currentState is TabsUiState.Success) {
-            _uiState.value = currentState.copy(showCloseAllDialog = true)
-        }
+  /** Brings the tab's task forward. When no task holds it any more, the list reloads; nothing opens. */
+  fun open(context: Context, tab: Tab) {
+    val found = tabsManager.reOrderTabByUrl(context, Website(tab.url), listOf(tab.getTargetActivityName()))
+    if (!found) load()
+  }
+
+  fun close(context: Context, tab: Tab) {
+    tabsManager.finishTabByUrl(context, Website(tab.url), listOf(tab.getTargetActivityName()))
+    load()
+  }
+
+  fun requestCloseAll() = _uiState.update { if (it is TabsUiState.Loaded) it.copy(confirmCloseAll = true) else it }
+
+  fun dismissCloseAll() = _uiState.update { if (it is TabsUiState.Loaded) it.copy(confirmCloseAll = false) else it }
+
+  fun confirmCloseAll() {
+    dismissCloseAll()
+    viewModelScope.launch {
+      try {
+        tabsManager.closeAllTabs()
+      } catch (e: Exception) {
+        Timber.e(e, "Error closing all tabs")
+      }
+      load()
     }
-
-    /**
-     * Hide close all dialog
-     */
-    fun hideCloseAllDialog() {
-        val currentState = _uiState.value
-        if (currentState is TabsUiState.Success) {
-            _uiState.value = currentState.copy(showCloseAllDialog = false)
-        }
-    }
-
-    /**
-     * Close all tabs
-     */
-    fun closeAllTabs() {
-        viewModelScope.launch {
-            try {
-                val closedTabs = tabsManager.closeAllTabs()
-                Timber.d("Closed ${closedTabs.size} tabs")
-
-                // Reload tabs after closing all
-                hideCloseAllDialog()
-                loadTabs()
-            } catch (e: Exception) {
-                Timber.e(e, "Error closing all tabs")
-                hideCloseAllDialog()
-            }
-        }
-    }
-
-    /**
-     * Refresh tabs
-     */
-    fun refresh() {
-        loadTabs()
-    }
-
-    /**
-     * Get tab count
-     */
-    fun getTabCount(): Int {
-        return when (val state = _uiState.value) {
-            is TabsUiState.Success -> state.tabs.size
-            else -> 0
-        }
-    }
+  }
 }

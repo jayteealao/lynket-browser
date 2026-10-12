@@ -1,7 +1,7 @@
 /*
  *  Lynket
  *
- *  Copyright (C) 2025 Arunkumar
+ *  Copyright (C) 2026 Arunkumar
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -11,336 +11,271 @@
 
 package arun.com.chromer.ui.tabs
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ClearAll
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Tab
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import arun.com.chromer.ui.navigation.LynketNavigator
+import arun.com.chromer.R
+import arun.com.chromer.tabs.ARTICLE
+import arun.com.chromer.tabs.CUSTOM_TAB
 import arun.com.chromer.tabs.TabsManager.Tab
+import arun.com.chromer.tabs.WEB_VIEW
+import arun.com.chromer.tabs.WEB_VIEW_EMBEDDED
 import arun.com.chromer.tabs.ui.ModernTabsViewModel
-import arun.com.chromer.tabs.ui.ModernTabsViewModel.TabsUiState
-import arun.com.chromer.ui.navigation.navigateToBrowser
-import coil.compose.AsyncImage
+import arun.com.chromer.tabs.ui.TabsUiState
+import arun.com.chromer.ui.components.EmptyState
+import arun.com.chromer.ui.components.ErrorState
+import arun.com.chromer.ui.components.LoadingList
+import arun.com.chromer.ui.history.SiteAvatar
+import arun.com.chromer.ui.settings.components.settingsColumn
+
+/** What a person can do on the Tabs screen. */
+class TabsActions(
+  val onBack: () -> Unit = {},
+  val onOpen: (Tab) -> Unit = {},
+  val onClose: (Tab) -> Unit = {},
+  val onRefresh: () -> Unit = {},
+  val onCloseAll: () -> Unit = {},
+  val onConfirmCloseAll: () -> Unit = {},
+  val onDismissCloseAll: () -> Unit = {},
+)
 
 /**
- * Phase 3: Modern TabsScreen
- *
- * Shows active browser tabs with:
- * - List of open tabs
- * - Close individual tabs
- * - Close all tabs
- * - Refresh tabs
- * - Navigate to tab
- *
- * Demonstrates integration with legacy TabsManager
- * while using modern Compose UI and ViewModel.
+ * Tabs, shown by the main navigation and by TabsActivity (home, the Custom Tab menu and the
+ * launcher shortcut): the open browsing tasks, then the floating close-all button, as on the old
+ * screen. The list reloads whenever the screen comes back.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TabsScreen(
-    navigator: LynketNavigator,
-    viewModel: ModernTabsViewModel = hiltViewModel()
-) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    Scaffold(
-        topBar = {
-            TabsTopBar(
-                onBackClick = { navigator.back() },
-                onCloseAllClick = viewModel::showCloseAllDialog,
-                onRefreshClick = viewModel::refresh,
-                tabCount = when (val state = uiState) {
-                    is TabsUiState.Success -> state.tabs.size
-                    else -> 0
-                }
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            when (val state = uiState) {
-                is TabsUiState.Loading -> {
-                    LoadingState()
-                }
-                is TabsUiState.Success -> {
-                    if (state.tabs.isEmpty()) {
-                        EmptyTabsState()
-                    } else {
-                        TabsList(
-                            tabs = state.tabs,
-                            onTabClick = { tab ->
-                                // Navigate to the tab's URL
-                                navigator.navigateToBrowser(tab.url)
-                            }
-                        )
-                    }
-
-                    // Close all dialog
-                    if (state.showCloseAllDialog) {
-                        CloseAllDialog(
-                            onConfirm = viewModel::closeAllTabs,
-                            onDismiss = viewModel::hideCloseAllDialog,
-                            tabCount = state.tabs.size
-                        )
-                    }
-                }
-                is TabsUiState.Error -> {
-                    ErrorState(
-                        message = state.message,
-                        onRetry = viewModel::loadTabs
-                    )
-                }
-            }
-        }
-    }
+fun TabsScreen(onBack: () -> Unit, closeIcon: Boolean, viewModel: ModernTabsViewModel = hiltViewModel()) {
+  val context = LocalContext.current
+  val state by viewModel.uiState.collectAsStateWithLifecycle()
+  LifecycleResumeEffect(viewModel) {
+    viewModel.load()
+    onPauseOrDispose { }
+  }
+  TabsContent(
+    state = state,
+    closeIcon = closeIcon,
+    actions = TabsActions(
+      onBack = onBack,
+      onOpen = { viewModel.open(context, it) },
+      onClose = { viewModel.close(context, it) },
+      onRefresh = viewModel::load,
+      onCloseAll = viewModel::requestCloseAll,
+      onConfirmCloseAll = viewModel::confirmCloseAll,
+      onDismissCloseAll = viewModel::dismissCloseAll,
+    ),
+  )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TabsTopBar(
-    onBackClick: () -> Unit,
-    onCloseAllClick: () -> Unit,
-    onRefreshClick: () -> Unit,
-    tabCount: Int
-) {
-    TopAppBar(
-        title = { Text("Active Tabs ($tabCount)") },
+fun TabsContent(state: TabsUiState, closeIcon: Boolean, actions: TabsActions) {
+  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+  val tabs = (state as? TabsUiState.Loaded)?.tabs.orEmpty()
+  Scaffold(
+    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection).testTag("tabs"),
+    contentWindowInsets = WindowInsets.safeDrawing,
+    topBar = {
+      LargeTopAppBar(
+        title = { Text(stringResource(R.string.title_tabs), fontWeight = FontWeight.SemiBold) },
         navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+          IconButton(onClick = actions.onBack) {
+            if (closeIcon) {
+              Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close))
+            } else {
+              Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
             }
+          }
         },
-        actions = {
-            IconButton(onClick = onRefreshClick) {
-                Icon(Icons.Default.Refresh, "Refresh")
-            }
-            IconButton(onClick = onCloseAllClick, enabled = tabCount > 0) {
-                Icon(Icons.Default.Close, "Close All")
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-        )
-    )
-}
-
-@Composable
-private fun TabsList(
-    tabs: List<Tab>,
-    onTabClick: (Tab) -> Unit
-) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(tabs, key = { it.url }) { tab ->
-            TabItem(
-                tab = tab,
-                onClick = { onTabClick(tab) }
-            )
+        scrollBehavior = scrollBehavior,
+      )
+    },
+    floatingActionButton = {
+      if (tabs.isNotEmpty()) {
+        FloatingActionButton(onClick = actions.onCloseAll, modifier = Modifier.testTag("tabs-close-all")) {
+          Icon(Icons.Filled.ClearAll, contentDescription = stringResource(R.string.tabs_close_all))
         }
-    }
-}
-
-@Composable
-private fun TabItem(
-    tab: Tab,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+      }
+    },
+  ) { padding ->
+    PullToRefreshBox(
+      isRefreshing = (state as? TabsUiState.Loaded)?.refreshing == true,
+      onRefresh = actions.onRefresh,
+      modifier = Modifier.fillMaxSize().padding(padding),
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Favicon
-            AsyncImage(
-                model = tab.website?.faviconUrl,
-                contentDescription = "Favicon",
-                modifier = Modifier.size(48.dp)
-            )
-
-            // Title and URL
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = tab.website?.safeLabel() ?: tab.url,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2
-                )
-                Text(
-                    text = tab.url,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-
-                // Tab type indicator
-                Spacer(modifier = Modifier.height(4.dp))
-                TabTypeBadge(tab = tab)
+      LazyColumn(
+        modifier = Modifier.fillMaxSize().testTag("tabs-list"),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        when (state) {
+          TabsUiState.Loading -> item(key = "loading") {
+            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.settingsColumn()) {
+              LoadingList(modifier = Modifier.padding(vertical = 12.dp), rows = 4, loadingLabel = stringResource(R.string.loading))
             }
-
-            // Arrow indicator
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = "Open",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+          }
+          is TabsUiState.Error -> item(key = "error") {
+            ErrorState(
+              title = stringResource(R.string.tabs_error_title),
+              body = state.message,
+              retryLabel = stringResource(R.string.retry),
+              onRetry = actions.onRefresh,
+              modifier = Modifier.settingsColumn(),
             )
+          }
+          is TabsUiState.Loaded -> if (tabs.isEmpty()) {
+            item(key = "empty") {
+              EmptyState(
+                icon = Icons.Outlined.Tab,
+                title = stringResource(R.string.tabs_empty_title),
+                body = stringResource(R.string.tabs_empty_body),
+                modifier = Modifier.settingsColumn(),
+              )
+            }
+          } else {
+            itemsIndexed(tabs, key = { _, tab -> "${tab.type}-${tab.url}" }) { index, tab ->
+              TabRow(tab, first = index == 0, last = index == tabs.lastIndex, actions)
+            }
+            item(key = "hint") {
+              Text(
+                stringResource(R.string.tabs_swipe_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.settingsColumn().padding(start = 4.dp, top = 16.dp),
+              )
+            }
+          }
         }
+      }
     }
-}
-
-@Composable
-private fun TabTypeBadge(tab: Tab) {
-    val (label, color) = when (tab.type) {
-        arun.com.chromer.tabs.CUSTOM_TAB -> "Custom Tab" to MaterialTheme.colorScheme.primary
-        arun.com.chromer.tabs.WEB_VIEW -> "WebView" to MaterialTheme.colorScheme.secondary
-        arun.com.chromer.tabs.ARTICLE -> "Article" to MaterialTheme.colorScheme.tertiary
-        else -> "Other" to MaterialTheme.colorScheme.outline
-    }
-
-    Surface(
-        color = color.copy(alpha = 0.1f),
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
-}
-
-@Composable
-private fun CloseAllDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-    tabCount: Int
-) {
+  }
+  if ((state as? TabsUiState.Loaded)?.confirmCloseAll == true) {
     AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Close All Tabs?") },
-        text = {
-            Text("This will close all $tabCount active tab${if (tabCount != 1) "s" else ""}.")
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("Close All")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+      onDismissRequest = actions.onDismissCloseAll,
+      modifier = Modifier.testTag("close-all-dialog"),
+      title = { Text(stringResource(R.string.are_you_sure)) },
+      text = { Text(stringResource(R.string.tab_deletion_confirmation_content)) },
+      confirmButton = {
+        TextButton(onClick = actions.onConfirmCloseAll, modifier = Modifier.testTag("close-all-confirm")) {
+          Text(stringResource(R.string.yes_close), color = MaterialTheme.colorScheme.error)
         }
+      },
+      dismissButton = {
+        TextButton(onClick = actions.onDismissCloseAll, modifier = Modifier.testTag("close-all-cancel")) {
+          Text(stringResource(android.R.string.no))
+        }
+      },
     )
+  }
 }
 
+/** The tab type label of the old row: Custom Tab, Web View or Article mode. */
 @Composable
-private fun EmptyTabsState() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(48.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+private fun typeLabel(tab: Tab): String = stringResource(
+  when (tab.type) {
+    WEB_VIEW, WEB_VIEW_EMBEDDED -> R.string.web_view
+    ARTICLE -> R.string.article_mode
+    CUSTOM_TAB -> R.string.custom_tab
+    else -> R.string.custom_tab
+  },
+)
+
+/** One open tab: favicon or first letter, title, "type · address" and a close icon. */
+@Composable
+private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions) {
+  val top = if (first) 16.dp else 0.dp
+  val bottom = if (last) 16.dp else 0.dp
+  val shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
+  val title = tab.website?.safeLabel() ?: tab.url
+  val dismissState = rememberSwipeToDismissBoxState()
+  SwipeToDismissBox(
+    state = dismissState,
+    modifier = Modifier.settingsColumn().testTag("tab-row"),
+    backgroundContent = {
+      Box(
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer, shape).padding(horizontal = 24.dp),
+        contentAlignment = Alignment.CenterEnd,
+      ) {
+        Icon(Icons.Outlined.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+      }
+    },
+    onDismiss = { actions.onClose(tab) },
+  ) {
+    Surface(shape = shape, color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
+      Column {
+        if (!first) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clickable { actions.onOpen(tab) }
+            .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
         ) {
-            Icon(
-                Icons.Default.Tab,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
+          SiteAvatar(title, tab.website?.faviconUrl)
+          Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                text = "No active tabs",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+              "${typeLabel(tab)} · ${tab.url}",
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = "Open a link to create a tab",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
+          }
+          IconButton(onClick = { actions.onClose(tab) }, modifier = Modifier.testTag("tab-close")) {
+            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close_website, title))
+          }
         }
+      }
     }
-}
-
-@Composable
-private fun LoadingState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun ErrorState(
-    message: String,
-    onRetry: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                Icons.Default.Error,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.error
-            )
-            Text(
-                text = "Error loading tabs",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.error
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Button(onClick = onRetry) {
-                Text("Retry")
-            }
-        }
-    }
+  }
 }
