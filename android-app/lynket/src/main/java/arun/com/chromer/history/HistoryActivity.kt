@@ -21,67 +21,38 @@
 package arun.com.chromer.history
 
 import android.os.Bundle
-import android.view.MenuItem
-import androidx.activity.addCallback
-import arun.com.chromer.R
-import arun.com.chromer.databinding.ActivityHistoryBinding
-import arun.com.chromer.shared.FabHandler
-import arun.com.chromer.shared.base.Snackable
-import arun.com.chromer.shared.base.activity.BaseActivity
-import com.google.android.material.snackbar.Snackbar
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import arun.com.chromer.ui.history.HistoryScreen
+import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * The History screen for callers outside the app's navigation: the Custom Tab menu and bottom bar
+ * and the launcher shortcut. It shows the one Compose History screen; back returns to the caller.
+ */
 @AndroidEntryPoint
-class HistoryActivity : BaseActivity(), Snackable {
-
-  private lateinit var binding: ActivityHistoryBinding
-
-  override val layoutRes: Int
-    get() = R.layout.activity_history
+class HistoryActivity : ComponentActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge()
     super.onCreate(savedInstanceState)
-    binding = ActivityHistoryBinding.inflate(layoutInflater)
-    setContentView(binding.root)
-
-    // Predictive back (targetSdk 36) does not call onBackPressed.
-    onBackPressedDispatcher.addCallback(this) { finishWithTransition() }
-
-    setSupportActionBar(binding.toolbar)
-    if (supportActionBar != null) {
-      supportActionBar!!.setDisplayHomeAsUpEnabled(true)
+    setContent {
+      ChromerThemeFromSettings {
+        Surface(
+          modifier = Modifier.fillMaxSize().semantics { testTagsAsResourceId = true },
+          color = MaterialTheme.colorScheme.background,
+        ) {
+          HistoryScreen(onBack = ::finish)
+        }
+      }
     }
-
-    binding.fab.setOnClickListener {
-      supportFragmentManager.fragments
-        .asSequence()
-        .filter { !it.isHidden && it is FabHandler }
-        .map { it as FabHandler }
-        .toList()
-        .first()
-        .onFabClick()
-    }
-
-    supportFragmentManager
-      .beginTransaction()
-      .replace(R.id.fragment_container, HistoryFragment())
-      .commit()
   }
-
-  override fun snack(textToSnack: String) {
-    Snackbar.make(binding.coordinatorLayout, textToSnack, Snackbar.LENGTH_SHORT).show()
-  }
-
-  override fun snackLong(textToSnack: String) {
-    Snackbar.make(binding.coordinatorLayout, textToSnack, Snackbar.LENGTH_LONG).show()
-  }
-
-  override fun onOptionsItemSelected(item: MenuItem): Boolean {
-    if (item.itemId == android.R.id.home) {
-      finishWithTransition()
-      return true
-    }
-    return super.onOptionsItemSelected(item)
-  }
-
 }

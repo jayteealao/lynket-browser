@@ -95,6 +95,42 @@ class ModernHistoryRepository @Inject constructor(
     }
 
     /**
+     * History rows whose URL or title contains [query], every match, newest first, in pages.
+     */
+    fun getPagedSearch(query: String): Flow<PagingData<Website>> {
+        return flow {
+            val dao = historyDatabase.dao()
+            emitAll(
+                Pager(
+                    config = PagingConfig(
+                        pageSize = 20,
+                        initialLoadSize = 10,
+                        enablePlaceholders = false
+                    ),
+                    pagingSourceFactory = { dao.searchPaged(query) }
+                ).flow
+            )
+        }
+            .map { pagingData -> pagingData.map { it.toWebsite() } }
+            .flowOn(ioDispatcher)
+    }
+
+    /**
+     * Puts a deleted row back as it was: its last-visit time, visit count and bookmark (the undo of
+     * a delete). A row recorded again since the delete is replaced.
+     */
+    suspend fun restore(website: Website): Boolean = withContext(ioDispatcher) {
+        try {
+            historyDatabase.dao().insert(website.toEntity())
+            Timber.d("Restored website: ${website.url}")
+            true
+        } catch (e: Exception) {
+            Timber.e(e, "Error restoring website: ${website.url}")
+            false
+        }
+    }
+
+    /**
      * Get a website by URL.
      * Returns null if not found.
      */

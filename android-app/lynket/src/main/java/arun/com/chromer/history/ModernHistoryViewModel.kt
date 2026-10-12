@@ -1,7 +1,7 @@
 /*
  *  Lynket
  *
- *  Copyright (C) 2025 Arunkumar
+ *  Copyright (C) 2026 Arunkumar
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -11,234 +11,159 @@
 
 package arun.com.chromer.history
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import arun.com.chromer.data.history.ModernHistoryRepository
-import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.settings.Preferences
+import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.ui.history.HistoryListItem
+import arun.com.chromer.ui.history.withDayHeaders
+import arun.com.chromer.util.events.Event
+import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
 
+/** Dialogs of the History screen. */
+enum class HistoryDialog { None, ClearConfirm, IncognitoExplanation }
+
+/** State of the History screen apart from the paged rows. */
+data class HistoryUiState(
+  val historyEnabled: Boolean = true,
+  val incognito: Boolean = false,
+  val providerPackage: String? = null,
+  val query: String = "",
+  val searchOpen: Boolean = false,
+  val dialog: HistoryDialog = HistoryDialog.None,
+)
+
+/** One-shot messages: a row was removed (offer undo), or all rows were deleted. */
+sealed interface HistoryEvent {
+  data class Deleted(val website: Website) : HistoryEvent
+  data class Cleared(val count: Int) : HistoryEvent
+}
+
 /**
- * Phase 3: Modern HistoryViewModel with Paging 3
- *
- * Demonstrates advanced patterns:
- * - Paging 3 with Compose integration
- * - Search with debounce
- * - Multiple UI state streams
- * - Bulk operations (delete all)
- *
- * Features:
- * - Infinite scroll pagination
- * - Real-time search filtering
- * - Delete individual items
- * - Clear all history
- * - Export history (future)
+ * History: the History and Incognito browsing switches (turning one on turns the other off, as
+ * the old screen did), the paged rows with day headers, search over every row, remove with undo,
+ * bookmark, and delete all after a confirmation.
  */
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class ModernHistoryViewModel @Inject constructor(
-    private val historyRepository: ModernHistoryRepository,
-    private val preferencesRepository: UserPreferencesRepository
+  private val historyRepository: ModernHistoryRepository,
+  private val preferences: Preferences,
+  private val eventBus: EventBus,
+  private val tabsManager: TabsManager,
 ) : ViewModel() {
 
-    /**
-     * UI State for history screen
-     */
-    data class HistoryUiState(
-        val searchQuery: String = "",
-        val isSearching: Boolean = false,
-        val totalCount: Int = 0,
-        val bookmarkCount: Int = 0,
-        val showClearAllDialog: Boolean = false
-    )
+  private val _uiState = MutableStateFlow(settingsState(HistoryUiState()))
+  val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
-    /**
-     * Search query flow
-     */
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+  private val _events = Channel<HistoryEvent>(Channel.BUFFERED)
+  val events: Flow<HistoryEvent> = _events.receiveAsFlow()
 
-    /**
-     * UI state flow
-     */
-    private val _uiState = MutableStateFlow(HistoryUiState())
-    val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
+  private val query = MutableStateFlow("")
 
-    /**
-     * Paginated history flow.
-     * Automatically handles loading more items as user scrolls.
-     * Cached in viewModelScope to survive configuration changes.
-     */
-    val pagedHistory: Flow<PagingData<Website>> = historyRepository
-        .getPagedHistory()
-        .cachedIn(viewModelScope)
+  /** All rows, or the rows matching the search, newest first, with a header before each day. */
+  val items: Flow<PagingData<HistoryListItem>> = query
+    .debounce { if (it.isBlank()) 0L else SEARCH_DEBOUNCE_MS }
+    .map { it.trim() }
+    .distinctUntilChanged()
+    .flatMapLatest { q -> if (q.isEmpty()) historyRepository.getPagedHistory() else historyRepository.getPagedSearch(q) }
+    .map { it.withDayHeaders() }
+    .cachedIn(viewModelScope)
 
-    /**
-     * Search results flow.
-     * Debounces search input to avoid excessive queries.
-     * Only activates when search query is not empty.
-     */
-    val searchResults: Flow<List<Website>> = _searchQuery
-        .debounce(300) // Wait 300ms after user stops typing
-        .filter { it.isNotBlank() }
-        .distinctUntilChanged()
-        .onEach { _uiState.update { state -> state.copy(isSearching = true) } }
-        .flatMapLatest { query ->
-            historyRepository.searchFlow(query)
-        }
-        .onEach { _uiState.update { state -> state.copy(isSearching = false) } }
-        .catch { exception ->
-            Timber.e(exception, "Error searching history")
-            emit(emptyList())
-            _uiState.update { state -> state.copy(isSearching = false) }
-        }
+  private fun settingsState(state: HistoryUiState) = state.copy(
+    historyEnabled = !preferences.historyDisabled(),
+    incognito = preferences.fullIncognitoMode(),
+    providerPackage = preferences.customTabPackage(),
+  )
 
-    /**
-     * Bookmarks flow for quick access
-     */
-    val bookmarks: StateFlow<List<Website>> = historyRepository.getBookmarks()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+  /** Reads the switches again, for example when the screen comes back from settings. */
+  fun syncSettings() = _uiState.update(::settingsState)
 
-    init {
-        loadCounts()
+  fun setHistoryEnabled(enabled: Boolean) {
+    preferences.historyDisabled(!enabled)
+    val incognitoWasOn = _uiState.value.incognito
+    if (enabled && incognitoWasOn) {
+      preferences.fullIncognitoMode(false)
+      eventBus.tryEmit(Event.SettingsEvent.ProviderChanged)
     }
+    _uiState.update { it.copy(historyEnabled = enabled, incognito = if (enabled) false else it.incognito) }
+  }
 
-    /**
-     * Load total counts for display
-     */
-    private fun loadCounts() {
-        viewModelScope.launch {
-            try {
-                val total = historyRepository.getCount()
-                val bookmarkCount = historyRepository.getBookmarkCount()
-                _uiState.update { state ->
-                    state.copy(
-                        totalCount = total,
-                        bookmarkCount = bookmarkCount
-                    )
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Error loading counts")
-            }
-        }
+  fun setIncognito(on: Boolean) {
+    preferences.fullIncognitoMode(on)
+    if (on) preferences.historyDisabled(true)
+    eventBus.tryEmit(Event.SettingsEvent.ProviderChanged)
+    _uiState.update {
+      it.copy(
+        incognito = on,
+        historyEnabled = if (on) false else it.historyEnabled,
+        dialog = if (on) HistoryDialog.IncognitoExplanation else it.dialog,
+      )
     }
+  }
 
-    // ========== Actions ==========
+  fun openSearch() = _uiState.update { it.copy(searchOpen = true) }
 
-    /**
-     * Update search query
-     */
-    fun onSearchQueryChanged(query: String) {
-        _searchQuery.value = query
-        _uiState.update { it.copy(searchQuery = query) }
+  fun closeSearch() {
+    query.value = ""
+    _uiState.update { it.copy(searchOpen = false, query = "") }
+  }
+
+  fun setQuery(text: String) {
+    query.value = text
+    _uiState.update { it.copy(query = text) }
+  }
+
+  /** Opens the row the way a link opens: the browsing mode, AMP and article settings apply. */
+  fun open(context: Context, website: Website) = tabsManager.openUrl(context, website)
+
+  fun openAmp(context: Context, website: Website) = tabsManager.openUrl(context, Website.Ampify(website))
+
+  fun delete(website: Website) {
+    viewModelScope.launch {
+      if (historyRepository.delete(website)) _events.send(HistoryEvent.Deleted(website))
     }
+  }
 
-    /**
-     * Clear search
-     */
-    fun clearSearch() {
-        _searchQuery.value = ""
-        _uiState.update { it.copy(searchQuery = "") }
-    }
+  fun undo(website: Website) {
+    viewModelScope.launch { historyRepository.restore(website) }
+  }
 
-    /**
-     * Delete a single website from history
-     */
-    fun deleteWebsite(website: Website) {
-        viewModelScope.launch {
-            try {
-                val success = historyRepository.delete(website)
-                if (success) {
-                    Timber.d("Deleted: ${website.url}")
-                    loadCounts() // Refresh counts
-                } else {
-                    Timber.e("Failed to delete: ${website.url}")
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Error deleting website")
-            }
-        }
-    }
+  fun toggleBookmark(website: Website) {
+    viewModelScope.launch { historyRepository.toggleBookmark(website.url) }
+  }
 
-    /**
-     * Toggle bookmark status
-     */
-    fun toggleBookmark(website: Website) {
-        viewModelScope.launch {
-            try {
-                historyRepository.toggleBookmark(website.url)
-                Timber.d("Toggled bookmark: ${website.url}")
-                loadCounts()
-            } catch (e: Exception) {
-                Timber.e(e, "Error toggling bookmark")
-            }
-        }
-    }
+  fun requestClearAll() = _uiState.update { it.copy(dialog = HistoryDialog.ClearConfirm) }
 
-    /**
-     * Show clear all confirmation dialog
-     */
-    fun showClearAllDialog() {
-        _uiState.update { it.copy(showClearAllDialog = true) }
-    }
+  fun dismissDialog() = _uiState.update { it.copy(dialog = HistoryDialog.None) }
 
-    /**
-     * Hide clear all dialog
-     */
-    fun hideClearAllDialog() {
-        _uiState.update { it.copy(showClearAllDialog = false) }
-    }
+  fun confirmClearAll() {
+    dismissDialog()
+    viewModelScope.launch { _events.send(HistoryEvent.Cleared(historyRepository.deleteAll())) }
+  }
 
-    /**
-     * Clear all history (after confirmation)
-     */
-    fun clearAllHistory() {
-        viewModelScope.launch {
-            try {
-                val count = historyRepository.deleteAll()
-                Timber.d("Cleared all history: $count items")
-                _uiState.update { state ->
-                    state.copy(
-                        showClearAllDialog = false,
-                        totalCount = 0,
-                        bookmarkCount = 0
-                    )
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Error clearing history")
-            }
-        }
-    }
-
-    /**
-     * Delete old history (older than X days)
-     */
-    fun deleteOldHistory(days: Int = 30) {
-        viewModelScope.launch {
-            try {
-                val deleted = historyRepository.deleteOlderThan(days)
-                Timber.d("Deleted $deleted items older than $days days")
-                loadCounts()
-            } catch (e: Exception) {
-                Timber.e(e, "Error deleting old history")
-            }
-        }
-    }
-
-    /**
-     * Refresh history (force reload)
-     */
-    fun refresh() {
-        loadCounts()
-        // Paging data automatically refreshes when database changes
-    }
+  private companion object {
+    const val SEARCH_DEBOUNCE_MS = 300L
+  }
 }

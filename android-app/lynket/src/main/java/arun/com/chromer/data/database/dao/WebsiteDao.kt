@@ -99,6 +99,18 @@ interface WebsiteDao {
     fun searchFlow(query: String): Flow<List<WebsiteEntity>>
 
     /**
+     * Search history by URL or title, every match, newest first, as pages for the History screen.
+     * [search] keeps its limit of 5 for the home suggestions.
+     */
+    @Query("""
+        SELECT * FROM history
+        WHERE url LIKE '%' || :query || '%'
+           OR title LIKE '%' || :query || '%'
+        ORDER BY created_at DESC
+    """)
+    fun searchPaged(query: String): PagingSource<Int, WebsiteEntity>
+
+    /**
      * Get all bookmarked websites.
      */
     @Query("SELECT * FROM history WHERE bookmarked = 1 ORDER BY created_at DESC")
