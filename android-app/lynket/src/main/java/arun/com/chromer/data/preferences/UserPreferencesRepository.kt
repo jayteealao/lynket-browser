@@ -65,6 +65,16 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /** Writes every entry of [values] in one edit, with the key type of each value; null removes. */
+    suspend fun setValues(values: Map<String, Any?>) {
+        store.edit { preferences ->
+            values.forEach { (name, value) ->
+                preferences.remove(stringPreferencesKey(name))
+                if (value != null) preferences[keyFor(name, value)] = value
+            }
+        }
+    }
+
     /**
      * Data class representing all user preferences.
      * Emitted by the preferences Flow whenever any preference changes.

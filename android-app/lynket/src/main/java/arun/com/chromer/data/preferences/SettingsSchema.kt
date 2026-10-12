@@ -81,6 +81,9 @@ object SettingsSchema {
 
   const val USE_WALLPAPER_COLOURS = "use_wallpaper_colours"
 
+  /** Theme of the app: 0 Auto (follows the system), 1 Light, 2 Dark, 3 Black. */
+  const val THEME_MODE = "theme_mode"
+
   private fun bool(name: String, default: Boolean) =
     SettingKey(name, SettingType.BOOLEAN) { default }
 
@@ -131,6 +134,8 @@ object SettingsSchema {
     bool("native_bubbles_preference", false),
     // Material You: colours from the wallpaper. New in this release, so off after an update.
     bool(USE_WALLPAPER_COLOURS, false),
+    // Theme chips. New in this release; Auto is what every earlier version did.
+    SettingKey(THEME_MODE, SettingType.INT) { 0 },
   )
 
   private val byName = keys.associateBy { it.name }

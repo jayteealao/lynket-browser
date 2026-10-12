@@ -315,6 +315,11 @@ class Preferences @Inject constructor(
 
   fun useWallpaperColours(preference: Boolean) = put(SettingsSchema.USE_WALLPAPER_COLOURS, preference)
 
+  /** The stored theme: 0 Auto, 1 Light, 2 Dark, 3 Black. */
+  fun themeMode(): Int = int(SettingsSchema.THEME_MODE)
+
+  fun themeMode(mode: Int) = put(SettingsSchema.THEME_MODE, mode)
+
   fun webHeads(): Boolean {
     return bool(WEB_HEAD_ENABLED)
   }

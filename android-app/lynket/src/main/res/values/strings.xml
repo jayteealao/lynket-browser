@@ -383,4 +383,33 @@
   <string name="later">Later</string>
   <string name="close">Close</string>
   <string name="back">Back</string>
+  <!-- Settings, per-app settings and provider selection (English only) -->
+  <string name="settings_theme">Theme</string>
+  <string name="theme_auto">Auto</string>
+  <string name="theme_light">Light</string>
+  <string name="theme_dark">Dark</string>
+  <string name="theme_black">Black</string>
+  <string name="use_wallpaper_colours">Use wallpaper colours</string>
+  <string name="use_wallpaper_colours_summary">Material You, Android 12 and later</string>
+  <string name="colour_sheet_body">Pick a colour or enter a hex value.</string>
+  <string name="colour_hex_label">Hex colour</string>
+  <string name="colour_hex_error">Enter a colour as #RRGGBB</string>
+  <string name="colour_selected">%1$s, selected</string>
+  <string name="done">Done</string>
+  <string name="settings_about_version">Version %1$s</string>
+  <string name="settings_set">Set</string>
+  <string name="per_app_enable">Enable per app settings</string>
+  <string name="per_app_enable_summary">Rules below apply when a link comes from that app</string>
+  <string name="search_apps">Search apps</string>
+  <string name="per_app_no_match">No app matches \"%1$s\"</string>
+  <string name="per_app_secondary_browser">Open %1$s links in the secondary browser</string>
+  <string name="per_app_incognito">Open %1$s links in incognito</string>
+  <string name="no_provider_title">No Custom Tab provider found</string>
+  <string name="no_provider_body">Install a browser that supports Custom Tabs, such as Chrome or Firefox. Until then, Lynket opens links in its own WebView.</string>
+  <string name="use_webview">Use WebView</string>
+  <string name="get_chrome">Get Chrome</string>
+  <string name="provider_current">Current provider</string>
+  <string name="provider_installed">Installed</string>
+  <string name="provider_not_installed">Not installed</string>
+  <string name="no_apps_for_choice">No app can do this</string>
 </resources>
