@@ -1,0 +1,20 @@
+# History opened from the home drawer, at the top of the list. Start with the home screen shown
+# (am start of MainActivity). The script that runs it reads the rows from the database.
+# Run: maestro --device <serial> test -e OUT=<dir> -e NAME=<screenshot> maestro/charter/history-from-drawer.yaml
+appId: arun.com.chromer.debug
+---
+- runFlow:
+    when:
+      visible: "OK"
+    commands:
+      - tapOn: "OK"
+- extendedWaitUntil:
+    visible: { id: "home-search-field" }
+    timeout: 20000
+- tapOn: { id: "home-menu" }
+- tapOn: "History"
+- extendedWaitUntil:
+    visible: { id: "history-list" }
+    timeout: 15000
+- assertVisible: "Example Domain"
+- takeScreenshot: ${OUT}/${NAME}
