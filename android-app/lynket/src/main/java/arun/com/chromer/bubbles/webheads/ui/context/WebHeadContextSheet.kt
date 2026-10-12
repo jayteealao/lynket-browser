@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.util.Utils
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 
 /** How "Share all" sends the list, in the order the choice dialog shows them. */
 enum class ShareAllFormat { CommaSeparated, NewLineSeparated, List }

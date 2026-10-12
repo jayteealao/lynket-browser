@@ -39,7 +39,7 @@ import arun.com.chromer.ui.intro.IntroPages
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import arun.com.chromer.ui.tips.TipsContent
-import arun.com.chromer.util.glide.appicon.ApplicationIcon
+import arun.com.chromer.util.appicon.ApplicationIcon
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
 import org.junit.Test

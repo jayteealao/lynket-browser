@@ -105,7 +105,7 @@ import arun.com.chromer.ui.settings.components.SettingsGroup
 import arun.com.chromer.ui.settings.components.SettingsRow
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import java.util.TimeZone
 

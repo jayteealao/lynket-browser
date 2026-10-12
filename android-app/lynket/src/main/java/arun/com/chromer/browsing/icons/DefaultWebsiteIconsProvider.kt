@@ -31,8 +31,7 @@ import android.graphics.Paint
 import androidx.palette.graphics.Palette
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.util.ColorUtil
-import com.bumptech.glide.Glide
-import dev.arunkumar.android.common.dpToPx
+import arun.com.chromer.util.image.WebsiteIconLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -56,15 +55,10 @@ constructor(private val application: Application) : WebsiteIconsProvider {
 
   private val randomColor get() = placeholderColors.random()
 
-  // https://developer.android.com/guide/practices/ui_guidelines/icon_design_adaptive
-  private val adaptiveIconOuterSize by lazy { 108.dpToPx() }
-
   override suspend fun getBubbleIconAndColor(website: Website): WebsiteIconData = withContext(Dispatchers.IO) {
-    val websiteIcon = Glide.with(application)
-      .asBitmap()
-      .load(website)
-      .submit(adaptiveIconOuterSize, adaptiveIconOuterSize)
-      .get()
+    val websiteIcon = checkNotNull(WebsiteIconLoader.loadIconWithPlaceholder(application, website)) {
+      "No icon for ${website.url}"
+    }
     val palette = Palette.from(websiteIcon).clearFilters().generate()
     WebsiteIconData(
       website = website,

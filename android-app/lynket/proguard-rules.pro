@@ -28,22 +28,6 @@
 # Parcelables
 -keep class * implements android.os.Parcelable{ *; }
 
-# Glide
--keep class arun.com.chromer.util.glide.*
--keep public class * implements com.bumptech.glide.module.GlideModule
--keep public class * extends com.bumptech.glide.module.AppGlideModule {
-    <init>(...);
-}
-# AGP 9 R8 strict keep rules no longer keep default constructors implicitly; Glide creates its
-# generated module reflectively.
--keep class com.bumptech.glide.GeneratedAppGlideModuleImpl {
-    <init>(...);
-}
--keep public enum com.bumptech.glide.load.resource.bitmap.ImageHeaderParser$** {
-    **[] $VALUES;
-    public *;
-}
-
 # Http
 -keep class org.apache.http.** { *; }
 -dontwarn org.apache.http.**

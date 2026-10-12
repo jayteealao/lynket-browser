@@ -29,7 +29,7 @@ import arun.com.chromer.search.suggestion.items.SuggestionItem
 import arun.com.chromer.search.suggestion.items.SuggestionType
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.util.glide.appicon.ApplicationIcon
+import arun.com.chromer.util.appicon.ApplicationIcon
 import arun.com.chromer.util.network.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay

@@ -31,7 +31,7 @@ import arun.com.chromer.extenstions.toUri
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.Utils.getAppNameWithPackage
-import arun.com.chromer.util.glide.appicon.ApplicationIcon.Companion.createUri
+import arun.com.chromer.util.appicon.ApplicationIcon.Companion.createUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow

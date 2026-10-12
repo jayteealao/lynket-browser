@@ -94,7 +94,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import arun.com.chromer.ui.browsing.rememberHideOnScrollState
 import arun.com.chromer.ui.components.skeletonAlpha
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 
 /** Widest the reader column grows on medium and expanded windows (visual contract). */
 val ReaderMaxWidth = 680.dp

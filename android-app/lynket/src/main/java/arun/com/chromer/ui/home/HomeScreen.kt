@@ -108,8 +108,8 @@ import arun.com.chromer.ui.navigation.navigateToProviderSelection
 import arun.com.chromer.ui.navigation.navigateToSettings
 import arun.com.chromer.ui.navigation.navigateToTabs
 import arun.com.chromer.ui.navigation.navigateToTips
-import arun.com.chromer.util.glide.appicon.ApplicationIcon
-import coil.compose.AsyncImage
+import arun.com.chromer.util.appicon.ApplicationIcon
+import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 
 /** Everything the home shows, independent of where it comes from (view model or a test). */

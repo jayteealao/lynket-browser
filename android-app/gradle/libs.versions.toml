@@ -40,11 +40,10 @@ okhttp = "4.12.0"
 moshi = "1.15.1"
 
 # Images
-coil = "2.7.0"
+coil = "3.6.3"
 
 # Legacy dependencies (will be removed)
 # Keep temporarily during migration
-glide = "4.14.2"
 butterknife = "10.2.3"
 epoxy = "4.6.4"
 # Phase 8: RxJava versions removed - migrated to Kotlin Coroutines/Flows
@@ -142,8 +141,9 @@ moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.re
 moshi-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", version.ref = "moshi" }
 
 # Image Loading
-coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
-coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+coil = { group = "io.coil-kt.coil3", name = "coil", version.ref = "coil" }
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
@@ -165,8 +165,6 @@ roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "robora
 
 # Legacy - TO BE REMOVED
 # Keep during migration, will be removed in Steps 9-10
-glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
-glide-ksp = { group = "com.github.bumptech.glide", name = "ksp", version.ref = "glide" }
 butterknife = { group = "com.jakewharton", name = "butterknife", version.ref = "butterknife" }
 butterknife-compiler = { group = "com.jakewharton", name = "butterknife-compiler", version.ref = "butterknife" }
 epoxy = { group = "com.airbnb.android", name = "epoxy", version.ref = "epoxy" }

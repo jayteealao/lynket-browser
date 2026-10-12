@@ -27,6 +27,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.multidex.MultiDex
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
+import arun.com.chromer.util.image.ApplicationIconFetcher
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
 import com.airbnb.epoxy.EpoxyController
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -40,7 +44,7 @@ import javax.inject.Inject
  * the per-app rule store's migration.
  */
 @HiltAndroidApp
-open class Lynket : Application() {
+open class Lynket : Application(), SingletonImageLoader.Factory {
 
   // Injecting the two stores starts their hot copies on the IO scope without blocking.
   @Inject
@@ -72,6 +76,15 @@ open class Lynket : Application() {
   private fun initEpoxy() {
     EpoxyController.setGlobalDebugLoggingEnabled(true)
   }
+
+  /**
+   * The one image loader for Compose images, favicons and app icons. Network loading comes from
+   * the OkHttp fetcher Coil registers on its own when coil-network-okhttp is on the classpath.
+   */
+  override fun newImageLoader(context: PlatformContext): ImageLoader =
+    ImageLoader.Builder(context)
+      .components { add(ApplicationIconFetcher.Factory()) }
+      .build()
 
   override fun attachBaseContext(base: Context) {
     super.attachBaseContext(base)

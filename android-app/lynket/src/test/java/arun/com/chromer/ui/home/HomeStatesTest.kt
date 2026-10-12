@@ -26,7 +26,7 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.extenstions.StringResource
 import arun.com.chromer.home.CustomTabProviderInfo
 import arun.com.chromer.ui.theme.ChromerTheme
-import arun.com.chromer.util.glide.appicon.ApplicationIcon
+import arun.com.chromer.util.appicon.ApplicationIcon
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test

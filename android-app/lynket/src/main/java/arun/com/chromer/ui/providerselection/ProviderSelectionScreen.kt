@@ -56,7 +56,7 @@ import arun.com.chromer.ui.settings.components.SettingsRow
 import arun.com.chromer.ui.settings.components.SettingsScaffold
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 
 /**
  * Custom Tab provider: the System WebView first, then every known or installed provider, as on the

@@ -247,10 +247,6 @@
       android:name=".browsing.article.ImageViewActivity"
       android:theme="@style/ArticleImageViewTheme" />
 
-    <meta-data
-      android:name="arun.com.chromer.util.glide.ChromerGlideModule"
-      android:value="GlideModule" />
-
   </application>
 
 </manifest>

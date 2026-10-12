@@ -18,28 +18,15 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.util.glide.favicon
+package arun.com.chromer.util.appicon
 
-import arun.com.chromer.data.website.model.Website
-import com.bumptech.glide.Priority
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.data.DataFetcher
+import android.net.Uri
 
-class WebsiteDataFetcher(private val website: Website) : DataFetcher<Website> {
+class ApplicationIcon(val packageName: String) {
 
-  override fun loadData(priority: Priority, callback: DataFetcher.DataCallback<in Website>) {
-    callback.onDataReady(website)
+  companion object {
+    const val URI_SCHEME_APPLICATION_ICON = "application-icon"
+    fun createUri(packageName: String): Uri =
+      Uri.fromParts(URI_SCHEME_APPLICATION_ICON, packageName, null)
   }
-
-  override fun cleanup() {
-    // Do nothing.
-  }
-
-  override fun cancel() {
-    // Do nothing.
-  }
-
-  override fun getDataClass(): Class<Website> = Website::class.java
-
-  override fun getDataSource(): DataSource = DataSource.LOCAL
 }

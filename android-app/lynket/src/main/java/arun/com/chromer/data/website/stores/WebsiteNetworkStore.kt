@@ -35,7 +35,7 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
-import com.bumptech.glide.Glide
+import arun.com.chromer.util.image.WebsiteIconLoader
 import arun.com.chromer.util.parser.RxParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -104,7 +104,7 @@ class WebsiteNetworkStore @Inject constructor(
         var color = Constants.NO_COLOR
         var icon: Bitmap? = null
         try {
-            icon = Glide.with(context).asBitmap().load(website.faviconUrl).submit().get()
+            icon = checkNotNull(WebsiteIconLoader.favicon(context, website.faviconUrl))
             val palette = Palette.from(icon).generate()
             color = ColorUtil.getBestColorFromPalette(palette)
         } catch (e: Exception) {
@@ -120,7 +120,7 @@ class WebsiteNetworkStore @Inject constructor(
         var color = Constants.NO_COLOR
         var icon: Bitmap? = null
         try {
-            icon = Glide.with(context).asBitmap().circleCrop().load(website.faviconUrl).submit().get()
+            icon = checkNotNull(WebsiteIconLoader.favicon(context, website.faviconUrl, circleCrop = true))
             val palette = Palette.from(icon).clearFilters().generate()
             color = ColorUtil.getBestColorFromPalette(palette)
         } catch (e: Exception) {
@@ -137,7 +137,7 @@ class WebsiteNetworkStore @Inject constructor(
         var color = Constants.NO_COLOR
         var icon: Bitmap? = null
         try {
-            icon = Glide.with(context).asBitmap().load(website).submit().get()
+            icon = checkNotNull(WebsiteIconLoader.iconWithPlaceholder(context, website))
             val palette = Palette.from(icon).generate()
             color = ColorUtil.getBestColorFromPalette(palette)
         } catch (e: Exception) {

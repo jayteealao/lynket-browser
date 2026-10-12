@@ -37,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,9 +55,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
-import coil.compose.AsyncImagePainter
-import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
+import coil3.compose.AsyncImagePainter
+import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
 
 const val IMAGE_MIN_SCALE = 1f
 const val IMAGE_MAX_SCALE = 3f
@@ -129,7 +130,8 @@ fun ImageViewerScreen(url: String, onClose: () -> Unit, onShare: () -> Unit, mod
           }
           .testTag(if (zoom.zoomed) "image-zoomed" else "image"),
       ) {
-        when (painter.state) {
+        val state by painter.state.collectAsState()
+        when (state) {
           is AsyncImagePainter.State.Error -> Column(
             Modifier.fillMaxSize().testTag("image-error"),
             horizontalAlignment = Alignment.CenterHorizontally,

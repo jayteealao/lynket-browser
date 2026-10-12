@@ -193,9 +193,10 @@ dependencies {
     implementation(libs.moshi.kotlin)
     ksp(libs.moshi.codegen)
 
-    // Image Loading - Coil (Modern)
+    // Image loading - Coil 3 (Compose images, favicons and app icons)
     implementation(libs.coil)
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     // Logging
     implementation(libs.timber)
@@ -220,10 +221,6 @@ dependencies {
     // LEGACY DEPENDENCIES - TO BE REMOVED
     // Keep temporarily during migration (Steps 3-9)
     // =============================================
-
-    // Legacy: Image Loading - Glide
-    implementation(libs.glide)
-    ksp(libs.glide.ksp)
 
     // Butterknife and Epoxy have no KSP processor; they run on the temporary legacy-kapt bridge
     // and leave with the last View-based screens.
