@@ -46,7 +46,6 @@ coil = "3.6.3"
 butterknife = "10.2.3"
 epoxy = "4.6.4"
 # Phase 8: RxJava versions removed - migrated to Kotlin Coroutines/Flows
-materialDialogs = "3.3.0"
 paperdb = "2.6"
 
 # Testing

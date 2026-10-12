@@ -61,12 +61,11 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.tabs.ui.TabsActivity
+import arun.com.chromer.ui.browsing.showSecondaryBrowserError
 import arun.com.chromer.util.SafeIntent
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.events.EventBus
 import arun.com.chromer.util.events.Event
-import com.afollestad.materialdialogs.MaterialDialog
-import com.afollestad.materialdialogs.Theme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -576,26 +575,10 @@ constructor(
 
 
   /**
-   * Shows a error dialog for various blacklist errors.
+   * Shows the error dialog for the blacklist errors over [activity], which stays open until the
+   * dialog closes. Runs on the main thread (the blacklist action is called there).
    */
   private fun showSecondaryBrowserHandlingError(activity: Activity, message: CharSequence) {
-    Handler(Looper.getMainLooper()).post {
-      MaterialDialog.Builder(activity)
-        .title(R.string.secondary_browser_launching_error_title)
-        .content(message)
-        .iconRes(R.mipmap.ic_launcher)
-        .positiveText(R.string.launch_setting)
-        .negativeText(android.R.string.cancel)
-        .theme(Theme.LIGHT)
-        .positiveColorRes(R.color.colorAccent)
-        .negativeColorRes(R.color.colorAccent)
-        .onPositive { _, _ ->
-          val chromerIntent =
-            activity.packageManager.getLaunchIntentForPackage(activity.packageName)
-          chromerIntent!!.addFlags(FLAG_ACTIVITY_CLEAR_TOP)
-          activity.startActivity(chromerIntent)
-        }
-        .dismissListener { activity.finish() }.show()
-    }
+    showSecondaryBrowserError(activity, message)
   }
 }

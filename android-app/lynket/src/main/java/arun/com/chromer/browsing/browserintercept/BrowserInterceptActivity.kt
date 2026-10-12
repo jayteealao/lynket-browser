@@ -20,6 +20,7 @@
 
 package arun.com.chromer.browsing.browserintercept
 
+import arun.com.chromer.ui.browsing.isShowingSecondaryBrowserError
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.Toast
@@ -52,7 +53,10 @@ class BrowserInterceptActivity : BaseActivity() {
       }
       lifecycleScope.launch {
         defaultTabsManager.processIncomingIntent(this@BrowserInterceptActivity, intent)
-        finishAndRemoveTaskCompat()
+        // A blacklist error dialog keeps this activity open; closing the dialog finishes it.
+        if (!isShowingSecondaryBrowserError) {
+          finishAndRemoveTaskCompat()
+        }
       }
     } ?: run {
       finishAndRemoveTaskCompat()

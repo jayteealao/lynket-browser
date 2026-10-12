@@ -234,8 +234,6 @@ dependencies {
     // Phase 8: RxJava dependencies removed - migrated to Kotlin Coroutines/Flows
 
     // Legacy: UI Libraries
-    implementation("com.afollestad.material-dialogs:core:0.9.6.0")
-    implementation("com.afollestad.material-dialogs:commons:0.9.6.0")
     // Icon font drawables for the remaining View screens; MaterialDrawer brought this same
     // version before the drawer moved to Compose.
     implementation("com.mikepenz:iconics-core:3.1.0")
