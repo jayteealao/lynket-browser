@@ -18,6 +18,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.roborazzi)
     alias(libs.plugins.room3)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -218,10 +219,20 @@ dependencies {
 
     // Disk LRU cache module
     implementation(project(":disk-cache"))
+
+    // Installs the shipped Baseline Profile on devices without Play's cloud profiles
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(project(":baselineprofile"))
 }
 
 roborazzi {
     outputDir.set(file("src/test/screenshots"))
+}
+
+// One profile in src/main/generated/baselineProfiles, shipped by every non-debug build
+// (benchmark and release). Generate it with ./gradlew :lynket:generateBaselineProfile.
+baselineProfile {
+    mergeIntoMain = true
 }
 
 room3 {

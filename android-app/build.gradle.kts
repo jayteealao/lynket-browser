@@ -18,6 +18,7 @@ plugins {
   alias(libs.plugins.androidTest) apply false
   alias(libs.plugins.roborazzi) apply false
   alias(libs.plugins.room3) apply false
+  alias(libs.plugins.androidx.baselineprofile) apply false
 }
 
 tasks.register("clean", Delete::class) {

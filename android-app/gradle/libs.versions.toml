@@ -53,6 +53,7 @@ mockk = "1.13.13"
 truth = "1.4.4"
 composeUiTest = "1.7.6"
 benchmarkMacro = "1.5.0"
+profileinstaller = "1.4.1"
 uiautomator = "2.3.0"
 roborazzi = "1.76.0"
 
@@ -149,6 +150,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "composeUiTest" }
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacro" }
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
@@ -165,3 +167,4 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 room3 = { id = "androidx.room3", version.ref = "room3" }
+androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmarkMacro" }
