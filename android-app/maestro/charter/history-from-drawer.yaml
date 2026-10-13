@@ -1,4 +1,4 @@
-# History opened from the home drawer, at the top of the list. Start with the home screen shown
+# History opened from the home drawer, at the top of the list. Start with the app in front
 # (am start of MainActivity). The script that runs it reads the rows from the database.
 # Run: maestro --device <serial> test -e OUT=<dir> -e NAME=<screenshot> maestro/charter/history-from-drawer.yaml
 appId: arun.com.chromer.debug
@@ -8,6 +8,15 @@ appId: arun.com.chromer.debug
       visible: "OK"
     commands:
       - tapOn: "OK"
+# The app keeps its back stack, so an earlier check can leave a settings screen on top; back
+# returns to home.
+- repeat:
+    times: 5
+    while:
+      notVisible: { id: "home-search-field" }
+    commands:
+      - back
+      - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: { id: "home-search-field" }
     timeout: 20000
