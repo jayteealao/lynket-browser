@@ -23,8 +23,10 @@ package arun.com.chromer.browsing.webview
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
+import android.os.Build
 import android.os.Bundle
 import android.view.ViewGroup
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -33,6 +35,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -162,6 +165,17 @@ open class WebViewActivity : BrowsingActivity() {
         super.doUpdateVisitedHistory(view, url, isReload)
         webBackCallback.isEnabled = view?.canGoBack() == true
       }
+
+      // The page's renderer runs in its own process, which the system may stop under memory
+      // pressure. Unhandled, that ends the whole app; instead the dead WebView is released and
+      // the screen starts again with the link.
+      // Called on API 26 and later only.
+      @RequiresApi(Build.VERSION_CODES.O)
+      override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+        Timber.w("Page renderer gone (crashed: %b); reloading the page", detail?.didCrash() == true)
+        if (view != null) onRendererGone(view)
+        return true
+      }
     }
     view.webChromeClient = object : WebChromeClient() {
       override fun onReceivedTitle(view: WebView?, title: String?) {
@@ -176,6 +190,15 @@ open class WebViewActivity : BrowsingActivity() {
     }
     view.settings.javaScriptEnabled = true
     view.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY -> bars.onPageScroll(scrollY, oldScrollY) }
+  }
+
+  /** Releases a WebView whose renderer is gone and builds the screen again from the link. */
+  private fun onRendererGone(view: WebView) {
+    if (webView !== view) return
+    webView = null
+    (view.parent as? ViewGroup)?.removeView(view)
+    view.destroy()
+    if (!isFinishing && !isDestroyed) recreate()
   }
 
   override fun getCurrentUrl(): String = webView?.url ?: super.getCurrentUrl()
