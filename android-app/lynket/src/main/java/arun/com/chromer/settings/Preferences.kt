@@ -43,10 +43,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Synchronous access to the settings for code that reads a value at once (tiles, receivers, the
- * link path, the legacy screens). Every read and write goes to the settings DataStore through
- * [UserPreferencesRepository]: reads use its hot copy, and a write finishes before the setter
- * returns, so the next read anywhere sees it.
+ * Synchronous access to the settings for code that reads a value at once and is not a screen:
+ * tiles, receivers, services and the link path. Every read and write goes to the settings
+ * DataStore through [UserPreferencesRepository]: reads use its hot copy, and a write finishes
+ * before the setter returns, so the next read anywhere sees it.
+ *
+ * A write blocks its thread until the store has it on disk. Screens and view models write
+ * through [UserPreferencesRepository]'s suspend functions instead, so the main thread never waits.
  */
 @Singleton
 class Preferences @Inject constructor(
@@ -76,6 +79,9 @@ class Preferences @Inject constructor(
       }
       return false
     }
+
+  /** True until the first start has been recorded; reading it changes nothing. */
+  fun firstRunPending(): Boolean = bool(FIRST_RUN)
 
   fun versionCode(): Int = int(VERSION_CODE)
 
@@ -134,17 +140,7 @@ class Preferences @Inject constructor(
   }
 
   val defaultCustomTabApp: String?
-    get() {
-      if (CustomTabs.isPackageSupportCustomTabs(context, CHROME_PACKAGE)) {
-        return CHROME_PACKAGE
-      }
-      val supportingPackages = CustomTabs.getCustomTabSupportingPackages(context)
-      return if (supportingPackages.isNotEmpty()) {
-        supportingPackages[0]
-      } else {
-        null
-      }
-    }
+    get() = findDefaultCustomTabApp(context)
 
   fun customTabPackage(string: String?) {
     useWebView(false)
@@ -424,11 +420,20 @@ class Preferences @Inject constructor(
     const val MINIMIZE_BEHAVIOR_PREFERENCE_KEY = "2"
     private const val WEB_HEAD_FAVICON = "webhead_favicons_pref"
     private const val PER_APP_SETTINGS = "blacklist_preference"
-    private const val FIRST_RUN = "firstrun_3"
+    const val FIRST_RUN = "firstrun_3"
     private const val SECONDARY_PREF = "secondary_preference"
     private const val FAV_SHARE_PREF = "fav_share_preference"
 
     const val VERSION_CODE = "version_code"
+
+    /** Chrome when it supports Custom Tabs, else the first installed browser that does, else null. */
+    @JvmStatic
+    fun findDefaultCustomTabApp(context: Context): String? =
+      if (CustomTabs.isPackageSupportCustomTabs(context, CHROME_PACKAGE)) {
+        CHROME_PACKAGE
+      } else {
+        CustomTabs.getCustomTabSupportingPackages(context).firstOrNull()
+      }
 
     /** The one Hilt instance, for classes that are not injected. */
     @JvmStatic

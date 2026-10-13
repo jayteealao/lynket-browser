@@ -263,8 +263,6 @@
   <string name="contribute_to_chromer">Adora programar? Bifurque o Lynket e contribua.</string>
   <string name="fork_on_github">Bifurcar no GitHub</string>
   <string name="web_view_not_found">Web View desativado no dispositivo. Impossível abrir o link.</string>
-  <string name="app_detection_notification_channel_description">Uma notificação será exibida quando o serviço de detecção de app estiver ativo.</string>
-  <string name="app_detection_service_explanation">Monitorando apps em primeiro plano para cores dinâmicas na barra de ferramentas e configurações por app.</string>
   <string name="app_detection_service">Serviço de detecção de app</string>
   <string name="shortcut_name">Nome do atalho</string>
   <string name="create_shorcut">Criar atalho</string>

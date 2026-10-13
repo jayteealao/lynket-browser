@@ -7,7 +7,7 @@
 #   3. web heads chosen without the overlay permission: explainer, system screen (permission.yaml);
 #      after the grant the stored setting reads web heads on
 #   4. drag-check.sh: the person watches the recording and signs feel-checklist.md
-#   5. native bubbles: webheads-check.sh ac23 (bubble screenshot)
+#   5. native bubbles: webheads-check.sh bubble (bubble screenshot)
 #
 # Usage: maestro/webheads/charter-check.sh <serial> <evidence-dir>   (from android-app/)
 set -euo pipefail
@@ -80,6 +80,6 @@ bash "$HERE/drag-check.sh" "$SERIAL" "$OUT/drag" || fail "the drag check failed 
 log "step 4: drag recorded; feel-checklist.md waits for the person's signature"
 
 # 5. Native bubbles.
-bash "$HERE/webheads-check.sh" "$SERIAL" "$OUT/bubbles" ac23 || fail "the native bubble check failed (see bubbles/)"
+bash "$HERE/webheads-check.sh" "$SERIAL" "$OUT/bubbles" bubble || fail "the native bubble check failed (see bubbles/)"
 log "step 5: native bubble shown"
 log "charter check done"

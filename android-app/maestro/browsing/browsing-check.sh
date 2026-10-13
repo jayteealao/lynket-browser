@@ -10,8 +10,8 @@
 #                 the shortcut dialog, AMP loading (phone); FOLD=<serial> also captures the options
 #                 sheet on the fold and holds a back swipe over it
 #   entry-points  every entry point fired with its real intent, one screenshot and one log each,
-#                 and ac10.md (entry point -> intent -> what showed)
-#   amp-error     AMP on, airplane mode on, a link: the error dialog; Try again keeps it; airplane
+#                 and entry-points.md (entry point -> intent -> what showed)
+#   amp-error     AMP on, airplane mode on, a link: the error dialog; Retry keeps it; airplane
 #                 mode off; Open normal page opens the page
 #   bottom-bar    the bar, then each of its five actions tapped in Chrome, with what it opened
 #   recreate      each dialog shown, night mode switched while it shows; it stays or closes, no crash
@@ -172,7 +172,7 @@ set_tile() {  # $1 = tile class, $2 = key, $3 = wanted value (true|false)
 }
 
 row() {  # entry point | intent | observed
-  echo "| $1 | $2 | $3 |" >> "$OUT/ac10.md"
+  echo "| $1 | $2 | $3 |" >> "$OUT/entry-points.md"
 }
 
 top_activity() {
@@ -299,8 +299,8 @@ entry-points)
   a shell monkey -p "$PKG" 1 >/dev/null 2>&1 || true
   sleep 6
   a shell input keyevent KEYCODE_HOME
-  echo "| Entry point | Intent | Observed |" > "$OUT/ac10.md"
-  echo "|---|---|---|" >> "$OUT/ac10.md"
+  echo "| Entry point | Intent | Observed |" > "$OUT/entry-points.md"
+  echo "|---|---|---|" >> "$OUT/entry-points.md"
 
   open_tab "https://example.com/?ep=view"
   capture ep-view; row BrowserInterceptActivity "VIEW https" "$(top_activity)"
@@ -366,9 +366,9 @@ amp-error)
   a shell input keyevent KEYCODE_HOME
   quiet_chrome
   open_link "https://www.theverge.com/?bd=offline-$(date +%s)"  # a fresh address: a cached page would skip the lookup
-  wait_for 'text="Try again"' || fail "no error dialog offline"
+  wait_for 'text="Retry"' || fail "no error dialog offline"
   capture amp-error
-  tap_on 'text="Try again"'
+  tap_on 'text="Retry"'
   sleep 6
   wait_for 'text="Open normal page"' || fail "the error dialog left while still offline"
   capture amp-error-after-retry

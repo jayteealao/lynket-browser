@@ -31,6 +31,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.data.history.ModernHistoryRepository
+import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.history.HistoryDialog
 import arun.com.chromer.history.HistoryUiState
@@ -194,6 +195,7 @@ class HistoryScreenTest {
   private val preferences = mockk<Preferences>(relaxed = true)
   private val tabsManager = mockk<TabsManager>(relaxed = true)
   private val eventBus = mockk<EventBus>(relaxed = true)
+  private val preferencesRepository = mockk<UserPreferencesRepository>(relaxed = true)
 
   private fun showWithViewModel(): ModernHistoryViewModel {
     every { preferences.historyDisabled() } returns false
@@ -204,7 +206,7 @@ class HistoryScreenTest {
       val q = firstArg<String>()
       flowOf(PagingData.from(testSites.filter { it.title!!.contains(q, ignoreCase = true) }))
     }
-    val viewModel = ModernHistoryViewModel(repository, preferences, eventBus, tabsManager)
+    val viewModel = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager)
     composeRule.setContent { ChromerTheme(themeMode = ThemeMode.Light) { HistoryScreen(onBack = {}, viewModel = viewModel) } }
     composeRule.waitForIdle()
     return viewModel
@@ -257,14 +259,14 @@ class HistoryScreenTest {
 
   @Test
   fun incognitoOnExplainsItselfAndChangesTheProvider() {
-    every { preferences.fullIncognitoMode(any<Boolean>()) } just runs
-    every { preferences.historyDisabled(any<Boolean>()) } just runs
     showWithViewModel()
     composeRule.onNodeWithTag("incognito-switch").performClick()
     composeRule.onNodeWithTag("incognito-dialog").assertExists()
+    composeRule.waitForIdle()
     verify { eventBus.tryEmit(Event.SettingsEvent.ProviderChanged) }
-    verify { preferences.fullIncognitoMode(true) }
-    verify { preferences.historyDisabled(true) }
+    coVerify {
+      preferencesRepository.setValues(mapOf(Preferences.FULL_INCOGNITO_MODE to true, Preferences.INCOGNITO_MODE to true))
+    }
     composeRule.onNodeWithTag("history-switch").assertIsOff()
   }
 }

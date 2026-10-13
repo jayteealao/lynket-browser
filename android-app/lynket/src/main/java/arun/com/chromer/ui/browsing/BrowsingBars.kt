@@ -11,6 +11,9 @@
 
 package arun.com.chromer.ui.browsing
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +27,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FormatSize
@@ -58,6 +60,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
 import arun.com.chromer.browsing.menu.BrowsingMenuItem
@@ -128,7 +131,7 @@ fun BrowsingBottomBar(
   if (items.isEmpty()) return
   Surface(color = containerColour, contentColor = contentColour, modifier = modifier.fillMaxWidth().testTag("browsing-bottom-bar")) {
     Row(
-      Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars).selectableGroup(),
+      Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars),
       horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
       items.forEach { item ->
@@ -182,12 +185,32 @@ class HideOnScrollState(initialOffset: Float = 0f) {
     offset = 0f
   }
 
-  /** Reads list scroll deltas without consuming them. */
+  /** Slides fully shown or fully hidden from where the finger left the bars, as the top bar does. */
+  suspend fun animateSettle() = animateTo(if (fraction > 0.5f) -limit else 0f)
+
+  /** Slides the bars fully into view. */
+  suspend fun animateShow() = animateTo(0f)
+
+  private suspend fun animateTo(target: Float) {
+    if (offset == target) return
+    animate(offset, target, animationSpec = tween(SETTLE_MS, easing = FastOutSlowInEasing)) { value, _ -> offset = value }
+  }
+
+  /** Reads list scroll deltas without consuming them, and settles the bars when the list comes to rest. */
   val connection: NestedScrollConnection = object : NestedScrollConnection {
     override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
       onScroll(-available.y)
       return Offset.Zero
     }
+
+    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+      animateSettle()
+      return Velocity.Zero
+    }
+  }
+
+  private companion object {
+    const val SETTLE_MS = 200
   }
 }
 

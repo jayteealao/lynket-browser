@@ -15,6 +15,7 @@ import android.content.Context
 import androidx.paging.PagingData
 import app.cash.turbine.test
 import arun.com.chromer.data.history.ModernHistoryRepository
+import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.home.MainDispatcherRule
 import arun.com.chromer.settings.Preferences
@@ -50,6 +51,7 @@ class ModernHistoryViewModelTest {
 
   private val repository = mockk<ModernHistoryRepository>(relaxed = true)
   private val preferences = mockk<Preferences>(relaxed = true)
+  private val preferencesRepository = mockk<UserPreferencesRepository>(relaxed = true)
   private val eventBus = mockk<EventBus>(relaxed = true)
   private val tabsManager = mockk<TabsManager>(relaxed = true)
 
@@ -64,7 +66,7 @@ class ModernHistoryViewModelTest {
     every { repository.getPagedSearch(any()) } returns flowOf(PagingData.from(listOf(site)))
   }
 
-  private fun viewModel() = ModernHistoryViewModel(repository, preferences, eventBus, tabsManager)
+  private fun viewModel() = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager)
 
   @Test
   fun theStateStartsFromTheStoredSwitches() {
@@ -77,34 +79,38 @@ class ModernHistoryViewModelTest {
   }
 
   @Test
-  fun historyOnTurnsIncognitoOff() {
+  fun historyOnTurnsIncognitoOff() = runTest(dispatcher) {
     every { preferences.historyDisabled() } returns true
     every { preferences.fullIncognitoMode() } returns true
     val vm = viewModel()
     vm.setHistoryEnabled(true)
-    verify { preferences.historyDisabled(false) }
-    verify { preferences.fullIncognitoMode(false) }
+    advanceUntilIdle()
+    coVerify {
+      preferencesRepository.setValues(mapOf(Preferences.INCOGNITO_MODE to false, Preferences.FULL_INCOGNITO_MODE to false))
+    }
     verify { eventBus.tryEmit(Event.SettingsEvent.ProviderChanged) }
     assertThat(vm.uiState.value.historyEnabled).isTrue()
     assertThat(vm.uiState.value.incognito).isFalse()
   }
 
   @Test
-  fun historyOffLeavesIncognitoAlone() {
+  fun historyOffLeavesIncognitoAlone() = runTest(dispatcher) {
     val vm = viewModel()
     vm.setHistoryEnabled(false)
-    verify { preferences.historyDisabled(true) }
-    verify(exactly = 0) { preferences.fullIncognitoMode(any<Boolean>()) }
+    advanceUntilIdle()
+    coVerify { preferencesRepository.setValues(mapOf(Preferences.INCOGNITO_MODE to true)) }
     verify(exactly = 0) { eventBus.tryEmit(any()) }
     assertThat(vm.uiState.value.historyEnabled).isFalse()
   }
 
   @Test
-  fun incognitoOnTurnsHistoryOffAndExplainsItself() {
+  fun incognitoOnTurnsHistoryOffAndExplainsItself() = runTest(dispatcher) {
     val vm = viewModel()
     vm.setIncognito(true)
-    verify { preferences.fullIncognitoMode(true) }
-    verify { preferences.historyDisabled(true) }
+    advanceUntilIdle()
+    coVerify {
+      preferencesRepository.setValues(mapOf(Preferences.FULL_INCOGNITO_MODE to true, Preferences.INCOGNITO_MODE to true))
+    }
     verify { eventBus.tryEmit(Event.SettingsEvent.ProviderChanged) }
     assertThat(vm.uiState.value.historyEnabled).isFalse()
     assertThat(vm.uiState.value.dialog).isEqualTo(HistoryDialog.IncognitoExplanation)
@@ -113,12 +119,12 @@ class ModernHistoryViewModelTest {
   }
 
   @Test
-  fun incognitoOffChangesTheProviderOnly() {
+  fun incognitoOffChangesTheProviderOnly() = runTest(dispatcher) {
     every { preferences.fullIncognitoMode() } returns true
     val vm = viewModel()
     vm.setIncognito(false)
-    verify { preferences.fullIncognitoMode(false) }
-    verify(exactly = 0) { preferences.historyDisabled(any<Boolean>()) }
+    advanceUntilIdle()
+    coVerify { preferencesRepository.setValues(mapOf(Preferences.FULL_INCOGNITO_MODE to false)) }
     verify { eventBus.tryEmit(Event.SettingsEvent.ProviderChanged) }
     assertThat(vm.uiState.value.dialog).isEqualTo(HistoryDialog.None)
   }

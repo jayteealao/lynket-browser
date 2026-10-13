@@ -23,6 +23,7 @@ package arun.com.chromer.search.provider
 import android.net.Uri
 import android.util.Patterns.WEB_URL
 import androidx.core.net.toUri
+import arun.com.chromer.data.preferences.SettingsSchema
 import arun.com.chromer.settings.RxPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -100,7 +101,7 @@ constructor(
   }
 
   companion object {
-    const val GOOGLE = "Google"
+    const val GOOGLE = SettingsSchema.DEFAULT_SEARCH_ENGINE
     const val DUCKDUCKGO = "Duck Duck Go"
     const val BING = "Bing"
     const val QWANT = "Qwant"

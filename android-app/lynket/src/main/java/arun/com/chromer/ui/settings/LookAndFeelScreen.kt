@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Code
@@ -138,7 +139,7 @@ fun LookAndFeelContent(
           val selected = values.int(THEME_MODE)
           FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("row-$THEME_MODE"),
+            modifier = Modifier.fillMaxWidth().selectableGroup().padding(horizontal = 16.dp, vertical = 8.dp).testTag("row-$THEME_MODE"),
           ) {
             ThemeChips.forEach { (mode, label) ->
               val on = selected == mode.ordinal
@@ -159,8 +160,8 @@ fun LookAndFeelContent(
           row {
             SwitchRow(
               USE_WALLPAPER_COLOURS,
-              R.string.use_wallpaper_colours,
-              R.string.use_wallpaper_colours_summary,
+              R.string.use_wallpaper_colors,
+              R.string.use_wallpaper_colors_summary,
               values,
               onSet,
               Icons.Outlined.Wallpaper,

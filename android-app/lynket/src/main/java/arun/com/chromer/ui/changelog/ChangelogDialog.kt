@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -81,7 +82,7 @@ fun ChangelogDialog(onOk: () -> Unit, onRate: () -> Unit) {
       )
       Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
       ) {
         TextButton(onClick = onRate, modifier = Modifier.heightIn(min = 48.dp)) {
           Text(stringResource(R.string.rate_play_store))

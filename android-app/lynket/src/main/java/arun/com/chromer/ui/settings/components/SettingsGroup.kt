@@ -56,6 +56,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
 import arun.com.chromer.ui.theme.ChromerTheme
+import arun.com.chromer.ui.components.ScreenTitle
 
 /** Collects the rows of one [SettingsGroup]; dividers go between the rows. */
 class SettingsGroupScope internal constructor() {
@@ -133,7 +134,7 @@ fun SettingsScaffold(
     snackbarHost = { SnackbarHost(snackbarHostState) },
     topBar = {
       LargeTopAppBar(
-        title = { Text(title, fontWeight = FontWeight.SemiBold) },
+        title = { ScreenTitle(title) },
         navigationIcon = {
           IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))

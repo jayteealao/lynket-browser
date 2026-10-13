@@ -17,6 +17,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import arun.com.chromer.data.history.ModernHistoryRepository
+import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /** Dialogs of the History screen. */
@@ -70,6 +72,7 @@ sealed interface HistoryEvent {
 class ModernHistoryViewModel @Inject constructor(
   private val historyRepository: ModernHistoryRepository,
   private val preferences: Preferences,
+  private val preferencesRepository: UserPreferencesRepository,
   private val eventBus: EventBus,
   private val tabsManager: TabsManager,
 ) : ViewModel() {
@@ -101,25 +104,36 @@ class ModernHistoryViewModel @Inject constructor(
   fun syncSettings() = _uiState.update(::settingsState)
 
   fun setHistoryEnabled(enabled: Boolean) {
-    preferences.historyDisabled(!enabled)
     val incognitoWasOn = _uiState.value.incognito
-    if (enabled && incognitoWasOn) {
-      preferences.fullIncognitoMode(false)
-      eventBus.tryEmit(Event.SettingsEvent.ProviderChanged)
+    val changes = buildMap<String, Any?> {
+      put(Preferences.INCOGNITO_MODE, !enabled)
+      if (enabled && incognitoWasOn) put(Preferences.FULL_INCOGNITO_MODE, false)
     }
     _uiState.update { it.copy(historyEnabled = enabled, incognito = if (enabled) false else it.incognito) }
+    write(changes, providerChanged = enabled && incognitoWasOn)
   }
 
   fun setIncognito(on: Boolean) {
-    preferences.fullIncognitoMode(on)
-    if (on) preferences.historyDisabled(true)
-    eventBus.tryEmit(Event.SettingsEvent.ProviderChanged)
+    val changes = buildMap<String, Any?> {
+      put(Preferences.FULL_INCOGNITO_MODE, on)
+      if (on) put(Preferences.INCOGNITO_MODE, true)
+    }
     _uiState.update {
       it.copy(
         incognito = on,
         historyEnabled = if (on) false else it.historyEnabled,
         dialog = if (on) HistoryDialog.IncognitoExplanation else it.dialog,
       )
+    }
+    write(changes, providerChanged = true)
+  }
+
+  /** Writes the switches in one store edit off the main thread, then tells the provider readers. */
+  private fun write(changes: Map<String, Any?>, providerChanged: Boolean) {
+    viewModelScope.launch {
+      runCatching { preferencesRepository.setValues(changes) }
+        .onFailure { Timber.e(it, "History switches could not be saved") }
+      if (providerChanged) eventBus.tryEmit(Event.SettingsEvent.ProviderChanged)
     }
   }
 

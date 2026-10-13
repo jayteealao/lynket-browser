@@ -14,6 +14,8 @@ package arun.com.chromer.data.history
 import android.content.Context
 import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteDatabaseCorruptException
+import android.database.sqlite.SQLiteException
 import arun.com.chromer.data.database.ChromerDatabase
 import arun.com.chromer.data.database.entity.WebsiteEntity
 import arun.com.chromer.data.database.entity.toEntity
@@ -32,8 +34,10 @@ import javax.inject.Singleton
  * The rows are merged by URL ([arun.com.chromer.data.database.dao.WebsiteDao.mergeLegacyRows]).
  * Only after every legacy URL is found in Room is the old file moved to `files/history-migration/`
  * with a report; nothing is deleted. When the check fails, the file stays and the next open tries
- * again (the merge takes maximums, so a repeat changes nothing). A file that cannot be read is
- * moved aside as `History-unreadable-<time>` so it is not retried on every start.
+ * again (the merge takes maximums, so a repeat changes nothing). A corrupt file is moved aside as
+ * `History-unreadable-<time>` so it is not retried on every start. Any other read failure (a lock,
+ * a full disk, a missing column) leaves the file in place for the next start, and a single row
+ * that cannot be read is skipped instead of failing the whole file.
  */
 @Singleton
 class LegacyHistoryImport
@@ -49,6 +53,10 @@ constructor(@ApplicationContext private val context: Context) {
     val rows = try {
       readRows(legacy)
     } catch (e: Exception) {
+      if (!isCorrupt(e)) {
+        Timber.e(e, "Old history file could not be read now; it stays for the next start")
+        return
+      }
       Timber.e(e, "Old history file could not be read; it is kept as History-unreadable-%d", now)
       moveWithJournal(legacy, File(folder, "History-unreadable-$now"))
       writeReport(folder, legacyRows = -1, distinct = -1, merged = 0, inserted = 0, result = "unreadable")
@@ -77,11 +85,26 @@ constructor(@ApplicationContext private val context: Context) {
     return database.use { db ->
       db.rawQuery("SELECT * FROM ${HistoryTable.TABLE_NAME}", null).use { cursor ->
         buildList {
-          while (cursor.moveToNext()) add(Website.fromCursor(cursor).toEntity())
+          while (cursor.moveToNext()) {
+            try {
+              add(Website.fromCursor(cursor).toEntity())
+            } catch (e: Exception) {
+              if (e is SQLiteException) throw e
+              Timber.e(e, "One old history row could not be read; it is skipped")
+            }
+          }
         }
       }
     }
   }
+
+  private fun isCorrupt(e: Throwable): Boolean =
+    generateSequence(e) { it.cause }.take(8).any { cause ->
+      cause is SQLiteDatabaseCorruptException ||
+        (cause is SQLiteException && cause.message.orEmpty().let {
+          it.contains("not a database", ignoreCase = true) || it.contains("malformed", ignoreCase = true)
+        })
+    }
 
   /** Moves [from] and its journal; a failed rename falls back to copy, then delete after the copy checks out. */
   private fun moveWithJournal(from: File, to: File) {

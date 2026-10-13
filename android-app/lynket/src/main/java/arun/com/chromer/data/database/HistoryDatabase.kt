@@ -12,9 +12,13 @@
 package arun.com.chromer.data.database
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabaseCorruptException
+import android.database.sqlite.SQLiteException
 import arun.com.chromer.data.database.dao.WebsiteDao
 import arun.com.chromer.data.history.LegacyHistoryImport
+import arun.com.chromer.data.history.model.HistoryTable
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -28,9 +32,11 @@ import javax.inject.Singleton
  * Opens the history database once, on first use, off the main thread, and survives a bad file.
  *
  * Before the first open the file header is checked; then the database is opened and one count
- * query forces Room to open, migrate and validate it. When that fails, the error is logged, the
- * database files are moved to `files/history-broken/<time>/` (kept, not deleted) and a fresh
- * database opens, so history starts empty and the app keeps working. The platform's default
+ * query forces Room to open, migrate and validate it. When that fails because the file is corrupt
+ * or its tables do not match the schema, the error is logged, the database files are moved to
+ * `files/history-broken/<time>/` (kept, not deleted) and a fresh database opens, so history starts
+ * empty and the app keeps working. Any other failure (a full disk, a lock, an I/O error, the caller
+ * going away) leaves the file where it is and is rethrown, so the next use opens it again. The platform's default
  * error handler would delete a corrupt file without a trace (`AndroidSQLiteDriver.open` calls
  * `SQLiteDatabase.openOrCreateDatabase(fileName, null)`; source: sqlite-framework-android 2.7.1
  * sources jar, `androidx/sqlite/driver/AndroidSQLiteDriver.android.kt`), which is why the header
@@ -69,7 +75,13 @@ internal constructor(
     }
     val db = try {
       openAndCheck()
+    } catch (e: CancellationException) {
+      throw e
     } catch (e: Exception) {
+      if (!isBrokenFile(e)) {
+        Timber.e(e, "History database could not be opened now; it stays in place for the next try")
+        throw e
+      }
       Timber.e(e, "History database could not be opened; history starts empty")
       quarantine(file)
       try {
@@ -95,6 +107,34 @@ internal constructor(
     }
     return db
   }
+
+  /**
+   * Deletes the copies of history this class and [LegacyHistoryImport] kept aside: the moved
+   * history file of release 2.1.3 and any database moved aside as broken. Called when the person
+   * deletes all history, so no copy of it stays on the device.
+   */
+  fun deleteKeptCopies() {
+    listOf(BROKEN_FOLDER, LegacyHistoryImport.MIGRATION_FOLDER)
+      .map { File(context.filesDir, it) }
+      .filter { it.exists() }
+      .forEach { folder ->
+        if (!folder.deleteRecursively()) Timber.e("Could not delete kept history copies in %s", folder.path)
+      }
+    // An old history file that has not been brought in yet would otherwise come back on the next start.
+    val legacy = context.getDatabasePath(HistoryTable.TABLE_NAME)
+    listOf(legacy, File(legacy.path + "-journal")).filter { it.exists() }.forEach { it.delete() }
+  }
+
+  /** True when [e] says the file is corrupt or its tables do not match the schema. */
+  private fun isBrokenFile(e: Throwable): Boolean =
+    generateSequence(e) { it.cause }.take(8).any { cause ->
+      cause is SQLiteDatabaseCorruptException ||
+        // Room reports a missing migration or a table that does not match the schema this way.
+        cause is IllegalStateException ||
+        (cause is SQLiteException && cause.message.orEmpty().let {
+          it.contains("not a database", ignoreCase = true) || it.contains("malformed", ignoreCase = true)
+        })
+    }
 
   private fun hasSqliteHeader(file: File): Boolean {
     val header = ByteArray(SQLITE_HEADER.size)

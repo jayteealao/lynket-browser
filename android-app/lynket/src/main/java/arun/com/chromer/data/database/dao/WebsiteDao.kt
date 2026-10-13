@@ -75,12 +75,13 @@ interface WebsiteDao {
 
     /**
      * Search history by URL or title.
-     * Case-insensitive search, returns up to 5 results.
+     * Case-insensitive search, returns up to 5 results. `%`, `_` and `\` in the query match
+     * themselves, not any text (they are escaped in each search query).
      */
     @Query("""
         SELECT * FROM history
-        WHERE url LIKE '%' || :query || '%'
-           OR title LIKE '%' || :query || '%'
+        WHERE url LIKE '%' || replace(replace(replace(:query, '\', '\\'), '%', '\%'), '_', '\_') || '%' ESCAPE '\'
+           OR title LIKE '%' || replace(replace(replace(:query, '\', '\\'), '%', '\%'), '_', '\_') || '%' ESCAPE '\'
         ORDER BY created_at DESC
         LIMIT 5
     """)
@@ -91,8 +92,8 @@ interface WebsiteDao {
      */
     @Query("""
         SELECT * FROM history
-        WHERE url LIKE '%' || :query || '%'
-           OR title LIKE '%' || :query || '%'
+        WHERE url LIKE '%' || replace(replace(replace(:query, '\', '\\'), '%', '\%'), '_', '\_') || '%' ESCAPE '\'
+           OR title LIKE '%' || replace(replace(replace(:query, '\', '\\'), '%', '\%'), '_', '\_') || '%' ESCAPE '\'
         ORDER BY created_at DESC
         LIMIT 5
     """)
@@ -104,8 +105,8 @@ interface WebsiteDao {
      */
     @Query("""
         SELECT * FROM history
-        WHERE url LIKE '%' || :query || '%'
-           OR title LIKE '%' || :query || '%'
+        WHERE url LIKE '%' || replace(replace(replace(:query, '\', '\\'), '%', '\%'), '_', '\_') || '%' ESCAPE '\'
+           OR title LIKE '%' || replace(replace(replace(:query, '\', '\\'), '%', '\%'), '_', '\_') || '%' ESCAPE '\'
         ORDER BY created_at DESC
     """)
     fun searchPaged(query: String): PagingSource<Int, WebsiteEntity>

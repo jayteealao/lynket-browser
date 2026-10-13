@@ -50,10 +50,10 @@ class AppDetectionManagerTest : LynketRobolectricSuite() {
     resumed("android", now - 1_500)
     resumed(application.packageName, now - 500)
 
-    appDetectionManager.detectLinkSource(now)
+    val source = appDetectionManager.detectLinkSource(now)
 
-    assertThat(appDetectionManager.nonFilteredPackage).isEqualTo("com.google.android.deskclock")
-    assertThat(appDetectionManager.filteredPackage).isEqualTo("com.google.android.deskclock")
+    assertThat(source.nonFiltered).isEqualTo("com.google.android.deskclock")
+    assertThat(source.filtered).isEqualTo("com.google.android.deskclock")
   }
 
   @Test
@@ -63,10 +63,10 @@ class AppDetectionManagerTest : LynketRobolectricSuite() {
     resumed("com.google.android.apps.messaging", now - 3_000)
     resumed("com.android.systemui", now - 1_000)
 
-    appDetectionManager.detectLinkSource(now)
+    val source = appDetectionManager.detectLinkSource(now)
 
-    assertThat(appDetectionManager.nonFilteredPackage).isEqualTo("com.android.systemui")
-    assertThat(appDetectionManager.filteredPackage).isEqualTo("com.google.android.apps.messaging")
+    assertThat(source.nonFiltered).isEqualTo("com.android.systemui")
+    assertThat(source.filtered).isEqualTo("com.google.android.apps.messaging")
   }
 
   @Test
@@ -75,10 +75,10 @@ class AppDetectionManagerTest : LynketRobolectricSuite() {
     val now = 1_000_000L
     resumed("com.google.android.calendar", now - 60_000)
 
-    appDetectionManager.detectLinkSource(now)
+    val source = appDetectionManager.detectLinkSource(now)
 
-    assertThat(appDetectionManager.nonFilteredPackage).isEmpty()
-    assertThat(appDetectionManager.filteredPackage).isEmpty()
+    assertThat(source.nonFiltered).isEmpty()
+    assertThat(source.filtered).isEmpty()
   }
 
   @Test
@@ -87,9 +87,9 @@ class AppDetectionManagerTest : LynketRobolectricSuite() {
     val now = 1_000_000L
     resumed("com.google.android.calendar", now - 1_000)
 
-    appDetectionManager.detectLinkSource(now)
+    val source = appDetectionManager.detectLinkSource(now)
 
-    assertThat(appDetectionManager.nonFilteredPackage).isEmpty()
-    assertThat(appDetectionManager.filteredPackage).isEmpty()
+    assertThat(source.nonFiltered).isEmpty()
+    assertThat(source.filtered).isEmpty()
   }
 }

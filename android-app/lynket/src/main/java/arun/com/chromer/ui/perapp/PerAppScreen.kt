@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -42,7 +43,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -59,29 +60,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arun.com.chromer.R
+import arun.com.chromer.ui.components.SiteAvatar
+import arun.com.chromer.ui.components.EmptyState
 import arun.com.chromer.ui.components.LoadingList
 import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.ui.settings.components.RowControl
@@ -89,8 +89,8 @@ import arun.com.chromer.ui.settings.components.SettingsGroup
 import arun.com.chromer.ui.settings.components.SettingsRow
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import arun.com.chromer.util.appicon.ApplicationIcon
+import arun.com.chromer.ui.components.ScreenTitle
 import timber.log.Timber
 
 /** Per-app settings: the master switch, then every app with its secondary browser and incognito rules. */
@@ -171,7 +171,7 @@ fun PerAppContent(
     snackbarHost = { SnackbarHost(snackbarHostState) },
     topBar = {
       LargeTopAppBar(
-        title = { Text(stringResource(R.string.per_app_settings), fontWeight = FontWeight.SemiBold) },
+        title = { ScreenTitle(stringResource(R.string.per_app_settings)) },
         navigationIcon = {
           IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -234,11 +234,11 @@ fun PerAppContent(
             }
           }
           visible.isEmpty() && state.query.isNotBlank() -> item(key = "no-match") {
-            Text(
-              stringResource(R.string.per_app_no_match, state.query.trim()),
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.settingsColumn().padding(16.dp).testTag("per-app-no-match"),
+            EmptyState(
+              icon = Icons.Outlined.SearchOff,
+              title = stringResource(R.string.per_app_no_match, state.query.trim()),
+              body = stringResource(R.string.per_app_no_match_body),
+              modifier = Modifier.settingsColumn().testTag("per-app-no-match"),
             )
           }
           else -> itemsIndexed(visible, key = { _, app -> app.packageName }) { index, app ->
@@ -262,12 +262,6 @@ private fun AppRuleRow(
   onBlacklist: (String, Boolean) -> Unit,
   onIncognito: (String, Boolean) -> Unit,
 ) {
-  val context = LocalContext.current
-  val icon by produceState<ImageBitmap?>(null, app.packageName) {
-    value = withContext(Dispatchers.IO) {
-      runCatching { context.packageManager.getApplicationIcon(app.packageName).toBitmap(96, 96).asImageBitmap() }.getOrNull()
-    }
-  }
   val top = if (index == 0) 16.dp else 0.dp
   val bottom = if (index == last) 16.dp else 0.dp
   Surface(
@@ -281,17 +275,8 @@ private fun AppRuleRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
       ) {
-        Box(
-          contentAlignment = Alignment.Center,
-          modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(12.dp)),
-        ) {
-          val bitmap = icon
-          if (bitmap != null) {
-            Image(bitmap, contentDescription = null, modifier = Modifier.size(40.dp))
-          } else {
-            Text(app.appName.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.SemiBold)
-          }
-        }
+        // Through the image loader, so its memory cache keeps icons while the list scrolls.
+        SiteAvatar(app.appName, remember(app.packageName) { ApplicationIcon.createUri(app.packageName) }, imageSize = 40.dp)
         Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
           Text(app.appName, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
           Text(
@@ -327,15 +312,16 @@ private fun RuleToggle(
   tag: String,
   onChange: (Boolean) -> Unit,
 ) {
-  IconToggleButton(
+  // On shows a filled tonal container, not only a tint, and the state is read out as on or off.
+  val state = stringResource(if (checked) R.string.state_on else R.string.state_off)
+  FilledTonalIconToggleButton(
     checked = checked,
     onCheckedChange = onChange,
-    modifier = Modifier.testTag(tag).semantics { contentDescription = description },
+    modifier = Modifier.testTag(tag).semantics {
+      contentDescription = description
+      stateDescription = state
+    },
   ) {
-    Icon(
-      icon,
-      contentDescription = null,
-      tint = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-    )
+    Icon(icon, contentDescription = null)
   }
 }

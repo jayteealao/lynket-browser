@@ -113,7 +113,7 @@ open class WebViewActivity : BrowsingActivity() {
     val menuItems = menuDelegate.menuItems()
     val bottomBarItems = menuDelegate.bottomBarItems()
     setContent {
-      ChromerThemeFromSettings {
+      ChromerThemeFromSettings(applySystemBars = false) {
         WebViewScreen(
           page = page,
           toolbarColour = Color(toolbarColour),
@@ -192,14 +192,31 @@ open class WebViewActivity : BrowsingActivity() {
     view.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY -> bars.onPageScroll(scrollY, oldScrollY) }
   }
 
-  /** Releases a WebView whose renderer is gone and builds the screen again from the link. */
+  /**
+   * Releases a WebView whose renderer is gone and builds the screen again on the page the person
+   * was on. A page that stops the renderer again and again is not reloaded more than
+   * [MAX_RENDERER_RECOVERIES] times; then the screen closes with a message.
+   */
   private fun onRendererGone(view: WebView) {
     if (webView !== view) return
     webView = null
+    // The back and forward list lives in the app process, so it survives the renderer.
+    stateAfterRendererGone = runCatching { Bundle().also { view.saveState(it) } }.getOrNull()
     (view.parent as? ViewGroup)?.removeView(view)
     view.destroy()
-    if (!isFinishing && !isDestroyed) recreate()
+    if (isFinishing || isDestroyed) return
+    val recoveries = intent.getIntExtra(EXTRA_RENDERER_RECOVERIES, 0)
+    if (recoveries >= MAX_RENDERER_RECOVERIES) {
+      Toast.makeText(this, R.string.web_view_page_stopped, Toast.LENGTH_LONG).show()
+      finish()
+      return
+    }
+    intent.putExtra(EXTRA_RENDERER_RECOVERIES, recoveries + 1)
+    recreate()
   }
+
+  /** The page state saved when the renderer stopped, kept for the screen built again. */
+  private var stateAfterRendererGone: Bundle? = null
 
   override fun getCurrentUrl(): String = webView?.url ?: super.getCurrentUrl()
 
@@ -224,7 +241,8 @@ open class WebViewActivity : BrowsingActivity() {
 
   override fun onSaveInstanceState(outState: Bundle) {
     super.onSaveInstanceState(outState)
-    webView?.let { view -> outState.putBundle(KEY_WEB_VIEW_STATE, Bundle().also { view.saveState(it) }) }
+    val state = webView?.let { view -> Bundle().also { view.saveState(it) } } ?: stateAfterRendererGone
+    state?.let { outState.putBundle(KEY_WEB_VIEW_STATE, it) }
   }
 
   override fun onDestroy() {
@@ -238,5 +256,7 @@ open class WebViewActivity : BrowsingActivity() {
 
   private companion object {
     const val KEY_WEB_VIEW_STATE = "web_view_state"
+    const val EXTRA_RENDERER_RECOVERIES = "arun.com.chromer.extra.RENDERER_RECOVERIES"
+    const val MAX_RENDERER_RECOVERIES = 2
   }
 }

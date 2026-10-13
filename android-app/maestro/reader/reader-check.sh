@@ -15,7 +15,7 @@
 #              share sheet
 #   webview    Web View mode: the page, a link tap, back to the first page, pull to refresh,
 #              rotation keeps the page and its history with one "WebView created" line
-#   bubble     run on the fold after webheads-check.sh ac23: a native bubble with the page; fold
+#   bubble     run on the fold after webheads-check.sh bubble: a native bubble with the page; fold
 #              and unfold keep the page with one "WebView created" line
 #   recreate   night mode switched in the reader and the web view: the content stays; the process
 #              killed in the background, then the web view reopened from recents restores the page
@@ -466,7 +466,7 @@ webview)
   ;;
 
 bubble)
-  # webheads-check.sh ac23 leaves the bubble collapsed. Folding locks the screen, as on a real
+  # webheads-check.sh bubble leaves the bubble collapsed. Folding locks the screen, as on a real
   # device, and the system collapses an open bubble then; the page must survive in the same
   # activity, so each step expands the bubble again from the shell's stack position.
   expand_bubble() {
@@ -477,7 +477,7 @@ bubble)
     xy="$(a shell dumpsys activity service com.android.systemui/.SystemUIService WMShell | tr -d '\r' |
       sed -nE 's/.*currentStackPos: *PointF\((-?[0-9.]+), *(-?[0-9.]+)\).*/\1 \2/p' | head -1 |
       awk 'NF == 2 { x = $1 < 0 ? 0 : $1; print int(x + 70), int($2 + 70) }' || true)"
-    [ -n "$xy" ] || fail "no bubble on screen; run webheads-check.sh <serial> <dir> ac23 first"
+    [ -n "$xy" ] || fail "no bubble on screen; run webheads-check.sh <serial> <dir> bubble first"
     for _ in 1 2 3; do
       top_activity | grep -q "EmbeddableWebViewActivity" && return 0
       # shellcheck disable=SC2086

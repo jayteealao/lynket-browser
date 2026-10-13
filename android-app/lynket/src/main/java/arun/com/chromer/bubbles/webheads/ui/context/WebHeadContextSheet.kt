@@ -13,6 +13,7 @@ package arun.com.chromer.bubbles.webheads.ui.context
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,24 +23,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -53,12 +50,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.ui.components.SiteAvatar
 import arun.com.chromer.util.Utils
-import coil3.compose.AsyncImage
 
 /** How "Share all" sends the list, in the order the choice dialog shows them. */
 enum class ShareAllFormat { CommaSeparated, NewLineSeparated, List }
@@ -135,7 +134,12 @@ private fun WebsiteRow(website: Website, actions: WebHeadContextActions) {
     modifier = Modifier
       .fillMaxWidth()
       .heightIn(min = 64.dp)
-      .combinedClickable(onClick = { actions.open(website) }, onLongClick = { actions.copy(website) })
+      .combinedClickable(
+        role = Role.Button,
+        onLongClickLabel = stringResource(R.string.copy_link),
+        onLongClick = { actions.copy(website) },
+        onClick = { actions.open(website) },
+      )
       .padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -177,28 +181,11 @@ private fun WebsiteRow(website: Website, actions: WebHeadContextActions) {
 
 @Composable
 private fun FaviconTile(website: Website) {
-  Box(
-    modifier = Modifier
-      .size(40.dp)
-      .clip(RoundedCornerShape(12.dp))
-      .background(MaterialTheme.colorScheme.secondaryContainer),
-    contentAlignment = Alignment.Center,
-  ) {
-    Text(
-      text = Utils.getFirstLetter(website.preferredUrl()),
-      style = MaterialTheme.typography.titleMedium,
-      color = MaterialTheme.colorScheme.onSecondaryContainer,
-    )
-    if (!website.faviconUrl.isNullOrEmpty()) {
-      AsyncImage(
-        model = website.faviconUrl,
-        contentDescription = null,
-        modifier = Modifier.size(24.dp),
-      )
-    }
-  }
+  SiteAvatar(Utils.getFirstLetter(website.preferredUrl()), website.faviconUrl)
 }
 
+/** Picks how the links are shared; a tap on a format shares at once, so the rows are buttons. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ShareAllDialog(onChoose: (ShareAllFormat) -> Unit, onDismiss: () -> Unit) {
   val labels = listOf(
@@ -206,28 +193,29 @@ private fun ShareAllDialog(onChoose: (ShareAllFormat) -> Unit, onDismiss: () -> 
     stringResource(R.string.new_line_separated),
     stringResource(R.string.share_all_list),
   )
-  AlertDialog(
+  ModalBottomSheet(
     onDismissRequest = onDismiss,
-    title = { Text(stringResource(R.string.choose_share_method)) },
-    text = {
-      Column(Modifier.selectableGroup()) {
-        labels.forEachIndexed { index, label ->
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .heightIn(min = 48.dp)
-              .selectable(selected = index == 0, role = Role.RadioButton, onClick = { onChoose(ShareAllFormat.entries[index]) }),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            RadioButton(selected = index == 0, onClick = null)
-            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
-          }
+    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+  ) {
+    Column(Modifier.padding(bottom = 16.dp)) {
+      Text(
+        stringResource(R.string.choose_share_method),
+        style = MaterialTheme.typography.titleLarge,
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).semantics { heading() },
+      )
+      labels.forEachIndexed { index, label ->
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(role = Role.Button) { onChoose(ShareAllFormat.entries[index]) }
+            .padding(horizontal = 24.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Icon(Icons.Filled.Share, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+          Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
         }
       }
-    },
-    // As before, choosing a format shares at once; the only button cancels.
-    confirmButton = {
-      TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-    },
-  )
+    }
+  }
 }

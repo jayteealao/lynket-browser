@@ -129,7 +129,7 @@ private fun AmpErrorDialog(url: String, onRetry: () -> Unit, onOpenNormal: () ->
     confirmButton = {
       Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(onClick = onRetry, modifier = Modifier.testTag("amp-try-again")) {
-          Text(stringResource(R.string.amp_try_again))
+          Text(stringResource(R.string.retry))
         }
         Button(onClick = onOpenNormal, modifier = Modifier.testTag("amp-open-normal")) {
           Text(stringResource(R.string.amp_open_normal))

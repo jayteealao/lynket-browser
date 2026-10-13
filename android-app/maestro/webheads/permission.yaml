@@ -13,10 +13,10 @@ appId: arun.com.chromer.debug
     visible: "Allow web heads to float"
     timeout: 5000
 - assertVisible: "Not now"
-- takeScreenshot: ac22-explainer
+- takeScreenshot: permission-explainer
 - tapOn: "Grant"
 - extendedWaitUntil:
     visible:
       text: ".*(Display over other apps|Appear on top).*"
     timeout: 10000
-- takeScreenshot: ac22-system-screen
+- takeScreenshot: permission-system-screen

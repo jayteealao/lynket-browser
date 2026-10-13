@@ -85,7 +85,7 @@ fun showSecondaryBrowserError(
   activity: Activity,
   message: CharSequence,
   // Tests pass a fixed theme; the app follows the person's theme settings.
-  theme: @Composable (@Composable () -> Unit) -> Unit = { ChromerThemeFromSettings(it) },
+  theme: @Composable (@Composable () -> Unit) -> Unit = { ChromerThemeFromSettings(content = it) },
 ) {
   showingError[activity] = true
   val finish = {

@@ -27,13 +27,14 @@ import arun.com.chromer.search.provider.SearchProviders
 import arun.com.chromer.search.suggestion.SuggestionsEngine
 import arun.com.chromer.search.suggestion.items.SuggestionItem
 import arun.com.chromer.search.suggestion.items.SuggestionType
+import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.appicon.ApplicationIcon
 import arun.com.chromer.util.network.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -91,29 +93,33 @@ class ModernHomeViewModel @Inject constructor(
   /** Bumped by the provider card's Retry, so the installed browsers are looked up again. */
   private val providerScan = MutableStateFlow(0)
 
-  // One flat combine, so the first recents and the provider arrive in the same pass.
-  val uiState: StateFlow<HomeUiState> = combine(
-    historyRepository.getRecents(),
-    preferencesRepository.userPreferencesFlow,
+  /** Bumped by the recents card's Retry, so the recents are read again after an error. */
+  private val recentsRetry = MutableStateFlow(0)
+
+  /** The settings the provider card reads; other settings changes do not look the provider up again. */
+  private data class ProviderSettings(val customTabPackage: String?, val fullIncognito: Boolean, val useWebView: Boolean)
+
+  // The package manager lookups run once per change of the provider settings, not on every settings edit.
+  private val providerCard = combine(
+    preferencesRepository.userPreferencesFlow
+      .map { ProviderSettings(it.preferredCustomTabPackage, it.fullIncognitoMode, it.useWebView) }
+      .distinctUntilChanged(),
     providerScan,
-  ) { recents, prefs, _ ->
-    HomeUiState.Success(recentWebsites = recents, providerInfo = providerInfoFor(prefs)) as HomeUiState
-  }
-    .catch { exception ->
-      Timber.e(exception, "Error loading home screen data")
-      emit(HomeUiState.Error(exception.message ?: "Unknown error"))
+  ) { settings, _ -> providerInfoFor(settings) }
+
+  // One flat combine, so the first recents and the provider arrive in the same pass. The retry
+  // counter restarts the whole read, so Retry recovers after an error.
+  val uiState: StateFlow<HomeUiState> = recentsRetry
+    .flatMapLatest {
+      combine(historyRepository.getRecents(), providerCard) { recents, provider ->
+        HomeUiState.Success(recentWebsites = recents, providerInfo = provider) as HomeUiState
+      }
+        .catch { exception ->
+          Timber.e(exception, "Error loading home screen data")
+          emit(HomeUiState.Error(exception.message ?: "Unknown error"))
+        }
     }
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState.Loading)
-
-  val recentWebsites: StateFlow<List<Website>> = historyRepository.getRecents()
-    .catch { exception ->
-      Timber.e(exception, "Error loading recent websites")
-      emit(emptyList())
-    }
-    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-  val providerInfo: StateFlow<CustomTabProviderInfo> = getProviderInfoFlow()
-    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), webViewProviderInfo(incognito = false))
 
   /** Open browsing tabs, read while the home is on screen (the old home polled every 750 ms). */
   val activeTabs: StateFlow<List<TabsManager.Tab>> = flow {
@@ -205,14 +211,12 @@ class ModernHomeViewModel @Inject constructor(
     noProviderInstalled = noProvider,
   )
 
-  private fun getProviderInfoFlow(): Flow<CustomTabProviderInfo> =
-    combine(preferencesRepository.userPreferencesFlow, providerScan) { prefs, _ -> providerInfoFor(prefs) }
-
-  private fun providerInfoFor(prefs: UserPreferencesRepository.UserPreferences): CustomTabProviderInfo {
-    val customTabPackage = prefs.preferredCustomTabPackage
-    val isIncognito = prefs.incognitoMode
+  private fun providerInfoFor(settings: ProviderSettings): CustomTabProviderInfo {
+    val customTabPackage = settings.customTabPackage
+    // Full incognito forces the web view; incognito_mode is the History off switch.
+    val isIncognito = settings.fullIncognito
     return when {
-      isIncognito || prefs.useWebView -> webViewProviderInfo(incognito = isIncognito)
+      isIncognito || settings.useWebView -> webViewProviderInfo(incognito = isIncognito)
       customTabPackage == null -> webViewProviderInfo(
         incognito = false,
         noProvider = !hasCustomTabProvider(),
@@ -235,14 +239,14 @@ class ModernHomeViewModel @Inject constructor(
 
   // ========== Actions ==========
 
+  /** The recents card's Retry: reads the recents again. */
   fun refreshRecents() {
-    viewModelScope.launch {
-      try {
-        historyRepository.getCount()
-      } catch (e: Exception) {
-        Timber.e(e, "Error refreshing recents")
-      }
-    }
+    recentsRetry.value++
+  }
+
+  /** The offline message's Retry: the home is read again; the screen shows the message again while offline. */
+  fun retryConnection() {
+    recentsRetry.value++
   }
 
   /** The provider card's Retry: picks a provider if one is now installed and looks again. */
@@ -288,22 +292,14 @@ class ModernHomeViewModel @Inject constructor(
     }
   }
 
-  suspend fun getDefaultCustomTabApp(): String? = try {
-    if (CustomTabs.isPackageSupportCustomTabs(application, Constants.CHROME_PACKAGE)) {
-      Constants.CHROME_PACKAGE
-    } else {
-      CustomTabs.getCustomTabSupportingPackages(application).firstOrNull()
-    }
-  } catch (e: Exception) {
-    Timber.e(e, "Error getting default custom tab app")
-    null
-  }
-
   fun initializeDefaultProvider() {
     viewModelScope.launch {
       val prefs = preferencesRepository.userPreferencesFlow.first()
       if (prefs.preferredCustomTabPackage == null) {
-        getDefaultCustomTabApp()?.let { setCustomTabProvider(it) }
+        runCatching { withContext(Dispatchers.IO) { Preferences.findDefaultCustomTabApp(application) } }
+          .onFailure { Timber.e(it, "Error getting default custom tab app") }
+          .getOrNull()
+          ?.let { setCustomTabProvider(it) }
       }
     }
   }

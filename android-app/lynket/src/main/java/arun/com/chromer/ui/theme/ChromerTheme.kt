@@ -11,8 +11,15 @@
 
 package arun.com.chromer.ui.theme
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
+import android.graphics.Color as AndroidColor
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
@@ -24,6 +31,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.emptyPreferences
 import arun.com.chromer.data.preferences.SettingsSchema
 import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.data.preferences.readInt
@@ -255,19 +264,68 @@ internal fun themeSettingsOf(stored: androidx.datastore.preferences.core.Prefere
 
 /**
  * [ChromerTheme] with the person's theme, colour and wallpaper option. It follows the settings
- * store, so a change on the Look and feel screen applies at once.
+ * store, so a change on the Look and feel screen applies at once. It never waits for the store:
+ * until the first read is in (the app starts that read when it starts), the schema defaults apply.
  */
 @Composable
-fun ChromerThemeFromSettings(content: @Composable () -> Unit) {
+fun ChromerThemeFromSettings(
+  /** False for a screen that colours its own system bars, such as the web view's toolbar colour. */
+  applySystemBars: Boolean = true,
+  content: @Composable () -> Unit,
+) {
   val context = LocalContext.current
   val repository = remember(context) { Preferences.entryPoint(context).userPreferencesRepository() }
-  val initial = remember(context) { Preferences.get(context).themeSettings() }
+  val defaults = remember(context) { themeSettingsOf(emptyPreferences(), context) }
   val stored by repository.snapshot.collectAsState()
-  val settings = stored?.let { themeSettingsOf(it, context) } ?: initial
+  val settings = stored?.let { themeSettingsOf(it, context) } ?: defaults
+  if (applySystemBars) {
+    val dark = when (settings.themeMode) {
+      ThemeMode.Auto -> isSystemInDarkTheme()
+      ThemeMode.Light -> false
+      ThemeMode.Dark, ThemeMode.Black -> true
+    }
+    val activity = remember(context) { context.findComponentActivity() }
+    // The bar icons follow the app's theme, not the system's, and again when the theme changes.
+    LaunchedEffect(activity, dark) { activity?.applySystemBars(dark) }
+  }
   ChromerTheme(
     themeMode = settings.themeMode,
     useWallpaperColours = settings.useWallpaperColours,
     primaryColour = settings.primaryColour,
-    content = content,
-  )
+  ) {
+    if (applySystemBars) {
+      // The window behind the content (resize, fold, the first frame of the next start) takes the
+      // app's background, so a Dark or Black theme never shows a light window.
+      val activity = remember(context) { context.findComponentActivity() }
+      val background = MaterialTheme.colorScheme.background
+      LaunchedEffect(activity, background) { activity?.colourOpaqueWindow(background.toArgb()) }
+    }
+    content()
+  }
+}
+
+/** Sets the window background of an activity whose window is opaque; translucent hosts keep theirs. */
+private fun ComponentActivity.colourOpaqueWindow(colour: Int) {
+  val translucent = obtainStyledAttributes(intArrayOf(android.R.attr.windowIsTranslucent)).run {
+    try { getBoolean(0, false) } finally { recycle() }
+  }
+  if (!translucent) window.setBackgroundDrawable(ColorDrawable(colour))
+}
+
+/** Edge to edge with status and navigation bar icons readable on the app's light or dark surfaces. */
+fun ComponentActivity.applySystemBars(dark: Boolean) {
+  val status = if (dark) SystemBarStyle.dark(AndroidColor.TRANSPARENT) else SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+  val navigation = if (dark) SystemBarStyle.dark(NAV_DARK_SCRIM) else SystemBarStyle.light(NAV_LIGHT_SCRIM, NAV_DARK_SCRIM)
+  enableEdgeToEdge(statusBarStyle = status, navigationBarStyle = navigation)
+}
+
+// The scrims androidx.activity uses behind three-button navigation.
+private val NAV_LIGHT_SCRIM = AndroidColor.argb(0xe6, 0xFF, 0xFF, 0xFF)
+private val NAV_DARK_SCRIM = AndroidColor.argb(0x80, 0x1b, 0x1b, 0x1b)
+
+private tailrec fun Context.findComponentActivity(): ComponentActivity? = when (this) {
+  is ComponentActivity -> this
+  is Activity -> null
+  is ContextWrapper -> baseContext.findComponentActivity()
+  else -> null
 }

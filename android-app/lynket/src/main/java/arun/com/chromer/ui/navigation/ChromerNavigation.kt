@@ -93,7 +93,6 @@ fun LynketNavDisplay(
       entry<LynketKey.LookAndFeel> { LookAndFeelScreen(navigator = navigator) }
       entry<LynketKey.BrowsingOptions> { BrowsingOptionsScreen(navigator = navigator) }
       entry<LynketKey.PerApp> { PerAppScreen(navigator = navigator) }
-      entry<LynketKey.WebHeads> { PlaceholderScreen(title = "Web Heads") }
     },
   )
 }
@@ -139,13 +138,5 @@ internal fun LinkErrorScreen(url: String, onBack: () -> Unit) {
       onAction = onBack,
       modifier = Modifier.testTag("link-error"),
     )
-  }
-}
-
-/** Placeholder for destinations whose screens later work brings (web heads). */
-@Composable
-private fun PlaceholderScreen(title: String) {
-  Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    Text(text = title, style = MaterialTheme.typography.headlineMedium)
   }
 }

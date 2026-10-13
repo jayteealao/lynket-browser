@@ -116,7 +116,7 @@ fun ProviderSelectionContent(
       is ProviderSelectionUiState.NoProvider -> item("no-provider") {
         ErrorState(
           title = stringResource(R.string.no_provider_title),
-          body = stringResource(R.string.no_provider_body),
+          body = stringResource(R.string.provider_missing_body),
           retryLabel = stringResource(R.string.use_webview),
           onRetry = onUseWebView,
           actionLabel = stringResource(R.string.get_chrome),

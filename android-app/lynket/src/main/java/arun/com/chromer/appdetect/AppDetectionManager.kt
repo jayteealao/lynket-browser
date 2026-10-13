@@ -31,13 +31,24 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
+ * The app a link came from: [nonFiltered] for per-app rules, [filtered] for the app-based toolbar
+ * colour (it also skips system UI, the Custom Tab provider and the Google search box). Empty when
+ * the app is not known.
+ */
+data class LinkSource(val nonFiltered: String = "", val filtered: String = "") {
+  companion object {
+    /** A link opened inside Lynket, or one whose app could not be read. */
+    val NONE = LinkSource()
+  }
+}
+
+/**
  * Finds the app a link came from, at the moment the link opens.
  *
- * When a link arrives, [detectLinkSource] reads the usage events of the last few seconds and keeps
- * the most recent app that came to the foreground, other than Lynket. Per-app rules read
- * [nonFilteredPackage]; the app-based toolbar colour reads [filteredPackage], which also skips
- * system UI, the Custom Tab provider and the Google search box. Without usage access both stay empty,
- * so links open as they do without per-app rules.
+ * When a link arrives, [detectLinkSource] reads the usage events of the last few seconds and returns
+ * the most recent app that came to the foreground, other than Lynket. It keeps nothing: the caller
+ * passes the result along with the link it belongs to. Without usage access it returns
+ * [LinkSource.NONE], so links open as they do without per-app rules.
  */
 @Singleton
 class AppDetectionManager
@@ -47,47 +58,34 @@ constructor(
   private val preferences: Preferences,
 ) {
 
-  // App the last link came from, for the toolbar colour.
-  @get:Synchronized
-  var filteredPackage = ""
-    private set
-
-  // App the last link came from, for per-app rules.
-  @get:Synchronized
-  var nonFilteredPackage = ""
-    private set
-
   /** Reads the app the link being opened now came from. Call it when an external link arrives. */
-  @Synchronized
-  fun detectLinkSource(now: Long = System.currentTimeMillis()) {
-    clear()
+  fun detectLinkSource(now: Long = System.currentTimeMillis()): LinkSource {
     if (!Utils.canReadUsageStats(application)) {
       Timber.d("Link source: no usage access")
-      return
+      return LinkSource.NONE
     }
-    val usageStatsManager = application.getSystemService(UsageStatsManager::class.java) ?: return
+    val usageStatsManager = application.getSystemService(UsageStatsManager::class.java) ?: return LinkSource.NONE
     val events = try {
       usageStatsManager.queryEvents(now - LOOKBACK_MS, now)
     } catch (e: SecurityException) {
       Timber.e(e, "Link source: usage events not readable")
-      return
-    } ?: return
+      return LinkSource.NONE
+    } ?: return LinkSource.NONE
+    // Read once per link, not once per event.
+    val provider = preferences.customTabPackage().orEmpty()
+    var nonFiltered = ""
+    var filtered = ""
     val event = UsageEvents.Event()
     // Events come oldest first, so the last match is the most recent one.
     while (events.hasNextEvent()) {
       events.getNextEvent(event)
       if (event.eventType != FOREGROUND_EVENT) continue
       val appPackage = event.packageName ?: continue
-      if (nonFilterPackage(appPackage)) nonFilteredPackage = appPackage
-      if (filterPackage(appPackage)) filteredPackage = appPackage
+      if (nonFilterPackage(appPackage)) nonFiltered = appPackage
+      if (filterPackage(appPackage, provider)) filtered = appPackage
     }
-    Timber.d("Link source: %s (for colour: %s)", nonFilteredPackage, filteredPackage)
-  }
-
-  @Synchronized
-  fun clear() {
-    nonFilteredPackage = ""
-    filteredPackage = ""
+    Timber.d("Link source: %s (for colour: %s)", nonFiltered, filtered)
+    return LinkSource(nonFiltered = nonFiltered, filtered = filtered)
   }
 
   private fun nonFilterPackage(appPackage: String): Boolean {
@@ -96,7 +94,7 @@ constructor(
     } else !appPackage.equals(application.packageName, ignoreCase = true) // Ignore our app
   }
 
-  private fun filterPackage(packageName: String): Boolean {
+  private fun filterPackage(packageName: String, provider: String): Boolean {
     // Ignore system pop ups
     if (packageName.equals("android", ignoreCase = true)) return false
 
@@ -108,7 +106,7 @@ constructor(
 
     // Chances are that we picked the opening custom tab, so let's ignore our default provider
     // to be safe
-    if (packageName.equals(preferences.customTabPackage() ?: "", ignoreCase = true)) return false
+    if (packageName.equals(provider, ignoreCase = true)) return false
 
     // Ignore google quick search box
     return !packageName.equals("com.google.android.googlequicksearchbox", ignoreCase = true)

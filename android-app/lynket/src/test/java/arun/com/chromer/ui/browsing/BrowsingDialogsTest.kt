@@ -190,7 +190,7 @@ class BrowsingDialogsTest {
       )
     }
     composeRule.onNodeWithText("No AMP version found").assertIsDisplayed()
-    composeRule.onNodeWithText("Try again").performClick()
+    composeRule.onNodeWithText("Retry").performClick()
     composeRule.onNodeWithText("Open normal page").performClick()
     assertThat(calls).containsExactly("retry", "normal").inOrder()
   }

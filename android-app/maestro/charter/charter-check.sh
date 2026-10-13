@@ -11,7 +11,7 @@
 #   5. web heads through the permission explainer and the system screen (permission.yaml, the
 #      grant through appops); the stored setting reads web heads on
 #   6. drag-check.sh on the phone (the person watches drag.mp4 and signs feel-checklist.md)
-#   7. webheads-check.sh ac23: a native bubble opens its page
+#   7. webheads-check.sh bubble: a native bubble opens its page
 #   8. History from the home drawer: the links of steps 2 to 7, newest first, and a 2.1.3 row
 #   9. the 2.1.3 pinned shortcut tapped on the launcher opens its page
 #   then on the fold: the 2.1.3 seed and update (upgrade-check.sh), steps 2, 6 and 8 again
@@ -229,7 +229,7 @@ step6_drag() {
 
 # 7. A native bubble.
 step7_bubble() {
-  bash "$WEBHEADS/webheads-check.sh" "$SERIAL" "$OUT/7-bubble" ac23 || fail "the native bubble check failed (see 7-bubble/)"
+  bash "$WEBHEADS/webheads-check.sh" "$SERIAL" "$OUT/7-bubble" bubble || fail "the native bubble check failed (see 7-bubble/)"
   a shell input keyevent HOME
   log "step 7: a native bubble opened its page"
 }
@@ -287,7 +287,7 @@ step step4_options "$PHONE"
 step step5_permission "$PHONE"
 step step6_drag "$PHONE"
 step step7_bubble "$PHONE"
-HISTORY_URLS="https://example.com/?charter=2 https://example.com/?charter=3 https://example.com/?head=1 https://example.com/?head=6 https://example.com/?ac23=1"
+HISTORY_URLS="https://example.com/?charter=2 https://example.com/?charter=3 https://example.com/?head=1 https://example.com/?head=6 https://example.com/?bubble=1"
 step step8_history "$PHONE"
 step step9_pinned "$PHONE"
 

@@ -38,9 +38,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,6 +54,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
@@ -101,6 +106,8 @@ class ImageZoom(scale: Float = IMAGE_MIN_SCALE, offset: Offset = Offset.Zero) {
 @Composable
 fun ImageViewerScreen(url: String, onClose: () -> Unit, onShare: () -> Unit, modifier: Modifier = Modifier) {
   val zoom = rememberSaveable(saver = imageZoomSaver) { ImageZoom() }
+  // Recomposes when zoomed flips, not on every pinch frame.
+  val zoomed by remember(zoom) { derivedStateOf { zoom.zoomed } }
   var hintSeen by rememberSaveable { mutableStateOf(false) }
   val transformState = rememberTransformableState { zoomChange, pan, _ ->
     zoom.transform(zoomChange, pan)
@@ -108,9 +115,11 @@ fun ImageViewerScreen(url: String, onClose: () -> Unit, onShare: () -> Unit, mod
   }
   Surface(color = MaterialTheme.colorScheme.surface, modifier = modifier.fillMaxSize().testTag("image-viewer")) {
     Box(Modifier.fillMaxSize()) {
+      val zoomIn = stringResource(R.string.image_zoom_in)
+      val zoomOut = stringResource(R.string.image_zoom_out)
       SubcomposeAsyncImage(
         model = url,
-        contentDescription = null,
+        contentDescription = stringResource(R.string.reader_article_image),
         contentScale = ContentScale.FillWidth,
         modifier = Modifier
           .fillMaxSize()
@@ -122,13 +131,20 @@ fun ImageViewerScreen(url: String, onClose: () -> Unit, onShare: () -> Unit, mod
             })
           }
           .transformable(transformState, canPan = { zoom.zoomed })
+          // Zoom without a two-finger gesture: screen readers, switch access and keyboards.
+          .semantics {
+            customActions = listOf(
+              CustomAccessibilityAction(zoomIn) { zoom.transform(ZOOM_STEP, Offset.Zero); hintSeen = true; true },
+              CustomAccessibilityAction(zoomOut) { zoom.transform(1f / ZOOM_STEP, Offset.Zero); true },
+            )
+          }
           .graphicsLayer {
             scaleX = zoom.scale
             scaleY = zoom.scale
             translationX = zoom.offset.x
             translationY = zoom.offset.y
           }
-          .testTag(if (zoom.zoomed) "image-zoomed" else "image"),
+          .testTag(if (zoomed) "image-zoomed" else "image"),
       ) {
         val state by painter.state.collectAsState()
         when (state) {
@@ -189,3 +205,6 @@ private val imageZoomSaver = androidx.compose.runtime.saveable.Saver<ImageZoom, 
   save = { listOf(it.scale, it.offset.x, it.offset.y) },
   restore = { ImageZoom(it[0], Offset(it[1], it[2])) },
 )
+
+/** One zoom in or out step of the accessibility actions. */
+private const val ZOOM_STEP = 1.5f

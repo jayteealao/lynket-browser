@@ -29,6 +29,7 @@
   <style name="AppTheme.NoActionBar">
     <item name="windowActionBar">false</item>
     <item name="windowNoTitle">true</item>
+    <item name="android:windowBackground">@color/window_background</item>
   </style>
 
   <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
@@ -102,7 +103,10 @@
     <item name="android:windowAnimationStyle">@null</item>
   </style>
 
-  <style name="AppTheme.Launcher" parent="Theme.AppCompat.Light.NoActionBar" />
+  <!-- Light or dark with the system until the first frame; then the app's own theme colours the window. -->
+  <style name="AppTheme.Launcher" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:windowBackground">@color/window_background</item>
+  </style>
 
   <style name="Theme.AppCompat.Translucent" parent="Theme.AppCompat.NoActionBar" />
 

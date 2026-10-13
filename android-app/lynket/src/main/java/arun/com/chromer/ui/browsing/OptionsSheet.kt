@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AddToHomeScreen
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tab
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -39,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -121,18 +121,14 @@ fun OptionsSheetContent(items: List<OptionItem>, urlKnown: Boolean, onPick: (Opt
 
 @Composable
 private fun OptionIcon(item: OptionItem) {
-  val vector: ImageVector? = when (item) {
+  val vector: ImageVector = when (item) {
     OptionItem.Settings -> Icons.Outlined.Settings
-    OptionItem.Tabs -> null
+    OptionItem.Tabs -> Icons.Outlined.Tab
     OptionItem.NewTab -> Icons.Outlined.Add
     OptionItem.History -> Icons.Outlined.History
     OptionItem.AddToHomeScreen -> Icons.Outlined.AddToHomeScreen
     OptionItem.OpenWith -> Icons.AutoMirrored.Outlined.OpenInNew
     OptionItem.ArticleView -> Icons.AutoMirrored.Outlined.Article
   }
-  if (vector != null) {
-    Icon(vector, contentDescription = null)
-  } else {
-    Icon(painterResource(R.drawable.ic_tabs_24dp), contentDescription = null)
-  }
+  Icon(vector, contentDescription = null)
 }

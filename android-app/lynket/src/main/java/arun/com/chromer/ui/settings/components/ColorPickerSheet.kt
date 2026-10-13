@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -45,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
+import arun.com.chromer.ui.theme.readableContentColor
 
 /** The primary colours of the old colour chooser (MaterialDialogs `ColorPalette.PRIMARY_COLORS`). */
 val PrimaryPalette: List<Int> = listOf(
@@ -97,7 +98,7 @@ fun ColorPickerContent(title: String, initial: Int, onDone: (Int) -> Unit) {
   Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
     Text(title, style = MaterialTheme.typography.headlineSmall)
     Text(
-      stringResource(R.string.colour_sheet_body),
+      stringResource(R.string.color_sheet_body),
       style = MaterialTheme.typography.bodyMedium,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
       modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
@@ -105,7 +106,7 @@ fun ColorPickerContent(title: String, initial: Int, onDone: (Int) -> Unit) {
     FlowRow(
       horizontalArrangement = Arrangement.spacedBy(12.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp),
-      modifier = Modifier.fillMaxWidth(),
+      modifier = Modifier.fillMaxWidth().selectableGroup(),
     ) {
       PrimaryPalette.forEach { colour ->
         val selected = parsed != null && (parsed and 0xFFFFFF) == (colour and 0xFFFFFF)
@@ -120,11 +121,11 @@ fun ColorPickerContent(title: String, initial: Int, onDone: (Int) -> Unit) {
       OutlinedTextField(
         value = hex,
         onValueChange = { hex = it.take(7) },
-        label = { Text(stringResource(R.string.colour_hex_label)) },
+        label = { Text(stringResource(R.string.color_hex_label)) },
         singleLine = true,
         isError = parsed == null,
         supportingText = if (parsed == null) {
-          { Text(stringResource(R.string.colour_hex_error)) }
+          { Text(stringResource(R.string.color_hex_error)) }
         } else null,
         modifier = Modifier.weight(1f).testTag("colour-hex"),
       )
@@ -139,22 +140,24 @@ fun ColorPickerContent(title: String, initial: Int, onDone: (Int) -> Unit) {
 private fun Swatch(colour: Int, selected: Boolean, onClick: () -> Unit) {
   val fill = Color(colour)
   val label = hexOf(colour)
-  val description = if (selected) stringResource(R.string.colour_selected, label) else label
+  val description = if (selected) stringResource(R.string.color_selected, label) else label
   Box(
     contentAlignment = Alignment.Center,
     modifier = Modifier
       .size(48.dp)
+      // Selectable on the full 48 dp; an outline keeps pale swatches visible on a light sheet.
+      .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
       .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, CircleShape) else Modifier)
       .padding(if (selected) 5.dp else 0.dp)
       .background(fill, CircleShape)
-      .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+      .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
       .semantics { contentDescription = description },
   ) {
     if (selected) {
       Icon(
         Icons.Filled.Check,
         contentDescription = null,
-        tint = if (fill.luminance() > 0.5f) Color(0xFF1B1B21) else Color(0xFFFEFBFF),
+        tint = fill.readableContentColor(),
       )
     }
   }

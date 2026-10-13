@@ -78,6 +78,7 @@ constructor(private val historyDatabase: HistoryDatabase) : HistoryStore {
     val dao = historyDatabase.dao()
     val count = dao.getCount()
     dao.deleteAll()
+    historyDatabase.deleteKeptCopies()
     return count
   }
 

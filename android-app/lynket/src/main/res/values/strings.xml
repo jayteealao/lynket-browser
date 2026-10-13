@@ -264,8 +264,8 @@
   <string name="contribute_to_chromer">Love to code? Fork Lynket and contribute.</string>
   <string name="fork_on_github">Fork on GitHub</string>
   <string name="web_view_not_found">Web View disabled on device. Could not open link.</string>
-  <string name="app_detection_notification_channel_description">Notification will be posted when Lynket\'s app detection service is running.</string>
-  <string name="app_detection_service_explanation">Monitoring foreground apps for dynamic toolbar color and per app settings.</string>
+  <string name="web_heads_channel_description">Shown while web heads are on screen. Tap New tab, Manage or Close all.</string>
+  <string name="web_view_page_stopped">This page stopped working and was closed.</string>
   <string name="app_detection_service">App detection service</string>
   <string name="shortcut_name">Shortcut name</string>
   <string name="create_shorcut">Create shortcut</string>
@@ -343,8 +343,11 @@
   <string name="discuss_on_reddit">Discuss on Reddit</string>
   <!-- Web heads in Compose -->
   <string name="web_head_content_description">Web head: %1$s</string>
+  <string name="web_head_action_open">Open page</string>
+  <string name="web_head_action_list">Show all web heads</string>
+  <string name="web_head_action_close">Close web head</string>
   <string name="web_heads_start_failed">Web heads could not start. Opening in a tab instead.</string>
-  <string name="bubbles_not_allowed">Allow notifications and bubbles for Lynket to use bubbles.</string>
+  <string name="bubbles_not_allowed">Turn on notifications and bubbles for Lynket in Settings to use bubbles.</string>
   <string name="not_now">Not now</string>
   <string name="overlay_explainer_title">Allow web heads to float</string>
   <string name="overlay_explainer_body">To draw web heads over other apps, Lynket needs the \"Display over other apps\" permission. Android opens the setting next.</string>
@@ -365,7 +368,7 @@
   <string name="recents_empty_title">Recents appear here</string>
   <string name="recents_empty_body">Open a link from any app and it shows up here for quick access.</string>
   <string name="provider_missing_title">No browser for Custom Tabs</string>
-  <string name="provider_missing_body">Install a browser that supports Custom Tabs, such as Chrome. Until then, links open in Lynket\'s own web view.</string>
+  <string name="provider_missing_body">Install a browser that supports Custom Tabs, such as Chrome or Firefox. Until then, links open in Lynket\'s own web view.</string>
   <string name="retry">Retry</string>
   <string name="offline_message">You\'re offline. Pages open when you reconnect.</string>
   <string name="link_error_title">This link cannot be opened</string>
@@ -375,7 +378,6 @@
   <string name="remove_bookmark">Remove bookmark</string>
   <string name="remove_from_history">Remove from history</string>
   <string name="intro_next">Next</string>
-  <string name="intro_done">Done</string>
   <string name="intro_page_indicator">Page %1$d of %2$d</string>
   <string name="default_browser_title">Make Lynket your browser</string>
   <string name="default_browser_body">Lynket opens links from other apps only when it is the default browser. Android asks you to confirm next.</string>
@@ -389,12 +391,12 @@
   <string name="theme_light">Light</string>
   <string name="theme_dark">Dark</string>
   <string name="theme_black">Black</string>
-  <string name="use_wallpaper_colours">Use wallpaper colours</string>
-  <string name="use_wallpaper_colours_summary">Material You, Android 12 and later</string>
-  <string name="colour_sheet_body">Pick a colour or enter a hex value.</string>
-  <string name="colour_hex_label">Hex colour</string>
-  <string name="colour_hex_error">Enter a colour as #RRGGBB</string>
-  <string name="colour_selected">%1$s, selected</string>
+  <string name="use_wallpaper_colors">Use wallpaper colors</string>
+  <string name="use_wallpaper_colors_summary">Material You, Android 12 and later</string>
+  <string name="color_sheet_body">Pick a color or enter a hex value.</string>
+  <string name="color_hex_label">Hex color</string>
+  <string name="color_hex_error">Enter a color as #RRGGBB</string>
+  <string name="color_selected">%1$s, selected</string>
   <string name="done">Done</string>
   <string name="settings_about_version">Version %1$s</string>
   <string name="settings_set">Set</string>
@@ -402,10 +404,10 @@
   <string name="per_app_enable_summary">Rules below apply when a link comes from that app</string>
   <string name="search_apps">Search apps</string>
   <string name="per_app_no_match">No app matches \"%1$s\"</string>
+  <string name="per_app_no_match_body">Search by the app name or its package name.</string>
   <string name="per_app_secondary_browser">Open %1$s links in the secondary browser</string>
   <string name="per_app_incognito">Open %1$s links in incognito</string>
   <string name="no_provider_title">No Custom Tab provider found</string>
-  <string name="no_provider_body">Install a browser that supports Custom Tabs, such as Chrome or Firefox. Until then, Lynket opens links in its own WebView.</string>
   <string name="use_webview">Use WebView</string>
   <string name="get_chrome">Get Chrome</string>
   <string name="provider_current">Current provider</string>
@@ -419,7 +421,7 @@
   <string name="history_search_empty">No history matches \"%1$s\"</string>
   <string name="history_removed">Removed from history</string>
   <string name="history_error_title">History could not be loaded</string>
-  <string name="history_error_body">Something went wrong while reading your history.</string>
+  <string name="history_error_body">Your history could not be read. Try again; if it keeps failing, restart Lynket.</string>
   <string name="history_clear_all">Delete all history</string>
   <string name="history_more_options">More options for %1$s</string>
   <string name="history_open_amp">Open the AMP version of %1$s</string>
@@ -436,7 +438,6 @@
   <!-- Browsing dialogs -->
   <string name="amp_error_title">No AMP version found</string>
   <string name="amp_error_body">The page could not be checked for an AMP version because the device is offline. You can open the normal page or try again.</string>
-  <string name="amp_try_again">Try again</string>
   <string name="amp_open_normal">Open normal page</string>
   <!-- Reader, image viewer and web view -->
   <string name="reader_loading">Extracting the article…</string>
@@ -445,5 +446,12 @@
   <string name="reader_open_in_browser">Open in browser</string>
   <string name="reader_open_image">Open image</string>
   <string name="pinch_to_zoom">Pinch to zoom</string>
+  <string name="reader_article_image">Article image</string>
+  <string name="image_zoom_in">Zoom in</string>
+  <string name="image_zoom_out">Zoom out</string>
+  <string name="text_size_state">+%1$d sp</string>
   <string name="image_load_failed">The image could not be loaded</string>
+  <string name="state_on">On</string>
+  <string name="state_off">Off</string>
+  <string name="more_options">More options</string>
 </resources>

@@ -177,7 +177,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
         getString(R.string.web_heads_service),
         NotificationManager.IMPORTANCE_MIN
       )
-      channel.description = getString(R.string.app_detection_notification_channel_description)
+      channel.description = getString(R.string.web_heads_channel_description)
       (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(channel)
     }
 
@@ -382,6 +382,14 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   override fun onLongPress(head: WebHeadState) {
     controller?.onLongPress(head)
+  }
+
+  override fun onOpen(head: WebHeadState) {
+    controller?.onTap(head)
+  }
+
+  override fun onClose(head: WebHeadState) {
+    controller?.destroy(head, receiveCallback = true)
   }
 
   override fun onHeadClick(head: WebHeadState) {

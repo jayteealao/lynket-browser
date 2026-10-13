@@ -12,25 +12,20 @@
 package arun.com.chromer.data.history
 
 import android.content.Context
+import androidx.paging.PagingSource
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import app.cash.turbine.test
 import arun.com.chromer.data.database.ChromerDatabase
 import arun.com.chromer.data.database.HistoryDatabase
 import arun.com.chromer.data.database.dao.WebsiteDao
-import arun.com.chromer.data.preferences.UserPreferencesRepository
-import arun.com.chromer.data.preferences.UserPreferencesRepository.UserPreferences
+import arun.com.chromer.data.database.entity.toEntity
+import arun.com.chromer.data.database.entity.toWebsite
+import arun.com.chromer.data.history.model.HistoryTable
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.data.website.model.copy
-import arun.com.chromer.data.website.model.isBookmarked
-import arun.com.chromer.data.website.model.visitCount
 import com.google.common.truth.Truth.assertThat
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -40,41 +35,22 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import java.io.File
 import kotlin.time.Duration.Companion.seconds
-import androidx.paging.PagingSource
-import arun.com.chromer.data.database.entity.toEntity
 
 /**
- * Phase 5: Integration tests for ModernHistoryRepository
- *
- * Uses Robolectric to test Repository with real Room database (in-memory).
- * Tests actual database operations, Flow emissions, and business logic.
- *
- * Best practices:
- * - Use in-memory database for fast, isolated tests
- * - Test actual database operations (not mocks)
- * - Test Flow emissions with Turbine
- * - Test CRUD operations and edge cases
- * - Clean up after each test
- *
- * Note: Robolectric is used because Room requires Android framework.
+ * The history repository of the History screen and the home, on a real in-memory Room database.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30]) // Use Android API 30 for tests
+@Config(sdk = [30])
 class ModernHistoryRepositoryTest {
 
-    // Real Room database (in-memory)
+    private lateinit var context: Context
     private lateinit var database: ChromerDatabase
     private lateinit var websiteDao: WebsiteDao
-
-    // Mocked preferences
-    private lateinit var preferencesRepository: UserPreferencesRepository
-
-    // System under test
     private lateinit var repository: ModernHistoryRepository
 
-    // Test dispatcher
     private val testDispatcher = UnconfinedTestDispatcher()
 
     // Room delivers Flow updates from its own background executor, so Turbine waits on the
@@ -83,28 +59,13 @@ class ModernHistoryRepositoryTest {
 
     @Before
     fun setup() {
-        // Create in-memory database
-        val context: Context = RuntimeEnvironment.getApplication()
+        context = RuntimeEnvironment.getApplication()
         database = Room.inMemoryDatabaseBuilder<ChromerDatabase>(context)
             .setDriver(AndroidSQLiteDriver())
             .build()
-
         websiteDao = database.websiteDao()
-
-        // Mock preferences repository (default: not incognito)
-        preferencesRepository = mockk()
-        every { preferencesRepository.userPreferencesFlow } returns flowOf(
-            UserPreferences(
-                preferredCustomTabPackage = "com.android.chrome",
-                useWebView = false,
-                incognitoMode = false
-            )
-        )
-
-        // Create repository with real DAO
         repository = ModernHistoryRepository(
             historyDatabase = HistoryDatabase(context, legacyImport = null) { database },
-            preferencesRepository = preferencesRepository,
             ioDispatcher = testDispatcher
         )
     }
@@ -114,462 +75,101 @@ class ModernHistoryRepositoryTest {
         database.close()
     }
 
-    /**
-     * Helper to create sample websites
-     */
-    private fun createSampleWebsite(
-        url: String = "https://example.com",
-        title: String = "Example",
-        visitCount: Int = 1,
-        isBookmarked: Boolean = false
-    ): Website {
-        return Website(
-            url = url,
-            title = title,
-            createdAt = System.currentTimeMillis(),
-            visitCount = visitCount,
-            isBookmarked = isBookmarked
-        )
-    }
-
-    // ========== Insert/Record Tests ==========
-
-    @Test
-    fun `recordVisit inserts new website`() = runTest {
-        // Given: A new website
-        val website = createSampleWebsite()
-
-        // When: Recording a visit
-        val result = repository.recordVisit(website)
-
-        // Then: Website should be inserted
-        assertThat(result).isNotNull()
-        assertThat(result?.url).isEqualTo(website.url)
-        assertThat(result?.title).isEqualTo(website.title)
-        assertThat(repository.getCount()).isEqualTo(1)
-    }
-
-    @Test
-    fun `recordVisit increments visit count for existing website`() = runTest {
-        // Given: An existing website
-        val website = createSampleWebsite()
-        repository.recordVisit(website)
-
-        // When: Recording another visit to the same URL
-        val result = repository.recordVisit(website.copy(title = "Updated Title"))
-
-        // Then: Visit count should increment
-        assertThat(result).isNotNull()
-        assertThat(result?.visitCount).isEqualTo(2)
-        assertThat(result?.title).isEqualTo("Updated Title") // Title should update
-        assertThat(repository.getCount()).isEqualTo(1) // Should still be one entry
-    }
-
-    @Test
-    fun `recordVisit does not save in incognito mode`() = runTest {
-        // Given: Incognito mode is enabled
-        every { preferencesRepository.userPreferencesFlow } returns flowOf(
-            UserPreferences(
-                preferredCustomTabPackage = "com.android.chrome",
-                useWebView = false,
-                incognitoMode = true
-            )
-        )
-
-        // When: Recording a visit
-        val website = createSampleWebsite()
-        val result = repository.recordVisit(website)
-
-        // Then: Website should not be saved
-        assertThat(result).isNotNull() // Returns the website
-        assertThat(repository.getCount()).isEqualTo(0) // But doesn't save it
-    }
-
-    // ========== Read Tests ==========
-
-    @Test
-    fun `getAllHistory returns all websites`() = runTest {
-        // Given: Multiple websites
-        repository.recordVisit(createSampleWebsite("https://site1.com", "Site 1"))
-        repository.recordVisit(createSampleWebsite("https://site2.com", "Site 2"))
-        repository.recordVisit(createSampleWebsite("https://site3.com", "Site 3"))
-
-        // When: Getting all history
-        val history = repository.getAllHistory().first()
-
-        // Then: Should return all 3 websites
-        assertThat(history).hasSize(3)
-        assertThat(history.map { it.url }).containsExactly(
-            "https://site1.com",
-            "https://site2.com",
-            "https://site3.com"
-        )
-    }
-
-    @Test
-    fun `getRecents returns most recent websites`() = runTest {
-        // Given: 10 websites (more than the 8 recent limit)
-        repeat(10) { index ->
-            repository.recordVisit(
-                createSampleWebsite(
-                    url = "https://site$index.com",
-                    title = "Site $index"
-                )
-            )
-            Thread.sleep(10) // Ensure different timestamps
+    private fun site(url: String, title: String = url, createdAt: Long = 1_000L, bookmarked: Boolean = false) =
+        Website(url).apply {
+            this.title = title
+            this.createdAt = createdAt
+            this.count = 1
+            this.bookmarked = bookmarked
         }
 
-        // When: Getting recents
+    private suspend fun store(vararg sites: Website) = sites.forEach { websiteDao.insert(it.toEntity()) }
+
+    @Test
+    fun `getRecents returns the eight most recent websites`() = runTest {
+        store(*Array(10) { site("https://site$it.com", createdAt = 1_000L + it) })
+
         val recents = repository.getRecents().first()
 
-        // Then: Should return only 8 most recent
         assertThat(recents).hasSize(8)
-        // Most recent should be site9 (last inserted)
         assertThat(recents[0].url).isEqualTo("https://site9.com")
     }
 
     @Test
-    fun `getByUrl returns correct website`() = runTest {
-        // Given: Multiple websites
-        val website = createSampleWebsite("https://target.com", "Target Site")
-        repository.recordVisit(website)
-        repository.recordVisit(createSampleWebsite("https://other.com", "Other Site"))
+    fun `getRecents Flow emits updates when data changes`() = runTest {
+        repository.getRecents().test(timeout = ROOM_FLOW_TIMEOUT) {
+            assertThat(awaitItem()).isEmpty()
 
-        // When: Getting by URL
-        val result = repository.getByUrl("https://target.com")
+            store(site("https://site1.com"))
+            val update = awaitItem()
+            assertThat(update.map { it.url }).containsExactly("https://site1.com")
 
-        // Then: Should return the correct website
-        assertThat(result).isNotNull()
-        assertThat(result?.url).isEqualTo("https://target.com")
-        assertThat(result?.title).isEqualTo("Target Site")
+            cancelAndIgnoreRemainingEvents()
+        }
     }
-
-    @Test
-    fun `getByUrl returns null for non-existent URL`() = runTest {
-        // Given: Empty database
-        // When: Getting by non-existent URL
-        val result = repository.getByUrl("https://nonexistent.com")
-
-        // Then: Should return null
-        assertThat(result).isNull()
-    }
-
-    @Test
-    fun `search returns matching websites`() = runTest {
-        // Given: Websites with different titles
-        repository.recordVisit(createSampleWebsite("https://kotlin.org", "Kotlin Programming"))
-        repository.recordVisit(createSampleWebsite("https://java.com", "Java Programming"))
-        repository.recordVisit(createSampleWebsite("https://python.org", "Python"))
-
-        // When: Searching for "kotlin"
-        val results = repository.search("kotlin")
-
-        // Then: Should return only Kotlin website
-        assertThat(results).hasSize(1)
-        assertThat(results[0].url).isEqualTo("https://kotlin.org")
-    }
-
-    @Test
-    fun `getBookmarks returns only bookmarked websites`() = runTest {
-        // Given: Mix of bookmarked and non-bookmarked websites
-        repository.recordVisit(createSampleWebsite("https://site1.com", "Site 1", isBookmarked = true))
-        repository.recordVisit(createSampleWebsite("https://site2.com", "Site 2", isBookmarked = false))
-        repository.recordVisit(createSampleWebsite("https://site3.com", "Site 3", isBookmarked = true))
-
-        // When: Getting bookmarks
-        val bookmarks = repository.getBookmarks().first()
-
-        // Then: Should return only bookmarked sites
-        assertThat(bookmarks).hasSize(2)
-        assertThat(bookmarks.map { it.url }).containsExactly(
-            "https://site1.com",
-            "https://site3.com"
-        )
-    }
-
-    // ========== Update Tests ==========
-
-    @Test
-    fun `update modifies existing website`() = runTest {
-        // Given: An existing website
-        val original = createSampleWebsite("https://example.com", "Original Title")
-        repository.recordVisit(original)
-
-        // When: Updating the website
-        val updated = original.copy(title = "Updated Title", visitCount = 5)
-        repository.update(updated)
-
-        // Then: Changes should persist
-        val result = repository.getByUrl("https://example.com")
-        assertThat(result?.title).isEqualTo("Updated Title")
-        assertThat(result?.visitCount).isEqualTo(5)
-    }
-
-    // ========== Delete Tests ==========
 
     @Test
     fun `delete removes website from database`() = runTest {
-        // Given: An existing website
-        val website = createSampleWebsite()
-        repository.recordVisit(website)
-        assertThat(repository.getCount()).isEqualTo(1)
+        val website = site("https://example.com")
+        store(website)
 
-        // When: Deleting the website
-        val success = repository.delete(website)
+        assertThat(repository.delete(website)).isTrue()
 
-        // Then: Website should be removed
-        assertThat(success).isTrue()
         assertThat(repository.getCount()).isEqualTo(0)
-        assertThat(repository.getByUrl(website.url)).isNull()
+        assertThat(websiteDao.getByUrl(website.url)).isNull()
     }
 
     @Test
     fun `deleteAll removes all websites`() = runTest {
-        // Given: Multiple websites
-        repository.recordVisit(createSampleWebsite("https://site1.com", "Site 1"))
-        repository.recordVisit(createSampleWebsite("https://site2.com", "Site 2"))
-        repository.recordVisit(createSampleWebsite("https://site3.com", "Site 3"))
-        assertThat(repository.getCount()).isEqualTo(3)
+        store(site("https://site1.com"), site("https://site2.com"), site("https://site3.com"))
 
-        // When: Deleting all
-        val deletedCount = repository.deleteAll()
-
-        // Then: All websites should be removed
-        assertThat(deletedCount).isEqualTo(3)
+        assertThat(repository.deleteAll()).isEqualTo(3)
         assertThat(repository.getCount()).isEqualTo(0)
     }
 
     @Test
-    fun `deleteOlderThan removes old websites`() = runTest {
-        // Given: Websites with different ages
-        val now = System.currentTimeMillis()
-        val oldWebsite = createSampleWebsite("https://old.com", "Old Site")
-            .copy(createdAt = now - (10 * 24 * 60 * 60 * 1000L)) // 10 days ago
-        val recentWebsite = createSampleWebsite("https://recent.com", "Recent Site")
-            .copy(createdAt = now - (2 * 24 * 60 * 60 * 1000L)) // 2 days ago
+    fun `deleteAll also deletes the copies of history kept on the device`() = runTest {
+        val migrated = File(context.filesDir, "${LegacyHistoryImport.MIGRATION_FOLDER}/History-1")
+            .apply { parentFile?.mkdirs(); writeText("old history") }
+        val broken = File(context.filesDir, "${HistoryDatabase.BROKEN_FOLDER}/2/${ChromerDatabase.DATABASE_NAME}")
+            .apply { parentFile?.mkdirs(); writeText("broken history") }
+        val notImported = context.getDatabasePath(HistoryTable.TABLE_NAME)
+            .apply { parentFile?.mkdirs(); writeText("old history not imported yet") }
+        store(site("https://site1.com"))
 
-        repository.recordVisit(oldWebsite)
-        repository.recordVisit(recentWebsite)
+        repository.deleteAll()
 
-        // When: Deleting websites older than 5 days
-        val deletedCount = repository.deleteOlderThan(days = 5)
-
-        // Then: Only old website should be deleted
-        assertThat(deletedCount).isEqualTo(1)
-        assertThat(repository.getCount()).isEqualTo(1)
-        assertThat(repository.exists("https://recent.com")).isTrue()
-        assertThat(repository.exists("https://old.com")).isFalse()
+        assertThat(migrated.exists()).isFalse()
+        assertThat(broken.exists()).isFalse()
+        assertThat(notImported.exists()).isFalse()
+        assertThat(File(context.filesDir, LegacyHistoryImport.MIGRATION_FOLDER).exists()).isFalse()
     }
-
-    // ========== Bookmark Tests ==========
 
     @Test
     fun `toggleBookmark changes bookmark status`() = runTest {
-        // Given: A website that's not bookmarked
-        val website = createSampleWebsite(isBookmarked = false)
-        repository.recordVisit(website)
+        val website = site("https://example.com")
+        store(website)
 
-        // When: Toggling bookmark
         repository.toggleBookmark(website.url)
+        assertThat(websiteDao.getByUrl(website.url)?.bookmarked).isTrue()
 
-        // Then: Should be bookmarked
-        val result = repository.getByUrl(website.url)
-        assertThat(result?.isBookmarked).isTrue()
-
-        // When: Toggling again
         repository.toggleBookmark(website.url)
-
-        // Then: Should not be bookmarked
-        val result2 = repository.getByUrl(website.url)
-        assertThat(result2?.isBookmarked).isFalse()
+        assertThat(websiteDao.getByUrl(website.url)?.bookmarked).isFalse()
     }
-
-    @Test
-    fun `setBookmarked sets bookmark status`() = runTest {
-        // Given: A website
-        val website = createSampleWebsite(isBookmarked = false)
-        repository.recordVisit(website)
-
-        // When: Setting bookmark to true
-        repository.setBookmarked(website.url, true)
-
-        // Then: Should be bookmarked
-        val result = repository.getByUrl(website.url)
-        assertThat(result?.isBookmarked).isTrue()
-
-        // When: Setting bookmark to false
-        repository.setBookmarked(website.url, false)
-
-        // Then: Should not be bookmarked
-        val result2 = repository.getByUrl(website.url)
-        assertThat(result2?.isBookmarked).isFalse()
-    }
-
-    // ========== Count Tests ==========
 
     @Test
     fun `getCount returns correct count`() = runTest {
-        // Given: Multiple websites
         assertThat(repository.getCount()).isEqualTo(0)
-
-        repository.recordVisit(createSampleWebsite("https://site1.com", "Site 1"))
-        assertThat(repository.getCount()).isEqualTo(1)
-
-        repository.recordVisit(createSampleWebsite("https://site2.com", "Site 2"))
+        store(site("https://site1.com"), site("https://site2.com"))
         assertThat(repository.getCount()).isEqualTo(2)
-
-        repository.recordVisit(createSampleWebsite("https://site3.com", "Site 3"))
-        assertThat(repository.getCount()).isEqualTo(3)
-    }
-
-    @Test
-    fun `getBookmarkCount returns correct count`() = runTest {
-        // Given: Mix of bookmarked and non-bookmarked
-        repository.recordVisit(createSampleWebsite("https://site1.com", "Site 1", isBookmarked = true))
-        repository.recordVisit(createSampleWebsite("https://site2.com", "Site 2", isBookmarked = false))
-        repository.recordVisit(createSampleWebsite("https://site3.com", "Site 3", isBookmarked = true))
-
-        // When: Getting bookmark count
-        val count = repository.getBookmarkCount()
-
-        // Then: Should return 2
-        assertThat(count).isEqualTo(2)
-    }
-
-    // ========== Exists Tests ==========
-
-    @Test
-    fun `exists returns true for existing website`() = runTest {
-        // Given: An existing website
-        val website = createSampleWebsite()
-        repository.recordVisit(website)
-
-        // When: Checking existence
-        val exists = repository.exists(website.url)
-
-        // Then: Should return true
-        assertThat(exists).isTrue()
-    }
-
-    @Test
-    fun `exists returns false for non-existent website`() = runTest {
-        // Given: Empty database
-        // When: Checking non-existent URL
-        val exists = repository.exists("https://nonexistent.com")
-
-        // Then: Should return false
-        assertThat(exists).isFalse()
-    }
-
-    // ========== Flow Tests ==========
-
-    @Test
-    fun `getAllHistory Flow emits updates when data changes`() = runTest {
-        // When: Observing all history
-        repository.getAllHistory().test(timeout = ROOM_FLOW_TIMEOUT) {
-            // Initially empty
-            assertThat(awaitItem()).isEmpty()
-
-            // Add a website
-            repository.recordVisit(createSampleWebsite("https://site1.com", "Site 1"))
-            val update1 = awaitItem()
-            assertThat(update1).hasSize(1)
-
-            // Add another website
-            repository.recordVisit(createSampleWebsite("https://site2.com", "Site 2"))
-            val update2 = awaitItem()
-            assertThat(update2).hasSize(2)
-
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `getRecents Flow emits updates when data changes`() = runTest {
-        // When: Observing recents
-        repository.getRecents().test(timeout = ROOM_FLOW_TIMEOUT) {
-            // Initially empty
-            assertThat(awaitItem()).isEmpty()
-
-            // Add a website
-            repository.recordVisit(createSampleWebsite("https://site1.com", "Site 1"))
-            val update = awaitItem()
-            assertThat(update).hasSize(1)
-            assertThat(update[0].url).isEqualTo("https://site1.com")
-
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `getByUrlFlow emits updates when website changes`() = runTest {
-        // Given: A website
-        val website = createSampleWebsite()
-        repository.recordVisit(website)
-
-        // When: Observing specific URL
-        repository.getByUrlFlow(website.url).test(timeout = ROOM_FLOW_TIMEOUT) {
-            // Initial value
-            val initial = awaitItem()
-            assertThat(initial?.visitCount).isEqualTo(1)
-
-            // Update visit count
-            repository.recordVisit(website)
-            val updated = awaitItem()
-            assertThat(updated?.visitCount).isEqualTo(2)
-
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `getBookmarks Flow emits updates when bookmarks change`() = runTest {
-        // Given: A website
-        val website = createSampleWebsite(isBookmarked = false)
-        repository.recordVisit(website)
-
-        // When: Observing bookmarks
-        repository.getBookmarks().test(timeout = ROOM_FLOW_TIMEOUT) {
-            // Initially empty (no bookmarks)
-            assertThat(awaitItem()).isEmpty()
-
-            // Toggle bookmark
-            repository.toggleBookmark(website.url)
-            val updated = awaitItem()
-            assertThat(updated).hasSize(1)
-            assertThat(updated[0].url).isEqualTo(website.url)
-
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `searchFlow emits matching results`() = runTest {
-        // Given: Multiple websites
-        repository.recordVisit(createSampleWebsite("https://kotlin.org", "Kotlin Programming"))
-        repository.recordVisit(createSampleWebsite("https://java.com", "Java Programming"))
-
-        // When: Observing search results
-        repository.searchFlow("kotlin").test(timeout = ROOM_FLOW_TIMEOUT) {
-            val results = awaitItem()
-            assertThat(results).hasSize(1)
-            assertThat(results[0].url).isEqualTo("https://kotlin.org")
-
-            cancelAndIgnoreRemainingEvents()
-        }
     }
 
     // ========== History screen: full search and undo ==========
 
     @Test
     fun `searchPaged returns every match beyond five, newest first`() = runTest {
-        repeat(12) { n ->
-            websiteDao.insert(
-                createSampleWebsite(url = "https://match.example/$n", title = "Match $n").toEntity()
-                    .copy(createdAt = 1_000L + n)
-            )
-        }
-        websiteDao.insert(createSampleWebsite(url = "https://other.example", title = "Other").toEntity())
+        repeat(12) { n -> store(site("https://match.example/$n", title = "Match $n", createdAt = 1_000L + n)) }
+        store(site("https://other.example", title = "Other"))
 
         val page = websiteDao.searchPaged("match")
             .load(PagingSource.LoadParams.Refresh(key = null, loadSize = 50, placeholdersEnabled = false))
@@ -578,22 +178,35 @@ class ModernHistoryRepositoryTest {
         assertThat(page.data.map { it.url }).containsExactlyElementsIn(
             (11 downTo 0).map { "https://match.example/$it" }
         ).inOrder()
-        assertThat(repository.search("match")).hasSize(5)
+        assertThat(websiteDao.search("match")).hasSize(5)
+    }
+
+    @Test
+    fun `search treats percent and underscore as typed text`() = runTest {
+        store(
+            site("https://a.example/a_b", title = "Underscore"),
+            site("https://a.example/axb", title = "Any letter"),
+            site("https://a.example/sale", title = "100% off"),
+            site("https://a.example/plain", title = "100 points")
+        )
+
+        assertThat(websiteDao.search("a_b").map { it.url }).containsExactly("https://a.example/a_b")
+        assertThat(websiteDao.search("100%").map { it.url }).containsExactly("https://a.example/sale")
     }
 
     @Test
     fun `restore puts a deleted row back with its time and visit count`() = runTest {
-        val site = createSampleWebsite(url = "https://undo.example", visitCount = 4, isBookmarked = true)
+        val site = site("https://undo.example", bookmarked = true).apply { count = 4 }
         websiteDao.insert(site.toEntity().copy(createdAt = 42_000L))
-        val stored = repository.getByUrl("https://undo.example")!!
+        val stored = websiteDao.getByUrl("https://undo.example")!!.toWebsite()
 
         assertThat(repository.delete(stored)).isTrue()
-        assertThat(repository.getByUrl("https://undo.example")).isNull()
+        assertThat(websiteDao.getByUrl("https://undo.example")).isNull()
 
         assertThat(repository.restore(stored)).isTrue()
-        val back = repository.getByUrl("https://undo.example")!!
+        val back = websiteDao.getByUrl("https://undo.example")!!
         assertThat(back.createdAt).isEqualTo(42_000L)
-        assertThat(back.count).isEqualTo(4)
+        assertThat(back.visitCount).isEqualTo(4)
         assertThat(back.bookmarked).isTrue()
     }
 }

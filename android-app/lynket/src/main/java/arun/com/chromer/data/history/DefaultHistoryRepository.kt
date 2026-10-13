@@ -23,8 +23,9 @@ package arun.com.chromer.data.history
 
 import androidx.paging.PagingData
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.settings.Preferences
+import arun.com.chromer.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,8 +38,11 @@ class DefaultHistoryRepository
 @Inject
 internal constructor(
   private val historyStore: HistoryStore,
-  private val preferences: Preferences
+  private val preferencesRepository: UserPreferencesRepository
 ) : HistoryRepository {
+
+  /** The History off switch (stored as incognito_mode_pref). */
+  private suspend fun historyOff(): Boolean = preferencesRepository.userPreferencesFlow.first().incognitoMode
 
   override suspend fun get(website: Website): Website? {
     val saved = historyStore.get(website)
@@ -51,7 +55,7 @@ internal constructor(
   }
 
   override suspend fun insert(website: Website): Website {
-    return if (preferences.historyDisabled()) {
+    return if (historyOff()) {
       website
     } else {
       val result = historyStore.insert(website)
@@ -65,7 +69,7 @@ internal constructor(
   }
 
   override suspend fun update(website: Website): Website {
-    return if (preferences.historyDisabled()) {
+    return if (historyOff()) {
       website
     } else {
       val saved = historyStore.update(website)

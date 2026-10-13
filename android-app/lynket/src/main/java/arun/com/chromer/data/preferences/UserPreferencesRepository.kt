@@ -177,48 +177,6 @@ class UserPreferencesRepository @Inject constructor(
             mapPreferences(preferences)
         }
 
-    /**
-     * Maps DataStore Preferences to UserPreferences data class
-     */
-    private fun mapPreferences(preferences: Preferences): UserPreferences {
-        return UserPreferences(
-            isFirstRun = preferences.readBoolean("firstrun_3", true),
-            isColoredToolbar = preferences.readBoolean("toolbar_color_pref", true),
-            toolbarColor = preferences.readInt("toolbar_color", 0),
-            dynamicToolbar = preferences.readBoolean("dynamic_color", false),
-            dynamicToolbarOnApp = preferences.readBoolean("dynamic_color_app", false),
-            dynamicToolbarOnWeb = preferences.readBoolean("dynamic_color_web", false),
-            webHeadsEnabled = preferences.readBoolean("webhead_enabled_pref", false),
-            webHeadsColor = preferences.readInt("webhead_color", 0),
-            webHeadsFavicons = preferences.readBoolean("webhead_favicons_pref", true),
-            webHeadsSpawnLocation = preferences.readInt("webhead_spawn_preference", 1),
-            webHeadsSize = preferences.readInt("webhead_size_preference", 1),
-            webHeadsCloseOnOpen = preferences.readBoolean("webhead_close_onclick_pref", false),
-            animationType = preferences.readInt("animation_preference", 1),
-            animationSpeed = preferences.readInt("animation_speed_preference", 1),
-            preferredCustomTabPackage = preferences.readString("preferred_package", null),
-            secondaryBrowserComponent = preferences.readString("secondary_preference", null),
-            useWebView = preferences.readBoolean("use_webview_pref", false),
-            preferredAction = preferences.readInt("preferred_action_preference", 1),
-            articleMode = preferences.readBoolean("article_mode_pref", false),
-            articleTheme = preferences.readInt("article_theme_preference", 1),
-            articleTextSizeIncrement = preferences.readInt("article_text_size_pref", 0),
-            ampMode = preferences.readBoolean("amp_mode_pref", false),
-            incognitoMode = preferences.readBoolean("incognito_mode_pref", false),
-            fullIncognitoMode = preferences.readBoolean("full_incognito_mode", false),
-            bottomBarEnabled = preferences.readBoolean("bottombar_enabled_preference", true),
-            mergeTabsAndApps = preferences.readBoolean("merge_tabs_and_apps_preference", true),
-            perAppSettings = preferences.readBoolean("blacklist_preference", false),
-            warmUp = preferences.readBoolean("warm_up_preference", false),
-            preFetch = preferences.readBoolean("pre_fetch_preference", false),
-            wifiOnlyPrefetch = preferences.readBoolean("wifi_preference", false),
-            preFetchNotification = preferences.readBoolean("pre_fetch_notification_preference", true),
-            aggressiveLoading = preferences.readBoolean("aggressive_loading", false),
-            favShareComponent = preferences.readString("fav_share_preference", null),
-            minimizeBehavior = preferences.readString("minimize_behavior_preference", "1") ?: "1",
-        )
-    }
-
     // ========== Update Methods ==========
     // Suspend functions for updating individual preferences
 
@@ -489,3 +447,47 @@ class UserPreferencesRepository @Inject constructor(
         val MINIMIZE_BEHAVIOR_PREFERENCE = stringPreferencesKey("minimize_behavior_preference")
     }
 }
+
+/**
+ * Maps stored settings to [UserPreferencesRepository.UserPreferences]; a missing key reads as its
+ * schema default, except the toolbar and web head colours, which read 0 for "not stored" because
+ * their default is a colour resource. Colour readers use the settings class instead.
+ */
+internal fun mapPreferences(preferences: Preferences): UserPreferencesRepository.UserPreferences {
+    return UserPreferencesRepository.UserPreferences(
+        isFirstRun = preferences.readBoolean("firstrun_3", true),
+        isColoredToolbar = preferences.readBoolean("toolbar_color_pref", true),
+        toolbarColor = preferences.readInt("toolbar_color", 0),
+        dynamicToolbar = preferences.readBoolean("dynamic_color", false),
+        dynamicToolbarOnApp = preferences.readBoolean("dynamic_color_app", false),
+        dynamicToolbarOnWeb = preferences.readBoolean("dynamic_color_web", false),
+        webHeadsEnabled = preferences.readBoolean("webhead_enabled_pref", false),
+        webHeadsColor = preferences.readInt("webhead_color", 0),
+        webHeadsFavicons = preferences.readBoolean("webhead_favicons_pref", true),
+        webHeadsSpawnLocation = preferences.readInt("webhead_spawn_preference", 1),
+        webHeadsSize = preferences.readInt("webhead_size_preference", 1),
+        webHeadsCloseOnOpen = preferences.readBoolean("webhead_close_onclick_pref", false),
+        animationType = preferences.readInt("animation_preference", 1),
+        animationSpeed = preferences.readInt("animation_speed_preference", 1),
+        preferredCustomTabPackage = preferences.readString("preferred_package", null),
+        secondaryBrowserComponent = preferences.readString("secondary_preference", null),
+        useWebView = preferences.readBoolean("use_webview_pref", false),
+        preferredAction = preferences.readInt("preferred_action_preference", 1),
+        articleMode = preferences.readBoolean("article_mode_pref", false),
+        articleTheme = preferences.readInt("article_theme_preference", 1),
+        articleTextSizeIncrement = preferences.readInt("article_text_size_pref", 0),
+        ampMode = preferences.readBoolean("amp_mode_pref", false),
+        incognitoMode = preferences.readBoolean("incognito_mode_pref", false),
+        fullIncognitoMode = preferences.readBoolean("full_incognito_mode", false),
+        bottomBarEnabled = preferences.readBoolean("bottombar_enabled_preference", true),
+        mergeTabsAndApps = preferences.readBoolean("merge_tabs_and_apps_preference", true),
+        perAppSettings = preferences.readBoolean("blacklist_preference", false),
+        warmUp = preferences.readBoolean("warm_up_preference", false),
+        preFetch = preferences.readBoolean("pre_fetch_preference", false),
+        wifiOnlyPrefetch = preferences.readBoolean("wifi_preference", false),
+        preFetchNotification = preferences.readBoolean("pre_fetch_notification_preference", true),
+        aggressiveLoading = preferences.readBoolean("aggressive_loading", false),
+        favShareComponent = preferences.readString("fav_share_preference", null),
+        minimizeBehavior = preferences.readString("minimize_behavior_preference", "1") ?: "1",
+    )
+    }

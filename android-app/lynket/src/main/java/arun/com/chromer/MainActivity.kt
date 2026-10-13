@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation3.runtime.rememberNavBackStack
 import arun.com.chromer.about.changelog.Changelog
 import arun.com.chromer.settings.Preferences
@@ -34,6 +35,9 @@ import arun.com.chromer.ui.navigation.Destination
 import arun.com.chromer.ui.navigation.WebUrlDeepLinkMatcher
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import timber.log.Timber
 
 /**
  * The launcher activity and the only host of in-app navigation: every in-app screen is a
@@ -79,12 +83,27 @@ class MainActivity : ComponentActivity() {
     navigator?.navigate(key) ?: run { pendingLink = key }
   }
 
-  /** Reads the first-run and changelog triggers once; both reads update the stored values. */
+  /**
+   * Reads the first-run and changelog triggers once. The stored values are updated afterwards off
+   * the main thread, so the first frame never waits for a settings write.
+   */
   private fun freshStartKeys(intent: Intent?): List<LynketKey> {
     val preferences = Preferences.get(this)
+    val firstRun = preferences.firstRunPending()
+    val savedVersionCode = preferences.versionCode()
+    val changes = buildMap<String, Any?> {
+      if (firstRun) put(Preferences.FIRST_RUN, false)
+      if (savedVersionCode != BuildConfig.VERSION_CODE) put(Preferences.VERSION_CODE, BuildConfig.VERSION_CODE)
+    }
+    if (changes.isNotEmpty()) {
+      val repository = Preferences.entryPoint(this).userPreferencesRepository()
+      lifecycleScope.launch(Dispatchers.IO) {
+        runCatching { repository.setValues(changes) }.onFailure { Timber.e(it, "Start values could not be saved") }
+      }
+    }
     return LynketNavigator.initialKeys(
-      isFirstRun = preferences.isFirstRun,
-      showChangelog = Changelog.shouldShow(preferences, BuildConfig.VERSION_CODE),
+      isFirstRun = firstRun,
+      showChangelog = Changelog.shouldShow(savedVersionCode, BuildConfig.VERSION_CODE),
       deepLink = intent?.let { WebUrlDeepLinkMatcher.keyFor(it) ?: Destination.keyFor(it) },
     )
   }

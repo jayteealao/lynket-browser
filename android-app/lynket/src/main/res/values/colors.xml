@@ -76,4 +76,6 @@
   <color name="md_light_dividers">#1F000000</color>
   <color name="md_orange_500">#FF9800</color>
   <color name="md_red_500">#F44336</color>
+  <!-- The app's light background, behind the first frame. -->
+  <color name="window_background">#FFFBF8FF</color>
 </resources>

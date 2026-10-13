@@ -32,7 +32,6 @@ sealed interface LynketKey : NavKey {
   @Serializable data object Tips : LynketKey
   @Serializable data object Intro : LynketKey
   @Serializable data object Changelog : LynketKey
-  @Serializable data object WebHeads : LynketKey
   @Serializable data class Browser(val url: String) : LynketKey
   @Serializable data class Article(val url: String) : LynketKey
   @Serializable data object BrowsingMode : LynketKey

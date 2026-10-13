@@ -37,13 +37,17 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -53,6 +57,9 @@ import arun.com.chromer.browsing.menu.BrowsingMenuItem
 import arun.com.chromer.ui.browsing.BrowsingBottomBar
 import arun.com.chromer.ui.browsing.BrowsingTopBarActions
 import arun.com.chromer.ui.browsing.HideOnScrollState
+import arun.com.chromer.ui.theme.readableContentColor
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 
 /** What the web view's bars show. [progress] is 0..100; at 100 the progress bar hides. */
 data class WebViewPage(val title: String, val address: String, val progress: Int)
@@ -69,8 +76,13 @@ class WebViewBarsState {
   val top = TopAppBarState(initialHeightOffsetLimit = -Float.MAX_VALUE, initialHeightOffset = 0f, initialContentOffset = 0f)
   val bottom = HideOnScrollState()
 
+  /** Counts page scroll changes, so the screen can settle the bottom bar once the page rests. */
+  var scrollTick by mutableIntStateOf(0)
+    private set
+
   /** The page scrolled from [oldY] to [y] px. */
   fun onPageScroll(y: Int, oldY: Int) {
+    scrollTick++
     if (y <= 0) {
       top.heightOffset = 0f
       bottom.show()
@@ -100,8 +112,15 @@ fun WebViewScreen(
   modifier: Modifier = Modifier,
   content: @Composable (Modifier) -> Unit,
 ) {
-  val foreground = if (toolbarColour.luminance() > 0.5f) Color.Black else Color.White
+  val foreground = toolbarColour.readableContentColor()
   val behavior = TopAppBarDefaults.enterAlwaysScrollBehavior(state = bars.top, canScroll = { true })
+  // A WebView reports no fling end, so the bottom bar settles shown or hidden once scrolling stops.
+  LaunchedEffect(bars) {
+    snapshotFlow { bars.scrollTick }.collectLatest {
+      delay(SCROLL_REST_MS)
+      bars.bottom.animateSettle()
+    }
+  }
   Scaffold(
     modifier = modifier.fillMaxSize().testTag("webview-screen"),
     contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top).union(WindowInsets.ime),
@@ -161,3 +180,6 @@ fun WebViewScreen(
 
 @Composable
 fun rememberWebViewBarsState(): WebViewBarsState = remember { WebViewBarsState() }
+
+/** How long the page must stop scrolling before the bottom bar settles. */
+private const val SCROLL_REST_MS = 150L

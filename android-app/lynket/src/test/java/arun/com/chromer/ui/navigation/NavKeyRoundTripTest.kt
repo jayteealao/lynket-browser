@@ -41,7 +41,7 @@ class NavKeyRoundTripTest {
 
   private val allKeys: List<NavKey> = listOf(
     LynketKey.Home, LynketKey.History, LynketKey.Tabs, LynketKey.Settings, LynketKey.ProviderSelection,
-    LynketKey.About, LynketKey.Tips, LynketKey.Intro, LynketKey.Changelog, LynketKey.WebHeads,
+    LynketKey.About, LynketKey.Tips, LynketKey.Intro, LynketKey.Changelog,
     LynketKey.BrowsingMode, LynketKey.LookAndFeel, LynketKey.BrowsingOptions, LynketKey.PerApp,
   ) + urls.map { LynketKey.Browser(it) } + urls.map { LynketKey.Article(it) }
 

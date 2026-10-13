@@ -32,37 +32,51 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import arun.com.chromer.R
 
-/** Pulse of the skeleton; held still when the person turned animations off. */
+/**
+ * Pulse of the skeleton; held still when the person turned animations off. It returns a reader
+ * for the draw phase ([Modifier.skeletonPulse]), so the rows do not recompose on every frame.
+ */
 @Composable
-internal fun skeletonAlpha(): Float {
+internal fun skeletonAlpha(): () -> Float {
   val resolver = LocalContext.current.contentResolver
   val animationsOff = remember(resolver) {
     Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
   }
+  if (animationsOff) return { STILL_ALPHA }
   val transition = rememberInfiniteTransition(label = "skeleton")
-  val alpha by transition.animateFloat(
+  val alpha = transition.animateFloat(
     initialValue = 0.45f,
     targetValue = 0.9f,
     animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Reverse),
     label = "skeleton-alpha",
   )
-  return if (animationsOff) 0.6f else alpha
+  return { alpha.value }
 }
+
+private const val STILL_ALPHA = 0.6f
+
+/** Applies the skeleton pulse in the draw phase. */
+internal fun Modifier.skeletonPulse(alpha: () -> Float): Modifier = graphicsLayer { this.alpha = alpha() }
 
 /** Skeleton rows for a loading list: no spinner in a content area. */
 @Composable
-fun LoadingList(modifier: Modifier = Modifier, rows: Int = 6, loadingLabel: String = "Loading") {
+fun LoadingList(
+  modifier: Modifier = Modifier,
+  rows: Int = 6,
+  loadingLabel: String = stringResource(R.string.loading),
+) {
   val alpha = skeletonAlpha()
   val block = MaterialTheme.colorScheme.surfaceContainerHighest
   Column(
@@ -74,7 +88,7 @@ fun LoadingList(modifier: Modifier = Modifier, rows: Int = 6, loadingLabel: Stri
   ) {
     repeat(rows) {
       Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).alpha(alpha),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).skeletonPulse(alpha),
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Box(Modifier.size(40.dp).background(block, CircleShape))
@@ -89,7 +103,12 @@ fun LoadingList(modifier: Modifier = Modifier, rows: Int = 6, loadingLabel: Stri
 
 /** Skeleton tiles for a loading grid (the home recents). */
 @Composable
-fun LoadingTiles(columns: Int, modifier: Modifier = Modifier, rows: Int = 2, loadingLabel: String = "Loading") {
+fun LoadingTiles(
+  columns: Int,
+  modifier: Modifier = Modifier,
+  rows: Int = 2,
+  loadingLabel: String = stringResource(R.string.loading),
+) {
   val alpha = skeletonAlpha()
   val block = MaterialTheme.colorScheme.surfaceContainerHighest
   Column(
@@ -100,7 +119,7 @@ fun LoadingTiles(columns: Int, modifier: Modifier = Modifier, rows: Int = 2, loa
     verticalArrangement = Arrangement.spacedBy(16.dp),
   ) {
     repeat(rows) {
-      Row(Modifier.fillMaxWidth().alpha(alpha), horizontalArrangement = Arrangement.SpaceEvenly) {
+      Row(Modifier.fillMaxWidth().skeletonPulse(alpha), horizontalArrangement = Arrangement.SpaceEvenly) {
         repeat(columns) {
           Column(
             horizontalAlignment = Alignment.CenterHorizontally,

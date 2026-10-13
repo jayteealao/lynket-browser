@@ -22,7 +22,6 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import arun.com.chromer.R
-import arun.com.chromer.search.provider.SearchProviders
 import timber.log.Timber
 
 enum class SettingType { BOOLEAN, INT, STRING }
@@ -72,6 +71,9 @@ class SettingKey(
 /** Every settings key the app reads, with its DataStore type and default. */
 object SettingsSchema {
   const val MINIMIZE_BEHAVIOR = "minimize_behavior_preference"
+
+  /** The search engine for typed searches until the person picks one (a search provider name). */
+  const val DEFAULT_SEARCH_ENGINE = "Google"
 
   /** Set to 1 once the old settings file has been read into DataStore. */
   val MIGRATION_VERSION = intPreferencesKey("settings_migration_version")
@@ -130,7 +132,7 @@ object SettingsSchema {
     bool("full_incognito_mode", false),
     bool("use_webview_pref", false),
     SettingKey("version_code", SettingType.INT) { -1 },
-    string("search_engine_preference", SearchProviders.GOOGLE),
+    string("search_engine_preference", DEFAULT_SEARCH_ENGINE),
     bool("native_bubbles_preference", false),
     // Material You: colours from the wallpaper. New in this release, so off after an update.
     bool(USE_WALLPAPER_COLOURS, false),

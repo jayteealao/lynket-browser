@@ -55,6 +55,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,13 +67,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -94,6 +96,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import arun.com.chromer.ui.browsing.rememberHideOnScrollState
 import arun.com.chromer.ui.components.skeletonAlpha
+import arun.com.chromer.ui.components.skeletonPulse
+import arun.com.chromer.ui.theme.readableContentColor
 import coil3.compose.AsyncImage
 
 /** Widest the reader column grows on medium and expanded windows (visual contract). */
@@ -179,6 +183,8 @@ fun ReaderScreen(
         val gutter = if (wide) 24.dp else 20.dp
         val density = LocalDensity.current
         val bottomHide = rememberHideOnScrollState()
+        // Opening the text size card brings the bars back with a slide, not a jump.
+        LaunchedEffect(textSizeOpen) { if (textSizeOpen) bottomHide.animateShow() }
         var bottomHeight by remember { mutableIntStateOf(0) }
         Box(Modifier.fillMaxSize()) {
           when (state) {
@@ -219,7 +225,7 @@ fun ReaderScreen(
                 bottomHeight = it.height
                 bottomHide.limit = it.height.toFloat()
               }
-              .graphicsLayer { translationY = if (textSizeOpen) 0f else -bottomHide.offset },
+              .graphicsLayer { translationY = -bottomHide.offset },
           ) {
             if (textSizeOpen) {
               TextSizeCard(
@@ -298,7 +304,7 @@ private fun ArticleContent(
       item(key = "header-image") {
         AsyncImage(
           model = article.imageUrl,
-          contentDescription = null,
+          contentDescription = article.title.ifBlank { stringResource(R.string.reader_article_image) },
           contentScale = ContentScale.Crop,
           modifier = Modifier
             .fillMaxWidth()
@@ -306,7 +312,7 @@ private fun ArticleContent(
             .heightIn(max = 288.dp)
             .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .clickable(onClickLabel = stringResource(R.string.reader_open_image)) { onImage(article.imageUrl) }
+            .clickable(onClickLabel = stringResource(R.string.reader_open_image), role = Role.Button) { onImage(article.imageUrl) }
             .testTag("reader-header-image"),
         )
       }
@@ -330,7 +336,7 @@ private fun ArticleContent(
     }
     if (article.keywords.isNotEmpty()) {
       item(key = "keywords") {
-        val onAccent = if (accent.luminance() > 0.5f) Color.Black else Color.White
+        val onAccent = accent.readableContentColor()
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("reader-keywords")) {
           article.keywords.forEach { keyword ->
             SuggestionChip(
@@ -359,13 +365,22 @@ private fun TextSizeCard(increment: Int, onChange: (Int) -> Unit, onDismiss: () 
     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).testTag("text-size-card"),
   ) {
     Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-      Icon(Icons.Outlined.FormatSize, contentDescription = stringResource(R.string.text_size), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+      val label = stringResource(R.string.text_size)
+      val value = stringResource(R.string.text_size_state, increment)
+      Icon(Icons.Outlined.FormatSize, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
       Slider(
         value = increment.toFloat(),
         onValueChange = { onChange(it.toInt()) },
         valueRange = 0f..BrowsingArticleViewModel.MAX_TEXT_SIZE_INCREMENT.toFloat(),
         steps = BrowsingArticleViewModel.MAX_TEXT_SIZE_INCREMENT - 1,
-        modifier = Modifier.weight(1f).padding(horizontal = 8.dp).testTag("text-size-slider"),
+        modifier = Modifier
+          .weight(1f)
+          .padding(horizontal = 8.dp)
+          .semantics {
+            contentDescription = label
+            stateDescription = value
+          }
+          .testTag("text-size-slider"),
       )
       IconButton(onClick = onDismiss, modifier = Modifier.testTag("text-size-close")) {
         Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close))
@@ -388,7 +403,7 @@ fun ReaderSkeleton(modifier: Modifier = Modifier) {
       .testTag("reader-loading"),
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
-    Column(Modifier.alpha(alpha), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.skeletonPulse(alpha), verticalArrangement = Arrangement.spacedBy(12.dp)) {
       Box(Modifier.fillMaxWidth().aspectRatio(2f).background(block, MaterialTheme.shapes.large))
       Spacer(Modifier.height(8.dp))
       Box(Modifier.fillMaxWidth(0.9f).height(32.dp).background(block, MaterialTheme.shapes.small))

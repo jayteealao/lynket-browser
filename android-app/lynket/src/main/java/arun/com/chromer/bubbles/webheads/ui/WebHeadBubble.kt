@@ -42,7 +42,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
@@ -51,6 +50,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +66,7 @@ import arun.com.chromer.R
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadState
 import arun.com.chromer.util.Utils
+import arun.com.chromer.ui.theme.readableContentColor
 
 /** What a head forwards from the finger; positions are raw screen coordinates. */
 interface WebHeadGestures {
@@ -68,6 +74,12 @@ interface WebHeadGestures {
   fun onMove(head: WebHeadState, raw: Offset)
   fun onUp(head: WebHeadState, velocity: Offset, raw: Offset, tap: Boolean)
   fun onLongPress(head: WebHeadState)
+
+  /** Opens the page without a touch: screen readers, switch access and keyboards. */
+  fun onOpen(head: WebHeadState) {}
+
+  /** Closes the head without dragging it to the trash. */
+  fun onClose(head: WebHeadState) {}
 }
 
 const val WEB_HEAD_TEST_TAG = "web_head"
@@ -87,6 +99,9 @@ fun WebHeadBubble(
 ) {
   val inset = WebHeadMotion.HEAD_WINDOW_INSET_DP.dp
   val description = stringResource(R.string.web_head_content_description, head.website.safeLabel())
+  val openLabel = stringResource(R.string.web_head_action_open)
+  val listLabel = stringResource(R.string.web_head_action_list)
+  val closeLabel = stringResource(R.string.web_head_action_close)
   val scale by animateFloatAsState(
     targetValue = when {
       head.shrinking -> 0f
@@ -115,6 +130,13 @@ fun WebHeadBubble(
       .semantics {
         testTagsAsResourceId = true
         contentDescription = description
+        // Every gesture has a non-drag way in: open, the list of heads, and close.
+        if (gestures != null) {
+          role = Role.Button
+          onClick(label = openLabel) { gestures.onOpen(head); true }
+          onLongClick(label = listLabel) { gestures.onLongPress(head); true }
+          customActions = listOf(CustomAccessibilityAction(closeLabel) { gestures.onClose(head); true })
+        }
       }
       .testTag(WEB_HEAD_TEST_TAG)
       .then(if (gestures != null) Modifier.webHeadGestures(head, gestures) else Modifier),
@@ -153,7 +175,7 @@ fun WebHeadBubble(
         )
         else -> Text(
           text = Utils.getFirstLetter(head.url),
-          color = if (fill.luminance() > 0.5f) Color(0xFF1B1B21) else Color(0xFFFEFBFF),
+          color = fill.readableContentColor(),
           fontSize = if (headSize >= WebHeadMotion.HEAD_DP.dp) 22.sp else 18.sp,
           fontWeight = FontWeight.SemiBold,
         )

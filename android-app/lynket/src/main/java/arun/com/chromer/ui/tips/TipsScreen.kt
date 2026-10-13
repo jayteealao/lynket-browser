@@ -64,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
 import arun.com.chromer.ui.navigation.LynketNavigator
+import arun.com.chromer.ui.components.ScreenTitle
 
 /** One tip of the old Tips screen: its title, text, picture and icon. */
 data class Tip(@StringRes val title: Int, @StringRes val body: Int, @DrawableRes val image: Int, val icon: ImageVector)
@@ -92,7 +93,7 @@ fun TipsContent(onClose: () -> Unit) {
     contentWindowInsets = WindowInsets.safeDrawing,
     topBar = {
       LargeTopAppBar(
-        title = { Text(stringResource(R.string.tips), fontWeight = FontWeight.SemiBold) },
+        title = { ScreenTitle(stringResource(R.string.tips)) },
         navigationIcon = {
           IconButton(onClick = onClose) {
             Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close))

@@ -105,7 +105,8 @@ object Utils {
 
         val pm = c.applicationContext.packageManager
         return try {
-            pm.getPackageInfo(pkgName, PackageManager.GET_ACTIVITIES)
+            // Flags 0: only whether it is installed, not its activity list.
+            pm.getPackageInfo(pkgName, 0)
             true
         } catch (e: PackageManager.NameNotFoundException) {
             false

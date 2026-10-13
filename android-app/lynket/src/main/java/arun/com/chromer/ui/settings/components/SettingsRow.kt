@@ -23,7 +23,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -133,7 +133,7 @@ private fun trailing(control: RowControl, enabled: Boolean): (@Composable () -> 
         .testTag("colour-swatch"),
     )
   } }
-  RowControl.Chevron -> { { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) } }
+  RowControl.Chevron -> { { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null) } }
 }
 
 @Preview

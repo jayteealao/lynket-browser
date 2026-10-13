@@ -57,6 +57,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -96,6 +97,7 @@ import arun.com.chromer.history.HistoryDialog
 import arun.com.chromer.history.HistoryEvent
 import arun.com.chromer.history.HistoryUiState
 import arun.com.chromer.history.ModernHistoryViewModel
+import arun.com.chromer.ui.components.SiteAvatar
 import arun.com.chromer.ui.components.EmptyState
 import arun.com.chromer.ui.components.ErrorState
 import arun.com.chromer.ui.components.LoadingList
@@ -105,7 +107,7 @@ import arun.com.chromer.ui.settings.components.SettingsGroup
 import arun.com.chromer.ui.settings.components.SettingsRow
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
-import coil3.compose.AsyncImage
+import arun.com.chromer.ui.components.ScreenTitle
 import kotlinx.coroutines.launch
 import java.util.TimeZone
 
@@ -163,12 +165,9 @@ fun HistoryScreen(onBack: () -> Unit, viewModel: ModernHistoryViewModel = hiltVi
   val providerName = remember(state.providerPackage) {
     state.providerPackage?.let { runCatching { Utils.getAppNameWithPackage(context, it) }.getOrNull() }
   }
-  HistoryContent(
-    state = state,
-    items = items,
-    providerName = providerName,
-    snackbarHostState = snackbar,
-    actions = HistoryActions(
+  // One instance per screen, so a keystroke or a switch does not recompose every row with new actions.
+  val actions = remember(viewModel, context, onBack) {
+    HistoryActions(
       onBack = onBack,
       onHistoryEnabled = viewModel::setHistoryEnabled,
       onIncognito = viewModel::setIncognito,
@@ -182,7 +181,14 @@ fun HistoryScreen(onBack: () -> Unit, viewModel: ModernHistoryViewModel = hiltVi
       onClearAll = viewModel::requestClearAll,
       onConfirmClearAll = viewModel::confirmClearAll,
       onDismissDialog = viewModel::dismissDialog,
-    ),
+    )
+  }
+  HistoryContent(
+    state = state,
+    items = items,
+    providerName = providerName,
+    snackbarHostState = snackbar,
+    actions = actions,
   )
 }
 
@@ -210,7 +216,7 @@ fun HistoryContent(
     snackbarHost = { SnackbarHost(snackbarHostState) },
     topBar = {
       LargeTopAppBar(
-        title = { Text(stringResource(R.string.title_history), fontWeight = FontWeight.SemiBold) },
+        title = { ScreenTitle(stringResource(R.string.title_history)) },
         navigationIcon = {
           IconButton(onClick = actions.onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -414,7 +420,8 @@ private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions:
     backgroundContent = {
       Box(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer, shape).padding(horizontal = 24.dp),
-        contentAlignment = Alignment.CenterEnd,
+        // The icon sits on the side the row uncovers, for either swipe direction.
+        contentAlignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd,
       ) {
         Icon(Icons.Outlined.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
       }
@@ -477,28 +484,3 @@ private fun RowMenu(website: Website, actions: HistoryActions) {
   }
 }
 
-/** The first letter on a tinted tile, with the favicon drawn over it once it loads. */
-@Composable
-internal fun SiteAvatar(label: String, faviconUrl: String?) {
-  Box(
-    contentAlignment = Alignment.Center,
-    modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(12.dp)),
-  ) {
-    var loaded by remember(faviconUrl) { mutableStateOf(false) }
-    if (!loaded) {
-      Text(
-        label.trim().take(1).uppercase(),
-        color = MaterialTheme.colorScheme.onPrimaryContainer,
-        fontWeight = FontWeight.SemiBold,
-      )
-    }
-    if (!faviconUrl.isNullOrBlank()) {
-      AsyncImage(
-        model = faviconUrl,
-        contentDescription = null,
-        modifier = Modifier.size(24.dp),
-        onSuccess = { loaded = true },
-      )
-    }
-  }
-}

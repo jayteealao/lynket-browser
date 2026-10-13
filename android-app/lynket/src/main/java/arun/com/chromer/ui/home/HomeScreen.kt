@@ -63,6 +63,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -76,6 +77,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -196,7 +198,7 @@ fun HomeScreen(
     onChangeProvider = { navigator.navigateToProviderSelection() },
     onRetryProvider = viewModel::rescanProviders,
     onRetryRecents = viewModel::refreshRecents,
-    onRetryConnection = {},
+    onRetryConnection = viewModel::retryConnection,
     onTips = { navigator.navigateToTips() },
     onDrawerItem = { item ->
       when (item) {
@@ -236,9 +238,18 @@ fun HomeScreenContent(
   val offlineMessage = stringResource(R.string.offline_message)
   val retry = stringResource(R.string.retry)
 
-  LaunchedEffect(state.isOnline) {
+  // Retry reads the home again; while the connection is still down, the message comes back.
+  var connectionRetries by remember { mutableIntStateOf(0) }
+  LaunchedEffect(state.isOnline, connectionRetries) {
     if (!state.isOnline) {
-      snackbarHostState.showTransientError(offlineMessage, retry, actions.onRetryConnection)
+      snackbarHostState.showTransientError(
+        offlineMessage,
+        retry,
+        onAction = {
+          actions.onRetryConnection()
+          connectionRetries++
+        },
+      )
     } else {
       snackbarHostState.currentSnackbarData?.dismiss()
     }
@@ -490,7 +501,8 @@ private fun RecentTile(website: Website, actions: HomeActions) {
         .combinedClickable(
           onClick = { actions.onOpenWebsite(website) },
           onLongClick = { menuOpen = true },
-          onLongClickLabel = stringResource(R.string.remove_from_history),
+          onLongClickLabel = stringResource(R.string.more_options),
+          role = Role.Button,
         )
         .padding(vertical = 4.dp)
         .semantics { contentDescription = label }

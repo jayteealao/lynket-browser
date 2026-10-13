@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds a debug APK of store release 2.1.3 for the upgrade test (AC-6).
+# Builds a debug APK of store release 2.1.3 for the update-from-2.1.3 test.
 #
 # The tag does not build as tagged on a current host, so this script applies a
 # build-only patch in a throwaway worktree:

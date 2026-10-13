@@ -42,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -75,8 +76,9 @@ import arun.com.chromer.tabs.ui.TabsUiState
 import arun.com.chromer.ui.components.EmptyState
 import arun.com.chromer.ui.components.ErrorState
 import arun.com.chromer.ui.components.LoadingList
-import arun.com.chromer.ui.history.SiteAvatar
+import arun.com.chromer.ui.components.SiteAvatar
 import arun.com.chromer.ui.settings.components.settingsColumn
+import arun.com.chromer.ui.components.ScreenTitle
 
 /** What a person can do on the Tabs screen. */
 class TabsActions(
@@ -127,7 +129,7 @@ fun TabsContent(state: TabsUiState, closeIcon: Boolean, actions: TabsActions) {
     contentWindowInsets = WindowInsets.safeDrawing,
     topBar = {
       LargeTopAppBar(
-        title = { Text(stringResource(R.string.title_tabs), fontWeight = FontWeight.SemiBold) },
+        title = { ScreenTitle(stringResource(R.string.title_tabs)) },
         navigationIcon = {
           IconButton(onClick = actions.onBack) {
             if (closeIcon) {
@@ -244,7 +246,8 @@ private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions
     backgroundContent = {
       Box(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer, shape).padding(horizontal = 24.dp),
-        contentAlignment = Alignment.CenterEnd,
+        // The icon sits on the side the row uncovers, for either swipe direction.
+        contentAlignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd,
       ) {
         Icon(Icons.Outlined.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
       }

@@ -172,7 +172,7 @@ fun IntroContent(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        Box(Modifier.width(96.dp)) {
+        Box(Modifier.widthIn(min = 96.dp)) {
           if (!last) {
             TextButton(onClick = onClose, modifier = Modifier.heightIn(min = 48.dp).testTag("intro-skip")) {
               Text(stringResource(R.string.skip))
@@ -180,14 +180,19 @@ fun IntroContent(
           }
         }
         PageDots(pagerState.currentPage, IntroPages.size, Modifier.weight(1f))
-        Box(Modifier.width(96.dp), contentAlignment = Alignment.CenterEnd) {
-          Button(
-            onClick = {
-              if (last) onClose() else scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-            },
-            modifier = Modifier.heightIn(min = 48.dp).testTag(if (last) "intro-done" else "intro-next"),
-          ) {
-            Text(stringResource(if (last) R.string.intro_done else R.string.intro_next))
+        // On the last page Set as default is the one filled button; Done is a text button there.
+        Box(Modifier.widthIn(min = 96.dp), contentAlignment = Alignment.CenterEnd) {
+          if (last) {
+            TextButton(onClick = onClose, modifier = Modifier.heightIn(min = 48.dp).testTag("intro-done")) {
+              Text(stringResource(R.string.done))
+            }
+          } else {
+            Button(
+              onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+              modifier = Modifier.heightIn(min = 48.dp).testTag("intro-next"),
+            ) {
+              Text(stringResource(R.string.intro_next))
+            }
           }
         }
       }

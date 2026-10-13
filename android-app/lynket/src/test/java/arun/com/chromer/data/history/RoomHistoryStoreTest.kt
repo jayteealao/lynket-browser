@@ -19,11 +19,12 @@ import arun.com.chromer.data.database.ChromerDatabase
 import arun.com.chromer.data.database.HistoryDatabase
 import arun.com.chromer.data.database.entity.WebsiteEntity
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.settings.Preferences
+import arun.com.chromer.data.preferences.UserPreferencesRepository
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -83,7 +84,9 @@ class RoomHistoryStoreTest {
 
   @Test
   fun nothingIsStoredWhileHistoryIsOff() = runTest {
-    val preferences = mockk<Preferences> { every { historyDisabled() } returns true }
+    val preferences = mockk<UserPreferencesRepository> {
+      every { userPreferencesFlow } returns flowOf(UserPreferencesRepository.UserPreferences(incognitoMode = true))
+    }
     val repository = DefaultHistoryRepository(store, preferences)
 
     repository.insert(Website("https://private.example/"))

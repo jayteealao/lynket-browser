@@ -77,6 +77,7 @@ import arun.com.chromer.R
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.ui.navigation.navigateToChangelog
+import arun.com.chromer.ui.components.ScreenTitle
 import timber.log.Timber
 
 /** One About row: a title, an optional line under it, and where a tap goes (null: no action). */
@@ -186,7 +187,7 @@ fun AboutContent(onBack: () -> Unit, onRow: (AboutRow) -> Unit) {
     contentWindowInsets = WindowInsets.safeDrawing,
     topBar = {
       LargeTopAppBar(
-        title = { Text(stringResource(R.string.about), fontWeight = FontWeight.SemiBold) },
+        title = { ScreenTitle(stringResource(R.string.about)) },
         navigationIcon = {
           IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))

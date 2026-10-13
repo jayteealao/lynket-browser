@@ -19,4 +19,6 @@
   -->
 
 <resources>
+  <!-- The app's dark background, behind the first frame. -->
+  <color name="window_background">#FF121318</color>
 </resources>

@@ -40,6 +40,7 @@ import androidx.core.content.ContextCompat.getColor
 import arun.com.chromer.BuildConfig
 import arun.com.chromer.R
 import arun.com.chromer.appdetect.AppDetectionManager
+import arun.com.chromer.appdetect.LinkSource
 import arun.com.chromer.browsing.amp.AmpResolverActivity
 import arun.com.chromer.browsing.article.ArticleActivity
 import arun.com.chromer.browsing.backgroundloading.BackgroundLoadingStrategyFactory
@@ -121,7 +122,8 @@ constructor(
     fromWebHeads: Boolean = false,
     fromNewTab: Boolean = false,
     fromAmp: Boolean = false,
-    incognito: Boolean = false
+    incognito: Boolean = false,
+    linkSource: LinkSource = LinkSource.NONE,
   ) {
     // Clear non browsing activities if it was external intent.
     if (!fromApp) {
@@ -132,7 +134,7 @@ constructor(
     val nativeBubbles = rxPreferences.nativeBubbles.get()
     Timber.d("Open %s: webHeads=%b nativeBubbles=%b", website.url, webHeads, nativeBubbles)
     if ((webHeads || nativeBubbles) && !fromWebHeads) {
-      openWebHeads(context, website = website, fromMinimize = fromAmp, incognito = incognito)
+      openWebHeads(context, website, fromMinimize = fromAmp, fromAmp = false, incognito = incognito, linkSource = linkSource)
       return
     }
 
@@ -149,8 +151,11 @@ constructor(
         openBrowsingTab(
           context,
           Website.Ampify(website),
+          smart = true,
           fromNewTab = fromNewTab,
-          incognito = incognito
+          activityNames = null,
+          incognito = incognito,
+          linkSource = linkSource,
         )
         return
       } else if (!fromWebHeads) {
@@ -172,11 +177,11 @@ constructor(
 
     if (preferences.articleMode()) {
       // Launch article mode
-      openArticle(context, website, incognito = incognito)
+      openArticle(context, website, newTab = false, incognito = incognito, linkSource = linkSource)
       return
     }
     // If everything failed then launch normally in browsing activity.
-    openBrowsingTab(context, website, fromNewTab = fromNewTab, incognito = incognito)
+    openBrowsingTab(context, website, smart = true, fromNewTab = fromNewTab, activityNames = null, incognito = incognito, linkSource = linkSource)
   }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -267,12 +272,14 @@ constructor(
         val url = safeIntent.dataString ?: return@withContext
         var proceed = true
         // Find the app this link came from, for per-app rules and the app-based toolbar colour.
-        if (preferences.perAppSettings() || preferences.isAppBasedToolbar()) {
+        val linkSource = if (preferences.perAppSettings() || preferences.isAppBasedToolbar()) {
           appDetectionManager.detectLinkSource()
+        } else {
+          LinkSource.NONE
         }
         // The first thing to check is if we should blacklist.
         if (preferences.perAppSettings()) {
-          val lastApp = appDetectionManager.nonFilteredPackage
+          val lastApp = linkSource.nonFiltered
           if (lastApp.isNotEmpty()) {
             val blacklisted = appRepository.isPackageBlacklisted(lastApp)
             val incognito = !blacklisted && appRepository.isPackageIncognito(lastApp)
@@ -292,7 +299,7 @@ constructor(
         }
 
         if (proceed) {
-          openUrlInternal(activity, Website(url), fromApp = false)
+          openUrlInternal(activity, Website(url), fromApp = false, linkSource = linkSource)
         }
       }
     } catch (e: Exception) {
@@ -306,6 +313,14 @@ constructor(
     website: Website,
     newTab: Boolean,
     incognito: Boolean
+  ) = openArticle(context, website, newTab, incognito, LinkSource.NONE)
+
+  private fun openArticle(
+    context: Context,
+    website: Website,
+    newTab: Boolean,
+    incognito: Boolean,
+    linkSource: LinkSource,
   ) {
     if (!reOrderTabByUrl(context, website, listOf(ArticleActivity::class.java.name))) {
       val intent = Intent(context, ArticleActivity::class.java).apply {
@@ -320,7 +335,7 @@ constructor(
         if (incognito) {
           putExtra(EXTRA_KEY_INCOGNITO, true)
         }
-        putExtra(EXTRA_KEY_TOOLBAR_COLOR, customizedWebsiteColor(website))
+        putExtra(EXTRA_KEY_TOOLBAR_COLOR, customizedWebsiteColor(website, linkSource))
       }
       context.startActivity(intent)
     }
@@ -334,6 +349,16 @@ constructor(
     fromNewTab: Boolean,
     activityNames: List<String>?,
     incognito: Boolean
+  ) = openBrowsingTab(context, website, smart, fromNewTab, activityNames, incognito, LinkSource.NONE)
+
+  private fun openBrowsingTab(
+    context: Context,
+    website: Website,
+    smart: Boolean,
+    fromNewTab: Boolean,
+    activityNames: List<String>?,
+    incognito: Boolean,
+    linkSource: LinkSource,
   ) {
     val reordered = smart && reOrderTabByUrl(context, website, activityNames)
 
@@ -347,7 +372,7 @@ constructor(
       }.apply {
         data = website.preferredUri()
         putExtra(EXTRA_KEY_WEBSITE, website)
-        putExtra(EXTRA_KEY_TOOLBAR_COLOR, customizedWebsiteColor(website))
+        putExtra(EXTRA_KEY_TOOLBAR_COLOR, customizedWebsiteColor(website, linkSource))
         if (isIncognito) {
           putExtra(EXTRA_KEY_INCOGNITO, true)
         }
@@ -378,6 +403,15 @@ constructor(
     fromMinimize: Boolean,
     fromAmp: Boolean,
     incognito: Boolean
+  ) = openWebHeads(context, website, fromMinimize, fromAmp, incognito, LinkSource.NONE)
+
+  private fun openWebHeads(
+    context: Context,
+    website: Website,
+    fromMinimize: Boolean,
+    fromAmp: Boolean,
+    incognito: Boolean,
+    linkSource: LinkSource,
   ) {
     val url = website.preferredUrl()
     val bubbles = rxPreferences.nativeBubbles.get()
@@ -389,11 +423,11 @@ constructor(
       fromAmp,
       incognito,
       context,
-      customizedWebsiteColor(website)
+      customizedWebsiteColor(website, linkSource)
     )
     if (!opened) {
       // The bubble could not show; the page opens in a tab instead of being lost.
-      openBrowsingTab(context, website, smart = true, fromNewTab = false, incognito = incognito)
+      openBrowsingTab(context, website, smart = true, fromNewTab = false, activityNames = null, incognito = incognito, linkSource = linkSource)
       return
     }
 
@@ -416,7 +450,9 @@ constructor(
             website,
             smart = true,
             fromNewTab = false,
-            incognito = incognito
+            activityNames = null,
+            incognito = incognito,
+            linkSource = linkSource,
           )
         }
       }
@@ -483,17 +519,18 @@ constructor(
   }
 
   /**
-   * Get customized toolbar color based on user preferences
+   * The toolbar colour from the person's settings; the app colour comes from [linkSource], the app
+   * this link came from, so a link opened inside Lynket never takes an earlier link's app colour.
    */
   @ColorInt
-  private fun customizedWebsiteColor(website: Website): Int {
+  private fun customizedWebsiteColor(website: Website, linkSource: LinkSource): Int {
     if (preferences.isColoredToolbar()) {
       if (preferences.dynamicToolbar()) {
         var appColor = NO_COLOR
         var websiteColor = NO_COLOR
 
         if (preferences.dynamicToolbarOnApp()) {
-          val lastApp = appDetectionManager.filteredPackage
+          val lastApp = linkSource.filtered
           if (lastApp.isNotEmpty()) {
             appColor = appRepository.getPackageColorSync(lastApp)
           }

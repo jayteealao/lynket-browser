@@ -29,6 +29,7 @@ import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -123,6 +124,11 @@ class ModernHomeViewModelTest {
         )
     }
 
+    /** The provider card of the first loaded home state. */
+    private suspend fun ModernHomeViewModel.firstProviderInfo(): CustomTabProviderInfo =
+        (uiState.first { it is ModernHomeViewModel.HomeUiState.Success } as ModernHomeViewModel.HomeUiState.Success)
+            .providerInfo
+
     /**
      * Helper to create sample websites
      */
@@ -184,10 +190,10 @@ class ModernHomeViewModelTest {
         // When: ViewModel is created
         viewModel = createViewModel()
 
-        // Then: Initial value should be empty list
-        viewModel.recentWebsites.test {
-            val initialValue = awaitItem()
-            assertThat(initialValue).isEmpty()
+        // Then: The recents start empty
+        viewModel.uiState.test {
+            assertThat(awaitItem()).isInstanceOf(ModernHomeViewModel.HomeUiState.Loading::class.java)
+            assertThat((awaitItem() as ModernHomeViewModel.HomeUiState.Success).recentWebsites).isEmpty()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -231,12 +237,12 @@ class ModernHomeViewModelTest {
         viewModel = createViewModel()
 
         // Then: Should emit empty list followed by sample websites
-        viewModel.recentWebsites.test {
-            // Skip initial empty list
-            assertThat(awaitItem()).isEmpty()
+        viewModel.uiState.test {
+            // Skip Loading
+            awaitItem()
 
             // Verify websites list
-            val websites = awaitItem()
+            val websites = (awaitItem() as ModernHomeViewModel.HomeUiState.Success).recentWebsites
             assertThat(websites).hasSize(2)
             assertThat(websites[0].title).isEqualTo("Example")
             assertThat(websites[1].title).isEqualTo("Test")
@@ -256,38 +262,39 @@ class ModernHomeViewModelTest {
         viewModel = createViewModel()
 
         // Then: Provider info should reflect Chrome
-        viewModel.providerInfo.test {
-            skipItems(1) // Skip initial value
-
-            val providerInfo = awaitItem()
-            assertThat(providerInfo.allowChange).isTrue()
-
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertThat(viewModel.firstProviderInfo().allowChange).isTrue()
     }
 
     @Test
-    fun `providerInfo shows WebView when incognito mode is enabled`() = runTest {
-        // Given: Preferences with incognito mode enabled
+    fun `providerInfo shows WebView when full incognito is on`() = runTest {
         val prefs = createDefaultPreferences().copy(
             preferredCustomTabPackage = "com.android.chrome",
-            incognitoMode = true
+            fullIncognitoMode = true
         )
         coEvery { historyRepository.getRecents() } returns flowOf(emptyList())
         every { preferencesRepository.userPreferencesFlow } returns flowOf(prefs)
 
-        // When: ViewModel is created
         viewModel = createViewModel()
 
-        // Then: Provider info should show WebView and disallow change
-        viewModel.providerInfo.test {
-            skipItems(1) // Skip initial value
+        assertThat(viewModel.firstProviderInfo().allowChange).isFalse()
+    }
 
-            val providerInfo = awaitItem()
-            assertThat(providerInfo.allowChange).isFalse()
+    @Test
+    fun `providerInfo keeps the chosen provider when only history is off`() = runTest {
+        // incognito_mode is the History off switch; links still open in the Custom Tab provider.
+        val prefs = createDefaultPreferences().copy(
+            preferredCustomTabPackage = "com.android.chrome",
+            incognitoMode = true,
+            fullIncognitoMode = false
+        )
+        coEvery { historyRepository.getRecents() } returns flowOf(emptyList())
+        every { preferencesRepository.userPreferencesFlow } returns flowOf(prefs)
 
-            cancelAndIgnoreRemainingEvents()
-        }
+        viewModel = createViewModel()
+
+        val info = viewModel.firstProviderInfo()
+        assertThat(info.allowChange).isTrue()
+        assertThat(info.iconUri).isNotNull()
     }
 
     // ========== Error State Tests ==========
@@ -317,19 +324,24 @@ class ModernHomeViewModelTest {
     }
 
     @Test
-    fun `recentWebsites emits empty list when repository throws exception`() = runTest {
-        // Given: Repository that throws an exception
-        every { historyRepository.getRecents() } returns flow { throw RuntimeException("Database error") }
+    fun `Retry reads the recents again after an error`() = runTest {
+        var reads = 0
+        every { historyRepository.getRecents() } answers {
+            reads++
+            if (reads == 1) flow { throw RuntimeException("Database error") } else flowOf(createSampleWebsites())
+        }
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
 
-        // When: ViewModel is created
         viewModel = createViewModel()
 
-        // Then: Should emit and stay at empty list (catch operator handles error)
-        viewModel.recentWebsites.test {
-            val websites = awaitItem()
-            assertThat(websites).isEmpty()
+        viewModel.uiState.test {
+            awaitItem() // Loading
+            assertThat(awaitItem()).isInstanceOf(ModernHomeViewModel.HomeUiState.Error::class.java)
 
+            viewModel.refreshRecents()
+
+            val recovered = awaitItem() as ModernHomeViewModel.HomeUiState.Success
+            assertThat(recovered.recentWebsites).hasSize(2)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -407,23 +419,6 @@ class ModernHomeViewModelTest {
         coVerify { preferencesRepository.setCustomTabPackage(packageName) }
     }
 
-    @Test
-    fun `refreshRecents calls repository getCount`() = runTest {
-        // Given: Successful setup
-        coEvery { historyRepository.getRecents() } returns flowOf(emptyList())
-        every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
-        coEvery { historyRepository.getCount() } returns 5
-
-        viewModel = createViewModel()
-
-        // When: Refresh recents is called
-        viewModel.refreshRecents()
-        advanceUntilIdle()
-
-        // Then: Repository getCount should be called
-        coVerify { historyRepository.getCount() }
-    }
-
     // ========== State Transition Tests ==========
 
     @Test
@@ -431,7 +426,8 @@ class ModernHomeViewModelTest {
         // Given: Repository with initial empty list
         val emptyList = emptyList<Website>()
         val updatedList = createSampleWebsites()
-        coEvery { historyRepository.getRecents() } returns flowOf(emptyList, updatedList)
+        val recents = MutableStateFlow(emptyList)
+        coEvery { historyRepository.getRecents() } returns recents
         every { preferencesRepository.userPreferencesFlow } returns flowOf(createDefaultPreferences())
 
         // When: ViewModel is created
@@ -445,6 +441,7 @@ class ModernHomeViewModelTest {
             // Success with empty list
             val emptyState = awaitItem() as ModernHomeViewModel.HomeUiState.Success
             assertThat(emptyState.recentWebsites).isEmpty()
+            recents.value = updatedList
 
             // Success with data
             val dataState = awaitItem() as ModernHomeViewModel.HomeUiState.Success
@@ -484,13 +481,9 @@ class ModernHomeViewModelTest {
 
             viewModel = createViewModel()
 
-            viewModel.providerInfo.test {
-                awaitItem() // initial value
-                val info = awaitItem()
-                assertThat(info.noProviderInstalled).isTrue()
-                assertThat(info.allowChange).isTrue()
-                cancelAndIgnoreRemainingEvents()
-            }
+            val info = viewModel.firstProviderInfo()
+            assertThat(info.noProviderInstalled).isTrue()
+            assertThat(info.allowChange).isTrue()
         } finally {
             unmockkObject(arun.com.chromer.browsing.customtabs.CustomTabs.Companion)
         }
@@ -503,11 +496,7 @@ class ModernHomeViewModelTest {
 
         viewModel = createViewModel()
 
-        viewModel.providerInfo.test {
-            awaitItem()
-            assertThat(awaitItem().noProviderInstalled).isFalse()
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertThat(viewModel.firstProviderInfo().noProviderInstalled).isFalse()
     }
 
     @Test
