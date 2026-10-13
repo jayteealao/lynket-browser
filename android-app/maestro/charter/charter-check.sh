@@ -3,7 +3,8 @@
 #
 #   1. upgrade-check.sh on the phone: 2.1.3 seeded (with a pinned shortcut), the new debug build
 #      installed over it, every value read back
-#   2. a link through BrowserInterceptActivity; the router logs it with its address
+#   2. History switched on in the History screen (the 2.1.3 seed has it off and incognito
+#      browsing on); a link through BrowserInterceptActivity, and the router logs its address
 #   3. Custom Tab mode: "Slide over", AMP and article mode off, Chrome chosen on the provider
 #      screen (so "Use WebView" is off); a link opens in a Chrome Custom Tab with the bottom bar
 #   4. options-item.yaml: the Lynket options sheet from Chrome's menu
@@ -13,7 +14,7 @@
 #   7. webheads-check.sh ac23: a native bubble opens its page
 #   8. History from the home drawer: the links of steps 2 to 7, newest first, and a 2.1.3 row
 #   9. the 2.1.3 pinned shortcut tapped on the launcher opens its page
-#   then on the fold: the 2.1.3 seed and update (upgrade-check.sh), step 6 and step 8 again
+#   then on the fold: the 2.1.3 seed and update (upgrade-check.sh), steps 2, 6 and 8 again
 #
 # Every step writes PASS or FAIL to charter.txt and saves the crash buffer. A failed step does not
 # stop the later ones; the script exits 1 when any step failed.
@@ -37,6 +38,7 @@ OUT="$(hostpath "$(cd "$OUT" && pwd)")"
 LOG_NAME=charter
 : > "$OUT/charter.txt"
 FAILED=0
+RUN=0
 # The 2.1.3 seed's first link; the 2.1.3 shortcut creator pinned it as "Example Domain".
 SEED_URL="https://example.com/"
 PINNED_LABEL="Example Domain"
@@ -79,13 +81,15 @@ setting() {  # $1 = key, $2 = dump file name
 # Runs step $1 (a function) on device $2 in a subshell, so a fail ends only that step; logs PASS
 # or FAIL with the step's last line, and saves the crash buffer.
 step() {
-  local name="$1" serial="$2" result
+  local name="$1" serial="$2" result crash
+  RUN=$((RUN + 1))
+  crash="$OUT/$(printf '%02d' "$RUN")-$name-$serial.crash.txt"
   echo "== $name on $serial" >> "$OUT/charter.txt"
   adb -s "$serial" logcat -b crash -c >/dev/null 2>&1 || true
   ( SERIAL="$serial"; CHECK_NAME="$name"; set -e; "$name" )
   if [ $? -eq 0 ]; then result=PASS; else result=FAIL; fi
-  adb -s "$serial" logcat -d -b crash | tr -d '\r' > "$OUT/$name-$serial.crash.txt"
-  if grep -qF "$PKG" "$OUT/$name-$serial.crash.txt"; then
+  adb -s "$serial" logcat -d -b crash | tr -d '\r' > "$crash"
+  if grep -qF "$PKG" "$crash"; then
     result=FAIL
     echo "$name: the crash buffer holds an entry for the app" >> "$OUT/charter.txt"
   fi
@@ -95,12 +99,34 @@ step() {
 
 # 1. The 2.1.3 user updates.
 step1_upgrade() {
-  bash "$UPGRADE/upgrade-check.sh" "$SERIAL" "$OUT/1-upgrade-$SERIAL" || fail "the upgrade check failed (see 1-upgrade-$SERIAL/)"
+  # The 2.1.3 seed drives the old app's first run; on a busy emulator its intro can come up after
+  # Maestro looks for it. One more try starts again from a clean 2.1.3 install.
+  if ! bash "$UPGRADE/upgrade-check.sh" "$SERIAL" "$OUT/1-upgrade-$SERIAL"; then
+    log "step 1: first try failed (kept in 1-upgrade-$SERIAL-try1/); trying once more"
+    rm -rf "$OUT/1-upgrade-$SERIAL-try1"
+    mv "$OUT/1-upgrade-$SERIAL" "$OUT/1-upgrade-$SERIAL-try1"
+    bash "$UPGRADE/upgrade-check.sh" "$SERIAL" "$OUT/1-upgrade-$SERIAL" || fail "the upgrade check failed twice (see 1-upgrade-$SERIAL/)"
+  fi
   log "step 1: every 2.1.3 setting and per-app rule read back after the update"
 }
 
 # 2. A link reaches the intercept activity and the router.
 step2_intercept() {
+  # The 2.1.3 seed has history off and incognito browsing on (which also forces the web view).
+  # History is switched on in the History screen, as a person would, so the links of this run are
+  # listed in step 8; that also turns incognito browsing off.
+  a shell am start -W -n "$PKG/$MAIN" -f 0x24000000 >/dev/null
+  sleep 3
+  maestro --device "$SERIAL" test -e OUT="$OUT" -e NAME=2-history-before "$CHARTER/history-from-drawer.yaml" \
+    > "$OUT/2-history.maestro.txt" 2>&1 || { cat "$OUT/2-history.maestro.txt" >> "$OUT/charter.txt"; fail "History did not open from the drawer"; }
+  free_ui_automation
+  if [ "$(setting incognito_mode_pref 2-settings-before.tsv)" = "true" ]; then
+    tap_id "history-switch" || fail "no History switch on the History screen"
+    sleep 2
+  fi
+  shot 2-history-after
+  [ "$(setting incognito_mode_pref 2-settings.tsv)" = "false" ] || fail "history is still off"
+  [ "$(setting full_incognito_mode 2-settings.tsv)" = "false" ] || fail "incognito browsing is still on"
   a shell input keyevent HOME
   a logcat -c
   open_link "https://example.com/?charter=2"
@@ -129,10 +155,26 @@ step3_custom_tab() {
   shot 3-provider-before
   tap_id "provider-com.android.chrome" || fail "no Chrome row on the provider screen"
   sleep 2
-  tap_id "provider-confirm" || fail "no Use button in the Chrome dialog"
+  # The dialog is its own window, outside the screen that exposes test tags as ids.
+  tap_text "Use" || fail "no Use button in the Chrome dialog"
   sleep 2
   shot 3-provider-after
   [ "$(setting use_webview_pref 3-settings-provider.tsv)" = "false" ] || fail "Use WebView is still on"
+  # The 2.1.3 seed turns the bottom bar off; it is switched on in Browsing options.
+  if [ "$(setting bottombar_enabled_preference 3-settings-bar-before.tsv)" != "true" ]; then
+    a shell am start -W -n "$PKG/$MAIN" -f 0x24000000 --es "$DESTINATION" BrowsingOptions >/dev/null
+    sleep 3
+    local _ w h
+    read -r w h < <(screen_size)
+    for _ in 1 2 3 4; do
+      tap_text "Show bottom bar" && break
+      a shell input swipe $((w / 2)) $((h * 3 / 4)) $((w / 2)) $((h / 4)) 400
+      sleep 1
+    done
+    sleep 2
+    shot 3-bottom-bar-setting
+  fi
+  [ "$(setting bottombar_enabled_preference 3-settings-bar.tsv)" = "true" ] || fail "the bottom bar setting is still off"
   a shell input keyevent HOME
   sleep 1
   a logcat -c
@@ -249,10 +291,12 @@ HISTORY_URLS="https://example.com/?charter=2 https://example.com/?charter=3 http
 step step8_history "$PHONE"
 step step9_pinned "$PHONE"
 
-# The fold: the 2.1.3 seed and update there, so its history has a 2.1.3 row, then steps 6 and 8.
+# The fold: the 2.1.3 seed and update there, so its history has a 2.1.3 row; step 2 switches
+# history on and sends one link; then steps 6 and 8.
 step step1_upgrade "$FOLD"
+step step2_intercept "$FOLD"
 step step6_drag "$FOLD"
-HISTORY_URLS="https://example.com/?head=1 https://example.com/?head=6"
+HISTORY_URLS="https://example.com/?charter=2 https://example.com/?head=1 https://example.com/?head=6"
 step step8_history "$FOLD"
 
 echo "== summary" >> "$OUT/charter.txt"
