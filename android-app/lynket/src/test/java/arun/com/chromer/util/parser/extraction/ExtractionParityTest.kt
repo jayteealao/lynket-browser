@@ -13,11 +13,13 @@ package arun.com.chromer.util.parser.extraction
 
 import android.app.Application
 import android.os.Parcel
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.fromHtml
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.ui.reader.articleBlocks
-import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
@@ -37,25 +39,32 @@ import java.io.File
  * values and cache bytes as the earlier one on jsoup 1.9.2, so a golden may only be recorded while
  * jsoup 1.9.2 is on the classpath; on a current jsoup, a missing golden fails.
  */
+/**
+ * A rule that says why a golden line and an actual line that differ still give the same result
+ * to the person, or null when they do not. Gets the line index and both line lists.
+ */
+private typealias SameRule = (index: Int, golden: List<String>, actual: List<String>) -> String?
+
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34], application = Application::class)
 class ExtractionParityTest {
 
   @Test
   fun everyFixtureMatchesItsGolden() {
-    for (fixture in FIXTURES) {
+    val failures = FIXTURES.mapNotNull { fixture ->
       val html = fixture.file.readText(Charsets.UTF_8)
       val golden = File(GOLDEN_DIR, "${fixture.name}.golden.txt")
-      if (recordIfMissing(golden) { snapshot(fixture.url, html) }) continue
-      assertWithMessage(fixture.name).that(snapshot(fixture.url, html)).isEqualTo(golden.readText(Charsets.UTF_8))
+      if (recordIfMissing(golden) { snapshot(fixture.url, html) }) null
+      else compare(golden, snapshot(fixture.url, html), ::sameInReader)
     }
+    assertWithMessage("fixtures that differ from their goldens").that(failures).isEmpty()
   }
 
   @Test
   fun everyAddressMatchesItsGolden() {
     val golden = File(GOLDEN_DIR, "urls.golden.txt")
     if (recordIfMissing(golden) { urlSnapshot() }) return
-    assertThat(urlSnapshot()).isEqualTo(golden.readText(Charsets.UTF_8))
+    assertWithMessage("addresses").that(compare(golden, urlSnapshot())).isNull()
   }
 
   /**
@@ -64,6 +73,7 @@ class ExtractionParityTest {
    */
   @Test
   fun recordedArticleParcelsReadBack() {
+    val failures = ArrayList<String>()
     for (fixture in FIXTURES) {
       val html = fixture.file.readText(Charsets.UTF_8)
       val golden = File(GOLDEN_DIR, "${fixture.name}.parcel")
@@ -73,12 +83,11 @@ class ExtractionParityTest {
         continue
       }
       val bytes = golden.readBytes()
-      assertWithMessage("parcel: ${fixture.name}").that(restoredBlocks(bytes)).isEqualTo(blocksGolden.readText(Charsets.UTF_8))
-      if (OLD_JSOUP) {
-        // On the earlier jsoup the bytes are the same as well.
-        assertWithMessage("parcel bytes: ${fixture.name}").that(marshall(article(fixture.url, html))).isEqualTo(bytes)
-      }
+      compare(blocksGolden, restoredBlocks(bytes), ::sameRestoredBlock)?.let(failures::add)
+      // On the earlier jsoup the bytes are the same as well.
+      if (OLD_JSOUP && !marshall(article(fixture.url, html)).contentEquals(bytes)) failures.add("parcel bytes: ${fixture.name}")
     }
+    assertWithMessage("cache entries that read back differently").that(failures).isEmpty()
   }
 
   private data class Fixture(val name: String, val file: File, val url: String)
@@ -138,6 +147,102 @@ class ExtractionParityTest {
       record()?.let { golden.writeText(it, Charsets.UTF_8) }
       println("Recorded ${golden.path}")
       return true
+    }
+
+    /** Where a value that differs from its golden is written, to compare the two files. */
+    private val ACTUAL_DIR = File("build/extraction-actual")
+
+
+    /**
+     * Null when [actual] equals [golden], or differs only in lines that [same] accepts on a current
+     * jsoup (on jsoup 1.9.2 every line must be equal); otherwise what failed. On any difference,
+     * the actual value and a list of every differing line, with the reason it was accepted or not,
+     * are written to [ACTUAL_DIR].
+     */
+    private fun compare(golden: File, actual: String, same: SameRule? = null): String? {
+      val expected = golden.readText(Charsets.UTF_8)
+      if (actual == expected) return null
+      ACTUAL_DIR.mkdirs()
+      File(ACTUAL_DIR, golden.name).writeText(actual, Charsets.UTF_8)
+      val goldenLines = expected.lines()
+      val actualLines = actual.lines()
+      val report = StringBuilder()
+      var failing = goldenLines.size != actualLines.size
+      if (failing) report.append("line count: golden ${goldenLines.size}, actual ${actualLines.size}\n")
+      for (i in 0 until minOf(goldenLines.size, actualLines.size)) {
+        if (goldenLines[i] == actualLines[i]) continue
+        val reason = if (OLD_JSOUP || same == null) null else same(i, goldenLines, actualLines)
+        if (reason == null) failing = true
+        report.append(if (reason == null) "DIFFERENT" else "SAME ($reason)").append('\n')
+          .append("  golden: ").append(goldenLines[i]).append('\n')
+          .append("  actual: ").append(actualLines[i]).append('\n')
+      }
+      // A difference that no rule removes is listed for a decision: `<name>.listed.txt` holds the
+      // current value, so the test still fails if the value changes again.
+      val listed = File(GOLDEN_DIR, golden.nameWithoutExtension + ".listed.txt")
+      val isListed = failing && !OLD_JSOUP && listed.exists() && listed.readText(Charsets.UTF_8) == actual
+      if (isListed) report.insert(0, "LISTED (the current value is ${listed.path})\n")
+      val reportFile = File(ACTUAL_DIR, golden.name + ".differences.txt")
+      reportFile.writeText(report.toString(), Charsets.UTF_8)
+      return if (failing && !isListed) "${golden.name} differs; see ${reportFile.path}" else null
+    }
+
+    /**
+     * What the reader shows for a block's HTML: the text, and each link and style with the text it
+     * covers, that `rememberArticleText` builds with `AnnotatedString.fromHtml`. Spaces and tabs
+     * next to a line break or at either end of the block are left out, inside a link or style too:
+     * a line does not show them.
+     */
+    private fun shown(html: String): String {
+      val text = AnnotatedString.fromHtml(html)
+      val raw = text.text
+      val kept = BooleanArray(raw.length) { true }
+      for (match in Regex("[ \t]*\n[ \t]*|^[ \t]+|[ \t]+$").findAll(raw)) {
+        for (i in match.range) if (raw[i] != '\n') kept[i] = false
+      }
+      val visible = StringBuilder()
+      val visibleIndex = IntArray(raw.length + 1)
+      for (i in raw.indices) {
+        visibleIndex[i] = visible.length
+        if (kept[i]) visible.append(raw[i])
+      }
+      visibleIndex[raw.length] = visible.length
+      fun covered(start: Int, end: Int) = visible.substring(visibleIndex[start], visibleIndex[end])
+      val links = text.getLinkAnnotations(0, text.length)
+        .map { "${covered(it.start, it.end)} -> ${(it.item as? LinkAnnotation.Url)?.url}" }
+      val styles = text.spanStyles.map { "${covered(it.start, it.end)} -> ${it.item}" }
+      val paragraphs = text.paragraphStyles.map { "${covered(it.start, it.end)} -> ${it.item}" }
+      return "$visible links=$links styles=$styles paragraphs=$paragraphs"
+    }
+
+    private fun String.unOneLine(): String = replace("\\n", "\n").replace("\\r", "\r").replace("\\\\", "\\")
+
+    /**
+     * A block's HTML that differs only in what the reader does not show (whitespace that the
+     * HTML renderer collapses), and the block's jsoup text measured from that same HTML.
+     */
+    private fun sameInReader(index: Int, golden: List<String>, actual: List<String>): String? {
+      val key = golden[index].substringBefore(": ")
+      if (key != actual[index].substringBefore(": ")) return null
+      val htmlKey = when {
+        key.matches(Regex("reader\\.block\\.\\d+\\.html")) -> key
+        key.matches(Regex("reader\\.block\\.\\d+\\.text")) -> key.removeSuffix(".text") + ".html"
+        else -> return null
+      }
+      val goldenHtml = golden.firstOrNull { it.startsWith("$htmlKey: ") }?.substringAfter(": ")?.unOneLine() ?: return null
+      val actualHtml = actual.firstOrNull { it.startsWith("$htmlKey: ") }?.substringAfter(": ")?.unOneLine() ?: return null
+      if (shown(goldenHtml) != shown(actualHtml)) return null
+      return if (key == htmlKey) "the reader shows the same text, links and styles" else
+        "jsoup text of HTML that the reader shows the same"
+    }
+
+    /**
+     * A restored block whose jsoup text differs only in whitespace: jsoup 1.23.2 `text()` turns a
+     * no-break space into a space, which jsoup 1.9.2 kept; the HTML in the cache entry is the same.
+     */
+    private fun sameRestoredBlock(index: Int, golden: List<String>, actual: List<String>): String? {
+      fun normal(line: String) = line.replace('\u00a0', ' ').replace(Regex("\\s+"), " ").trim()
+      return if (normal(golden[index]) == normal(actual[index])) "same text but for no-break spaces read as spaces" else null
     }
 
     /** The head as `WebsiteUtilities.headString` reads it: the lines from `<head` to `</head>`, joined. */

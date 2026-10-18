@@ -118,8 +118,6 @@ android {
 }
 
 dependencies {
-    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -173,6 +171,9 @@ dependencies {
     implementation(libs.androidx.datastore.core)
     // One-time read of the per-app rules that release 2.1.3 saved with PaperDB
     implementation(libs.paperdb)
+
+    // HTML parsing for the reader and website details (util/parser/extraction)
+    implementation(libs.jsoup)
 
     // Paging 3
     implementation(libs.androidx.paging.common)

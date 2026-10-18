@@ -61,7 +61,7 @@ internal object ExtractionHelpers {
    */
   fun getWeight(e: Element): Int {
     var weight = calcWeight(e)
-    weight += Math.round(e.ownText().length / 100.0 * 10).toInt()
+    weight += Math.round(e.legacyOwnText().length / 100.0 * 10).toInt()
     weight += weightChildNodes(e)
     return weight
   }
@@ -76,10 +76,10 @@ internal object ExtractionHelpers {
     var caption: Element? = null
     val pEls = ArrayList<Element>(5)
     for (child in rootEl.children()) {
-      var ownText = child.ownText()
+      var ownText = child.legacyOwnText()
 
       // A paragraph counts all its text, including text inside formatting tags.
-      if (child.tagName() == "p") ownText = child.text()
+      if (child.tagName() == "p") ownText = child.legacyText()
 
       val ownTextLength = ownText.length
       if (ownTextLength < 20) continue

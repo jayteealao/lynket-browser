@@ -31,8 +31,8 @@ internal object MetadataHelpers {
 
   fun extractTitle(doc: Document): String = cleanTitle(
     heuristicString(
-      doc.title(),
-      { innerTrim(doc.select("head title").text()) },
+      doc.legacyTitle(),
+      { innerTrim(doc.select("head title").legacyText()) },
       { innerTrim(doc.select("head meta[name=title]").attr("content")) },
       { innerTrim(doc.select("head meta[property=og:title]").attr("content")) },
       { innerTrim(doc.select("head meta[name=twitter:title]").attr("content")) },

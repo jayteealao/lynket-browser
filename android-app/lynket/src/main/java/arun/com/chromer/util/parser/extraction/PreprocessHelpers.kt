@@ -45,7 +45,10 @@ internal object PreprocessHelpers {
 
   private fun removeComments(node: Node) {
     var i = 0
-    while (i < node.childNodes().size) {
+    // childNodeSize(), not childNodes().size: current jsoup copies the child list on every
+    // childNodes() call (source: jsoup 1.23.2 nodes/Node.java:285-293), which made this loop
+    // quadratic on a page with many siblings.
+    while (i < node.childNodeSize()) {
       val child = node.childNode(i)
       if (child.nodeName() == "#comment") {
         child.remove()

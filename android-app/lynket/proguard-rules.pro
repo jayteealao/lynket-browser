@@ -17,6 +17,7 @@
 -keep class android.net.http.** { *; }
 -dontwarn android.net.http.**
 -dontwarn com.google.common.**
+# jsoup (version catalog) parses pages for the reader and the website details.
 -keep public class org.jsoup.** {
     public *;
 }

@@ -136,9 +136,9 @@ internal object PostprocessHelpers {
       var text: String? = null
       var isExemptFromMinTextLengthCheck = false
       if (childNode is TextNode) {
-        text = childNode.text().javaTrim()
+        text = childNode.legacyText().javaTrim()
       } else if (childNode is Element) {
-        text = childNode.text().javaTrim()
+        text = childNode.legacyText().javaTrim()
         isExemptFromMinTextLengthCheck = TAGS_EXEMPT_FROM_MIN_LENGTH_CHECK.contains(childNode.tagName())
       }
 
@@ -166,7 +166,7 @@ internal object PostprocessHelpers {
     val elementsWithGravityScore = topNode.select(ExtractionHelpers.GRAVITY_SCORE_SELECTOR)
     for (element in elementsWithGravityScore) {
       val score = Integer.parseInt(element.attr(ExtractionHelpers.GRAVITY_SCORE_ATTRIBUTE))
-      if (score < 0 || element.text().length < MIN_LENGTH_FOR_PARAGRAPHS) element.remove()
+      if (score < 0 || element.legacyText().length < MIN_LENGTH_FOR_PARAGRAPHS) element.remove()
     }
   }
 

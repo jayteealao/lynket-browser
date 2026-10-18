@@ -35,6 +35,9 @@ coil = "3.6.3"
 # One-time read of the per-app rules saved by release 2.1.3
 paperdb = "2.6"
 
+# HTML parsing for the reader and website details
+jsoup = "1.23.2"
+
 # Testing
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -106,6 +109,9 @@ androidx-room3-compiler = { group = "androidx.room3", name = "room3-compiler", v
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-datastore-core = { group = "androidx.datastore", name = "datastore-core", version.ref = "datastore" }
 paperdb = { group = "com.github.pilgr", name = "Paper", version.ref = "paperdb" }
+
+# HTML parsing
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 
 # Paging
 androidx-paging-common = { group = "androidx.paging", name = "paging-common", version.ref = "paging" }
