@@ -67,7 +67,7 @@ Run from `android-app/`:
 After a change to the catalog or a module's dependencies, update the locks and the checksums in the same commit:
 
 1. `./gradlew :lynket:dependencies :disk-cache:dependencies :benchmark:dependencies :baselineprofile:dependencies --write-locks`
-2. `./gradlew --write-verification-metadata sha256 --continue help updateDaemonJvm :lynket:assembleDebug :lynket:assembleRelease :lynket:assembleBenchmark :lynket:assembleDebugAndroidTest :lynket:testDebugUnitTest :lynket:verifyRoborazziDebug :lynket:lintDebug :disk-cache:testDebugUnitTest :benchmark:assembleBenchmark :baselineprofile:assemble`, then review the `gradle/verification-metadata.xml` diff before committing it.
+2. `./gradlew --write-verification-metadata sha256 --continue help :lynket:assembleDebug :lynket:assembleRelease :lynket:assembleBenchmark :lynket:assembleDebugAndroidTest :lynket:testDebugUnitTest :lynket:verifyRoborazziDebug :lynket:lintDebug :disk-cache:testDebugUnitTest :benchmark:assembleBenchmark :baselineprofile:assemble`, then review the `gradle/verification-metadata.xml` diff before committing it.
 
 The checksums cover the artifacts this Windows host resolves. AGP's aapt2 differs per operating system, so run the step 2 command once on a new host OS. Sources and javadoc jars (IDE downloads) are trusted by name.
 
