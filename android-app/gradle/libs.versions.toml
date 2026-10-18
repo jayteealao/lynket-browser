@@ -12,8 +12,8 @@ lifecycle = "2.10.0"
 kotlinxSerialization = "1.11.0"
 
 # AndroidX Core
-coreKtx = "1.15.0"
-appcompat = "1.7.0"
+coreKtx = "1.18.0"
+appcompat = "1.7.1"
 material = "1.12.0"
 browser = "1.8.0"
 
