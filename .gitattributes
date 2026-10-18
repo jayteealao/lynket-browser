@@ -1,1 +1,4 @@
 android-app/maestro/old-apk/*.patch -text
+# The article extraction parity test compares these files byte for byte.
+android-app/lynket/src/test/resources/extraction/** -text
+android-app/maestro/reader/fixtures/*.html -text
