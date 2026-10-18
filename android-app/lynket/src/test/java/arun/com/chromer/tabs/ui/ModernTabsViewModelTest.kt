@@ -25,7 +25,10 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -140,5 +143,27 @@ class ModernTabsViewModelTest {
     vm.dismissCloseAll()
     assertThat((vm.uiState.value as TabsUiState.Loaded).confirmCloseAll).isFalse()
     coVerify(exactly = 0) { tabsManager.closeAllTabs() }
+  }
+
+  @Test
+  fun cancelledLoadLeavesStateUnchanged() = runTest(dispatcher) {
+    coEvery { tabsManager.getActiveTabs() } coAnswers { awaitCancellation() }
+    val vm = viewModel()
+    vm.load()
+    advanceUntilIdle()
+    vm.viewModelScope.cancel()
+    advanceUntilIdle()
+    assertThat(vm.uiState.value).isEqualTo(TabsUiState.Loading)
+  }
+
+  @Test
+  fun cancelledSiteLookupLeavesStateUnchanged() = runTest(dispatcher) {
+    every { websites.getWebsiteReadOnly(custom.url) } returns flow { awaitCancellation() }
+    val vm = viewModel()
+    vm.load()
+    advanceUntilIdle()
+    vm.viewModelScope.cancel()
+    advanceUntilIdle()
+    assertThat(vm.uiState.value).isEqualTo(TabsUiState.Loading)
   }
 }

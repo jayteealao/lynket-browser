@@ -22,7 +22,10 @@ import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
 import io.mockk.*
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -578,5 +581,22 @@ class ModernProviderSelectionViewModelTest {
         // Then: Should reload
         val state = viewModel.uiState.value as ModernProviderSelectionViewModel.ProviderSelectionUiState.Success
         assertThat(state.providers).hasSize(3)
+    }
+
+    @Test
+    fun cancelledLoadLeavesStateUnchanged() = runTest {
+        // Given: a provider load that is still running
+        coEvery { appRepository.allProviders() } coAnswers { awaitCancellation() }
+        every { preferencesRepository.userPreferencesFlow } returns flowOf(createPreferences())
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value).isEqualTo(ModernProviderSelectionViewModel.ProviderSelectionUiState.Loading)
+
+        // When: the view model's work is cancelled, as clearing the view model does
+        viewModel.viewModelScope.cancel()
+        advanceUntilIdle()
+
+        // Then: the cancellation is not reported as an error
+        assertThat(viewModel.uiState.value).isEqualTo(ModernProviderSelectionViewModel.ProviderSelectionUiState.Loading)
     }
 }

@@ -19,6 +19,7 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.TabsManager.Tab
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +57,8 @@ class ModernTabsViewModel @Inject constructor(
         val tabs = tabsManager.getActiveTabs().map { tab ->
           tab.website = try {
             websiteRepository.getWebsiteReadOnly(tab.url).first()
+          } catch (e: CancellationException) {
+            throw e
           } catch (e: Exception) {
             Timber.w(e, "No stored site for a tab")
             null
@@ -63,6 +66,8 @@ class ModernTabsViewModel @Inject constructor(
           tab
         }
         _uiState.update { TabsUiState.Loaded(tabs, confirmCloseAll = (it as? TabsUiState.Loaded)?.confirmCloseAll == true && tabs.isNotEmpty()) }
+      } catch (e: CancellationException) {
+        throw e
       } catch (e: Exception) {
         Timber.e(e, "Error loading tabs")
         _uiState.value = TabsUiState.Error(e.message ?: "")
@@ -90,6 +95,8 @@ class ModernTabsViewModel @Inject constructor(
     viewModelScope.launch {
       try {
         tabsManager.closeAllTabs()
+      } catch (e: CancellationException) {
+        throw e
       } catch (e: Exception) {
         Timber.e(e, "Error closing all tabs")
       }

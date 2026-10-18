@@ -19,6 +19,7 @@ import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -78,6 +79,8 @@ class ModernProviderSelectionViewModel @Inject constructor(
                     )
                 }
                 Timber.d("Loaded ${providers.size} Custom Tab providers")
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Timber.e(e, "Error loading providers")
                 _uiState.value = ProviderSelectionUiState.Error(e.message ?: "Failed to load providers")
@@ -97,6 +100,8 @@ class ModernProviderSelectionViewModel @Inject constructor(
                 preferencesRepository.setCustomTabPackage(provider.packageName)
                 notifyProviderChanged()
                 loadProviders()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Timber.e(e, "Error selecting provider")
             }
@@ -110,6 +115,8 @@ class ModernProviderSelectionViewModel @Inject constructor(
                 preferencesRepository.setUseWebView(true)
                 notifyProviderChanged()
                 loadProviders()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Timber.e(e, "Error selecting WebView")
             }
