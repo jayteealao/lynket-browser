@@ -11,9 +11,12 @@
 
 package arun.com.chromer.util.events
 
+import androidx.annotation.VisibleForTesting
+import arun.com.chromer.data.website.model.Website
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import timber.log.Timber
@@ -63,6 +66,10 @@ class EventBus @Inject constructor() {
      * Observers can filter for specific event types.
      */
     val events: SharedFlow<Event> = _events.asSharedFlow()
+
+    /** The number of collectors subscribed now; tests read it to see a collector end. */
+    @VisibleForTesting
+    val subscriptionCount: StateFlow<Int> = _events.subscriptionCount
 
     /**
      * Emit an event to all observers.
@@ -125,8 +132,15 @@ sealed interface Event {
     sealed interface WebHeadEvent : Event {
         data class Created(val url: String) : WebHeadEvent
         data class Clicked(val url: String) : WebHeadEvent
+        /** The web head service removed the head of [url]; the web head list drops its row. */
         data class Closed(val url: String) : WebHeadEvent
         data object AllClosed : WebHeadEvent
+        /** The web head list asks the web head service to close the head of [url]. */
+        data class CloseRequested(val url: String) : WebHeadEvent
+        /** The web head service loaded a site's details; the web head list replaces its row. */
+        data class WebsiteUpdated(val website: Website) : WebHeadEvent
+        /** The web head colour setting changed; the web head service recolours every head on screen. */
+        data class ColourChanged(val colour: Int) : WebHeadEvent
     }
 
     /**

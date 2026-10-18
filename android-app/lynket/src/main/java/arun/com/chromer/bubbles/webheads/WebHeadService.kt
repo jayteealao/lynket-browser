@@ -47,9 +47,7 @@ import androidx.compose.ui.platform.AndroidUiDispatcher
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.IntentCompat
 import androidx.core.graphics.drawable.toBitmap
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import arun.com.chromer.R
 import arun.com.chromer.browsing.article.ArticlePreloader
 import arun.com.chromer.browsing.customtabs.CustomTabManager
@@ -67,26 +65,22 @@ import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants
-import arun.com.chromer.shared.Constants.ACTION_CLOSE_WEBHEAD_BY_URL
-import arun.com.chromer.shared.Constants.ACTION_EVENT_WEBHEAD_DELETED
-import arun.com.chromer.shared.Constants.ACTION_EVENT_WEBSITE_UPDATED
 import arun.com.chromer.shared.Constants.ACTION_OPEN_CONTEXT_ACTIVITY
 import arun.com.chromer.shared.Constants.ACTION_OPEN_NEW_TAB
-import arun.com.chromer.shared.Constants.ACTION_REBIND_WEBHEAD_TAB_CONNECTION
 import arun.com.chromer.shared.Constants.ACTION_STOP_WEBHEAD_SERVICE
-import arun.com.chromer.shared.Constants.ACTION_WEBHEAD_COLOR_SET
 import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_AMP
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_MINIMIZE
-import arun.com.chromer.shared.Constants.EXTRA_KEY_REBIND_WEBHEAD_CXN
-import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBHEAD_COLOR
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.events.Event
+import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -117,6 +111,9 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   @Inject
   lateinit var articlePreloader: ArticlePreloader
 
+  @Inject
+  lateinit var eventBus: EventBus
+
   private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
   private var motionScope: CoroutineScope? = null
 
@@ -131,24 +128,6 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   @VisibleForTesting
   internal val overlayWindows: List<OverlayWindow>
     get() = headWindows.values.toList() + listOfNotNull(trashWindow)
-
-  private val localReceiver = object : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-      when (intent.action) {
-        ACTION_REBIND_WEBHEAD_TAB_CONNECTION -> {
-          if (intent.getBooleanExtra(EXTRA_KEY_REBIND_WEBHEAD_CXN, false)) bindToCustomTabSession()
-        }
-        ACTION_WEBHEAD_COLOR_SET -> {
-          val color = intent.getIntExtra(EXTRA_KEY_WEBHEAD_COLOR, NO_COLOR)
-          if (color != NO_COLOR) controller?.all?.forEach { it.colour = Color(color) }
-        }
-        ACTION_CLOSE_WEBHEAD_BY_URL -> {
-          val website = IntentCompat.getParcelableExtra(intent, EXTRA_KEY_WEBSITE, Website::class.java)
-          website?.let { controller?.close(it.url) }
-        }
-      }
-    }
-  }
 
   private val notificationActionReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -215,7 +194,26 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     }
     createController()
     bindToCustomTabSession()
+    collectEvents()
     registerReceivers()
+  }
+
+  /**
+   * Handles close requests from the web head list and colour changes from settings until the
+   * service stops. The collector subscribes before [onCreate] returns, so an event sent right after
+   * the service starts is not lost.
+   */
+  private fun collectEvents() {
+    serviceScope.launch(start = CoroutineStart.UNDISPATCHED) {
+      eventBus.observe<Event.WebHeadEvent>().collect { event ->
+        when (event) {
+          is Event.WebHeadEvent.CloseRequested -> controller?.close(event.url)
+          is Event.WebHeadEvent.ColourChanged ->
+            if (event.colour != NO_COLOR) controller?.all?.forEach { it.colour = Color(event.colour) }
+          else -> Unit
+        }
+      }
+    }
   }
 
   private fun createController() {
@@ -410,7 +408,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     } else if (!Preferences.get(this).articleMode()) {
       preLoadUrl("")
     }
-    ContextActivityHelper.signalDeleted(this, head.website)
+    eventBus.tryEmit(Event.WebHeadEvent.Closed(head.website.url))
   }
 
   // endregion
@@ -426,13 +424,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
         websiteFlow
           .filter { it != null }
           .flowOn(Dispatchers.IO)
-          .onEach { website ->
-            controller?.get(webHeadUrl)?.let { head ->
-              head.website = website
-              warmUp(head)
-              ContextActivityHelper.signalUpdated(application, website)
-            }
-          }
+          .onEach { website -> onSiteLoaded(webHeadUrl, website) }
           .map { website -> websiteRepository.getWebsiteRoundIconAndColor(website) }
           .flowOn(Dispatchers.IO)
           .catch { error -> Timber.e(error) }
@@ -446,6 +438,16 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
       } catch (e: Exception) {
         Timber.e(e)
       }
+    }
+  }
+
+  /** The details of the site of [webHeadUrl] arrived: its head and the web head list take them. */
+  @VisibleForTesting
+  internal fun onSiteLoaded(webHeadUrl: String, website: Website) {
+    controller?.get(webHeadUrl)?.let { head ->
+      head.website = website
+      warmUp(head)
+      eventBus.tryEmit(Event.WebHeadEvent.WebsiteUpdated(website))
     }
   }
 
@@ -505,13 +507,6 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   private fun registerReceivers() {
-    val localEvents = IntentFilter()
-    localEvents.addAction(ACTION_WEBHEAD_COLOR_SET)
-    localEvents.addAction(ACTION_REBIND_WEBHEAD_TAB_CONNECTION)
-    localEvents.addAction(ACTION_CLOSE_WEBHEAD_BY_URL)
-    localEvents.addAction(ACTION_OPEN_CONTEXT_ACTIVITY)
-    LocalBroadcastManager.getInstance(this).registerReceiver(localReceiver, localEvents)
-
     val notificationFilter = IntentFilter()
     notificationFilter.addAction(ACTION_STOP_WEBHEAD_SERVICE)
     notificationFilter.addAction(ACTION_OPEN_CONTEXT_ACTIVITY)
@@ -526,7 +521,6 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   private fun unregisterReceivers() {
     try {
-      LocalBroadcastManager.getInstance(this).unregisterReceiver(localReceiver)
       unregisterReceiver(notificationActionReceiver)
     } catch (ignored: IllegalArgumentException) {
       Timber.e(ignored)
@@ -534,18 +528,6 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   private object ContextActivityHelper {
-    fun signalUpdated(context: Context, website: Website) {
-      val intent = Intent(ACTION_EVENT_WEBSITE_UPDATED)
-      intent.putExtra(EXTRA_KEY_WEBSITE, website)
-      LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
-    }
-
-    fun signalDeleted(context: Context, website: Website) {
-      val intent = Intent(ACTION_EVENT_WEBHEAD_DELETED)
-      intent.putExtra(EXTRA_KEY_WEBSITE, website)
-      LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
-    }
-
     fun open(context: Context, websites: ArrayList<Website>) {
       val intent = Intent(context, WebHeadContextActivity::class.java)
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

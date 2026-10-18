@@ -13,16 +13,15 @@ package arun.com.chromer.ui.settings
 
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.shared.Constants
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.events.Event
+import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +58,7 @@ class SettingsViewModel @Inject constructor(
   private val repository: UserPreferencesRepository,
   private val preferences: Preferences,
   private val tabsManager: TabsManager,
+  private val eventBus: EventBus,
 ) : ViewModel() {
 
   val values: StateFlow<SettingsValues> = repository.snapshot
@@ -84,9 +84,7 @@ class SettingsViewModel @Inject constructor(
     }
     if (key == SettingsKeyTable.WEB_HEADS_COLOR && value is Int) {
       // Heads on screen take the new colour at once, as they did from the old screen.
-      LocalBroadcastManager.getInstance(context).sendBroadcast(
-        Intent(Constants.ACTION_WEBHEAD_COLOR_SET).putExtra(Constants.EXTRA_KEY_WEBHEAD_COLOR, value),
-      )
+      eventBus.tryEmit(Event.WebHeadEvent.ColourChanged(value))
     }
   }
 

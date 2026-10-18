@@ -20,13 +20,10 @@
 
 package arun.com.chromer.bubbles.webheads.ui.context
 
-import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.content.Intent.EXTRA_TEXT
-import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
@@ -35,30 +32,31 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.IntentCompat
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.shared.Constants.ACTION_CLOSE_WEBHEAD_BY_URL
-import arun.com.chromer.shared.Constants.ACTION_EVENT_WEBHEAD_DELETED
-import arun.com.chromer.shared.Constants.ACTION_EVENT_WEBSITE_UPDATED
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.TEXT_SHARE_INTENT
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
+import arun.com.chromer.util.events.Event
+import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** Shows the open web heads in a bottom sheet over the current app. */
 @AndroidEntryPoint
 class WebHeadContextActivity : BaseActivity(), WebHeadContextActions {
-  private val webHeadsEventsReceiver = WebHeadEventsReceiver()
-
   @Inject
   lateinit var tabsManager: TabsManager
 
-  /** The sites on the sheet, kept in sync with the heads through the service's broadcasts. */
+  @Inject
+  lateinit var eventBus: EventBus
+
+  /** The sites on the sheet, kept in sync with the heads through the web head service's events. */
   internal val websites = mutableStateListOf<Website>()
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,40 +73,48 @@ class WebHeadContextActivity : BaseActivity(), WebHeadContextActions {
         WebHeadContextSheet(websites = websites, actions = this)
       }
     }
-    registerEventsReceiver()
+    collectEvents()
   }
 
-  private fun registerEventsReceiver() {
-    val filter = IntentFilter().apply {
-      addAction(ACTION_EVENT_WEBHEAD_DELETED)
-      addAction(ACTION_EVENT_WEBSITE_UPDATED)
+  /**
+   * Follows head removals and site updates from the web head service until the sheet is destroyed,
+   * also while it is behind another screen. lifecycleScope starts on Dispatchers.Main.immediate, so
+   * the collector subscribes before onCreate returns.
+   */
+  private fun collectEvents() {
+    lifecycleScope.launch {
+      eventBus.observe<Event.WebHeadEvent>().collect { event ->
+        when (event) {
+          is Event.WebHeadEvent.Closed -> {
+            websites.removeAll { it.url == event.url }
+            if (websites.isEmpty()) finish()
+          }
+          is Event.WebHeadEvent.WebsiteUpdated -> {
+            val index = websites.indexOfFirst { it.url == event.website.url }
+            if (index != -1) websites[index] = event.website
+          }
+          else -> Unit
+        }
+      }
     }
-    LocalBroadcastManager.getInstance(this).registerReceiver(webHeadsEventsReceiver, filter)
-  }
-
-  override fun onDestroy() {
-    super.onDestroy()
-    LocalBroadcastManager.getInstance(this).unregisterReceiver(webHeadsEventsReceiver)
   }
 
   override fun open(website: Website) {
     finish()
     tabsManager.openUrl(this, website, true, true, false, false, false)
     if (Preferences.get(this).webHeadsCloseOnOpen()) {
-      broadcastDeleteWebHead(website)
+      requestClose(website)
     }
   }
 
-  private fun broadcastDeleteWebHead(website: Website) {
-    val intent = Intent(ACTION_CLOSE_WEBHEAD_BY_URL).apply {
-      putExtra(EXTRA_KEY_WEBSITE, website)
-    }
-    LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+  /** Asks the web head service to close the head of [website]. */
+  private fun requestClose(website: Website) {
+    eventBus.tryEmit(Event.WebHeadEvent.CloseRequested(website.url))
   }
 
   override fun close(website: Website) {
     websites.removeAll { it.url == website.url }
-    broadcastDeleteWebHead(website)
+    requestClose(website)
     if (websites.isEmpty()) finish()
   }
 
@@ -156,22 +162,5 @@ class WebHeadContextActivity : BaseActivity(), WebHeadContextActions {
     val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
     cm.setPrimaryClip(clip)
     Toast.makeText(this, getString(R.string.copied) + " " + url, LENGTH_SHORT).show()
-  }
-
-  /** Receives head removals and site updates from the web head service. */
-  private inner class WebHeadEventsReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-      val website = IntentCompat.getParcelableExtra(intent, EXTRA_KEY_WEBSITE, Website::class.java) ?: return
-      when (intent.action) {
-        ACTION_EVENT_WEBHEAD_DELETED -> {
-          websites.removeAll { it.url == website.url }
-          if (websites.isEmpty()) finish()
-        }
-        ACTION_EVENT_WEBSITE_UPDATED -> {
-          val index = websites.indexOfFirst { it.url == website.url }
-          if (index != -1) websites[index] = website
-        }
-      }
-    }
   }
 }

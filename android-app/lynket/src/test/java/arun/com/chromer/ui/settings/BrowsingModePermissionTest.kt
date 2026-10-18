@@ -29,6 +29,7 @@ import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -73,7 +74,7 @@ class BrowsingModePermissionTest {
     runBlocking { repository.clearAll() }
     val application = RuntimeEnvironment.getApplication() as Application
     shadowOf(application).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
-    viewModel = SettingsViewModel(application, repository, preferences, mockk<TabsManager>(relaxed = true))
+    viewModel = SettingsViewModel(application, repository, preferences, mockk<TabsManager>(relaxed = true), EventBus())
     composeRule.setContent {
       val values by viewModel.values.collectAsStateWithLifecycle()
       val dialogs by viewModel.dialogs.collectAsStateWithLifecycle()
