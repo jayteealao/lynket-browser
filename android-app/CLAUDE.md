@@ -15,7 +15,7 @@ Lynket is an Android browser application that provides custom tabs functionality
 
 ### Prerequisites
 
-- JDK 17 or later. `gradle.properties` points `org.gradle.java.home` at the Android Studio JBR 21.
+- JetBrains Runtime 21 (Android Studio's bundled JBR qualifies). `gradle/gradle-daemon-jvm.properties` asks for it, and Gradle runs on a matching local JDK whatever `JAVA_HOME` names; it downloads none. Gradle finds JDKs in `JAVA_HOME`, the usual install folders, `~/.jdks` and `~/.gradle/jdks`, but not inside Android Studio; if it reports no match, add `org.gradle.java.installations.paths=<Android Studio>/jbr` to `~/.gradle/gradle.properties`. To change the version, run `./gradlew updateDaemonJvm --jvm-version=<n> --jvm-vendor=JETBRAINS`.
 - Android SDK with platform `android-37` (compileSdk) and build-tools 36.0.0 or later.
 
 ### Toolchain
@@ -23,7 +23,7 @@ Lynket is an Android browser application that provides custom tabs functionality
 - **Android Gradle Plugin**: 9.4.1, with AGP's built-in Kotlin (no `org.jetbrains.kotlin.android` plugin).
 - **Gradle**: 9.8.1 (wrapper).
 - **Kotlin**: 2.4.21. AGP 9 brings KGP 2.2.10, so the root `build.gradle.kts` puts KGP 2.4.21 and the KSP Gradle plugin on the `buildscript` classpath.
-- **KSP**: 2.3.12. Hilt 2.60.1, Room 3 (`androidx.room3` 3.0.3, Gradle plugin `androidx.room3`) and Moshi run on KSP. There is no kapt; `scripts/check-compose-only.sh` fails if kapt, the Kotlin Android plugin or an AGP opt-out flag comes back.
+- **KSP**: 2.3.12. Hilt 2.60.1 and Room 3 (`androidx.room3` 3.0.3, Gradle plugin `androidx.room3`) run on KSP. There is no kapt; `scripts/check-compose-only.sh` fails if kapt, the Kotlin Android plugin or an AGP opt-out flag comes back.
 - **gradle.properties**: AGP 9 defaults (non-transitive and final R class, optimized resource shrinking, Hilt's install-in check). Jetifier is off; no dependency needs it.
 - **SDK levels**: compileSdk 37 (Compose BOM 2026.09.00 / Compose UI 1.12 needs it), targetSdk 36, minSdk 24. Do not raise targetSdk to 37.
 - **Libraries**: Compose BOM 2026.09.00, Coil 3.6.3, Robolectric 4.17 (tests pin `sdk = [34]`), Roborazzi 1.76.0, Baseline Profile plugin and Macrobenchmark 1.5.0, ProfileInstaller 1.4.1.
@@ -39,6 +39,8 @@ Run from `android-app/`:
 - `./gradlew :disk-cache:testDebugUnitTest` - Run the disk cache journal tests
 - `./gradlew :lynket:assembleBenchmark :benchmark:assembleBenchmark` - Build the minified benchmark app and the benchmarks
 - `./gradlew :lynket:installDebug` - Install the debug build on a device
+- `./gradlew :lynket:lintDebug` - Lint; it fails on any issue not listed in `lynket/lint-baseline.xml`
+- `bash maestro/release/release-check.sh <serial> <dir>` - The minified release build on an emulator: signs a copy of the release APK with the SDK debug key, then checks a link in a Custom Tab, the reader through the Article tile and a web head through the Web heads tile, with no crash (`SKIP_BUILD=1` reuses the last `assembleRelease` output; stops if `arun.com.chromer` is already installed, and uninstalls its own install)
 - `./gradlew :lynket:generateBaselineProfile` - Regenerate the Baseline Profile on a connected device or emulator (API 33 or later) into `lynket/src/main/generated/baselineProfiles/`; commit both files
 - `bash maestro/charter/charter-check.sh <phone> <fold> <dir>` - The whole path of a user who updates from release 2.1.3: the update on the phone, a link through the intercept activity, a Chrome Custom Tab with the bottom bar, the Lynket options sheet, web heads through the permission explainer, the drag recording, a native bubble, History from the drawer (read against the database) and the 2.1.3 pinned shortcut; then the update, the drag recording and History on the fold. Each step writes PASS or FAIL to `charter.txt`
 - `bash maestro/upgrade/upgrade-check.sh <serial> <dir>` / `maestro/upgrade/tile-check.sh` - Device checks that settings and per-app rules survive an update from release 2.1.3 and that the web heads tile reaches every reader (debug build; it dumps both stores with the debug-only `StoreDumpReceiver`)
@@ -56,8 +58,20 @@ Run from `android-app/`:
 
 ### Build System
 
-- Gradle version catalog (`gradle/libs.versions.toml`) for dependency management.
+- Gradle version catalog (`gradle/libs.versions.toml`) for dependency management; no build file names a coordinate directly.
 - KSP for annotation processing; no kapt.
+- Every module locks its resolved versions in `gradle.lockfile`, and `gradle/verification-metadata.xml` holds a sha256 for every artifact the build downloads; Gradle fails the build on an artifact that is not listed.
+
+### Dependency changes
+
+After a change to the catalog or a module's dependencies, update the locks and the checksums in the same commit:
+
+1. `./gradlew :lynket:dependencies :disk-cache:dependencies :benchmark:dependencies :baselineprofile:dependencies --write-locks`
+2. `./gradlew --write-verification-metadata sha256 --continue help updateDaemonJvm :lynket:assembleDebug :lynket:assembleRelease :lynket:assembleBenchmark :lynket:assembleDebugAndroidTest :lynket:testDebugUnitTest :lynket:verifyRoborazziDebug :lynket:lintDebug :disk-cache:testDebugUnitTest :benchmark:assembleBenchmark :baselineprofile:assemble`, then review the `gradle/verification-metadata.xml` diff before committing it.
+
+The checksums cover the artifacts this Windows host resolves. AGP's aapt2 differs per operating system, so run the step 2 command once on a new host OS. Sources and javadoc jars (IDE downloads) are trusted by name.
+
+To accept the current lint issues on purpose, run `./gradlew :lynket:updateLintBaseline` and commit `lynket/lint-baseline.xml`.
 
 ## Module Structure
 
@@ -143,7 +157,7 @@ The app supports multiple browsing modes:
 
 - **AndroidX**: Core KTX, Browser (Custom Tabs), Lifecycle, Paging, Navigation 3, DataStore, Room 3, SwipeRefreshLayout (pull to refresh around the web view), Palette (website and app colours), ProfileInstaller
 - **Compose**: BOM 2026.09.00, Material 3
-- **Network**: OkHttp, Retrofit, Moshi
+- **Network**: OkHttp, through Coil's network fetcher (no direct use)
 - **Images**: Coil 3 (`coil`, `coil-compose`, `coil-network-okhttp`)
 - **Storage migration**: PaperDB 2.6, only for the one-time read of release 2.1.3's per-app rules
 
