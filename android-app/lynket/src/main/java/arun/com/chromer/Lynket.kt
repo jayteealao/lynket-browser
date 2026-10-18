@@ -21,7 +21,6 @@
 package arun.com.chromer
 
 import android.app.Application
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationManagerCompat
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
@@ -79,9 +78,5 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
 
   companion object {
     private const val OLD_APP_DETECTION_CHANNEL = "App detection service"
-
-    init {
-      AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
-    }
   }
 }

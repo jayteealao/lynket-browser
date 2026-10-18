@@ -30,12 +30,4 @@
     <item name="android:windowLightNavigationBar">true</item>
   </style>
 
-  <style name="AppTheme.Tutorial" parent="AppTheme.NoActionBar">
-    <item name="colorPrimary">@color/colorPrimary</item>
-    <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-    <item name="colorAccent">@color/colorAccent</item>
-    <item name="colorControlHighlight">@color/colorAccentLighter</item>​
-    <item name="android:navigationBarColor">@color/tutorialBackgrounColor</item>
-    <item name="android:windowLightNavigationBar">false</item>
-  </style>
 </resources>

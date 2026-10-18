@@ -29,7 +29,6 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.text.TextUtils
 import androidx.annotation.ColorInt
-import androidx.recyclerview.widget.DiffUtil
 import arun.com.chromer.data.history.model.HistoryTable
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.shared.Constants.NO_COLOR
@@ -186,17 +185,6 @@ class Website() : Parcelable {
 
             override fun newArray(size: Int): Array<Website?> {
                 return arrayOfNulls(size)
-            }
-        }
-
-        @JvmField
-        val DIFFER: DiffUtil.ItemCallback<Website> = object : DiffUtil.ItemCallback<Website>() {
-            override fun areItemsTheSame(oldItem: Website, newItem: Website): Boolean {
-                return oldItem.url == newItem.url
-            }
-
-            override fun areContentsTheSame(oldItem: Website, newItem: Website): Boolean {
-                return oldItem == newItem
             }
         }
 

@@ -33,10 +33,6 @@ android {
         versionName = "2.1.3"
 
         testInstrumentationRunner = "arun.com.chromer.HiltTestRunner" // Phase 1.1: Hilt test runner
-
-        vectorDrawables {
-            useSupportLibrary = true
-        }
     }
 
     compileOptions {
