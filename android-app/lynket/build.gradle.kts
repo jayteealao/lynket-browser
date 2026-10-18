@@ -92,7 +92,10 @@ android {
     }
 
     lint {
-        abortOnError = false
+        // Issues already in the code are listed in lint-baseline.xml; any new error fails the build.
+        // Accept the current issues again with ./gradlew :lynket:updateLintBaseline.
+        baseline = file("lint-baseline.xml")
+        abortOnError = true
         disable += "MissingTranslation"
     }
 

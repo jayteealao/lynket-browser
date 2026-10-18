@@ -1,0 +1,4145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.4.1" type="baseline" client="gradle" dependencies="false" name="AGP (9.4.1)" variant="all" version="9.4.1">
+
+    <issue
+        id="InlinedApi"
+        message="Field requires API level 34 (current min is 29): `android.content.pm.ServiceInfo#FOREGROUND_SERVICE_TYPE_SPECIAL_USE`"
+        errorLine1="      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0,"
+        errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/OverlayService.kt"
+            line="94"
+            column="59"/>
+    </issue>
+
+    <issue
+        id="InlinedApi"
+        message="Field requires API level 26 (current min is 24): `android.view.WindowManager.LayoutParams#TYPE_APPLICATION_OVERLAY`"
+        errorLine1="    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/overlay/OverlayWindow.kt"
+            line="44"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="KotlinNullnessAnnotation"
+        message="Do not use `@NotNull` in Kotlin; the nullability is already implied by the Kotlin type `Context` **not** ending with `?`"
+        errorLine1="    fun isOnline(@NotNull context: Context): Boolean {"
+        errorLine2="                 ~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="355"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="OldTargetApi"
+        message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the `android.os.Build.VERSION_CODES` javadoc for details."
+        errorLine1="        targetSdk = 36 // Set explicitly: AGP 9 defaults targetSdk to compileSdk"
+        errorLine2="        ~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="31"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.title = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_TITLE))"
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="246"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.title = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_TITLE))"
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="246"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.url = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_URL))"
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="247"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.url = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_URL))"
+        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="247"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.faviconUrl = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_FAVICON))"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="248"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.faviconUrl = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_FAVICON))"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="248"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.canonicalUrl = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_CANONICAL))"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="249"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.canonicalUrl = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_CANONICAL))"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="249"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.themeColor = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_COLOR))"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="250"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.themeColor = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_COLOR))"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="250"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.ampUrl = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_AMP))"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="251"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.ampUrl = cursor.getString(cursor.getColumnIndex(HistoryTable.COLUMN_AMP))"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="251"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.bookmarked = cursor.getInt(cursor.getColumnIndex(HistoryTable.COLUMN_BOOKMARKED)) == 1"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="252"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.bookmarked = cursor.getInt(cursor.getColumnIndex(HistoryTable.COLUMN_BOOKMARKED)) == 1"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="252"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.createdAt = cursor.getLong(cursor.getColumnIndex(HistoryTable.COLUMN_CREATED_AT))"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="253"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.createdAt = cursor.getLong(cursor.getColumnIndex(HistoryTable.COLUMN_CREATED_AT))"
+        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="253"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.count = cursor.getInt(cursor.getColumnIndex(HistoryTable.COLUMN_VISITED))"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="254"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="Range"
+        message="Value must be ≥ 0 but `getColumnIndex` can be -1"
+        errorLine1="            website.count = cursor.getInt(cursor.getColumnIndex(HistoryTable.COLUMN_VISITED))"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="254"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="TrimLambda"
+        message="The lambda argument (`{ query -> query &lt;= &apos; &apos; }`) is unnecessary"
+        errorLine1="    .map { it.trim { query -> query &lt;= &apos; &apos; } }"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/search/suggestion/SuggestionsEngine.kt"
+            line="54"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="InvalidManifestAttribute"
+        message="Attribute `theme` on `&lt;activity-alias>` `.activities.BrowserInterceptActivity` is invalid, and will be silently ignored. This attribute is always ignored on `&lt;activity-alias>`."
+        errorLine1="      android:theme=&quot;@style/Theme.AppCompat.Translucent&quot;>"
+        errorLine2="      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="149"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="RedundantLabel"
+        message="Redundant label can be removed"
+        errorLine1="      android:label=&quot;@string/app_name&quot;"
+        errorLine2="      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="123"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="RedundantLabel"
+        message="Redundant label can be removed"
+        errorLine1="      android:label=&quot;@string/app_name&quot;"
+        errorLine2="      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="141"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="RedundantLabel"
+        message="Redundant label can be removed"
+        errorLine1="      android:label=&quot;@string/app_name&quot;"
+        errorLine2="      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="163"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="RedundantLabel"
+        message="Redundant label can be removed"
+        errorLine1="      android:label=&quot;@string/app_name&quot;"
+        errorLine2="      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="179"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime than 2.10.0 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.10.0&quot;"
+        errorLine2="            ~~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="11"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.10.0 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.10.0&quot;"
+        errorLine2="            ~~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="11"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel than 2.10.0 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.10.0&quot;"
+        errorLine2="            ~~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="11"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.10.0 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.10.0&quot;"
+        errorLine2="            ~~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="11"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-navigation3 than 2.10.0 is available: 2.11.0"
+        errorLine1="lifecycle = &quot;2.10.0&quot;"
+        errorLine2="            ~~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="11"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-ktx than 1.15.0 is available: 1.19.1"
+        errorLine1="coreKtx = &quot;1.15.0&quot;"
+        errorLine2="          ~~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="15"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.appcompat:appcompat than 1.7.0 is available: 1.8.0"
+        errorLine1="appcompat = &quot;1.7.0&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="16"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.android.material:material than 1.12.0 is available: 1.14.0"
+        errorLine1="material = &quot;1.12.0&quot;"
+        errorLine2="           ~~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="17"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.browser:browser than 1.8.0 is available: 1.10.0"
+        errorLine1="browser = &quot;1.8.0&quot;"
+        errorLine2="          ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="18"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-lifecycle-viewmodel-compose than 1.3.0 is available: 1.4.0"
+        errorLine1="hiltLifecycleViewmodelCompose = &quot;1.3.0&quot;"
+        errorLine2="                                ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="22"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.paging:paging-common than 3.4.2 is available: 3.5.3"
+        errorLine1="paging = &quot;3.4.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="30"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.paging:paging-compose than 3.4.2 is available: 3.5.3"
+        errorLine1="paging = &quot;3.4.2&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="30"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test.ext:junit than 1.2.1 is available: 1.3.0"
+        errorLine1="junitVersion = &quot;1.2.1&quot;"
+        errorLine2="               ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="40"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test.espresso:espresso-core than 3.6.1 is available: 3.7.0"
+        errorLine1="espressoCore = &quot;3.6.1&quot;"
+        errorLine2="               ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="41"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.test.uiautomator:uiautomator than 2.3.0 is available: 2.4.0"
+        errorLine1="uiautomator = &quot;2.3.0&quot;"
+        errorLine2="              ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="48"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.swiperefreshlayout:swiperefreshlayout than 1.1.0 is available: 1.2.0"
+        errorLine1="swiperefreshlayout = &quot;1.1.0&quot;"
+        errorLine2="                     ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="53"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-coroutines-android than 1.9.0 is available: 1.11.0"
+        errorLine1="coroutines = &quot;1.9.0&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="25"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-coroutines-core than 1.9.0 is available: 1.11.0"
+        errorLine1="coroutines = &quot;1.9.0&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="25"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-coroutines-test than 1.9.0 is available: 1.11.0"
+        errorLine1="coroutines = &quot;1.9.0&quot;"
+        errorLine2="             ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="25"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of app.cash.turbine:turbine than 1.2.0 is available: 1.2.1"
+        errorLine1="turbine = &quot;1.2.0&quot;"
+        errorLine2="          ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="43"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of io.mockk:mockk than 1.13.13 is available: 1.14.11"
+        errorLine1="mockk = &quot;1.13.13&quot;"
+        errorLine2="        ~~~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="44"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of com.google.truth:truth than 1.4.4 is available: 1.4.5"
+        errorLine1="truth = &quot;1.4.4&quot;"
+        errorLine2="        ~~~~~~~">
+        <location
+            file="$HOME/Documents/dev/lynket-browser/android-app/gradle/libs.versions.toml"
+            line="45"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="  private fun history(data: PagingData&lt;HistoryListItem>, state: HistoryUiState = HistoryUiState()) = HistoryContent("
+        errorLine2="              ~~~~~~~">
+        <location
+            file="src/test/java/arun/com/chromer/screenshot/HistoryTabsGoldenTest.kt"
+            line="92"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="  private fun root() = SettingsRootContent(showDefaultBrowserCard = true, version = &quot;2.2.0&quot;, onBack = {}, onSetDefault = {}, onOpen = {})"
+        errorLine2="              ~~~~">
+        <location
+            file="src/test/java/arun/com/chromer/screenshot/SettingsGoldenTest.kt"
+            line="115"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="  private fun perApp(state: PerAppState) = PerAppContent(state, enabled = true, onBack = {}, onSearch = {}, onRefresh = {}, onMaster = {}, onBlacklist = { _, _ -> }, onIncognito = { _, _ -> })"
+        errorLine2="              ~~~~~~">
+        <location
+            file="src/test/java/arun/com/chromer/screenshot/SettingsGoldenTest.kt"
+            line="118"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="  private fun provider(state: ProviderSelectionUiState) ="
+        errorLine2="              ~~~~~~~~">
+        <location
+            file="src/test/java/arun/com/chromer/screenshot/SettingsGoldenTest.kt"
+            line="121"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="        val message = context.getString(if (secondary) R.string.secondary_browser_success else R.string.fav_share_success, app.label)"
+        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/settings/BrowsingOptionsScreen.kt"
+            line="120"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="              message = context.getString(R.string.history_removed),"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt"
+            line="154"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="              actionLabel = context.getString(R.string.undo),"
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt"
+            line="155"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="          is HistoryEvent.Cleared -> snackbar.showSnackbar(context.getString(R.string.deleted_items, event.count))"
+        errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt"
+            line="160"
+            column="60"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="          snackbar.showSnackbar(context.getString(if (event.on) R.string.per_apps_on else R.string.per_apps_off))"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/perapp/PerAppScreen.kt"
+            line="113"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="LocalContextResourcesRead"
+        message="Reading Resources using LocalContext.current.resources is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="  val resources = LocalContext.current.resources"
+        errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/browsing/BrowsingBars.kt"
+            line="72"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="PrivateResource"
+        message="Overriding `@string/state_on` which is marked as private in androidx.compose.ui:ui-android:1.12.1. If deliberate, use tools:override=&quot;true&quot;, otherwise pick a different name."
+        errorLine1="  &lt;string name=&quot;state_on&quot;>On&lt;/string>"
+        errorLine2="                ~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="454"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="PrivateResource"
+        message="Overriding `@string/state_off` which is marked as private in androidx.compose.ui:ui-android:1.12.1. If deliberate, use tools:override=&quot;true&quot;, otherwise pick a different name."
+        errorLine1="  &lt;string name=&quot;state_off&quot;>Off&lt;/string>"
+        errorLine2="                ~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="455"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="DiscouragedApi"
+        message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
+        errorLine1="            val appCompatId = resources.getIdentifier(&quot;colorPrimary&quot;, &quot;attr&quot;, packageName)"
+        errorLine2="                                        ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/customtabs/dynamictoolbar/AppColorExtractorJob.kt"
+            line="64"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="DiscouragedApi"
+        message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
+        errorLine1="            val lollipopAttrId = resources.getIdentifier(&quot;android:colorPrimary&quot;, &quot;attr&quot;, packageName)"
+        errorLine2="                                           ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/customtabs/dynamictoolbar/AppColorExtractorJob.kt"
+            line="74"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to users of `BrowsingViewModel`"
+        errorLine1="@TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/BrowsingViewModel.kt"
+            line="58"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.M)` instead of `@TargetApi` to propagate the requirement to callers of `getCustomTabSupportingPackages`"
+        errorLine1="        @TargetApi(Build.VERSION_CODES.M)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/customtabs/CustomTabs.kt"
+            line="530"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to callers of `reOrderTabByUrl`"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="187"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to callers of `finishTabByUrl`"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="199"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to callers of `openArticle`"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="310"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to callers of `openBrowsingTab`"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="344"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to callers of `openNewTab`"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="462"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to callers of `getActiveTabs`"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="485"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to callers of `closeAllTabs`"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="510"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to callers of `getTaskInfoFromTask`"
+        errorLine1="    @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/DocumentUtils.kt"
+            line="35"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.M)` instead of `@TargetApi` to propagate the requirement to callers of `onCreate`"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.M)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/shareintercept/ShareInterceptActivity.kt"
+            line="58"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to callers of `canReadUsageStats`"
+        errorLine1="    @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="181"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(Build.VERSION_CODES.M)` instead of `@TargetApi` to propagate the requirement to callers of `openDrawOverlaySettings`"
+        errorLine1="    @TargetApi(Build.VERSION_CODES.M)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="337"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseRequiresApi"
+        message="Use `@RequiresApi(21)` instead of `@TargetApi` to propagate the requirement to users of `ShadowOutline`"
+        errorLine1="    @TargetApi(21)"
+        errorLine2="    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="404"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="StringFormatInvalid"
+        message="Incorrect formatting string `changelog_text`; missing conversion character in &apos;`% s`&apos;?"
+        errorLine1="        &lt;string name=&quot;changelog_text&quot;>&lt;![CDATA["
+        errorLine2="        ^">
+        <location
+            file="src/main/res/values/changelog.xml"
+            line="22"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;items&quot;): This should probably be a plural rather than a string"
+        errorLine1="  &lt;string name=&quot;deleted_items&quot;>%1$d items deleted.&lt;/string>"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="243"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;open&quot;): This should probably be a plural rather than a string"
+        errorLine1="  &lt;string name=&quot;active_tabs_count&quot;>%1$d open tabs&lt;/string>"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="376"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="TrustAllX509TrustManager"
+        message="`checkClientTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers">
+        <location
+            file="libs/crux-2.0.1-all.jar"/>
+    </issue>
+
+    <issue
+        id="TrustAllX509TrustManager"
+        message="`checkServerTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers">
+        <location
+            file="libs/crux-2.0.1-all.jar"/>
+    </issue>
+
+    <issue
+        id="DataExtractionRules"
+        message="The attribute `android:allowBackup` is deprecated from Android 12 and higher and may be removed in future versions. Consider adding the attribute `android:dataExtractionRules` specifying an `@xml` resource which configures cloud backups and device transfers on Android 12 and higher."
+        errorLine1="    android:allowBackup=&quot;false&quot;"
+        errorLine2="                         ~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="43"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="QueryAllPackagesPermission"
+        message="A `&lt;queries>` declaration should generally be used instead of QUERY_ALL_PACKAGES; see https://g.co/dev/packagevisibility for details"
+        errorLine1="  &lt;uses-permission android:name=&quot;android.permission.QUERY_ALL_PACKAGES&quot; />"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="39"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 24"
+        errorLine1="@RequiresApi(api = Build.VERSION_CODES.N)"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/amp/qs/AmpTile.kt"
+            line="30"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 24"
+        errorLine1="    tools:targetApi=&quot;n&quot;>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="51"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="      tools:targetApi=&quot;lollipop&quot; />"
+        errorLine2="      ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="245"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 24"
+        errorLine1="@RequiresApi(api = Build.VERSION_CODES.N)"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/article/qs/ArticleTile.kt"
+            line="30"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="@TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/BrowsingViewModel.kt"
+            line="58"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 23"
+        errorLine1="        @TargetApi(Build.VERSION_CODES.M)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/customtabs/CustomTabs.kt"
+            line="530"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="187"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="199"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="310"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="344"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="462"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="485"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="510"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DocumentUtils.kt"
+            line="23"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="    @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/DocumentUtils.kt"
+            line="35"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DocumentUtils.kt"
+            line="41"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 24"
+        errorLine1="@RequiresApi(api = Build.VERSION_CODES.N)"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/incognito/IncognitoTile.kt"
+            line="34"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 24"
+        errorLine1="@RequiresApi(Build.VERSION_CODES.N)"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/shared/base/PreferenceQuickSettingsTile.kt"
+            line="32"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 23"
+        errorLine1="  @TargetApi(Build.VERSION_CODES.M)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/shareintercept/ShareInterceptActivity.kt"
+            line="58"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="  @RequiresApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/compat/TaskDescriptionCompat.kt"
+            line="40"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="    @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="181"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 23"
+        errorLine1="    @TargetApi(Build.VERSION_CODES.M)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="337"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 21"
+        errorLine1="    @TargetApi(21)"
+        errorLine2="    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="404"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 24"
+        errorLine1="@RequiresApi(api = Build.VERSION_CODES.N)"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/qs/WebHeadTile.kt"
+            line="34"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="StaticFieldLeak"
+        message="This field leaks a context object"
+        errorLine1="  private val context: Context,"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/perapp/PerAppViewModel.kt"
+            line="69"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="LaunchActivityFromNotification"
+        message="Notifications should only launch a `BroadcastReceiver` from notification actions (`addAction`)"
+        errorLine1="      .setContentIntent(contentIntent)"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/WebHeadService.kt"
+            line="201"
+            column="8"/>
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/WebHeadService.kt"
+            line="189"
+            column="25"
+            message="This `BroadcastReceiver` intent is launched from a notification; this is discouraged except as notification actions"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.chromer_header_small` appears to be unused">
+        <location
+            file="src/main/res/drawable-nodpi/chromer_header_small.png"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.colorPrimaryDarker` appears to be unused"
+        errorLine1="  &lt;color name=&quot;colorPrimaryDarker&quot;>#283593&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="24"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.colorAccentHighlight` appears to be unused"
+        errorLine1="  &lt;color name=&quot;colorAccentHighlight&quot;>#42FF4081&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="26"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.colorAccentDarker` appears to be unused"
+        errorLine1="  &lt;color name=&quot;colorAccentDarker&quot;>#AD1457&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="28"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.preference_fallback_accent_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;preference_fallback_accent_color&quot;>@color/accent&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="30"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.card_background_light` appears to be unused"
+        errorLine1="  &lt;color name=&quot;card_background_light&quot;>#EEEEEE&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="37"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.material_dark_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;material_dark_color&quot;>#212121&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="38"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.material_dark_light` appears to be unused"
+        errorLine1="  &lt;color name=&quot;material_dark_light&quot;>#757575&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="39"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.android_green` appears to be unused"
+        errorLine1="  &lt;color name=&quot;android_green&quot;>#a4c639&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="40"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.donate_green` appears to be unused"
+        errorLine1="  &lt;color name=&quot;donate_green&quot;>#4CAF50&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="41"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.coffee_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;coffee_color&quot;>#795548&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="42"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.lunch_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;lunch_color&quot;>#FF9800&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="43"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.premium_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;premium_color&quot;>#8BC34A&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="44"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.google_plus` appears to be unused"
+        errorLine1="  &lt;color name=&quot;google_plus&quot;>#dc4e41&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="45"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.twitter` appears to be unused"
+        errorLine1="  &lt;color name=&quot;twitter&quot;>#55acee&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="46"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.linkedin` appears to be unused"
+        errorLine1="  &lt;color name=&quot;linkedin&quot;>#0077b5&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="47"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.play_store_green` appears to be unused"
+        errorLine1="  &lt;color name=&quot;play_store_green&quot;>#0f9d58&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="48"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.accent_icon_no_focus` appears to be unused"
+        errorLine1="  &lt;color name=&quot;accent_icon_no_focus&quot;>#616161&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="49"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.error` appears to be unused"
+        errorLine1="  &lt;color name=&quot;error&quot;>#DD2C00&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="51"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.remove_web_head_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;remove_web_head_color&quot;>#ff1744&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="52"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.shadow_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;shadow_color&quot;>#60000000&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="53"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.android_10_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;android_10_color&quot;>#30DD81&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="54"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.primary_text_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;primary_text_color&quot;>@color/material_dark_color&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="56"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.secondary_text_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;secondary_text_color&quot;>#4c4c4c&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="57"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.material_grey_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;material_grey_color&quot;>#727272&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="58"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.tutorialBackgrounColor` appears to be unused"
+        errorLine1="  &lt;color name=&quot;tutorialBackgrounColor&quot;>#20232C&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="59"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.home_tabs_icon_color` appears to be unused"
+        errorLine1="  &lt;color name=&quot;home_tabs_icon_color&quot;>#266DD3&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="61"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.accent` appears to be unused"
+        errorLine1="  &lt;color name=&quot;accent&quot;>@color/colorAccent&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="65"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_blue_500` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_blue_500&quot;>#2196F3&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="67"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_green_500` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_green_500&quot;>#4CAF50&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="68"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_green_700` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_green_700&quot;>#388E3C&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="69"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_grey_600` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_grey_600&quot;>#757575&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="71"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_grey_700` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_grey_700&quot;>#616161&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="72"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_light_blue_A700` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_light_blue_A700&quot;>#0091EA&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="74"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_light_cards` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_light_cards&quot;>#FFFFFF&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="75"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_light_dividers` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_light_dividers&quot;>#1F000000&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="76"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_orange_500` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_orange_500&quot;>#FF9800&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="77"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.md_red_500` appears to be unused"
+        errorLine1="  &lt;color name=&quot;md_red_500&quot;>#F44336&lt;/color>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="78"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.activity_horizontal_margin` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;activity_horizontal_margin&quot;>10dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="23"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.activity_horizontal_margin_less` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;activity_horizontal_margin_less&quot;>5dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="24"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.activity_vertical_margin_top` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;activity_vertical_margin_top&quot;>10dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="25"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.activity_vertical_margin_bottom_fab` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;activity_vertical_margin_bottom_fab&quot;>80dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="26"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.fab_margin` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;fab_margin&quot;>16dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="27"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.card_margin` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;card_margin&quot;>16dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="28"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.arun_width` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;arun_width&quot;>48dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="29"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.arun_height` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;arun_height&quot;>48dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="30"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.material_search_margin_bottom` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;material_search_margin_bottom&quot;>8dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="31"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.material_search_margin_top` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;material_search_margin_top&quot;>8dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="32"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.web_head_size_normal` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;web_head_size_normal&quot;>76dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="33"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.web_head_size_small` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;web_head_size_small&quot;>66dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="34"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.web_head_shadow_radius` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;web_head_shadow_radius&quot;>2.5dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="35"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.web_head_shadow_dx` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;web_head_shadow_dx&quot;>0.1dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="36"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.web_head_shadow_dy` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;web_head_shadow_dy&quot;>1.5dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="37"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.remove_head_size` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;remove_head_size&quot;>92dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="38"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.remove_head_shadow_radius` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;remove_head_shadow_radius&quot;>3dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="39"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.remove_head_shadow_dx` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;remove_head_shadow_dx&quot;>0dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="40"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.remove_head_shadow_dy` appears to be unused"
+        errorLine1="  &lt;dimen name=&quot;remove_head_shadow_dy&quot;>1dp&lt;/dimen>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="41"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_arrow_down` appears to be unused"
+        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_arrow_down.xml"
+            line="21"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_clear_all_24dp` appears to be unused"
+        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_clear_all_24dp.xml"
+            line="21"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_hamburger` appears to be unused"
+        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_hamburger.xml"
+            line="21"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_history_24dp` appears to be unused"
+        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_history_24dp.xml"
+            line="21"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_home_24dp` appears to be unused"
+        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_home_24dp.xml"
+            line="21"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_launch_white_24dp` appears to be unused"
+        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_launch_white_24dp.xml"
+            line="21"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_open_in_browser_36dp` appears to be unused"
+        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_open_in_browser_36dp.xml"
+            line="21"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_product_icon` appears to be unused">
+        <location
+            file="src/main/res/drawable-hdpi/ic_product_icon.png"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_settings_24dp` appears to be unused"
+        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_settings_24dp.xml"
+            line="21"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.launch_screen` appears to be unused"
+        errorLine1="&lt;layer-list xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/launch_screen.xml"
+            line="21"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.lynket_drawer_image` appears to be unused">
+        <location
+            file="src/main/res/drawable-nodpi/lynket_drawer_image.png"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.rounded_corners` appears to be unused"
+        errorLine1="&lt;shape xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/rounded_corners.xml"
+            line="20"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.custom_tab_provider_not_found` appears to be unused"
+        errorLine1="  &lt;string name=&quot;custom_tab_provider_not_found&quot;>Compatible custom tab provider not found&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="51"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.custom_tab_provider_not_found_expln` appears to be unused"
+        errorLine1="  &lt;string name=&quot;custom_tab_provider_not_found_expln&quot;>Lynket requires you to have any Custom tab compatible browser on your phone. Currently there are no browsers on your phone that supports it. Would you like to install Google Chrome (Free) from play store? If you already have it, then please update it to latest version.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="52"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.custom_tab_provider_not_found_dialog_content` appears to be unused"
+        errorLine1="  &lt;string name=&quot;custom_tab_provider_not_found_dialog_content&quot;>&lt;![CDATA[Could not find compatible custom tab browser on your phone. Google Chrome (Free) is recommended. You can still view webpages within Lynket and use Article mode, but for the best experience, a custom tab provider is highly recommended. Would you like to install now?]]&gt;&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="53"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.help_chromer_grow` appears to be unused"
+        errorLine1="  &lt;string name=&quot;help_chromer_grow&quot;>Help Lynket grow!&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="57"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.couldnt_load_price` appears to be unused"
+        errorLine1="  &lt;string name=&quot;couldnt_load_price&quot;>Couldn\&apos;t load price&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="69"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.coffee` appears to be unused"
+        errorLine1="  &lt;string name=&quot;coffee&quot;>Coffee&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="70"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.lunch` appears to be unused"
+        errorLine1="  &lt;string name=&quot;lunch&quot;>Lunch&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="71"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.premium_donation` appears to be unused"
+        errorLine1="  &lt;string name=&quot;premium_donation&quot;>Premium Donation&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="72"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.how_to_use` appears to be unused"
+        errorLine1="  &lt;string name=&quot;how_to_use&quot;>How to use this?&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="79"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.intro_6` appears to be unused"
+        errorLine1="  &lt;string name=&quot;intro_6&quot;>Just set Lynket as your default browser, Lynket will display the link in a non-intrusive way. Or choose Lynket when needed.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="80"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.join_google_plus` appears to be unused"
+        errorLine1="  &lt;string name=&quot;join_google_plus&quot;>Join Google+ Community&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="83"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.share_ideas` appears to be unused"
+        errorLine1="  &lt;string name=&quot;share_ideas&quot;>Share your ideas!&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="84"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.support_development` appears to be unused"
+        errorLine1="  &lt;string name=&quot;support_development&quot;>Support Development&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="85"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.consider_donation` appears to be unused"
+        errorLine1="  &lt;string name=&quot;consider_donation&quot;>Consider a donation&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="86"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.added` appears to be unused"
+        errorLine1="  &lt;string name=&quot;added&quot;>Added&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="92"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.keep_chrome_warmedup` appears to be unused"
+        errorLine1="  &lt;string name=&quot;keep_chrome_warmedup&quot;>Keep your browser in memory for faster launch&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="101"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.warmup_browser` appears to be unused"
+        errorLine1="  &lt;string name=&quot;warmup_browser&quot;>Warm up browser&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="102"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.pre_fetch_content` appears to be unused"
+        errorLine1="  &lt;string name=&quot;pre_fetch_content&quot;>Prefetch content&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="105"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.pre_fetch_desc` appears to be unused"
+        errorLine1="  &lt;string name=&quot;pre_fetch_desc&quot;>Scan your screen for links and load them in background for instant launch&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="106"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.accessibility_description` appears to be unused"
+        errorLine1="  &lt;string name=&quot;accessibility_description&quot;>This service will be used by Lynket to scan text links on your screen and load them in the background. No other information is processed by Lynket. You can still use Lynket in light mode if you choose to not grant this. For more information, launch Lynket app.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="107"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.accessibility_dialog_title` appears to be unused"
+        errorLine1="  &lt;string name=&quot;accessibility_dialog_title&quot;>Accessibility permission required&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="108"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.accessibility_dialog_desc` appears to be unused"
+        errorLine1="  &lt;string name=&quot;accessibility_dialog_desc&quot;>To allow Lynket to scan for links in any app, it requires you to grant accessibility service permission. Please grant accessibility permission in the next screen, after which you can enable this option and enjoy quick launches.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="109"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.open_settings` appears to be unused"
+        errorLine1="  &lt;string name=&quot;open_settings&quot;>Open Settings&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="110"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.only_on_wifi` appears to be unused"
+        errorLine1="  &lt;string name=&quot;only_on_wifi&quot;>Scan only on Wi-Fi&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="111"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.show_notification` appears to be unused"
+        errorLine1="  &lt;string name=&quot;show_notification&quot;>Show notification when a link is prefetched&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="112"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.default_provider_success` appears to be unused"
+        errorLine1="  &lt;string name=&quot;default_provider_success&quot;>%1$s will be used to provide Custom Tabs!&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="119"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.open_source_contributions` appears to be unused"
+        errorLine1="  &lt;string name=&quot;open_source_contributions&quot;>Open source stuff&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="133"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.overlay_permission_content` appears to be unused"
+        errorLine1="  &lt;string name=&quot;overlay_permission_content&quot;>To draw the web heads on screen, screen overlay permission needs to be granted. Would you like to grant it now?&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="141"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.webheads_intro_1` appears to be unused"
+        errorLine1="  &lt;string name=&quot;webheads_intro_1&quot;>When you open a link in any app, a floating bubble called web head will be created on screen and Lynket will attempt to prefetch the link.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="142"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.webheads_intro_2_new` appears to be unused"
+        errorLine1="  &lt;string name=&quot;webheads_intro_2_new&quot;>On opening multiple links, these web heads will automatically stack on each other. Long press on web head to access the context menu.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="143"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.webheads_intro_3` appears to be unused"
+        errorLine1="  &lt;string name=&quot;webheads_intro_3&quot;>When you start dragging a web head, a trash will be shown. Drop on this trash to delete the web head.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="144"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.webheads_intro_4_lolli` appears to be unused"
+        errorLine1="  &lt;string name=&quot;webheads_intro_4_lolli&quot;>Aggressive background loading will load the page in background while you continue to use the app you are in. \n &lt;b>A flicker of opening the tab might appear. This is intentional and not a bug.&lt;/b>&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="145"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.webheads_intro_4` appears to be unused"
+        errorLine1="  &lt;string name=&quot;webheads_intro_4&quot;>Lynket prioritizes the last opened link and pre-fetches it. The recommended method is to click the web heads one by one from top to bottom. Enabling close web heads on launch wil make this seamless.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="146"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.become_a_tester` appears to be unused"
+        errorLine1="  &lt;string name=&quot;become_a_tester&quot;>Become a tester&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="151"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.join_beta_content` appears to be unused"
+        errorLine1="  &lt;string name=&quot;join_beta_content&quot;>Beta releases are experimental builds that has the latest features but has few bugs. You can contribute to the development by joining as tester and then reporting bugs you face in the Google+ Community. \n\nPlease make sure you have joined the Google+ community, and then click the become a tester button to go to Google Play testing link. \n\nNOTE: You have to join the community to become a tester.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="152"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.revoke_accessibility_permission` appears to be unused"
+        errorLine1="  &lt;string name=&quot;revoke_accessibility_permission&quot;>You can now revoke Lynket\&apos;s accessibility service permission.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="156"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.last_fetched_urls` appears to be unused"
+        errorLine1="  &lt;string name=&quot;last_fetched_urls&quot;>Last fetched urls&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="157"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.add_home_screen_begun` appears to be unused"
+        errorLine1="  &lt;string name=&quot;add_home_screen_begun&quot;>Shortcut will be added shortly&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="164"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.options` appears to be unused"
+        errorLine1="  &lt;string name=&quot;options&quot;>Options&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="169"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.customize` appears to be unused"
+        errorLine1="  &lt;string name=&quot;customize&quot;>Customize&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="170"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.additional_preferences` appears to be unused"
+        errorLine1="  &lt;string name=&quot;additional_preferences&quot;>Additional&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="175"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.notifications` appears to be unused"
+        errorLine1="  &lt;string name=&quot;notifications&quot;>Notifications&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="176"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.changelog_skipped` appears to be unused"
+        errorLine1="  &lt;string name=&quot;changelog_skipped&quot;>Changelog skipped due to an error&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="179"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.thank_you` appears to be unused"
+        errorLine1="  &lt;string name=&quot;thank_you&quot;>Thank you very much!&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="190"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.save_time` appears to be unused"
+        errorLine1="  &lt;string name=&quot;save_time&quot;>Save time&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="191"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.multiple_links` appears to be unused"
+        errorLine1="  &lt;string name=&quot;multiple_links&quot;>Multiple links&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="192"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.available_actions` appears to be unused"
+        errorLine1="  &lt;string name=&quot;available_actions&quot;>Available actions&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="202"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.title_activity_settings` appears to be unused"
+        errorLine1="  &lt;string name=&quot;title_activity_settings&quot;>Settings&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="215"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.title_activity_browsing_mode` appears to be unused"
+        errorLine1="  &lt;string name=&quot;title_activity_browsing_mode&quot;>Browsing mode&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="219"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.title_activity_look_and_feel` appears to be unused"
+        errorLine1="  &lt;string name=&quot;title_activity_look_and_feel&quot;>Look and feel&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="233"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.title_activity_browsing_options` appears to be unused"
+        errorLine1="  &lt;string name=&quot;title_activity_browsing_options&quot;>Browsing options&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="235"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.more` appears to be unused"
+        errorLine1="  &lt;string name=&quot;more&quot;>More&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="241"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.recents_intro` appears to be unused"
+        errorLine1="  &lt;string name=&quot;recents_intro&quot;>Recently opened links will appear here&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="247"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.more_menu` appears to be unused"
+        errorLine1="  &lt;string name=&quot;more_menu&quot;>More&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="252"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.no_items_present` appears to be unused"
+        errorLine1="  &lt;string name=&quot;no_items_present&quot;>No items present.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="258"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.enable_history` appears to be unused"
+        errorLine1="  &lt;string name=&quot;enable_history&quot;>History enabled&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="260"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.app_detection_service` appears to be unused"
+        errorLine1="  &lt;string name=&quot;app_detection_service&quot;>App detection service&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="269"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.warning` appears to be unused"
+        errorLine1="  &lt;string name=&quot;warning&quot;>Warning&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="275"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.bottom_bar_crash_warning` appears to be unused"
+        errorLine1="  &lt;string name=&quot;bottom_bar_crash_warning&quot;>Certain recent versions of Chrome might force close when Bottom Bar is enabled. If such an issue exists, please disable Bottom Bar until Chrome is patched.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="276"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.no_active_tabs` appears to be unused"
+        errorLine1="  &lt;string name=&quot;no_active_tabs&quot;>No active tabs.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="284"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.plurals.active_tabs` appears to be unused"
+        errorLine1="  &lt;plurals name=&quot;active_tabs&quot;>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="285"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.article_bullet_point` appears to be unused"
+        errorLine1="  &lt;string name=&quot;article_bullet_point&quot; translatable=&quot;false&quot;>•&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="293"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.keywords` appears to be unused"
+        errorLine1="  &lt;string name=&quot;keywords&quot;>Keywords&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="294"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feature_requires_lollipop` appears to be unused"
+        errorLine1="  &lt;string name=&quot;feature_requires_lollipop&quot;>This feature requires Android Lollipop&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="295"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.article_loading_failed` appears to be unused"
+        errorLine1="  &lt;string name=&quot;article_loading_failed&quot;>Could not extract article.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="296"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.webViewNotRecommended` appears to be unused"
+        errorLine1="  &lt;string name=&quot;webViewNotRecommended&quot;>For your Android version, using WebView is not recommended due to stability and security concerns.&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="306"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.tips_description` appears to be unused"
+        errorLine1="  &lt;string name=&quot;tips_description&quot;>See tips to get the best out of Lynket&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="321"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.status` appears to be unused"
+        errorLine1="  &lt;string name=&quot;status&quot;>Status&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="332"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.pages` appears to be unused"
+        errorLine1="  &lt;string name=&quot;pages&quot;>Pages&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="333"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.pick_search_engines` appears to be unused"
+        errorLine1="  &lt;string name=&quot;pick_search_engines&quot;>Pick search engine&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="334"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.bubble_notification_channel_name` appears to be unused"
+        errorLine1="  &lt;string name=&quot;bubble_notification_channel_name&quot;>Bubbles notification channel&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="335"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.bubble_notification_channel_description` appears to be unused"
+        errorLine1="  &lt;string name=&quot;bubble_notification_channel_description&quot;>Channel for showing bubbles&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="336"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.AppTheme_AppBarOverlay` appears to be unused"
+        errorLine1="  &lt;style name=&quot;AppTheme.AppBarOverlay&quot; parent=&quot;ThemeOverlay.AppCompat.Dark.ActionBar&quot; />"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="35"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.AppTheme_PopupOverlay` appears to be unused"
+        errorLine1="  &lt;style name=&quot;AppTheme.PopupOverlay&quot; parent=&quot;ThemeOverlay.AppCompat.Light&quot; />"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="37"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.AppTheme_Tutorial` appears to be unused"
+        errorLine1="  &lt;style name=&quot;AppTheme.Tutorial&quot; parent=&quot;AppTheme.NoActionBar&quot;>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="39"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.MaterialButtonStyle` appears to be unused"
+        errorLine1="  &lt;style name=&quot;MaterialButtonStyle&quot; parent=&quot;Widget.AppCompat.Button.Colored&quot; />"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="46"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.Widget_CardContent` appears to be unused"
+        errorLine1="  &lt;style name=&quot;Widget.CardContent&quot; parent=&quot;android:Widget&quot;>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="48"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.Widget_CardContent_Small` appears to be unused"
+        errorLine1="  &lt;style name=&quot;Widget.CardContent.Small&quot; parent=&quot;android:Widget&quot;>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="57"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.Preference_Headers` appears to be unused"
+        errorLine1="  &lt;style name=&quot;Preference.Headers&quot; parent=&quot;android:Widget.TextView&quot;>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="66"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.Preference_TextAppearanceMaterialBody2` appears to be unused"
+        errorLine1="  &lt;style name=&quot;Preference_TextAppearanceMaterialBody2&quot;>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="113"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.FullWidthCard` appears to be unused"
+        errorLine1="  &lt;style name=&quot;FullWidthCard&quot;>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="120"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.FeedBorderlessButton` appears to be unused"
+        errorLine1="  &lt;style name=&quot;FeedBorderlessButton&quot;>"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="129"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="IconColors"
+        message="Action Bar icons should use a single gray color (`#333333` for light themes (with 60%/30% opacity for enabled/disabled), and `#FFFFFF` with opacity 80%/30% for dark themes">
+        <location
+            file="src/main/res/drawable-hdpi/ic_action_amp_icon.png"/>
+    </issue>
+
+    <issue
+        id="IconColors"
+        message="Action Bar icons should use a single gray color (`#333333` for light themes (with 60%/30% opacity for enabled/disabled), and `#FFFFFF` with opacity 80%/30% for dark themes">
+        <location
+            file="src/main/res/drawable-mdpi/ic_action_amp_icon.png"/>
+    </issue>
+
+    <issue
+        id="IconColors"
+        message="Action Bar icons should use a single gray color (`#333333` for light themes (with 60%/30% opacity for enabled/disabled), and `#FFFFFF` with opacity 80%/30% for dark themes">
+        <location
+            file="src/main/res/drawable-xhdpi/ic_action_amp_icon.png"/>
+    </issue>
+
+    <issue
+        id="IconColors"
+        message="Action Bar icons should use a single gray color (`#333333` for light themes (with 60%/30% opacity for enabled/disabled), and `#FFFFFF` with opacity 80%/30% for dark themes">
+        <location
+            file="src/main/res/drawable-xxhdpi/ic_action_amp_icon.png"/>
+    </issue>
+
+    <issue
+        id="IconColors"
+        message="Action Bar icons should use a single gray color (`#333333` for light themes (with 60%/30% opacity for enabled/disabled), and `#FFFFFF` with opacity 80%/30% for dark themes">
+        <location
+            file="src/main/res/drawable-xxxhdpi/ic_action_amp_icon.png"/>
+    </issue>
+
+    <issue
+        id="IconDipSize"
+        message="The image `ic_add.png` varies significantly in its density-independent (dip) size across the various density versions: drawable-hdpi/ic_add.png: 16x25 dp (24x38 px), drawable-mdpi/ic_add.png: 16x25 dp (16x25 px), drawable-xhdpi/ic_add.png: 16x25 dp (32x50 px), drawable-xxhdpi/ic_add.png: 24x24 dp (72x72 px)">
+        <location
+            file="src/main/res/drawable-xhdpi/ic_add.png"/>
+        <location
+            file="src/main/res/drawable-mdpi/ic_add.png"/>
+        <location
+            file="src/main/res/drawable-hdpi/ic_add.png"/>
+        <location
+            file="src/main/res/drawable-xxhdpi/ic_add.png"/>
+    </issue>
+
+    <issue
+        id="IconDipSize"
+        message="The image `ic_chromer_notification.png` varies significantly in its density-independent (dip) size across the various density versions: drawable-hdpi/ic_chromer_notification.png: 16x25 dp (24x38 px), drawable-mdpi/ic_chromer_notification.png: 16x25 dp (16x25 px), drawable-xhdpi/ic_chromer_notification.png: 16x25 dp (32x50 px), drawable-xxhdpi/ic_chromer_notification.png: 24x24 dp (72x72 px)">
+        <location
+            file="src/main/res/drawable-xhdpi/ic_chromer_notification.png"/>
+        <location
+            file="src/main/res/drawable-mdpi/ic_chromer_notification.png"/>
+        <location
+            file="src/main/res/drawable-hdpi/ic_chromer_notification.png"/>
+        <location
+            file="src/main/res/drawable-xxhdpi/ic_chromer_notification.png"/>
+    </issue>
+
+    <issue
+        id="IconDipSize"
+        message="The image `ic_list.png` varies significantly in its density-independent (dip) size across the various density versions: drawable-hdpi/ic_list.png: 16x25 dp (24x38 px), drawable-mdpi/ic_list.png: 16x25 dp (16x25 px), drawable-xhdpi/ic_list.png: 16x25 dp (32x50 px), drawable-xxhdpi/ic_list.png: 24x24 dp (72x72 px)">
+        <location
+            file="src/main/res/drawable-xhdpi/ic_list.png"/>
+        <location
+            file="src/main/res/drawable-mdpi/ic_list.png"/>
+        <location
+            file="src/main/res/drawable-hdpi/ic_list.png"/>
+        <location
+            file="src/main/res/drawable-xxhdpi/ic_list.png"/>
+    </issue>
+
+    <issue
+        id="IconDuplicates"
+        message="The following unrelated icon files have identical contents: ic_launcher.png, ic_launcher_round.png">
+        <location
+            file="src/main/res/mipmap-hdpi/ic_launcher_round.png"/>
+        <location
+            file="src/main/res/mipmap-hdpi/ic_launcher.png"/>
+    </issue>
+
+    <issue
+        id="IconDuplicates"
+        message="The following unrelated icon files have identical contents: ic_launcher.png, ic_launcher_round.png">
+        <location
+            file="src/main/res/mipmap-mdpi/ic_launcher_round.png"/>
+        <location
+            file="src/main/res/mipmap-mdpi/ic_launcher.png"/>
+    </issue>
+
+    <issue
+        id="IconDuplicates"
+        message="The following unrelated icon files have identical contents: ic_launcher.png, ic_launcher_round.png">
+        <location
+            file="src/main/res/mipmap-xhdpi/ic_launcher_round.png"/>
+        <location
+            file="src/main/res/mipmap-xhdpi/ic_launcher.png"/>
+    </issue>
+
+    <issue
+        id="IconDuplicates"
+        message="The following unrelated icon files have identical contents: ic_launcher.png, ic_launcher_round.png">
+        <location
+            file="src/main/res/mipmap-xxhdpi/ic_launcher_round.png"/>
+        <location
+            file="src/main/res/mipmap-xxhdpi/ic_launcher.png"/>
+    </issue>
+
+    <issue
+        id="IconDuplicates"
+        message="The following unrelated icon files have identical contents: ic_launcher.png, ic_launcher_round.png">
+        <location
+            file="src/main/res/mipmap-xxxhdpi/ic_launcher_round.png"/>
+        <location
+            file="src/main/res/mipmap-xxxhdpi/ic_launcher.png"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="      startActivity(Intent(this, ImageViewActivity::class.java).setData(Uri.parse(imageUrl)))"
+        errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/article/ArticleActivity.kt"
+            line="146"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    articlePreloader.preloadArticle(Uri.parse(url)) { success ->"
+        errorLine2="                                    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/backgroundloading/ArticleBackgroundLoadingStrategy.kt"
+            line="35"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="          data = Uri.parse(url)"
+        errorLine2="                 ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/article/ArticleScreen.kt"
+            line="40"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="          data = Uri.parse(url)"
+        errorLine2="                 ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/article/ArticleScreen.kt"
+            line="40"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="          data = Uri.parse(url)"
+        errorLine2="                 ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/browser/BrowserScreen.kt"
+            line="40"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="          data = Uri.parse(url)"
+        errorLine2="                 ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/browser/BrowserScreen.kt"
+            line="40"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="          data = Uri.parse(website.url)"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/system/BubbleNotificationManager.kt"
+            line="123"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="          data = Uri.parse(website.url)"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/system/BubbleNotificationManager.kt"
+            line="123"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="          .setData(Uri.parse(url)),"
+        errorLine2="                   ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/system/BubbleNotificationManager.kt"
+            line="205"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Int.toDrawable` instead?"
+        errorLine1="      ColorDrawable(color).toBitmap("
+        errorLine2="      ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/system/BubbleNotificationManager.kt"
+            line="219"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        startActivity(Intent(this, HomeScreenShortcutCreatorActivity::class.java).setData(Uri.parse(it)))"
+        errorLine2="                                                                                          ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/optionspopup/ChromerOptionsActivity.kt"
+            line="72"
+            column="91"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            .setData(Uri.parse(it))"
+        errorLine2="                     ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/optionspopup/ChromerOptionsActivity.kt"
+            line="77"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Int.toDrawable` instead?"
+        errorLine1="  if (!translucent) window.setBackgroundDrawable(ColorDrawable(colour))"
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/theme/ChromerTheme.kt"
+            line="312"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#FF1744&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="44"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#F50057&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="45"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#D500F9&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="46"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#651FFF&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="47"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#3D5AFE&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="48"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#2979FF&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="49"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#00B0FF&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="50"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#00E5FF&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="51"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#1DE9B6&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="52"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#00E676&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="53"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#76FF03&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="54"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#C6FF00&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="55"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#FFEA00&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="56"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#FFC400&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="57"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#FF9100&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="58"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#FF3D00&quot;)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="59"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#D32F2F&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="63"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#C2185B&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="64"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#303F9F&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="65"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#6A1B9A&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="66"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#37474F&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="67"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#2E7D32&quot;)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="68"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#D32F2F&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="72"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#C2185B&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="73"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#7B1FA2&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="74"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#6200EA&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="75"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#304FFE&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="76"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#2962FF&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="77"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#0091EA&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="78"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#00B8D4&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="79"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#00BFA5&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="80"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#00C853&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="81"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#64DD17&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="82"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#AEEA00&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="83"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#FFD600&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="84"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#FFAB00&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="85"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#FF6D00&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="86"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#DD2C00&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="87"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#455A64&quot;)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="88"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Int.toDrawable` instead?"
+        errorLine1="      stateListDrawable.addState(states, ColorDrawable(translucentColor))"
+        errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/ColorUtil.kt"
+            line="258"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    val WEB_INTENT = Intent(Intent.ACTION_VIEW, Uri.parse(GOOGLE_URL))"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/shared/Constants.kt"
+            line="48"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            val activityIntent = Intent(Intent.ACTION_VIEW, Uri.parse(&quot;http://www.example.com&quot;))"
+        errorLine2="                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/customtabs/CustomTabs.kt"
+            line="533"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="      data = Uri.parse(url)"
+        errorLine2="             ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="465"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="      data = Uri.parse(url)"
+        errorLine2="             ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/tabs/DefaultTabsManager.kt"
+            line="465"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    parseColor(&quot;#D32F2F&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/icons/DefaultWebsiteIconsProvider.kt"
+            line="48"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    parseColor(&quot;#C2185B&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/icons/DefaultWebsiteIconsProvider.kt"
+            line="49"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    parseColor(&quot;#303F9F&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/icons/DefaultWebsiteIconsProvider.kt"
+            line="50"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    parseColor(&quot;#6A1B9A&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/icons/DefaultWebsiteIconsProvider.kt"
+            line="51"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    parseColor(&quot;#37474F&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/icons/DefaultWebsiteIconsProvider.kt"
+            line="52"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    parseColor(&quot;#2E7D32&quot;)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/icons/DefaultWebsiteIconsProvider.kt"
+            line="53"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    val host = Uri.parse(webSite.url).host ?: &quot;&quot;"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/DefaultWebsiteRepository.kt"
+            line="173"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="    Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/extenstions/Drawable.kt"
+            line="38"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="    Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/extenstions/Drawable.kt"
+            line="40"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    val host = if (website.title.isNullOrBlank()) android.net.Uri.parse(website.preferredUrl()).host else null"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/home/HomeScreen.kt"
+            line="494"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            data = Uri.parse(website.preferredUrl())"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/shortcuts/HomeScreenShortcutCreatorActivity.kt"
+            line="78"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            data = Uri.parse(website.preferredUrl())"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/shortcuts/HomeScreenShortcutCreatorActivity.kt"
+            line="78"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    get() = Uri.parse(currentUrl)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/menu/MenuDelegate.kt"
+            line="166"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                val chromeIntentExplicit = Intent(Intent.ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                                      ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/customtabs/callbacks/OpenInChromeReceiver.kt"
+            line="43"
+            column="71"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    val webSiteIntent = Intent(ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/openwith/OpenIntentWithActivity.kt"
+            line="43"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse(&quot;package:$packageName&quot;))"
+        errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/OverlayService.kt"
+            line="148"
+            column="59"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension property `View.isVisible` instead?"
+        errorLine1="    get() = view.visibility == View.VISIBLE"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/overlay/OverlayWindow.kt"
+            line="92"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `ViewGroup.isEmpty` instead?"
+        errorLine1="  if (activity is ComponentActivity &amp;&amp; (root == null || root.childCount == 0)) {"
+        errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/browsing/SecondaryBrowserErrorDialog.kt"
+            line="111"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            val webIntentExplicit = Intent(ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                        ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/customtabs/callbacks/SecondaryBrowserReceiver.kt"
+            line="45"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val webIntentImplicit = Intent(ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/customtabs/callbacks/SecondaryBrowserReceiver.kt"
+            line="66"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val implicitViewIntent = Intent(ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                     ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/browsing/customtabs/callbacks/SecondaryBrowserReceiver.kt"
+            line="96"
+            column="54"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="          overlay.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse(&quot;package:${context.packageName}&quot;)))"
+        errorLine2="                                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/settings/SettingsDialogs.kt"
+            line="77"
+            column="76"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="      context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.GOOGLE_URL)))"
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/settings/SettingsScreen.kt"
+            line="90"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse(&quot;package:$defaultBrowser&quot;)),"
+        errorLine2="                                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/settings/SettingsScreen.kt"
+            line="98"
+            column="79"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(&quot;market://details?id=$appPackageName&quot;)))"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="76"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(&quot;http://play.google.com/store/apps/details?id=$appPackageName&quot;)))"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="78"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val webIntentImplicit = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.GOOGLE_URL))"
+        errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="127"
+            column="60"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="            Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="166"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="            Bitmap.createBitmap("
+        errorLine2="            ^">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="168"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse(&quot;package:&quot; + context.packageName))"
+        errorLine2="                                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            line="341"
+            column="76"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="            Color.parseColor(themeColor)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/webarticle/model/WebArticle.kt"
+            line="99"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="          ArrayList(websites.mapNotNull { runCatching { Uri.parse(it.preferredUrl()) }.getOrNull() }),"
+        errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/ui/context/WebHeadContextActivity.kt"
+            line="142"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="      customTabManager?.mayLaunchUrl(Uri.parse(url))"
+        errorLine2="                                     ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/WebHeadService.kt"
+            line="474"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="      articlePreloader.preloadArticle(Uri.parse(url)) { success ->"
+        errorLine2="                                      ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/WebHeadService.kt"
+            line="480"
+            column="39"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="      val uri = runCatching { Uri.parse(raw) }.getOrNull() ?: return null"
+        errorLine2="                              ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/ui/navigation/WebUrlDeepLinkMatcher.kt"
+            line="28"
+            column="31"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        return Uri.parse(preferredUrl())"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/model/Website.kt"
+            line="100"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            val host = Uri.parse(url).host ?: &quot;&quot;"
+        errorLine2="                       ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/website/stores/WebsiteDiskStore.kt"
+            line="117"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="            Color.parseColor(themeColor)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/data/database/entity/WebsiteEntity.kt"
+            line="123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#3891A6&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/image/WebsiteIconLoader.kt"
+            line="55"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#FDE74C&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/image/WebsiteIconLoader.kt"
+            line="56"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#DB5461&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/image/WebsiteIconLoader.kt"
+            line="57"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#EC4E20&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/image/WebsiteIconLoader.kt"
+            line="58"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#6EEB83&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/image/WebsiteIconLoader.kt"
+            line="59"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#29335C&quot;),"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/image/WebsiteIconLoader.kt"
+            line="60"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    Color.parseColor(&quot;#BDE4A8&quot;)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/image/WebsiteIconLoader.kt"
+            line="61"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="    val icon = Bitmap.createBitmap(size, size, ARGB_8888)"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/image/WebsiteIconLoader.kt"
+            line="146"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="      setShadowLayer(shadowRadius, shadowDx, shadowDy, Color.parseColor(&quot;#33000000&quot;))"
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/util/image/WebsiteIconLoader.kt"
+            line="156"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="RtlHardcoded"
+        message="Use &quot;`Gravity.START`&quot; instead of &quot;`Gravity.LEFT`&quot; to ensure correct behavior in right-to-left locales"
+        errorLine1="    gravity = Gravity.TOP or Gravity.LEFT"
+        errorLine2="                                     ~~~~">
+        <location
+            file="src/main/java/arun/com/chromer/bubbles/webheads/overlay/OverlayWindow.kt"
+            line="51"
+            column="38"/>
+    </issue>
+
+</issues>
