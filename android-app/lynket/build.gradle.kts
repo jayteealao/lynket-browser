@@ -245,3 +245,8 @@ kotlin {
 tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-Xlint:-path")
 }
+
+// Resolved versions are pinned in gradle.lockfile; refresh with --write-locks after a dependency change.
+dependencyLocking {
+    lockAllConfigurations()
+}

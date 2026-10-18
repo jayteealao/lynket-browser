@@ -46,3 +46,8 @@ dependencies {
     implementation(libs.androidx.uiautomator)
     implementation(libs.androidx.benchmark.macro.junit4)
 }
+
+// Resolved versions are pinned in gradle.lockfile; refresh with --write-locks after a dependency change.
+dependencyLocking {
+    lockAllConfigurations()
+}

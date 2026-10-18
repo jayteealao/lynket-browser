@@ -40,3 +40,8 @@ android {
 dependencies {
     testImplementation(libs.junit)
 }
+
+// Resolved versions are pinned in gradle.lockfile; refresh with --write-locks after a dependency change.
+dependencyLocking {
+    lockAllConfigurations()
+}
