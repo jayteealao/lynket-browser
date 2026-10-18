@@ -14,7 +14,11 @@ package arun.com.chromer.bubbles.webheads
 import android.content.Intent
 import android.net.Uri
 import android.os.Looper
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.shared.Constants.ACTION_CLOSE_WEBHEAD_BY_URL
+import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
@@ -69,5 +73,30 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
     controller.destroy()
 
     assertThat(windows.none { it.isAdded }).isTrue()
+  }
+
+  @Test
+  fun closing_a_site_by_url_removes_its_head() {
+    ShadowSettings.setCanDrawOverlays(true)
+    // LocalBroadcastManager is a process-wide singleton, so it still holds the receivers of services
+    // that earlier tests in this JVM never destroyed; their applications have no Hilt component any
+    // more, and a close broadcast reaching them fails. A fresh instance holds only this test's service.
+    // source: androidx.localbroadcastmanager 1.0.0 (javap of classes.jar): `private static
+    // LocalBroadcastManager mInstance`, set once by getInstance.
+    LocalBroadcastManager::class.java.getDeclaredField("mInstance").apply { isAccessible = true }.set(null, null)
+    val controller = Robolectric.buildService(WebHeadService::class.java, intentFor("https://a.example"))
+      .create()
+      .startCommand(0, 1)
+    controller.withIntent(intentFor("https://b.example")).startCommand(0, 2)
+    shadowOf(Looper.getMainLooper()).idle()
+
+    LocalBroadcastManager.getInstance(application)
+      .sendBroadcast(Intent(ACTION_CLOSE_WEBHEAD_BY_URL).putExtra(EXTRA_KEY_WEBSITE, Website("https://a.example")))
+    shadowOf(Looper.getMainLooper()).idle()
+
+    val heads = controller.get().controller!!
+    assertThat(heads.size).isEqualTo(1)
+    assertThat(heads["https://a.example"]).isNull()
+    assertThat(heads["https://b.example"]).isNotNull()
   }
 }

@@ -26,6 +26,7 @@ import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import arun.com.chromer.R
 import arun.com.chromer.data.Result
 import arun.com.chromer.data.website.model.Website
@@ -116,7 +117,7 @@ abstract class BrowsingActivity : BaseActivity() {
     when (savedInstanceState) {
       null -> {
         val websiteResult = Result.Success(
-          intent.getParcelableExtra<Website>(EXTRA_KEY_WEBSITE)
+          IntentCompat.getParcelableExtra(intent, EXTRA_KEY_WEBSITE, Website::class.java)
               ?: Website(getCurrentUrl())
         )
         browsingViewModel.website.tryEmit(websiteResult)

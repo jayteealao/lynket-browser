@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.AndroidUiDispatcher
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import arun.com.chromer.R
@@ -142,8 +143,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
           if (color != NO_COLOR) controller?.all?.forEach { it.colour = Color(color) }
         }
         ACTION_CLOSE_WEBHEAD_BY_URL -> {
-          @Suppress("DEPRECATION") // sdlc-debt: typed getParcelableExtra needs API 33; minSdk is 24. Upgrade: IntentCompat.getParcelableExtra.
-          val website = intent.getParcelableExtra<Website>(EXTRA_KEY_WEBSITE)
+          val website = IntentCompat.getParcelableExtra(intent, EXTRA_KEY_WEBSITE, Website::class.java)
           website?.let { controller?.close(it.url) }
         }
       }
