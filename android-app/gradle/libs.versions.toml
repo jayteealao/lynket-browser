@@ -8,8 +8,7 @@ ksp = "2.3.12"
 composeBom = "2026.09.00"
 activityCompose = "1.13.0"
 navigation3 = "1.2.0"
-lifecycleViewmodelCompose = "2.10.0"
-lifecycleViewmodelNavigation3 = "2.10.0"
+lifecycle = "2.10.0"
 kotlinxSerialization = "1.11.0"
 
 # AndroidX Core
@@ -17,7 +16,6 @@ coreKtx = "1.15.0"
 appcompat = "1.7.0"
 material = "1.12.0"
 browser = "1.8.0"
-lifecycleRuntimeKtx = "2.10.0"
 
 # Dependency Injection - Hilt
 hilt = "2.60.1"
@@ -30,7 +28,6 @@ coroutines = "1.9.0"
 room3 = "3.0.3"
 datastore = "1.2.1"
 paging = "3.4.2"
-pagingCompose = "3.4.2"
 
 # Images
 coil = "3.6.3"
@@ -46,7 +43,6 @@ robolectric = "4.17"
 turbine = "1.2.0"
 mockk = "1.13.13"
 truth = "1.4.4"
-composeUiTest = "1.7.6"
 benchmarkMacro = "1.5.0"
 profileinstaller = "1.4.1"
 uiautomator = "2.3.0"
@@ -54,6 +50,8 @@ roborazzi = "1.76.0"
 
 # Other
 timber = "5.0.1"
+swiperefreshlayout = "1.1.0"
+palette = "1.0.0"
 
 [libraries]
 # Gradle plugins put on the root buildscript classpath (AGP 9 built-in Kotlin uses this KGP)
@@ -67,10 +65,10 @@ androidx-browser = { group = "androidx.browser", name = "browser", version.ref =
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 # Lifecycle
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
-androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleRuntimeKtx" }
-androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
-androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
 
 # Compose BOM (Bill of Materials - manages all Compose versions)
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
@@ -81,13 +79,11 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-material3-window = { group = "androidx.compose.material3", name = "material3-window-size-class" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
-androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityCompose" }
 androidx-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3" }
 androidx-navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "navigation3" }
-androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNavigation3" }
+androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle" }
 kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
 
 # Hilt
@@ -112,8 +108,8 @@ androidx-datastore-core = { group = "androidx.datastore", name = "datastore-core
 paperdb = { group = "com.github.pilgr", name = "Paper", version.ref = "paperdb" }
 
 # Paging
-androidx-paging-runtime-ktx = { group = "androidx.paging", name = "paging-runtime-ktx", version.ref = "paging" }
-androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "pagingCompose" }
+androidx-paging-common = { group = "androidx.paging", name = "paging-common", version.ref = "paging" }
+androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "paging" }
 
 # Image Loading
 coil = { group = "io.coil-kt.coil3", name = "coil", version.ref = "coil" }
@@ -123,6 +119,10 @@ coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp"
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
+# Pull to refresh around the web view, and website and app colours
+androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
+androidx-palette = { group = "androidx.palette", name = "palette", version.ref = "palette" }
+
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -131,7 +131,6 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "composeUiTest" }
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacro" }
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }

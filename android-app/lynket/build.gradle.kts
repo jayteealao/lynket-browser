@@ -124,8 +124,8 @@ dependencies {
     implementation(libs.material)
 
     // Lifecycle
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
@@ -135,7 +135,6 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.material3.window)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation3.runtime)
@@ -173,7 +172,7 @@ dependencies {
     implementation(libs.paperdb)
 
     // Paging 3
-    implementation(libs.androidx.paging.runtime.ktx)
+    implementation(libs.androidx.paging.common)
     implementation(libs.androidx.paging.compose)
 
     // Image loading - Coil 3 (Compose images, favicons and app icons)
@@ -191,19 +190,19 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
-    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
 
-    // AndroidX libraries without a catalog entry
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0") // pull to refresh in the web view
-    implementation("androidx.palette:palette-ktx:1.0.0") // website and app colours
-    implementation(libs.androidx.activity.ktx)
+    // Pull to refresh around the web view, and website and app colours
+    implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.androidx.palette)
 
     // Disk LRU cache module
     implementation(project(":disk-cache"))
