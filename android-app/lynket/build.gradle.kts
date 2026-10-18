@@ -230,7 +230,6 @@ kotlin {
     compilerOptions {
         // jvmTarget follows android.compileOptions.targetCompatibility (17) with built-in Kotlin.
         freeCompilerArgs.addAll(
-            "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-opt-in=kotlinx.coroutines.FlowPreview",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
