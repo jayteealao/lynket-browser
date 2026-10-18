@@ -27,7 +27,11 @@ The other activities exist because Android or other apps start them by name: the
 `EmbeddableWebViewActivity`, `ArticleActivity`, `ImageViewActivity`), the translucent dialog hosts
 (the Lynket options sheet, Open with, New tab, the AMP lookup, the shortcut creator) and the
 History and Tabs shortcut targets. Each one hosts a single Compose screen and keeps no navigation
-of its own; `BaseActivity`, their usual base, is a plain `AppCompatActivity` with no layout.
+of its own; `BaseActivity`, their usual base, is a plain `ComponentActivity` with no layout.
+Every activity uses a platform Material theme (`res/values/styles.xml`; the themes that follow the
+system's dark setting have a night version in `res/values-night/`), and the app has no AppCompat or
+Material Components dependency. The primary colour roles made from the person's colour come from
+`ui/theme/hct/`, a port of Material Components' HCT colour code.
 
 A link travels like this: `BrowserInterceptActivity` reads the link and the app it came from (the
 referrer, or usage stats when the person allowed them), applies that app's per-app rule

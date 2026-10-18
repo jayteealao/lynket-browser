@@ -57,6 +57,8 @@ Run from `android-app/`:
 - `bash maestro/browsing/website-extra-check.sh <serial> <dir>` - The page's Website extra on a device: two web heads, a tap opens the front one in a Custom Tab, the web head list closes one site, and Web View mode opens a page in `WebViewActivity`; restores the browsing mode and the Web View choice (debug build; serves `maestro/reader/fixtures/` like the reader check)
 - `bash maestro/reader/reader-check.sh <serial> <dir> <legacy|captures|error|image|webview|bubble|recreate>` - The article reader, the image viewer and the web view are Compose (`ui/reader/`, `ui/webview/`); `ArticleActivity`, `ImageViewActivity`, `WebViewActivity` and `EmbeddableWebViewActivity` keep their names and each host one screen. The reader and the web view share one menu model (`browsing/menu/MenuDelegate`: `menuItems()`, `bottomBarItems()`, `handleItemSelected`) and one top-bar and bottom-bar component (`ui/browsing/BrowsingBars.kt`). The web view's WebView is a View inside an `AndroidView`, wrapped by a `SwipeRefreshLayout`; the manifest handles rotation, fold, bubble resize and night mode for both web view activities, so the page and its history stay, and `saveState` covers process death (one `WebView created` log line per instance). The check serves `maestro/reader/fixtures/` from this host with `python -m http.server` on a free port and reaches it through `adb reverse`, so every run reads the same article (legacy and captures reinstall the debug build)
 - `bash maestro/history-tabs/history-tabs-check.sh <serial> <dir> <captures|clear-all|tabs-reorder|back-gesture>` - History and Tabs are Compose screens (`ui/history/`, `ui/tabs/`); `HistoryActivity` and `TabsActivity` stay as shortcut targets and each host one of them. The check captures both (500 rows; `SEED=direct` writes them straight into the database), deletes all and compares the count with the store, taps a tab and checks its own task comes forward with no new one, and holds a back swipe from History (reinstalls the debug build)
+- `bash maestro/appcompat/window-check.sh <serial> <dir> <tag>` - Captures every screen, dialog and entry point of one debug build (`APK=<path>` picks it) through the capture modes of the browsing, reader, shell, History and Tabs and web head list checks, plus home, History and Tabs in day, night and day again, into `<dir>/<tag>/`
+- `python maestro/appcompat/compare-captures.py <before-dir> <after-dir> <report.md>` - Compares two `window-check.sh` passes screen by screen: the app's UI tree and the pixels outside the status bar and clock text (needs Pillow); exit 1 on any difference
 
 ### Build System
 
@@ -104,6 +106,10 @@ Key packages:
 Every activity, service and receiver is injected by Hilt with `@AndroidEntryPoint`; there is no other component.
 
 ## Key Application Components
+
+### Themes
+
+Every activity uses a platform Material theme (`res/values/styles.xml`, with night versions in `res/values-night/` for the themes that follow the system); there is no AppCompat or Material Components dependency. `WindowThemeParityTest` pins what each activity window resolves to (API 30 and 36, day and night). The primary colour roles made from the person's colour come from `ui/theme/hct/`, a port of Material Components' HCT code; `ColorRolesParityTest` pins them.
 
 ### Main Entry Points
 
