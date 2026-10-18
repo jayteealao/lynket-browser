@@ -139,14 +139,14 @@
       android:name=".browsing.browserintercept.BrowserInterceptActivity"
       android:exported="true"
       android:label="@string/app_name"
-      android:theme="@style/Theme.AppCompat.Translucent" />
+      android:theme="@style/Theme.Lynket.PassThrough" />
 
     <activity-alias
       android:name=".activities.BrowserInterceptActivity"
       android:exported="true"
       android:label="@string/app_name"
       android:targetActivity=".browsing.browserintercept.BrowserInterceptActivity"
-      android:theme="@style/Theme.AppCompat.Translucent">
+      android:theme="@style/Theme.Lynket.PassThrough">
       <intent-filter>
         <action android:name="android.intent.action.VIEW" />
 
@@ -161,7 +161,7 @@
     <activity
       android:name=".browsing.customtabs.CustomTabActivity"
       android:label="@string/app_name"
-      android:theme="@style/Theme.AppCompat.Translucent" />
+      android:theme="@style/Theme.Lynket.PassThrough" />
     <activity
       android:name=".browsing.webview.WebViewActivity"
       android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboardHidden|uiMode"
@@ -182,7 +182,8 @@
       android:name=".browsing.shareintercept.ShareInterceptActivity"
       android:excludeFromRecents="true"
       android:exported="true"
-      android:label="@string/share_text_processor_label">
+      android:label="@string/share_text_processor_label"
+      android:theme="@style/AppTheme.ActionBar">
       <intent-filter>
         <action android:name="android.intent.action.SEND" />
 

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~
+  ~  Lynket
+  ~
+  ~  Copyright (C) 2026 Arunkumar
+  ~
+  ~  This program is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  (at your option) any later version.
+  -->
+<resources>
+  <!-- Night versions of the themes that follow the system's dark setting (see values/styles.xml). -->
+
+  <style name="ArticleTheme.Base" parent="android:Theme.Material.NoActionBar">
+    <item name="android:colorPrimary">@color/article_colorPrimary</item>
+    <item name="android:colorPrimaryDark">@color/article_colorPrimaryDark</item>
+    <item name="android:colorAccent">@color/article_colorAccent</item>
+    <item name="android:colorControlHighlight">#33FFFFFF</item>
+    <item name="android:colorButtonNormal">#FF5A595B</item>
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:backgroundDimEnabled">false</item>
+  </style>
+
+  <style name="Theme.Lynket.Translucent" parent="android:Theme.Material.NoActionBar">
+    <item name="android:colorPrimary">#FF212121</item>
+    <item name="android:colorPrimaryDark">#FF000000</item>
+    <item name="android:colorAccent">#FF80CBC4</item>
+    <item name="android:colorControlHighlight">#33FFFFFF</item>
+    <item name="android:colorButtonNormal">#FF5A595B</item>
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:backgroundDimEnabled">false</item>
+    <item name="android:windowAnimationStyle">@null</item>
+  </style>
+
+  <style name="AppTheme.Launcher" parent="android:Theme.Material.NoActionBar">
+    <item name="android:colorPrimary">#FF212121</item>
+    <item name="android:colorPrimaryDark">#FF000000</item>
+    <item name="android:colorAccent">#FF80CBC4</item>
+    <item name="android:colorControlHighlight">#33FFFFFF</item>
+    <item name="android:colorButtonNormal">#FF5A595B</item>
+    <item name="android:windowBackground">@color/window_background</item>
+  </style>
+</resources>

@@ -18,24 +18,47 @@
   ~  along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 <resources>
-  <!-- Base application theme. -->
-  <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-    <item name="colorPrimary">@color/colorPrimary</item>
-    <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-    <item name="colorAccent">@color/colorAccent</item>
-    <item name="colorControlHighlight">@color/colorAccentLighter</item>​
+  <!--
+    Platform Material themes. Each one is the platform theme the earlier support library theme was
+    built on, with the colours that theme resolved to set on the platform attributes, so every
+    window looks as it did. Themes that follow the system's dark setting have a night version in
+    values-night/styles.xml.
+  -->
+
+  <!-- Base application theme: no action bar, as the earlier theme was at platform level. -->
+  <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+    <item name="android:colorPrimary">@color/colorPrimary</item>
+    <item name="android:colorPrimaryDark">@color/colorPrimaryDark</item>
+    <item name="android:colorAccent">@color/colorAccent</item>
+    <item name="android:colorControlHighlight">@color/colorAccentLighter</item>
+    <item name="android:colorButtonNormal">#FFD6D7D7</item>
   </style>
 
   <style name="AppTheme.NoActionBar">
-    <item name="windowActionBar">false</item>
-    <item name="windowNoTitle">true</item>
     <item name="android:windowBackground">@color/window_background</item>
   </style>
 
-  <style name="ArticleTheme.Base" parent="Theme.AppCompat.DayNight.NoActionBar">
-    <item name="colorPrimary">@color/article_colorPrimary</item>
-    <item name="colorPrimaryDark">@color/article_colorPrimaryDark</item>
-    <item name="colorAccent">@color/article_colorAccent</item>
+  <!-- The share hand-off: the app colours with a dark action bar, shown while text becomes a search. -->
+  <style name="AppTheme.ActionBar" parent="android:Theme.Material.Light.DarkActionBar">
+    <item name="android:actionBarTheme">@style/ThemeOverlay.Lynket.ActionBar</item>
+    <item name="android:colorPrimary">@color/colorPrimary</item>
+    <item name="android:colorPrimaryDark">@color/colorPrimaryDark</item>
+    <item name="android:colorAccent">@color/colorAccent</item>
+    <item name="android:colorControlHighlight">@color/colorAccentLighter</item>
+    <item name="android:colorButtonNormal">#FFD6D7D7</item>
+  </style>
+
+  <!-- A white title on the dark action bar, as the earlier bar drew it (the platform bar fades it). -->
+  <style name="ThemeOverlay.Lynket.ActionBar" parent="android:ThemeOverlay.Material.Dark.ActionBar">
+    <item name="android:textColorPrimary">@android:color/white</item>
+  </style>
+
+  <style name="ArticleTheme.Base" parent="android:Theme.Material.Light.NoActionBar">
+    <item name="android:colorPrimary">@color/article_colorPrimary</item>
+    <item name="android:colorPrimaryDark">@color/article_colorPrimaryDark</item>
+    <item name="android:colorAccent">@color/article_colorAccent</item>
+    <item name="android:colorControlHighlight">#1F000000</item>
+    <item name="android:colorButtonNormal">#FFD6D7D7</item>
     <item name="android:windowIsTranslucent">true</item>
     <item name="android:windowBackground">@android:color/transparent</item>
     <item name="android:windowContentOverlay">@null</item>
@@ -44,12 +67,22 @@
 
   <style name="ArticleTheme" parent="ArticleTheme.Base" />
 
-  <style name="ArticleImageViewTheme" parent="Theme.AppCompat.NoActionBar">
+  <style name="ArticleImageViewTheme" parent="android:Theme.Material.NoActionBar">
+    <item name="android:colorPrimary">#FF212121</item>
+    <item name="android:colorPrimaryDark">#FF000000</item>
+    <item name="android:colorAccent">#FF80CBC4</item>
+    <item name="android:colorControlHighlight">#33FFFFFF</item>
+    <item name="android:colorButtonNormal">#FF5A595B</item>
     <item name="android:windowBackground">@android:color/black</item>
   </style>
 
   <!-- A window that draws nothing of its own, for activities that show only a Compose sheet or dialog. -->
-  <style name="Theme.Lynket.Translucent" parent="Theme.AppCompat.DayNight.NoActionBar">
+  <style name="Theme.Lynket.Translucent" parent="android:Theme.Material.Light.NoActionBar">
+    <item name="android:colorPrimary">#FFF5F5F5</item>
+    <item name="android:colorPrimaryDark">#FF757575</item>
+    <item name="android:colorAccent">#FF008577</item>
+    <item name="android:colorControlHighlight">#1F000000</item>
+    <item name="android:colorButtonNormal">#FFD6D7D7</item>
     <item name="android:windowIsTranslucent">true</item>
     <item name="android:windowBackground">@android:color/transparent</item>
     <item name="android:windowContentOverlay">@null</item>
@@ -58,10 +91,21 @@
   </style>
 
   <!-- Light or dark with the system until the first frame; then the app's own theme colours the window. -->
-  <style name="AppTheme.Launcher" parent="Theme.AppCompat.DayNight.NoActionBar">
+  <style name="AppTheme.Launcher" parent="android:Theme.Material.Light.NoActionBar">
+    <item name="android:colorPrimary">#FFF5F5F5</item>
+    <item name="android:colorPrimaryDark">#FF757575</item>
+    <item name="android:colorAccent">#FF008577</item>
+    <item name="android:colorControlHighlight">#1F000000</item>
+    <item name="android:colorButtonNormal">#FFD6D7D7</item>
     <item name="android:windowBackground">@color/window_background</item>
   </style>
 
-  <style name="Theme.AppCompat.Translucent" parent="Theme.AppCompat.NoActionBar" />
-
+  <!-- The dark, opaque window of the link hand-off activities, shown until the page opens. -->
+  <style name="Theme.Lynket.PassThrough" parent="android:Theme.Material.NoActionBar">
+    <item name="android:colorPrimary">#FF212121</item>
+    <item name="android:colorPrimaryDark">#FF000000</item>
+    <item name="android:colorAccent">#FF80CBC4</item>
+    <item name="android:colorControlHighlight">#33FFFFFF</item>
+    <item name="android:colorButtonNormal">#FF5A595B</item>
+  </style>
 </resources>

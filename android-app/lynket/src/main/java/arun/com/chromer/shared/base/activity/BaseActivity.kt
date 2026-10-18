@@ -24,7 +24,7 @@
 package arun.com.chromer.shared.base.activity
 
 import android.view.MenuItem
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
 import arun.com.chromer.R
 
 /**
@@ -34,7 +34,7 @@ import arun.com.chromer.R
  * - lifecycleScope.launch { } for UI work
  * - lifecycleScope.launch(Dispatchers.IO) { } for background work
  */
-abstract class BaseActivity : AppCompatActivity() {
+abstract class BaseActivity : ComponentActivity() {
 
   override fun onOptionsItemSelected(item: MenuItem): Boolean {
     if (item.itemId == R.id.home) {

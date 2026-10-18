@@ -58,6 +58,9 @@ class ShareInterceptActivity : BaseActivity() {
   @TargetApi(Build.VERSION_CODES.M)
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    // The window shows the action bar of its theme while text becomes a search; the platform bar
+    // shows the activity's label only once the bar is asked for.
+    actionBar?.title = title
     val safeIntent = SafeIntent(intent)
     try {
       val action = safeIntent.action
