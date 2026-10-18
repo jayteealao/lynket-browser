@@ -9,7 +9,7 @@
 #             another key; nothing is uninstalled that this script did not install)
 #   link      a VIEW intent through the link entry point opens a Chrome Custom Tab
 #   reader    the Article tile on, a fixed article served from this host through adb reverse
-#             (maestro/reader/fixtures) opens in the reader with its headline (crux and jsoup
+#             (maestro/reader/fixtures) opens in the reader with its headline (the article extractor and jsoup
 #             through R8); the tile off again
 #   webhead   the Web heads tile on, a link shows at least one overlay window; the heads closed
 #   crash     the crash buffer holds no entry for arun.com.chromer

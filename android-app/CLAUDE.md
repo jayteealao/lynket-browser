@@ -160,6 +160,7 @@ The app supports multiple browsing modes:
 - **Network**: OkHttp, through Coil's network fetcher (no direct use)
 - **Images**: Coil 3 (`coil`, `coil-compose`, `coil-network-okhttp`)
 - **Storage migration**: PaperDB 2.6, only for the one-time read of release 2.1.3's per-app rules
+- **HTML parsing**: jsoup from the version catalog. The reader and the website details use the app's own extractor (`util/parser/extraction/`, adapted from Crux 2.0.1, Apache License 2.0; each file keeps the notice). `ExtractionParityTest` compares it with values recorded from the earlier Crux library for the saved pages in `lynket/src/test/resources/extraction/` (`SOURCES.md` lists their licences; `scripts/fetch-extraction-fixtures.sh` fetched them, and a replaced page needs its golden recorded again on jsoup 1.9.2); `DeepNestingParseTest` parses a 1 MB deeply nested page
 
 ## Permissions
 

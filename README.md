@@ -27,7 +27,7 @@ If you have got some time, read the introduction post on [my blog](https://arunk
 | **Web heads** - Floating bubbles to load multiple links and launch them.  | ![enter image description here](https://raw.githubusercontent.com/arunkumar9t2/chromer/master/art/Web%20heads%20intro.gif) |
 | **Web heads** - Intelligently manages background loading of Custom Tabs using Android's overview screen. Uses Lollipop Document API.| ![enter image description here](https://raw.githubusercontent.com/arunkumar9t2/chromer/master/art/Background%20Loading.gif) |
 | **Provider** - Lynket works with any custom tab compatible browser. This means features like adblock, Google Account sync, data saver are inherited.  | ![enter image description here](https://raw.githubusercontent.com/arunkumar9t2/chromer/master/art/Provider%20Selection.gif) |
-| **Article mode** - Filters all unnecessary content and renders the page in a Compose reader. Uses Crux library.  | ![enter image description here](https://raw.githubusercontent.com/arunkumar9t2/chromer/master/art/Article%20Mode.gif) |
+| **Article mode** - Filters all unnecessary content and renders the page in a Compose reader. Uses extraction rules adapted from the Crux library.  | ![enter image description here](https://raw.githubusercontent.com/arunkumar9t2/chromer/master/art/Article%20Mode.gif) |
 | **Minimize and Tabs** - Lynket can minimize the tab and also show all active tabs for you to quickly switch to.  |  ![enter image description here](https://raw.githubusercontent.com/arunkumar9t2/chromer/master/art/Multitasking.gif)|
 
 
