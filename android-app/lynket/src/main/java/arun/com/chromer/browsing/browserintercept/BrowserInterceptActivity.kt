@@ -28,6 +28,7 @@ import android.widget.Toast.LENGTH_SHORT
 import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
 import arun.com.chromer.extenstions.finishAndRemoveTaskCompat
+import arun.com.chromer.extenstions.finishPassThrough
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.SafeIntent
@@ -53,7 +54,7 @@ class BrowserInterceptActivity : BaseActivity() {
         defaultTabsManager.processIncomingIntent(this@BrowserInterceptActivity, intent)
         // A blacklist error dialog keeps this activity open; closing the dialog finishes it.
         if (!isShowingSecondaryBrowserError) {
-          finishAndRemoveTaskCompat()
+          finishPassThrough()
         }
       }
     } ?: run {

@@ -21,6 +21,8 @@
 package arun.com.chromer.extenstions
 
 import android.app.Activity
+import android.app.ActivityManager
+import android.os.Build
 import arun.com.chromer.util.Utils
 
 fun Activity.finishAndRemoveTaskCompat() {
@@ -28,5 +30,25 @@ fun Activity.finishAndRemoveTaskCompat() {
     finishAndRemoveTask()
   } else {
     finish()
+  }
+}
+
+/**
+ * Closes a pass-through activity, such as the link intercept. When it started another activity in
+ * its own task (a web view or a Custom Tab with merged tabs off), only this activity closes, so the
+ * page stays open. Otherwise the task holds nothing else and is removed from Recents.
+ */
+fun Activity.finishPassThrough() {
+  if (taskHoldsOtherActivities()) finish() else finishAndRemoveTaskCompat()
+}
+
+internal fun Activity.taskHoldsOtherActivities(): Boolean {
+  val tasks = runCatching { getSystemService(ActivityManager::class.java)?.appTasks }.getOrNull()
+    ?: return false
+  return tasks.any { task ->
+    val info = runCatching { task.taskInfo }.getOrNull() ?: return@any false
+    @Suppress("DEPRECATION")
+    val id = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) info.taskId else info.id
+    id == taskId && info.numActivities > 1
   }
 }
