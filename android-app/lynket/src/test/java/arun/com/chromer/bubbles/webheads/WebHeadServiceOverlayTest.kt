@@ -25,6 +25,7 @@ import org.junit.Test
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowSettings
+import java.time.Duration
 
 /** The service draws one overlay window per head plus the trash, in the foreground. */
 @HiltAndroidTest
@@ -98,5 +99,28 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
     assertThat(heads.size).isEqualTo(1)
     assertThat(heads["https://a.example"]).isNull()
     assertThat(heads["https://b.example"]).isNotNull()
+  }
+
+  @Test
+  fun a_pending_preload_stops_with_the_service() {
+    val controller = Robolectric.buildService(WebHeadService::class.java).create()
+    shadowOf(Looper.getMainLooper()).idle()
+    val job = controller.get().deferPreload("https://a.example")
+
+    controller.destroy()
+
+    assertThat(job.isCancelled).isTrue()
+  }
+
+  @Test
+  fun a_pending_preload_runs_after_the_delay() {
+    val controller = Robolectric.buildService(WebHeadService::class.java).create()
+    shadowOf(Looper.getMainLooper()).idle()
+    val job = controller.get().deferPreload("https://a.example")
+
+    shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
+
+    assertThat(job.isCompleted).isTrue()
+    assertThat(job.isCancelled).isFalse()
   }
 }

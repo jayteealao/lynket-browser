@@ -32,9 +32,7 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import android.view.ViewConfiguration
@@ -90,8 +88,10 @@ import arun.com.chromer.util.Utils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOn
@@ -483,8 +483,11 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     }
   }
 
-  private fun deferPreload(urlToLoad: String) {
-    Handler(Looper.getMainLooper()).postDelayed({ preLoadUrl(urlToLoad) }, 300)
+  /** Preloads [urlToLoad] after a short wait; the wait ends with the service, which cancels [serviceScope]. */
+  @VisibleForTesting
+  internal fun deferPreload(urlToLoad: String): Job = serviceScope.launch {
+    delay(PRELOAD_DELAY_MS)
+    preLoadUrl(urlToLoad)
   }
 
   private fun openContextActivity() {
@@ -563,6 +566,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   companion object {
     const val MAX_VISIBLE_WEB_HEADS = WebHeadMotion.MAX_VISIBLE_WEB_HEADS
+    private const val PRELOAD_DELAY_MS = 300L
     private var customTabManager: CustomTabManager? = null
 
     @JvmStatic
