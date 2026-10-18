@@ -350,11 +350,14 @@ private fun ArticleContent(
         }
       }
     }
-    itemsIndexed(article.blocks) { _, block ->
+    itemsIndexed(article.blocks, contentType = { _, block -> readerBlockContentType(block) }) { _, block ->
       ArticleBlockView(block, bodyStyle, increment, accent, measure)
     }
   }
 }
+
+/** One content type per row layout: the class of the block kind, so every heading level and every list number share one. */
+internal fun readerBlockContentType(block: ArticleBlock): Any = block.kind::class
 
 /** The text-size card above the bottom bar: icon, a slider from 0 to 15 sp extra, and close. */
 @Composable

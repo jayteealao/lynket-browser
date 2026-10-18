@@ -110,6 +110,17 @@ class ReaderScreenTest {
   }
 
   @Test
+  fun blocksOfOneKindShareAContentType() {
+    val one = readerBlockContentType(ArticleBlock(BlockKind.Numbered(1), "one"))
+    val two = readerBlockContentType(ArticleBlock(BlockKind.Numbered(2), "two"))
+    assertThat(one).isEqualTo(two)
+    assertThat(readerBlockContentType(ArticleBlock(BlockKind.Heading(1), "a")))
+      .isEqualTo(readerBlockContentType(ArticleBlock(BlockKind.Heading(3), "b")))
+    assertThat(readerBlockContentType(ArticleBlock(BlockKind.Paragraph, "p")))
+      .isNotEqualTo(readerBlockContentType(ArticleBlock(BlockKind.Heading(2), "h")))
+  }
+
+  @Test
   fun loadingShowsTheSkeletonAndItsLabel() {
     show(ReaderState.Loading)
     composeRule.onNodeWithTag("reader-loading").assertIsDisplayed()
