@@ -13,8 +13,6 @@ kotlinxSerialization = "1.11.0"
 
 # AndroidX Core
 coreKtx = "1.18.0"
-appcompat = "1.7.1"
-material = "1.12.0"
 browser = "1.8.0"
 
 # Dependency Injection - Hilt
@@ -63,9 +61,7 @@ ksp-gradle-plugin = { group = "com.google.devtools.ksp", name = "symbol-processi
 
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 # Lifecycle
 androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime", version.ref = "lifecycle" }

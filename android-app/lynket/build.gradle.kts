@@ -116,9 +116,7 @@ android {
 dependencies {
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.browser)
-    implementation(libs.material)
 
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime)
