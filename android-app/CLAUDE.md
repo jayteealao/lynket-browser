@@ -96,7 +96,6 @@ Every activity, service and receiver is injected by Hilt with `@AndroidEntryPoin
    - the settings and per-app rule stores (DataStore)
    - Timber logging (debug builds)
    - the Coil image loader
-   - MultiDex
 
 ### In-app navigation (Navigation 3)
 

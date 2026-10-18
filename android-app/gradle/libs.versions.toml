@@ -58,7 +58,6 @@ uiautomator = "2.3.0"
 roborazzi = "1.76.0"
 
 # Other
-multidex = "2.0.1"
 timber = "5.0.1"
 
 [libraries]
@@ -70,7 +69,6 @@ ksp-gradle-plugin = { group = "com.google.devtools.ksp", name = "symbol-processi
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
-androidx-multidex = { group = "androidx.multidex", name = "multidex", version.ref = "multidex" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 # Lifecycle

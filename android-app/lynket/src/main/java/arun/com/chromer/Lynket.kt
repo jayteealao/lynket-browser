@@ -21,10 +21,8 @@
 package arun.com.chromer
 
 import android.app.Application
-import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationManagerCompat
-import androidx.multidex.MultiDex
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.util.image.ApplicationIconFetcher
@@ -78,11 +76,6 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
     ImageLoader.Builder(context)
       .components { add(ApplicationIconFetcher.Factory()) }
       .build()
-
-  override fun attachBaseContext(base: Context) {
-    super.attachBaseContext(base)
-    MultiDex.install(this)
-  }
 
   companion object {
     private const val OLD_APP_DETECTION_CHANNEL = "App detection service"

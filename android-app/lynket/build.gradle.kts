@@ -37,8 +37,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        multiDexEnabled = true
     }
 
     compileOptions {
@@ -123,7 +121,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.browser)
-    implementation(libs.androidx.multidex)
     implementation(libs.material)
 
     // Lifecycle
