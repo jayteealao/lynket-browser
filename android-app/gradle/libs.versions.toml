@@ -32,11 +32,6 @@ datastore = "1.2.1"
 paging = "3.4.2"
 pagingCompose = "3.4.2"
 
-# Networking
-retrofit = "2.11.0"
-okhttp = "4.12.0"
-moshi = "1.15.1"
-
 # Images
 coil = "3.6.3"
 
@@ -119,15 +114,6 @@ paperdb = { group = "com.github.pilgr", name = "Paper", version.ref = "paperdb" 
 # Paging
 androidx-paging-runtime-ktx = { group = "androidx.paging", name = "paging-runtime-ktx", version.ref = "paging" }
 androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "pagingCompose" }
-
-# Networking
-retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
-retrofit-converter-moshi = { group = "com.squareup.retrofit2", name = "converter-moshi", version.ref = "retrofit" }
-okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
-moshi = { group = "com.squareup.moshi", name = "moshi", version.ref = "moshi" }
-moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
-moshi-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", version.ref = "moshi" }
 
 # Image Loading
 coil = { group = "io.coil-kt.coil3", name = "coil", version.ref = "coil" }
