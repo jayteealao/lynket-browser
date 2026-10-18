@@ -6,7 +6,7 @@ appId: arun.com.chromer.debug
 - launchApp:
     stopApp: true
 - pressKey: Home
-- longPressOn: "Lynket-dev"
+- longPressOn: "Lynket Dev"
 - runFlow:
     when:
       visible: "Tabs"

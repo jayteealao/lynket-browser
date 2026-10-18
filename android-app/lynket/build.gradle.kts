@@ -66,7 +66,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = " - dev"
-            resValue("string", "app_name", "Lynket-dev")
+            resValue("string", "app_name", "Lynket Dev")
             isMinifyEnabled = false
             isShrinkResources = false
             isDebuggable = true

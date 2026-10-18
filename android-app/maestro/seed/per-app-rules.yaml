@@ -31,7 +31,7 @@ appId: arun.com.chromer.debug
 - waitForAnimationToEnd
 - runFlow:
     when:
-      visible: "Allow Lynket-dev to send you notifications?"
+      visible: "Allow Lynket Dev to send you notifications?"
     commands:
       - tapOn: "Allow"
 - extendedWaitUntil:
