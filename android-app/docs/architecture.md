@@ -75,6 +75,12 @@ follower chain and the queue beyond five heads. `motion/WebHeadMotion.kt` holds 
 converted from the earlier spring values so the heads feel the same. When the system refuses the
 foreground start, the link opens in a browsing tab with a message.
 
+The service, the web head list (`WebHeadContextActivity`) and settings talk through the app's
+event bus (`util/events/EventBus`, `Event.WebHeadEvent`): the list sends `CloseRequested`, settings
+send `ColourChanged`, and the service sends `Closed` and `WebsiteUpdated`. The bus keeps no replay,
+so an event reaches only a collector that is subscribed; both collectors subscribe in `onCreate`
+and stop in `onDestroy`. The notification actions stay package-scoped system broadcasts.
+
 Native bubbles (`bubbles/system/`) are the alternative on newer Android: a conversation shortcut
 per site and a bubble notification that opens the page in `EmbeddableWebViewActivity`.
 
