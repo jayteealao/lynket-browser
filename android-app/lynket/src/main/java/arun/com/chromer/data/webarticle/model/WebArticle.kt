@@ -26,6 +26,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import androidx.annotation.ColorInt
 import arun.com.chromer.shared.Constants
+import arun.com.chromer.util.parser.extraction.ExtractedArticle
 import com.chimbori.crux.articles.Article
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
@@ -153,6 +154,30 @@ class WebArticle() : Parcelable {
             if (article.keywords != null) {
                 webArticle.keywords.addAll(article.keywords)
             }
+            return webArticle
+        }
+
+        /**
+         * The extractor leaves fields it did not find null; each becomes "", so a page without, for
+         * example, an AMP or feed address still makes an article instead of failing the extraction.
+         */
+        fun fromArticle(article: ExtractedArticle): WebArticle {
+            val webArticle = WebArticle()
+            webArticle.url = article.url
+            webArticle.originalUrl = article.originalUrl
+            webArticle.title = article.title ?: ""
+            webArticle.description = article.description ?: ""
+            webArticle.siteName = article.siteName ?: ""
+            webArticle.themeColor = article.themeColor ?: ""
+            webArticle.ampUrl = article.ampUrl ?: ""
+            webArticle.canonicalUrl = article.canonicalUrl ?: ""
+            webArticle.imageUrl = article.imageUrl ?: ""
+            webArticle.videoUrl = article.videoUrl ?: ""
+            webArticle.feedUrl = article.feedUrl ?: ""
+            webArticle.faviconUrl = article.faviconUrl ?: ""
+            webArticle.elements = article.document?.children()
+            webArticle.keywords = ArrayList()
+            article.keywords?.let { webArticle.keywords.addAll(it) }
             return webArticle
         }
     }

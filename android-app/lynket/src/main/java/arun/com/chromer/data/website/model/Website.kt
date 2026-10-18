@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.DiffUtil
 import arun.com.chromer.data.history.model.HistoryTable
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.shared.Constants.NO_COLOR
+import arun.com.chromer.util.parser.extraction.ExtractedArticle
 import com.chimbori.crux.articles.Article
 import java.util.Objects
 
@@ -218,6 +219,18 @@ class Website() : Parcelable {
 
         @JvmStatic
         fun fromArticle(article: Article): Website {
+            val website = Website()
+            website.title = article.title
+            website.url = article.url
+            website.canonicalUrl = if (!TextUtils.isEmpty(article.canonicalUrl)) article.canonicalUrl else article.url
+            website.faviconUrl = article.faviconUrl
+            website.themeColor = article.themeColor
+            website.ampUrl = if (!TextUtils.isEmpty(article.ampUrl)) article.ampUrl else ""
+            return website
+        }
+
+        @JvmStatic
+        fun fromArticle(article: ExtractedArticle): Website {
             val website = Website()
             website.title = article.title
             website.url = article.url

@@ -125,6 +125,28 @@ class ExtractionParityTest {
     }
   }
 
+  /** The app's own extractor, as `RxParser` calls it. */
+  private object PortExtraction : Extraction {
+    override val name = "app"
+
+    override fun website(url: String, headHtml: String): Website =
+      Website.fromArticle(ArticleExtractor.with(url, headHtml).extractMetadata().article())
+
+    override fun article(url: String, html: String): WebArticle = WebArticle.fromArticle(
+      ArticleExtractor.with(url, Jsoup.parse(html, url)).extractMetadata().extractContent().article()
+    ).also(::removeEmptyElements)
+
+    override fun address(input: String): String = try {
+      val parsed = PageUrl.parse(input)
+      if (parsed == null) "null" else {
+        val likely = parsed.resolveRedirects().isLikelyArticle
+        "$parsed article=$likely"
+      }
+    } catch (e: Exception) {
+      "error ${e.javaClass.name}"
+    }
+  }
+
   private data class Fixture(val name: String, val file: File, val url: String)
 
   companion object {
@@ -144,7 +166,7 @@ class ExtractionParityTest {
     )
 
     /** The extractions compared with the goldens. */
-    private val EXTRACTIONS: List<Extraction> = listOf(OldExtraction)
+    private val EXTRACTIONS: List<Extraction> = listOf(OldExtraction, PortExtraction)
 
     private val OLD_EXTRACTOR_PRESENT: Boolean = try {
       Class.forName("com.chimbori.crux.articles.ArticleExtractor")
