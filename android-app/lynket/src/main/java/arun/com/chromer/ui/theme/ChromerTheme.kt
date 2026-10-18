@@ -47,7 +47,7 @@ import arun.com.chromer.data.preferences.SettingsSchema
 import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.data.preferences.readInt
 import arun.com.chromer.settings.Preferences
-import com.google.android.material.color.MaterialColors
+import arun.com.chromer.ui.theme.hct.Hct
 
 /** Light, dark or black (near-black surfaces for OLED screens); [Auto] follows the system. */
 enum class ThemeMode { Auto, Light, Dark, Black }
@@ -157,13 +157,16 @@ internal fun ColorScheme.toBlack(): ColorScheme = copy(
 
 /** Replaces the primary roles with roles derived from the person's chosen colour. */
 internal fun ColorScheme.withPrimary(colour: Color, isLight: Boolean): ColorScheme {
-  val roles = MaterialColors.getColorRoles(colour.toArgb(), isLight)
+  // The HCT tones Material Components used for these roles: 40/100/90/10 light, 80/20/30/90 dark.
+  val argb = colour.toArgb()
+  val tones = if (isLight) intArrayOf(40, 100, 90, 10) else intArrayOf(80, 20, 30, 90)
+  val (accent, onAccent, accentContainer, onAccentContainer) = tones.map { Color(Hct.tone(argb, it)) }
   return copy(
-    primary = Color(roles.accent),
-    onPrimary = Color(roles.onAccent),
-    primaryContainer = Color(roles.accentContainer),
-    onPrimaryContainer = Color(roles.onAccentContainer),
-    surfaceTint = Color(roles.accent),
+    primary = accent,
+    onPrimary = onAccent,
+    primaryContainer = accentContainer,
+    onPrimaryContainer = onAccentContainer,
+    surfaceTint = accent,
   )
 }
 
