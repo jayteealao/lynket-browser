@@ -98,7 +98,7 @@ fun RowScope.BrowsingTopBarActions(items: List<BrowsingMenuItem>, contentColour:
   var open by rememberSaveable { mutableStateOf(false) }
   Box {
     IconButton(onClick = { open = true }, modifier = Modifier.testTag("browsing-overflow")) {
-      Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(androidx.appcompat.R.string.abc_action_menu_overflow_description), tint = contentColour)
+      Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.overflow_menu_description), tint = contentColour)
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.testTag("browsing-overflow-menu")) {
       overflow.forEach { item ->

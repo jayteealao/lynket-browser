@@ -29,7 +29,8 @@ internal object RecordedTable {
     write(written, text)
     val kept = File("src/test/resources/theme/$name")
     if (!kept.exists()) fail("No kept table $name: copy ${written.absolutePath} to ${kept.path} to record it")
-    val expected = read(kept).trimEnd('\n').split('\n')
+    // A checkout may turn line ends into CRLF.
+    val expected = read(kept).replace("\r\n", "\n").trimEnd('\n').split('\n')
     val mismatches = (0 until maxOf(expected.size, actual.size))
       .filter { expected.getOrNull(it) != actual.getOrNull(it) }
     if (mismatches.isNotEmpty()) {

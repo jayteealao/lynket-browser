@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Translations from AndroidX AppCompat 1.7.1, Apache License 2.0. -->
+<resources>
+  <!-- The overflow (more options) button of the reader and web view top bar, read by TalkBack. -->
+  <string name="overflow_menu_description">"More options"</string>
+</resources>

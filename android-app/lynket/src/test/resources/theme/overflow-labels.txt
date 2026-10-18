@@ -1,0 +1,86 @@
+default More options
+af Nog opsies
+am ተጨማሪ አማራጮች
+ar خيارات أكثر
+as অধিক বিকল্প
+az Digər seçimlər
+b+sr+Latn Još opcija
+be Дадатковыя параметры
+bg Още опции
+bn আরও বিকল্প
+bs Više opcija
+ca Més opcions
+cs Další možnosti
+da Flere valgmuligheder
+de Weitere Optionen
+el Περισσότερες επιλογές
+en-rAU More options
+en-rCA More options
+en-rGB More options
+en-rIN More options
+en-rXC ‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‎‏‏‎‏‎‏‎‎‏‎‎‎‎‏‎‎‎‏‎‏‎‏‎‏‏‏‏‏‏‏‎‏‏‎‎‏‏‎‏‏‎‎‎‎‏‎‎‏‎‏‏‏‏‏‎‏‎‎‏‎More options‎‏‎‎‏‎
+es Más opciones
+es-rUS Más opciones
+et Rohkem valikuid
+eu Aukera gehiago
+fa گزینه‌های بیشتر
+fi Lisäasetukset
+fr Autres options
+fr-rCA Autres options
+gl Máis opcións
+gu વધુ વિકલ્પો
+hi ज़्यादा विकल्प
+hr Više opcija
+hu További lehetőségek
+hy Այլ ընտրանքներ
+in Opsi lainnya
+is Fleiri valkostir
+it Altre opzioni
+iw עוד אפשרויות
+ja その他のオプション
+ka სხვა ვარიანტები
+kk Басқа опциялар
+km ជម្រើសច្រើនទៀត
+kn ಇನ್ನಷ್ಟು ಆಯ್ಕೆಗಳು
+ko 추가 옵션
+ky Дагы параметрлер
+lo ຕົວເລືອກເພີ່ມເຕີມ
+lt Daugiau parinkčių
+lv Citas opcijas
+mk Повеќе опции
+ml കൂടുതൽ ഓപ്ഷനുകൾ
+mn Бусад сонголт
+mr आणखी पर्याय
+ms Lagi pilihan
+my နောက်ထပ် ရွေးစရာများ
+nb Flere alternativer
+ne थप विकल्पहरू
+nl Meer opties
+or ଅଧିକ ବିକଳ୍ପ
+pa ਹੋਰ ਵਿਕਲਪ
+pl Więcej opcji
+pt Mais opções
+pt-rBR Mais opções
+pt-rPT Mais opções
+ro Mai multe opțiuni
+ru Ещё
+si තවත් විකල්ප
+sk Ďalšie možnosti
+sl Več možnosti
+sq Opsione të tjera
+sr Још опција
+sv Fler alternativ
+sw Chaguo zaidi
+ta மேலும் விருப்பங்கள்
+te మరిన్ని ఆప్షన్‌లు
+th ตัวเลือกอื่น
+tl Higit pang opsyon
+tr Diğer seçenekler
+uk Більше опцій
+ur مزید اختیارات
+uz Yana
+vi Tùy chọn khác
+zh-rCN 更多选项
+zh-rHK 更多選項
+zh-rTW 更多選項
+zu Ezinye izinketho
