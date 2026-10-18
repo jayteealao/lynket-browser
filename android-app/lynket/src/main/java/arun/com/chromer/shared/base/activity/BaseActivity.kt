@@ -26,8 +26,6 @@ package arun.com.chromer.shared.base.activity
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import arun.com.chromer.R
-import arun.com.chromer.util.lifecycle.ActivityLifecycleEvents
-import javax.inject.Inject
 
 /**
  * Base activity for all activities in the app.
@@ -37,9 +35,6 @@ import javax.inject.Inject
  * - lifecycleScope.launch(Dispatchers.IO) { } for background work
  */
 abstract class BaseActivity : AppCompatActivity() {
-
-  @Inject
-  lateinit var lifecycleEvents: ActivityLifecycleEvents
 
   override fun onOptionsItemSelected(item: MenuItem): Boolean {
     if (item.itemId == R.id.home) {
