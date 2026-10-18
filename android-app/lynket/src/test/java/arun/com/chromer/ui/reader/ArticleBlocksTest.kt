@@ -64,6 +64,14 @@ class ArticleBlocksTest {
   }
 
   @Test
+  fun aParagraphOfOnlyASoftHyphenStaysAsTheReaderAlwaysShowedIt() {
+    val result = blocks("<p>One</p><p>­</p><ul><li>­</li></ul><p>Two</p>")
+    assertThat(result.map { it.kind }).containsExactly(
+      BlockKind.Paragraph, BlockKind.Paragraph, BlockKind.Bullet, BlockKind.Paragraph,
+    ).inOrder()
+  }
+
+  @Test
   fun theFixtureArticleExtractsAndMapsToBlocks() {
     // The device check's fixture, through the same extractor the app uses. A page without an AMP,
     // feed or video address made the extraction fail before (the extractor leaves those null).

@@ -258,7 +258,7 @@ class ExtractionParityTest {
     private fun removeEmptyElements(article: WebArticle) {
       val iterator = article.elements?.iterator() ?: return
       while (iterator.hasNext()) {
-        if (iterator.next().text().isEmpty()) iterator.remove()
+        if (iterator.next().legacyText().isEmpty()) iterator.remove()
       }
     }
 
@@ -282,7 +282,8 @@ class ExtractionParityTest {
         parcel.setDataPosition(0)
         val restored = WebArticle.CREATOR.createFromParcel(parcel)
         return articleBlocks(restored.elements ?: Elements()).joinToString("") {
-          "${it.kind} | ${Jsoup.parse(it.html).text().oneLine()}\n"
+          // The jsoup 1.9.2 text rule the golden was written with (a current jsoup drops soft hyphens).
+          "${it.kind} | ${Jsoup.parse(it.html).legacyText().oneLine()}\n"
         }
       } finally {
         parcel.recycle()

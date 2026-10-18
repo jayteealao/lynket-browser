@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import arun.com.chromer.R
+import arun.com.chromer.util.parser.extraction.legacyText
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
@@ -72,18 +73,19 @@ data class ArticleBlock(val kind: BlockKind, val html: String)
  * The article's elements as blocks, in page order, by the legacy tag rules: `p`, `h1`..`h6`,
  * `blockquote`, `pre`, list items of `ul` and `ol`, anything else as plain text. A list element
  * gives one block per item. Images and elements without text are left out, as the stores and the
- * legacy reader did (inline images were never loaded).
+ * legacy reader did (inline images were never loaded). Emptiness uses jsoup 1.9.2's text rule,
+ * as the legacy reader did, so a paragraph holding only a soft hyphen still shows.
  */
 fun articleBlocks(elements: Iterable<Element>): List<ArticleBlock> = buildList {
   for (element in elements) {
-    if (element.text().isBlank()) continue
+    if (element.legacyText().isBlank()) continue
     when (val tag = element.tagName().lowercase()) {
       "p" -> add(ArticleBlock(BlockKind.Paragraph, element.html()))
       "h1", "h2", "h3", "h4", "h5", "h6" -> add(ArticleBlock(BlockKind.Heading(tag[1].digitToInt()), element.html()))
       "blockquote" -> add(ArticleBlock(BlockKind.Quote, element.html()))
       "pre" -> add(ArticleBlock(BlockKind.Code, element.preformattedText().trimEnd()))
       "img" -> Unit
-      "ul", "ol" -> element.children().filter { it.tagName().equals("li", true) && it.text().isNotBlank() }
+      "ul", "ol" -> element.children().filter { it.tagName().equals("li", true) && it.legacyText().isNotBlank() }
         .forEachIndexed { i, li ->
           add(ArticleBlock(if (tag == "ul") BlockKind.Bullet else BlockKind.Numbered(i + 1), li.html()))
         }

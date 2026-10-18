@@ -25,6 +25,7 @@ package arun.com.chromer.data.webarticle.stores
 import arun.com.chromer.data.webarticle.WebArticleStore
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.util.parser.RxParser
+import arun.com.chromer.util.parser.extraction.legacyText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -52,7 +53,7 @@ class WebArticleNetworkStore @Inject constructor() : WebArticleStore {
                     val iterator = rawElements.iterator()
                     while (iterator.hasNext()) {
                         val element = iterator.next()
-                        if (element.text().isEmpty()) {
+                        if (element.legacyText().isEmpty()) {
                             iterator.remove()
                         }
                     }

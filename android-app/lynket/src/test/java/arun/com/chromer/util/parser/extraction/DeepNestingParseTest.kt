@@ -29,12 +29,13 @@ class DeepNestingParseTest {
     val html = deeplyNestedPage()
     assertThat(html.length).isAtLeast(1_000_000)
 
+    // Time the page, not the loading of the parser and extractor classes or the garbage the tests
+    // before this one left in the shared test JVM: a small page of the same shape runs first.
+    parseAndExtract(deeplyNestedPage(divs = DIVS / 100, runs = RUNS / 100))
+    System.gc()
+
     val start = System.nanoTime()
-    val failure = runCatching {
-      val document = Jsoup.parse(html, URL)
-      val article = ArticleExtractor.with(URL, document).extractMetadata().extractContent().article()
-      articleBlocks(article.document!!.children())
-    }.exceptionOrNull()
+    val failure = runCatching { parseAndExtract(html) }.exceptionOrNull()
     val millis = (System.nanoTime() - start) / 1_000_000
     println("Deeply nested page (${html.length} chars): parse and extraction took $millis ms")
 
@@ -42,17 +43,23 @@ class DeepNestingParseTest {
     assertWithMessage("parse and extraction took $millis ms").that(millis).isLessThan(5_000L)
   }
 
-  private fun deeplyNestedPage(): String = buildString {
+  private fun parseAndExtract(html: String) {
+    val document = Jsoup.parse(html, URL)
+    val article = ArticleExtractor.with(URL, document).extractMetadata().extractContent().article()
+    articleBlocks(article.document!!.children())
+  }
+
+  private fun deeplyNestedPage(divs: Int = DIVS, runs: Int = RUNS): String = buildString {
     append("<!DOCTYPE html><html><head><title>Nested</title></head><body>")
-    repeat(DIVS) { append("<div>") }
+    repeat(divs) { append("<div>") }
     append("<p>").append("A paragraph deep inside the page, long enough to count as article text. ".repeat(3)).append("</p>")
-    repeat(DIVS) { append("</div>") }
-    repeat(RUNS) { append("<table><tr><td>") }
+    repeat(divs) { append("</div>") }
+    repeat(runs) { append("<table><tr><td>") }
     append("cell")
-    repeat(RUNS) { append("</td></tr></table>") }
-    repeat(RUNS) { append("<ul><li>") }
+    repeat(runs) { append("</td></tr></table>") }
+    repeat(runs) { append("<ul><li>") }
     append("item")
-    repeat(RUNS) { append("</li></ul>") }
+    repeat(runs) { append("</li></ul>") }
     append("</body></html>")
   }
 

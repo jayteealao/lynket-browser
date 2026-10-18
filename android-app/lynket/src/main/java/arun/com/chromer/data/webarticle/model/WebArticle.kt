@@ -27,6 +27,7 @@ import android.os.Parcelable
 import androidx.annotation.ColorInt
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.parser.extraction.ExtractedArticle
+import arun.com.chromer.util.parser.extraction.legacyText
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 
@@ -76,7 +77,9 @@ class WebArticle() : Parcelable {
         val iterator = rawElements.iterator()
         while (iterator.hasNext()) {
             val element = iterator.next()
-            if (element.text().isEmpty()) {
+            // The reader has always measured emptiness with jsoup 1.9.2's text rule, which keeps
+            // soft hyphens; a current jsoup drops them and would hide those paragraphs.
+            if (element.legacyText().isEmpty()) {
                 iterator.remove()
             }
         }
