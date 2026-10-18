@@ -1,0 +1,32 @@
+website.title: Leuchtturm – Wikipedia
+website.url: https://de.wikipedia.org/wiki/Leuchtturm
+website.canonicalUrl: https://de.wikipedia.org/wiki/Leuchtturm
+website.faviconUrl: https://de.wikipedia.org/static/favicon/wikipedia.ico
+website.themeColor: #eaecf0
+website.ampUrl: 
+reader.url: https://de.wikipedia.org/wiki/Leuchtturm
+reader.originalUrl: 
+reader.title: Leuchtturm – Wikipedia
+reader.description: 
+reader.siteName: 
+reader.themeColor: #eaecf0
+reader.ampUrl: 
+reader.canonicalUrl: https://de.wikipedia.org/wiki/Leuchtturm
+reader.leadImage: https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Aerial_photograph_60D_2012_05_13_8760_DxO_retusche.jpg/960px-Aerial_photograph_60D_2012_05_13_8760_DxO_retusche.jpg?utm_source=de.wikipedia.org&utm_campaign=index&utm_content=thumbnail
+reader.videoUrl: 
+reader.feedUrl: 
+reader.faviconUrl: https://de.wikipedia.org/static/favicon/wikipedia.ico
+reader.keywords: 
+reader.blocks: 4
+reader.block.0.kind: Paragraph
+reader.block.0.text: Die Bauweise der Leuchttürme ist sehr vielfältig. In vorindustrieller Zeit waren Leuchttürme zumeist gemauert, vorrangig als Rundturm, oftmals als Achteck oder in Gebäudeform (quadratisch) mit aufgesetzter runder Laterne. In historischen Turmkonstruktionen befanden sich mitunter Wohn- und Arbeitsräume für das Bedienpersonal, die oft durch Nebengebäude ergänzt wurden. Da der Beruf des Leuchtfeuerwärters durch die Automatisierung nicht mehr ausgeübt wird, dienen die ehemaligen Arbeitsräume heute anderen Aufgaben. Mit Aufkommen des Metallbaus wurde es möglich, leichte windbeständige Konstruktionen aus Gusseisen, aus Schmiedestahl und schließlich aus gegossenem und gewalztem Stahl zu errichten. Dabei überwog zunächst Stahlfachwerk, später rohr- und mastartige Konstruktionen. Heutzutage sind viele derartige Bauwerke aus Stahlbeton, Bauten aus glasfaserverstärktem Kunststoff wie Kahlersand an der Elbe blieben die Ausnahme. Lichtanlage und Optik sind bei größeren Bauten zumeist aufgesetzt, sie werden als Lampenhaus, "Lichthaus" oder Laterne bezeichnet. Einige Leuchttürme verfügen über Nebelhörner oder Nebelglocken, um die Orientierung bei schlechter Sicht zu ermöglichen. Für den gleichen Zweck werden heute Nebelfeuer eingesetzt, die lautlos und energiesparend sind.
+reader.block.0.html: Die Bauweise der Leuchttürme ist sehr vielfältig. In vorindustrieller Zeit waren Leuchttürme zumeist gemauert, vorrangig als <a href="https://de.wikipedia.org/wiki/Rundturm">Rundturm</a>, oftmals als <a href="https://de.wikipedia.org/wiki/Oktogon_(Architektur)">Achteck</a> oder in Gebäudeform (quadratisch) mit aufgesetzter runder Laterne. In historischen Turmkonstruktionen befanden sich mitunter Wohn- und Arbeitsräume für das Bedienpersonal, die oft durch Nebengebäude ergänzt wurden. Da der Beruf des <a href="https://de.wikipedia.org/wiki/Leuchtfeuerwärter">Leuchtfeuerwärters</a> durch die Automatisierung nicht mehr ausgeübt wird, dienen die ehemaligen Arbeitsräume heute anderen Aufgaben. Mit Aufkommen des Metallbaus wurde es möglich, leichte windbeständige Konstruktionen aus Gusseisen, aus <a href="https://de.wikipedia.org/wiki/Schmiedeeisen">Schmiedestahl</a> und schließlich aus gegossenem und gewalztem <a href="https://de.wikipedia.org/wiki/Stahl">Stahl</a> zu errichten. Dabei überwog zunächst <a href="https://de.wikipedia.org/wiki/Stahlfachwerk">Stahlfachwerk</a>, später rohr- und mastartige Konstruktionen. Heutzutage sind viele derartige Bauwerke aus <a href="https://de.wikipedia.org/wiki/Stahlbeton">Stahlbeton</a>, Bauten aus <a href="https://de.wikipedia.org/wiki/Glasfaserverstärkter_Kunststoff">glasfaserverstärktem Kunststoff</a> wie <i>Kahlersand</i> an der Elbe blieben die Ausnahme. Lichtanlage und Optik sind bei größeren Bauten zumeist aufgesetzt, sie werden als <i>Lampenhaus</i>, "Lichthaus" oder <i>Laterne</i> bezeichnet. Einige Leuchttürme verfügen über <a href="https://de.wikipedia.org/wiki/Nebelhorn">Nebelhörner</a> oder <a href="https://de.wikipedia.org/wiki/Nebelglocke">Nebelglocken</a>, um die Orientierung bei schlechter Sicht zu ermöglichen. Für den gleichen Zweck werden heute <a href="https://de.wikipedia.org/wiki/Nebelfeuer?action=edit&amp;redlink=1">Nebelfeuer</a> eingesetzt, die lautlos und energiesparend sind.
+reader.block.1.kind: Paragraph
+reader.block.1.text: Schwarzer Leucht ­turm Lemwerder, 1898, Stahlfachwerk mit verkleidetem Treppenaufgang Leuchtfeuer Lem ­werder, 1983, mit Stahlrohr als Turm ­schaft
+reader.block.1.html: <p><p><i>Schwarzer Leucht<p>­</p>turm</i> Lemwerder, 1898, Stahlfachwerk mit verkleidetem Treppenaufgang</p></p> <p><p>Leuchtfeuer Lem<p>­</p>werder, 1983, mit Stahlrohr als Turm<p>­</p>schaft</p></p>
+reader.block.2.kind: Paragraph
+reader.block.2.text: Bis in das späte 20.  Jahrhundert waren in der Nord- und Ostsee dort, wo die Errichtung von Leuchttürmen auf festem Grund nicht möglich war, vielfach Feuerschiffe positioniert, mit Leuchtfeuern in bis zu 45  m Höhe. Heute werden von der Deutschen Wasser- und Schifffahrtsverwaltung nur noch zwei Feuerschiffspositionen unterhalten. Das berühmteste deutsche Feuerschiff war die Elbe 1.
+reader.block.2.html: Bis in das späte 20.<p>&nbsp;</p>Jahrhundert waren in der Nord- und Ostsee dort, wo die Errichtung von Leuchttürmen auf festem Grund nicht möglich war, vielfach <a href="https://de.wikipedia.org/wiki/Feuerschiff">Feuerschiffe</a> positioniert, mit Leuchtfeuern in bis zu 45<p>&nbsp;</p>m Höhe. Heute werden von der Deutschen Wasser- und Schifffahrtsverwaltung nur noch zwei Feuerschiffspositionen unterhalten. Das berühmteste deutsche Feuerschiff war die <i><a href="https://de.wikipedia.org/wiki/Feuerschiff_Elbe_1">Elbe 1</a></i>.
+reader.block.3.kind: Paragraph
+reader.block.3.text: Bei engen Fahrrinnen werden Richtfeuer aus zwei synchronisierten Leuchtfeuern unterschiedlicher Höhe errichtet.
+reader.block.3.html: Bei engen Fahrrinnen werden <a href="https://de.wikipedia.org/wiki/Richtfeuer">Richtfeuer</a> aus zwei synchronisierten Leuchtfeuern unterschiedlicher Höhe errichtet.

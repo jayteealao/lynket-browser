@@ -1,0 +1,29 @@
+website.title: Lighthouse - Wikipedia
+website.url: https://en.wikipedia.org/wiki/Lighthouse
+website.canonicalUrl: https://en.wikipedia.org/wiki/Lighthouse
+website.faviconUrl: https://en.wikipedia.org/static/favicon/wikipedia.ico
+website.themeColor: #eaecf0
+website.ampUrl: 
+reader.url: https://en.wikipedia.org/wiki/Lighthouse
+reader.originalUrl: 
+reader.title: Lighthouse - Wikipedia
+reader.description: 
+reader.siteName: 
+reader.themeColor: #eaecf0
+reader.ampUrl: 
+reader.canonicalUrl: https://en.wikipedia.org/wiki/Lighthouse
+reader.leadImage: https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Aerial_photograph_60D_2012_05_13_8760_DxO_retusche.jpg/960px-Aerial_photograph_60D_2012_05_13_8760_DxO_retusche.jpg?utm_source=en.wikipedia.org&utm_campaign=index&utm_content=thumbnail
+reader.videoUrl: 
+reader.feedUrl: 
+reader.faviconUrl: https://en.wikipedia.org/static/favicon/wikipedia.ico
+reader.keywords: 
+reader.blocks: 3
+reader.block.0.kind: Paragraph
+reader.block.0.text: Before the development of clearly defined ports, mariners were guided by fires built on hilltops. Since elevating the fire would improve visibility, placing the fire on a platform became a practice that led to the development of the lighthouse. In antiquity, the lighthouse functioned more as an entrance marker to ports than as a warning signal for reefs and promontories, unlike many modern lighthouses. The most famous lighthouse structure from antiquity was the Pharos of Alexandria, Egypt, which collapsed following a series of earthquakes between 956 and 1323.
+reader.block.0.html: Before the development of clearly defined <a href="https://en.wikipedia.org/wiki/Port">ports</a>, mariners were guided by fires built on hilltops. Since elevating the fire would improve visibility, placing the fire on a platform became a practice that led to the development of the lighthouse. In antiquity, the lighthouse functioned more as an entrance marker to ports than as a warning signal for <a href="https://en.wikipedia.org/wiki/Reef">reefs</a> and <a href="https://en.wikipedia.org/wiki/Promontory">promontories</a>, unlike many modern lighthouses. The most famous lighthouse structure from antiquity was the <a href="https://en.wikipedia.org/wiki/Lighthouse_of_Alexandria">Pharos</a> of <a href="https://en.wikipedia.org/wiki/Alexandria">Alexandria</a>, <a href="https://en.wikipedia.org/wiki/Egypt">Egypt</a>, which collapsed following a series of <a href="https://en.wikipedia.org/wiki/Earthquake">earthquakes</a> between 956 and 1323.
+reader.block.1.kind: Paragraph
+reader.block.1.text: The surviving evidence for ancient lighthouses is uneven. Simple coastal fires, wooden beacons, and other early navigation markers were less likely to leave durable archaeological remains, while monumental stone towers could survive in ruins or be documented through coins, inscriptions, and written accounts. For this reason, famous structures such as the Pharos of Alexandria are better understood as major early examples of monumental lighthouse construction rather than proof of the first use of navigational lights.
+reader.block.1.html: The surviving evidence for ancient lighthouses is uneven. Simple coastal fires, wooden beacons, and other early navigation markers were less likely to leave durable archaeological remains, while monumental stone towers could survive in ruins or be documented through coins, inscriptions, and written accounts. For this reason, famous structures such as the Pharos of Alexandria are better understood as major early examples of monumental lighthouse construction rather than proof of the first use of navigational lights.
+reader.block.2.kind: Paragraph
+reader.block.2.text: The intact Tower of Hercules at A Coruña, Spain gives insight into ancient lighthouse construction; other evidence about lighthouses exists in depictions on coins and mosaics, of which many represent the lighthouse at Ostia. Coins from Alexandria, Ostia, and Laodicea in Syria also exist.
+reader.block.2.html: The intact <a href="https://en.wikipedia.org/wiki/Tower_of_Hercules">Tower of Hercules</a> at <a href="https://en.wikipedia.org/wiki/A_Coruña">A Coruña</a>, Spain gives insight into ancient lighthouse construction; other evidence about lighthouses exists in depictions on coins and mosaics, of which many represent the lighthouse at <a href="https://en.wikipedia.org/wiki/Ostia_Antica_(archaeological_site)">Ostia</a>. Coins from Alexandria, Ostia, and <a href="https://en.wikipedia.org/wiki/Latakia">Laodicea in Syria</a> also exist.

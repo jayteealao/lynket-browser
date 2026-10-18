@@ -1,0 +1,32 @@
+website.title: Wikipedia
+website.url: https://www.wikipedia.org/
+website.canonicalUrl: https://www.wikipedia.org/
+website.faviconUrl: https://www.wikipedia.org/static/apple-touch/wikipedia.png
+website.themeColor: 
+website.ampUrl: 
+reader.url: https://www.wikipedia.org/
+reader.originalUrl: 
+reader.title: Wikipedia
+reader.description: Wikipedia is a free online encyclopedia, created and edited by volunteers around the world and hosted by the Wikimedia Foundation.
+reader.siteName: 
+reader.themeColor: 
+reader.ampUrl: 
+reader.canonicalUrl: 
+reader.leadImage: https://upload.wikimedia.org/wikipedia/en/thumb/8/80/Wikipedia-logo-v2.svg/250px-Wikipedia-logo-v2.svg.png
+reader.videoUrl: 
+reader.feedUrl: 
+reader.faviconUrl: https://www.wikipedia.org/static/apple-touch/wikipedia.png
+reader.keywords: 
+reader.blocks: 4
+reader.block.0.kind: Paragraph
+reader.block.0.text: An important update for readers in the United States.
+reader.block.0.html: An important update for readers in <p>the United States</p>.
+reader.block.1.kind: Paragraph
+reader.block.1.text: You deserve an explanation, so please don't skip this 1-minute read. This year, Wikipedia has had fewer visitors and fewer new supporters, so your visit today means a lot. We hope that Wikipedia's given you at least $2.75 of knowledge recently. If everyone who found Wikipedia useful gave $2.75, we'd hit our goal in a few hours.
+reader.block.1.html: You deserve an explanation, so please don't skip this 1-minute read. This year, Wikipedia has had fewer visitors and fewer new supporters, so your visit today means a lot. We hope that Wikipedia's given you at least <p>$2.75</p> of knowledge recently. If everyone who found Wikipedia useful gave <p>$2.75</p>, we'd hit our goal in a few hours.
+reader.block.2.kind: Paragraph
+reader.block.2.text: After 25 years, Wikipedia is still the internet we were promised—created by people, not by machines. It's not perfect, but it's not here to push a point of view. It's run by a nonprofit, not a giant technology company or a billionaire.
+reader.block.2.html: After 25 years, Wikipedia is still the internet we were promised—created by people, not by machines. It's not perfect, but it's not here to push a point of view. It's run by a nonprofit, not a giant technology company or a billionaire.
+reader.block.3.kind: Paragraph
+reader.block.3.text: Less than 2% of our readers donate. The rare few who give do so because Wikipedia provides them with useful knowledge. If that sounds like you, please donate $2.75. Any contribution you make today helps.
+reader.block.3.html: Less than 2% of our readers donate. The rare few who give do so because Wikipedia provides them with useful knowledge. If that sounds like you, please donate <p>$2.75</p>. Any contribution you make today helps.

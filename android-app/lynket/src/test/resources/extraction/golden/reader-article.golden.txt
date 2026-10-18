@@ -1,0 +1,53 @@
+website.title: Android 17 brings resizable apps everywhere
+website.url: http://localhost:8000/article.html
+website.canonicalUrl: http://localhost:8000/article.html
+website.faviconUrl: <null>
+website.themeColor: #3F51B5
+website.ampUrl: 
+reader.url: http://localhost:8000/article.html
+reader.originalUrl: 
+reader.title: Android 17 brings resizable apps everywhere
+reader.description: A fixed test article for the reader device check.
+reader.siteName: Lynket fixture
+reader.themeColor: #3F51B5
+reader.ampUrl: 
+reader.canonicalUrl: 
+reader.leadImage: http://localhost:8000/header.png
+reader.videoUrl: 
+reader.feedUrl: 
+reader.faviconUrl: 
+reader.keywords: android | compose | large screens
+reader.blocks: 11
+reader.block.0.kind: Paragraph
+reader.block.0.text: Google's next release removes orientation locks on large screens, so apps that assumed a portrait phone now have to adapt to any window the person chooses, from a narrow split screen to a wide desktop window.
+reader.block.0.html: Google's next release removes orientation locks on large screens, so apps that assumed a portrait phone now have to adapt to any window the person chooses, from a narrow split screen to a wide desktop window.
+reader.block.1.kind: Paragraph
+reader.block.1.text: For most Compose apps the change is small: window size classes and adaptive panes do the work, and the layout that served a phone simply gains room. Apps that measured the screen once at start-up and never again are the ones that break.
+reader.block.1.html: For most Compose apps the change is small: window size classes and adaptive panes do the work, and the layout that served a phone simply gains room. Apps that measured the screen once at start-up and never again are the ones that break.
+reader.block.2.kind: Paragraph
+reader.block.2.text: Reading apps gain the most. A column of text that stays near sixty-five characters per line is easier to follow than a line that runs across a whole tablet, so a reader keeps its column narrow and centres it in the window.
+reader.block.2.html: Reading apps gain the most. A column of text that stays near sixty-five characters per line is easier to follow than a line that runs across a whole tablet, so a reader keeps its column narrow and centres it in the window.
+reader.block.3.kind: Quote
+reader.block.3.text: Every app is a large-screen app now, the team said at the developer summit, and the guidance for text is the same as it was for print.
+reader.block.3.html: Every app is a large-screen app now, the team said at the developer summit, and the guidance for text is the same as it was for print.
+reader.block.4.kind: Paragraph
+reader.block.4.text: Links inside an article still open in the browser: adaptive layouts in Compose is the starting point the documentation gives.
+reader.block.4.html: Links inside an article still open in the browser: <a href="https://developer.android.com/develop/ui/compose/layouts/adaptive">adaptive layouts in Compose</a> is the starting point the documentation gives.
+reader.block.5.kind: Heading(level=3)
+reader.block.5.text: Three things to check
+reader.block.5.html: Three things to check
+reader.block.6.kind: Paragraph
+reader.block.6.text: Text stays readable at every font scale the person sets. Controls keep a touch target of at least forty-eight density-independent pixels. Content clears the system bars and the display cutout in every orientation.
+reader.block.6.html: <p>Text stays readable at every font scale the person sets.</p> <p>Controls keep a touch target of at least forty-eight density-independent pixels.</p> <p>Content clears the system bars and the display cutout in every orientation.</p>
+reader.block.7.kind: Paragraph
+reader.block.7.text: The release also brings predictive back to every screen, so a partial swipe shows where the person will land before they lift the finger. Screens that handle back themselves need to say so ahead of time.
+reader.block.7.html: The release also brings predictive back to every screen, so a partial swipe shows where the person will land before they lift the finger. Screens that handle back themselves need to say so ahead of time.
+reader.block.8.kind: Paragraph
+reader.block.8.text: Turn on edge-to-edge drawing. Pad content with the safe drawing insets. Test the app on a foldable in both postures.
+reader.block.8.html: <p>Turn on edge-to-edge drawing.</p> <p>Pad content with the safe drawing insets.</p> <p>Test the app on a foldable in both postures.</p>
+reader.block.9.kind: Paragraph
+reader.block.9.text: None of this needs a new library. The platform and the Compose toolkit already carry what an app needs, and the work is mostly in removing assumptions that were never true on a tablet in the first place.
+reader.block.9.html: None of this needs a new library. The platform and the Compose toolkit already carry what an app needs, and the work is mostly in removing assumptions that were never true on a tablet in the first place.
+reader.block.10.kind: Paragraph
+reader.block.10.text: The fixture ends here. It exists so that the reader check sees the same article on every run, with a header image, a title, keywords, headings, a quote, two lists and a code line.
+reader.block.10.html: The fixture ends here. It exists so that the reader check sees the same article on every run, with a header image, a title, keywords, headings, a quote, two lists and a code line.

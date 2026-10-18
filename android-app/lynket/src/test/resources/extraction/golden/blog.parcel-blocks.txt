@@ -1,0 +1,91 @@
+Paragraph | Creative Commons has been exploring questions around artificial intelligence for a long time: how this profound technological shift might affect people’s motivations to share, whether the intentions behind sharing work before AI became mainstream still hold when we consider how those works are being used now, and how we sustain a thriving commons when the fundamental bargain of the open web has shifted.
+Paragraph | â€¢
+Paragraph | â€¢
+Paragraph | Throughout these changes, we have been guided by a commitment to balance creator agency in how people participate in the commons, while preserving the public’s right to reuse. CC licenses operate through copyright, and in many jurisdictions, copyright exceptions and limitations may permit certain AI development and training uses. That can leave people who want to share openly with limited ways to impose conditions, leading some to resort to restricting access instead. This risks pushing us towards an all-or-nothing binary between a free-for-all or enclosure. We fear the end result will be a retracted knowledge commons.
+Paragraph | â€¢
+Paragraph | So we’ve been revisiting some fundamental questions:
+Paragraph | When are norms enough, and when are enforceable conditions needed? 
+Paragraph | If copyright alone cannot provide the balance we need between agency and user rights, what other frameworks should we be willing to explore in service of the commons? 
+Paragraph | Can we create meaningful boundaries around shared knowledge in order to protect it? How does that approach substantively differ from enclosure or monopolistic value capture?
+Paragraph | The answers to these questions have evolved as we have continued to listen and learn from communities and leaders, and as the technology and its impacts have changed.
+Paragraph | â€¢
+Paragraph | In 2019, a story broke about an IBM dataset, built largely on CC-licensed images gathered from Flickr, being used to train facial recognition technology. Creative Commons
+Other | responded
+Paragraph | in a concerned and balanced manner, restating what we’ve echoed since: “copyright is not a good tool to protect individual privacy, to address research ethics in AI development, or to regulate the use of surveillance tools employed online.” 
+Paragraph | In short: copyright isn’t a governance framework. 
+Paragraph | But for two decades, CC licenses have created new possibilities for sharing and reuse, unlocking overly restrictive copyright in prosocial ways. This is a classic example of a flashpoint between Creative Commons licenses as legal tools and the motivations and intentions people bring to participating in the commons—the broader social contract around open sharing. It was not the first time, and it certainly wouldn’t be the last.
+Paragraph | At that juncture, and many times since, Creative Commons has reaffirmed its commitment to the commons, holding in balance that creators deserve meaningful agency while we preserve important limits on the scope of copyright.
+Paragraph | We continue to believe that both things can be true. 
+Paragraph | The challenge is finding ways to preserve agency and choice without sacrificing the public-interest uses that open knowledge makes possible.
+Paragraph | Should individuals and communities have a say in how shared knowledge projects, like Wikipedia, are governed? Yes. Should the public interest be prioritized while protecting lawful reuse, such as transformation of copyrighted works into accessible formats? Also, yes. 
+Paragraph | I won’t go into too much detail on our journey of the past few years with AI—both as an organization and a community—but there are a few key points that are worth reminding us all of.
+Paragraph | In 2020, we
+Other | explored what works can benefit from copyright protection
+Paragraph | , as image generation by AI systems was gaining more traction. There are still discussions on this subject today, but ultimately we continue to believe in the concept of authorship as something distinctly human. This is not to say that a human cannot use said technology, but rather that a human must be at the creative helm in order to benefit from copyright protection. 
+Paragraph | We also restated that copyright is not the appropriate regulation mechanism for AI: “Any attempt at regulation is premature, especially through an already over-taxed copyright system that has been commandeered for purposes that extend well beyond its original intended purposes. AI needs to be properly explored and understood before copyright or any intellectual property issues can be seriously considered.”
+Paragraph | In early 2023, not long after ChatGPT’s public release in November 2022, we continued our
+Other | public reflections
+Paragraph | on the tensions that were rising more acutely to the surface: specifically, the use of the open web as training material for large language models. Given our long-held belief in the virtuous cycle of creativity—that all creativity builds on past creativity, that all knowledge builds on past knowledge—how could we see this as anything other than building on the past?
+Paragraph | But once again, that belief had to be held in balance with other considerations:
+Paragraph | As Catherine Stihler, then CEO of Creative Commons,
+Other | wrote at the time
+Paragraph | , “Copyright, and intellectual property law in general, are only one lens to think about AI.” She went on to ask how AI trained on the commons could contribute back to the commons, support creators, and maintain human oversight and responsibility. 
+Paragraph | As AI took over all conversations, news feeds, and much of our intellectual capacity, the technology—or family of technologies—was advancing at a rapid rate. We took our conversations to the community through webinars, workshops, one-on-ones, and by making this subject the theme of the CC Global Summit in late 2023. 
+Paragraph | An
+Other | alignment assembly of participants
+Paragraph | indicated the same split within the community that we’ve seen echoed over and over again: lean back and let it happen, or lean in and steer it. Today, as we did then, we are guided by the messy middle, trying to find common ground and balanced solutions in a world of either/or.
+Paragraph | One of the guiding principles of our work is
+Other | reciprocity
+Paragraph | . 
+Paragraph | As we ideated last year, there are many ways to potentially give back. Reciprocity can mean attribution, contributing new knowledge or resources back to the commons, supporting the infrastructure that makes sharing possible, or creating clear public benefit. That last piece matters. If people have confidence that what they contribute is helping create something that benefits others, there is a greater reason to keep participating in the cycle of sharing. 
+Paragraph | If major AI development had been infused with this kind of reciprocity from the beginning, we might not find ourselves where we do today. Calling for credit for creators? Turns out
+Other | it’s reasonably possible
+Paragraph | , and there are advances every day. Cooperative dataset development?
+Other | The New Commons Incubator
+Paragraph | is a recent example of civil society and industry collaborating. Developers sharing things back into the commons? Non-profit labs like OpenMined and OpenAthena are strong examples of this, not to mention for-profit entities like Nvidia and Hugging Face. 
+Paragraph | And then there is support for open infrastructure itself. If the major labs were to reciprocate with the open web, it might help us get back to the happy work of creating and sharing knowledge. They don’t seem likely to get there without a nudge, which is why we find policy proposals around approaches such as levies (e.g.,
+Other | this one from Open Future Foundation
+Paragraph | ) worth tracking and considering.
+Paragraph | Last year, we released a paper,
+Other | From Human Content to Machine Data
+Other | ,
+Paragraph | to ground the work we were doing on
+Other | CC Signals
+Paragraph | . 
+Paragraph | We envisioned a world of gradients, of choice, that would continue to power open sharing while balancing creator agency with public-interest uses. We believed it could be possible, but we knew it would require a mutual commitment. Across technical, legal, and philosophical strata, we heard then, and still hear today, from our community that there are deep and real concerns about the future sustainability of the commons.
+Paragraph | As the saying typically attributed to Heraclitus goes, no one ever steps in the same river twice, and that may be the truest description of CC’s work for the last several years. Each time we put a foot down, we find ourselves in a new reality.
+Paragraph | This happened very distinctly not long after we sought public feedback on CC Signals in 2025. At the time, CC Signals was ideated as a preference signals framework. 
+Paragraph | First, the work of the Internet Engineering Task Force (IETF) AI Preferences group was perceived as moving too slowly for us to rely on a standardized system through which everyone could communicate preferences evenly. At that same time, commons-based projects were increasingly facing real technical costs and impacts, largely as a result of real-time use of data for inference or grounding. In some cases, we’ve heard of projects blocking
+Other | all
+Paragraph | bot traffic as their only perceived recourse.
+Paragraph | These efforts are in tension with the missions of some commons-based projects, from open access repositories to cultural heritage institutions and everything in between: to share openly for public benefit. 
+Paragraph | Second, there was clear pushback on the idea that the major AI labs would do
+Other | anything
+Paragraph | that was remotely voluntary. What we heard directly from representatives of the labs during workshops was that they might take anything framed as a “yes, if…” or “no, unless…” as a blanket “no.” Open knowledge that was being shared with a simple request for, say, attribution, would simply be treated as unavailable. 
+Paragraph | Why is it not common sense to give credit where credit is due? Why is it not simply better for all of us if we know where our knowledge comes from? Why should we not give people a choice on whether and how they participate in the AI ecosystem? And what is the future of the commons if we do not adopt some
+Other | commons
+Paragraph | sense about all these things?
+Paragraph | Earlier this year, my colleague, Sarah Hinchliff Pearson,
+Other | wrote
+Paragraph | that this moment requires us to update some of our mental models about open knowledge. AI did not create all of the vulnerabilities we are facing, but it has accelerated and amplified them, forcing us to reconsider some long-held assumptions about what openness requires.
+Paragraph | One of those assumptions is about boundaries: whether openness can include conditions around reuse, such as attribution, reciprocity, or protections intended to address harmful or inequitable uses, without becoming enclosure. For a movement that has spent decades pushing against unnecessary restrictions, even talking about boundaries can be uncomfortable. But Sarah makes an important distinction. Boundaries are not necessarily barriers to openness. They can also help create the mutual commitment that makes people willing to share in the first place. 
+Heading(level=2) | When the conditions change, the tools may need to change
+Paragraph | Our work on CC Signals has continued to evolve, and we’re tackling multiple considerations in parallel, including exploring approaches beyond copyright that could provide new ways to support agency and reciprocity while protecting public-interest uses.
+Paragraph | Importantly, we’re still working to uphold attribution as a design principle for AI systems, understanding it will look different at different levels of the stack, and show up differently depending on how systems are built. 
+Paragraph | In tandem, we’re going deep with a handful of commons-based knowledge projects that actively
+Other | want
+Paragraph | to continue to share openly, but are feeling constrained by a multitude of factors. In some cases, these are financial pressures. In others, it’s loss of community contribution or pushback against these technologies. In still others, it’s the deep sense of unfairness that many are significantly benefiting from the commons without contributing enough back. We are working on these projects to better understand their needs and assess potential approaches alongside broader surveys about CC licensor sentiment. We want to ensure our work is grounded in real-world needs.
+Paragraph | We’re also looking at what it would mean to condition bulk access to large collections of data through an experimental legal tool. Can this restore reciprocity to the ecosystem? Can this encourage contributors to continue sharing? Can we gently nudge the new world order in the direction of attribution as a standard expectation? Furthermore, what opportunities does this open up for research and open source developers globally, who all operate in varied and uncertain legal environments with regard to reuse of data for AI development?
+Paragraph | In April
+Paragraph | and
+Other | in May
+Paragraph | , we talked through this shift in experimentation, from a normative framework (which is still being considered!) to a legal tool that would balance public-interest uses with agency.
+Paragraph | That brings us back to the questions we started with, that guide our work. 
+Paragraph | When are norms enough and when is enforcement needed? 
+Paragraph | Can copyright, alone, provide the balance we need? 
+Paragraph | Can boundaries coexist with openness?
+Paragraph | We believe in a thriving commons above all else. We believe that for a thriving commons to exist, reciprocity is required to sustain it. We believe that to encourage people to continue a full and sincere embrace of open sharing practices in this new world order, they have to have some agency. We continue to believe that copyright is
+Other | not
+Paragraph | the hammer for every nail, and that new tools are needed. And we continue to believe that none of the experiments should come at the expense of public-interest uses, which must be strongly protected.
+Paragraph | These principles do not always point neatly in the same direction. That is why this work takes time and many considerations. The challenge is not to choose one principle over another but rather to find ways for openness, agency, reciprocity, and public interest to coexist. 
+Paragraph | We believe that it is possible to give meaningful agency to those who create and steward open knowledge projects while preserving openness and public-interest uses that make the commons so valuable. So we’ll continue to move carefully—at the speed of the many communities of the commons—while we try to build new structures that help the commons not just survive, but thrive, in this new world order.

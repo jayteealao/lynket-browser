@@ -1,0 +1,16 @@
+https://en.wikinews.org/wiki/Grateful_Dead_rhythm_guitarist_Bob_Weir_dies,_aged_78 -> https://en.wikinews.org/wiki/Grateful_Dead_rhythm_guitarist_Bob_Weir_dies,_aged_78 article=true
+https://example.com/photos/harbour.jpg -> https://example.com/photos/harbour.jpg article=false
+https://example.com/media/clip.mp4 -> https://example.com/media/clip.mp4 article=false
+https://example.com/docs/report.pdf -> https://example.com/docs/report.pdf article=false
+https://example.com/downloads/archive.zip -> https://example.com/downloads/archive.zip article=false
+https://example.com/app/release.apk -> https://example.com/app/release.apk article=true
+https://example.com/setup/installer.exe -> https://example.com/setup/installer.exe article=false
+https://example.com/audio/song.mp3 -> https://example.com/audio/song.mp3 article=false
+https://www.google.com/url?q=https://example.com/news/story&sa=D -> https://example.com/news/story article=true
+https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2Fpost%3Fid%3D7&h=AT0 -> https://example.com/post?id=7 article=true
+https://example.com/a path/with spaces.html -> https://example.com/a%20path/with%20spaces.html article=true
+https://de.wikipedia.org/wiki/Straße -> https://de.wikipedia.org/wiki/Straße article=true
+example.com/no-scheme/article -> http://example.com/no-scheme/article article=true
+https://example.com/search?q=a%20b&lang=de#section-2 -> https://example.com/search?q=a%20b&lang=de#section-2 article=true
+http://[::1]:8000/article.html -> http://[::1]:8000/article.html article=true
+https://example.com/ad/adserver/banner.html -> https://example.com/ad/adserver/banner.html article=true

@@ -1,0 +1,20 @@
+website.title: No article here
+website.url: http://localhost:8000/no-article.html
+website.canonicalUrl: http://localhost:8000/no-article.html
+website.faviconUrl: <null>
+website.themeColor: 
+website.ampUrl: 
+reader.url: http://localhost:8000/no-article.html
+reader.originalUrl: 
+reader.title: No article here
+reader.description: 
+reader.siteName: 
+reader.themeColor: 
+reader.ampUrl: 
+reader.canonicalUrl: 
+reader.leadImage: 
+reader.videoUrl: 
+reader.feedUrl: 
+reader.faviconUrl: 
+reader.keywords: 
+reader.blocks: 0

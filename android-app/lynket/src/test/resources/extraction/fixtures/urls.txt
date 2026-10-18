@@ -1,0 +1,16 @@
+https://en.wikinews.org/wiki/Grateful_Dead_rhythm_guitarist_Bob_Weir_dies,_aged_78
+https://example.com/photos/harbour.jpg
+https://example.com/media/clip.mp4
+https://example.com/docs/report.pdf
+https://example.com/downloads/archive.zip
+https://example.com/app/release.apk
+https://example.com/setup/installer.exe
+https://example.com/audio/song.mp3
+https://www.google.com/url?q=https://example.com/news/story&sa=D
+https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2Fpost%3Fid%3D7&h=AT0
+https://example.com/a path/with spaces.html
+https://de.wikipedia.org/wiki/Straße
+example.com/no-scheme/article
+https://example.com/search?q=a%20b&lang=de#section-2
+http://[::1]:8000/article.html
+https://example.com/ad/adserver/banner.html
