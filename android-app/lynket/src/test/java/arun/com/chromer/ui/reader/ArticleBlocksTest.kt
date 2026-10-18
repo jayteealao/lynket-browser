@@ -15,7 +15,7 @@ import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.browsing.article.toReaderArticle
 import arun.com.chromer.data.webarticle.model.WebArticle
-import com.chimbori.crux.articles.ArticleExtractor
+import arun.com.chromer.util.parser.extraction.ArticleExtractor
 import com.google.common.truth.Truth.assertThat
 import org.jsoup.Jsoup
 import org.junit.Test
@@ -66,7 +66,7 @@ class ArticleBlocksTest {
   @Test
   fun theFixtureArticleExtractsAndMapsToBlocks() {
     // The device check's fixture, through the same extractor the app uses. A page without an AMP,
-    // feed or video address made the extraction fail before (Crux leaves those null).
+    // feed or video address made the extraction fail before (the extractor leaves those null).
     val html = File("../maestro/reader/fixtures/article.html").readText()
     val url = "http://localhost:8000/article.html"
     val article = ArticleExtractor.with(url, Jsoup.parse(html, url)).extractMetadata().extractContent().article()

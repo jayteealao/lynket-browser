@@ -17,6 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.ui.reader.articleBlocks
+import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
@@ -32,8 +33,9 @@ import java.io.File
  * Each fixture in `src/test/resources/extraction/fixtures/` has a golden in `../golden/`, recorded by
  * the earlier extractor, called the way the app called it: the website details from the page's head
  * (as `WebsiteUtilities.headString` reads it), the reader from the whole page, cleaned up as
- * `WebArticleNetworkStore` does, and turned into reader blocks. A golden is only recorded while the
- * earlier extractor is on the classpath; once it is gone, a missing golden fails.
+ * `WebArticleNetworkStore` does, and turned into reader blocks. The app's extractor gave the same
+ * values and cache bytes as the earlier one on jsoup 1.9.2, so a golden may only be recorded while
+ * jsoup 1.9.2 is on the classpath; on a current jsoup, a missing golden fails.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34], application = Application::class)
@@ -44,22 +46,16 @@ class ExtractionParityTest {
     for (fixture in FIXTURES) {
       val html = fixture.file.readText(Charsets.UTF_8)
       val golden = File(GOLDEN_DIR, "${fixture.name}.golden.txt")
-      if (recordIfMissing(golden) { snapshot(OldExtraction, fixture.url, html) }) continue
-      for (extraction in EXTRACTIONS) {
-        assertWithMessage("${extraction.name}: ${fixture.name}")
-          .that(snapshot(extraction, fixture.url, html))
-          .isEqualTo(golden.readText(Charsets.UTF_8))
-      }
+      if (recordIfMissing(golden) { snapshot(fixture.url, html) }) continue
+      assertWithMessage(fixture.name).that(snapshot(fixture.url, html)).isEqualTo(golden.readText(Charsets.UTF_8))
     }
   }
 
   @Test
   fun everyAddressMatchesItsGolden() {
     val golden = File(GOLDEN_DIR, "urls.golden.txt")
-    if (recordIfMissing(golden) { urlSnapshot(OldExtraction) }) return
-    for (extraction in EXTRACTIONS) {
-      assertWithMessage(extraction.name).that(urlSnapshot(extraction)).isEqualTo(golden.readText(Charsets.UTF_8))
-    }
+    if (recordIfMissing(golden) { urlSnapshot() }) return
+    assertThat(urlSnapshot()).isEqualTo(golden.readText(Charsets.UTF_8))
   }
 
   /**
@@ -72,78 +68,16 @@ class ExtractionParityTest {
       val html = fixture.file.readText(Charsets.UTF_8)
       val golden = File(GOLDEN_DIR, "${fixture.name}.parcel")
       val blocksGolden = File(GOLDEN_DIR, "${fixture.name}.parcel-blocks.txt")
-      if (recordIfMissing(golden) { null.also { golden.writeBytes(marshall(OldExtraction.article(fixture.url, html))) } }) {
+      if (recordIfMissing(golden) { null.also { golden.writeBytes(marshall(article(fixture.url, html))) } }) {
         blocksGolden.writeText(restoredBlocks(golden.readBytes()), Charsets.UTF_8)
         continue
       }
       val bytes = golden.readBytes()
       assertWithMessage("parcel: ${fixture.name}").that(restoredBlocks(bytes)).isEqualTo(blocksGolden.readText(Charsets.UTF_8))
-      if (OLD_EXTRACTOR_PRESENT) {
+      if (OLD_JSOUP) {
         // On the earlier jsoup the bytes are the same as well.
-        for (extraction in EXTRACTIONS) {
-          assertWithMessage("${extraction.name} parcel bytes: ${fixture.name}")
-            .that(marshall(extraction.article(fixture.url, html))).isEqualTo(bytes)
-        }
+        assertWithMessage("parcel bytes: ${fixture.name}").that(marshall(article(fixture.url, html))).isEqualTo(bytes)
       }
-    }
-  }
-
-  /** One way to extract: the earlier library, or the app's own extractor. */
-  private interface Extraction {
-    val name: String
-
-    /** The website details, from the page's head. */
-    fun website(url: String, headHtml: String): Website
-
-    /** The reader article, from the whole page, cleaned up as the article store does. */
-    fun article(url: String, html: String): WebArticle
-
-    /** The address after redirect unwrapping, and whether it is likely an article. */
-    fun address(input: String): String
-  }
-
-  private object OldExtraction : Extraction {
-    override val name = "old"
-
-    override fun website(url: String, headHtml: String): Website = Website.fromArticle(
-      com.chimbori.crux.articles.ArticleExtractor.with(url, headHtml).extractMetadata().article()
-    )
-
-    override fun article(url: String, html: String): WebArticle = WebArticle.fromArticle(
-      com.chimbori.crux.articles.ArticleExtractor.with(url, Jsoup.parse(html, url))
-        .extractMetadata().extractContent().article()
-    ).also(::removeEmptyElements)
-
-    override fun address(input: String): String = try {
-      val parsed = com.chimbori.crux.urls.CruxURL.parse(input)
-      if (parsed == null) "null" else {
-        val likely = parsed.resolveRedirects().isLikelyArticle
-        "$parsed article=$likely"
-      }
-    } catch (e: Exception) {
-      "error ${e.javaClass.name}"
-    }
-  }
-
-  /** The app's own extractor, as `RxParser` calls it. */
-  private object PortExtraction : Extraction {
-    override val name = "app"
-
-    override fun website(url: String, headHtml: String): Website =
-      Website.fromArticle(ArticleExtractor.with(url, headHtml).extractMetadata().article())
-
-    override fun article(url: String, html: String): WebArticle = WebArticle.fromArticle(
-      ArticleExtractor.with(url, Jsoup.parse(html, url)).extractMetadata().extractContent().article()
-    ).also(::removeEmptyElements)
-
-    override fun address(input: String): String = try {
-      val parsed = PageUrl.parse(input)
-      if (parsed == null) "null" else {
-        val likely = parsed.resolveRedirects().isLikelyArticle
-        "$parsed article=$likely"
-      }
-    } catch (e: Exception) {
-      "error ${e.javaClass.name}"
     }
   }
 
@@ -165,23 +99,41 @@ class ExtractionParityTest {
       Fixture("reader-no-article", File(READER_FIXTURE_DIR, "no-article.html"), "http://localhost:8000/no-article.html"),
     )
 
-    /** The extractions compared with the goldens. */
-    private val EXTRACTIONS: List<Extraction> = listOf(OldExtraction, PortExtraction)
-
-    private val OLD_EXTRACTOR_PRESENT: Boolean = try {
-      Class.forName("com.chimbori.crux.articles.ArticleExtractor")
-      true
-    } catch (e: ClassNotFoundException) {
+    /** jsoup 1.9.2, which the earlier extractor bundled, has no `StreamParser` (added in 1.18.1). */
+    private val OLD_JSOUP: Boolean = try {
+      Class.forName("org.jsoup.parser.StreamParser")
       false
+    } catch (e: ClassNotFoundException) {
+      true
+    }
+
+    /** The website details as the app reads them, from the page's head. */
+    private fun website(url: String, headHtml: String): Website =
+      Website.fromArticle(ArticleExtractor.with(url, headHtml).extractMetadata().article())
+
+    /** The reader article as the app reads it, from the whole page, cleaned up as the article store does. */
+    private fun article(url: String, html: String): WebArticle = WebArticle.fromArticle(
+      ArticleExtractor.with(url, Jsoup.parse(html, url)).extractMetadata().extractContent().article()
+    ).also(::removeEmptyElements)
+
+    /** The address after redirect unwrapping, and whether it is likely an article, as `RxParser` checks it. */
+    private fun address(input: String): String = try {
+      val parsed = PageUrl.parse(input)
+      if (parsed == null) "null" else {
+        val likely = parsed.resolveRedirects().isLikelyArticle
+        "$parsed article=$likely"
+      }
+    } catch (e: Exception) {
+      "error ${e.javaClass.name}"
     }
 
     /**
-     * Writes [golden] from [record] when it is missing and the earlier extractor is present, and
-     * says so; fails when it is missing and the earlier extractor is gone.
+     * Writes [golden] from [record] when it is missing and jsoup 1.9.2 is present, and says so;
+     * fails when it is missing on a current jsoup.
      */
     private fun recordIfMissing(golden: File, record: () -> String?): Boolean {
       if (golden.exists()) return false
-      assertWithMessage("missing golden ${golden.path}, and the earlier extractor is gone").that(OLD_EXTRACTOR_PRESENT).isTrue()
+      assertWithMessage("missing golden ${golden.path}; goldens are only recorded on jsoup 1.9.2").that(OLD_JSOUP).isTrue()
       golden.parentFile!!.mkdirs()
       record()?.let { golden.writeText(it, Charsets.UTF_8) }
       println("Recorded ${golden.path}")
@@ -233,10 +185,10 @@ class ExtractionParityTest {
     }
 
     /** Every value the website details and the reader receive, one `key: value` line each. */
-    private fun snapshot(extraction: Extraction, url: String, html: String): String = buildString {
+    private fun snapshot(url: String, html: String): String = buildString {
       fun line(key: String, value: Any?) = append(key).append(": ").append(value?.toString().oneLine()).append('\n')
 
-      val website = extraction.website(url, headString(html))
+      val website = website(url, headString(html))
       line("website.title", website.title)
       line("website.url", website.url)
       line("website.canonicalUrl", website.canonicalUrl)
@@ -244,7 +196,7 @@ class ExtractionParityTest {
       line("website.themeColor", website.themeColor)
       line("website.ampUrl", website.ampUrl)
 
-      val article = extraction.article(url, html)
+      val article = article(url, html)
       line("reader.url", article.url)
       line("reader.originalUrl", article.originalUrl)
       line("reader.title", article.title)
@@ -267,9 +219,9 @@ class ExtractionParityTest {
       }
     }
 
-    private fun urlSnapshot(extraction: Extraction): String = buildString {
+    private fun urlSnapshot(): String = buildString {
       for (input in File(FIXTURE_DIR, "urls.txt").readLines(Charsets.UTF_8).filter { it.isNotBlank() }) {
-        append(input).append(" -> ").append(extraction.address(input)).append('\n')
+        append(input).append(" -> ").append(address(input)).append('\n')
       }
     }
   }

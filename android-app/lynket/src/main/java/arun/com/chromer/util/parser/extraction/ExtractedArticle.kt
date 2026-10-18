@@ -1,5 +1,5 @@
 /*
- * Adapted from Crux 2.0.1 (https://github.com/chimbori/crux), com.chimbori.crux.articles.Article.
+ * Adapted from Crux 2.0.1 (https://github.com/chimbori/crux), class articles.Article.
  * Copyright Chimbori. Licensed under the Apache License, Version 2.0
  * (http://www.apache.org/licenses/LICENSE-2.0). Changes: translated to Kotlin; the reading time
  * estimate, which the app never asked for, is left out.

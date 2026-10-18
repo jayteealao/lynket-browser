@@ -27,12 +27,11 @@ import android.os.Parcelable
 import androidx.annotation.ColorInt
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.parser.extraction.ExtractedArticle
-import com.chimbori.crux.articles.Article
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 
 /**
- * Parcelable clone of [Article]. Not fully complete though, there
+ * Parcelable clone of [ExtractedArticle]. Not fully complete though, there
  * is a limitation of not being able to parcel [Elements] from JSoup. This implementation has
  * partial work around for this by storing the said [Elements] as plain string and then during
  * unmarshalling we get the original elements list by running Jsoup over it. This process is considerably
@@ -129,32 +128,6 @@ class WebArticle() : Parcelable {
 
         override fun newArray(size: Int): Array<WebArticle?> {
             return arrayOfNulls(size)
-        }
-
-        /**
-         * Crux leaves fields it did not find null (Java); each becomes "", so a page without, for
-         * example, an AMP or feed address still makes an article instead of failing the extraction.
-         */
-        fun fromArticle(article: Article): WebArticle {
-            val webArticle = WebArticle()
-            webArticle.url = article.url ?: ""
-            webArticle.originalUrl = article.originalUrl ?: ""
-            webArticle.title = article.title ?: ""
-            webArticle.description = article.description ?: ""
-            webArticle.siteName = article.siteName ?: ""
-            webArticle.themeColor = article.themeColor ?: ""
-            webArticle.ampUrl = article.ampUrl ?: ""
-            webArticle.canonicalUrl = article.canonicalUrl ?: ""
-            webArticle.imageUrl = article.imageUrl ?: ""
-            webArticle.videoUrl = article.videoUrl ?: ""
-            webArticle.feedUrl = article.feedUrl ?: ""
-            webArticle.faviconUrl = article.faviconUrl ?: ""
-            webArticle.elements = article.document.children()
-            webArticle.keywords = ArrayList()
-            if (article.keywords != null) {
-                webArticle.keywords.addAll(article.keywords)
-            }
-            return webArticle
         }
 
         /**

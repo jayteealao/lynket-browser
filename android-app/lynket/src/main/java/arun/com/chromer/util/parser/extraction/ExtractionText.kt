@@ -1,5 +1,5 @@
 /*
- * Adapted from Crux 2.0.1 (https://github.com/chimbori/crux), com.chimbori.crux.common.StringUtils
+ * Adapted from Crux 2.0.1 (https://github.com/chimbori/crux), class common.StringUtils
  * and HeuristicString. Copyright Chimbori. Licensed under the Apache License, Version 2.0
  * (http://www.apache.org/licenses/LICENSE-2.0). Changes: translated to Kotlin; only the functions
  * the article extraction calls are kept.

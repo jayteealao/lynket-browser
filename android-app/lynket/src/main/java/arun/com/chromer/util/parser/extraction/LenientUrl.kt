@@ -1,5 +1,5 @@
 /*
- * Adapted from Crux 2.0.1 (https://github.com/chimbori/crux), com.chimbori.crux.urls.LenientURLParser
+ * Adapted from Crux 2.0.1 (https://github.com/chimbori/crux), class urls.LenientURLParser
  * and UriCodec, which adapt Android's lenient URI parser. Copyright (C) 2015 The Android Open Source
  * Project, and Chimbori. Licensed under the Apache License, Version 2.0
  * (http://www.apache.org/licenses/LICENSE-2.0). Changes: translated to Kotlin; only the encoding
