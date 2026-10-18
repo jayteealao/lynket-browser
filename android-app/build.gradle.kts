@@ -21,6 +21,13 @@ plugins {
   alias(libs.plugins.androidx.baselineprofile) apply false
 }
 
+// The daemon JVM criteria (gradle/gradle-daemon-jvm.properties) name the JDK version only, with no
+// download URLs: Gradle uses a matching local JDK and needs no toolchain download repository.
+// Change the version with ./gradlew updateDaemonJvm --jvm-version=<n>.
+tasks.named<org.gradle.buildconfiguration.tasks.UpdateDaemonJvm>("updateDaemonJvm") {
+  toolchainPlatforms.empty()
+}
+
 tasks.register("clean", Delete::class) {
   delete(rootProject.layout.buildDirectory)
 }
