@@ -17,6 +17,9 @@
 #              rotation keeps the page and its history with one "WebView created" line
 #   bubble     run on the fold after webheads-check.sh bubble: a native bubble with the page; fold
 #              and unfold keep the page with one "WebView created" line
+#   refresh    Web View mode, a long page, three runs: a pull from the top reloads the page once; a
+#              pull inside the scrolled page scrolls it back up and reloads nothing (request counts
+#              in the fixture server log, screenshots compared); writes refresh.tsv
 #   recreate   night mode switched in the reader and the web view: the content stays; the process
 #              killed in the background, then the web view reopened from recents restores the page
 #
@@ -25,7 +28,7 @@
 # reinstall the app, which clears its data on that device.
 set -euo pipefail
 
-USAGE="usage: reader-check.sh <serial> <evidence-dir> <legacy|captures|error|image|webview|bubble|recreate>"
+USAGE="usage: reader-check.sh <serial> <evidence-dir> <legacy|captures|error|image|webview|refresh|bubble|recreate>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 MODE="${3:?$USAGE}"
@@ -514,6 +517,44 @@ bubble)
   log "WebView created lines after fold and unfold: $(created_count)"
   [ "$(created_count)" = 0 ] || fail "fold or unfold created a new WebView"
   crash_check bubble
+  ;;
+
+refresh)
+  article_mode false
+  webview_mode on
+  long_url="http://localhost:$PORT/long.html"
+  requests() { grep -c 'GET /long.html' "$OUT/server.log" || true; }
+  # Mean pixel difference of two screenshots below the top bars (0 = the same picture).
+  differ() { python -c "import sys; from PIL import Image, ImageChops; a, b = (Image.open(p).convert('L') for p in sys.argv[1:3]); w, h = a.size; d = ImageChops.difference(a.crop((0, h // 4, w, h)), b.crop((0, h // 4, w, h))); print(round(sum(i * n for i, n in enumerate(d.histogram())) / (w * h * 3 / 4), 2))" "$1" "$2"; }
+  read -r W H < <(screen_size)
+  printf 'run\ttop_reloads\tscrolled_reloads\tscrolled_moved_diff\tscrolled_vs_top_diff\n' > "$OUT/refresh.tsv"
+  for run in 1 2 3; do
+    open_reader "$long_url"
+    wait_for 'resource-id="webview-top-bar"' || fail "the web view did not open"
+    sleep 4
+    shot "refresh-$run-top-before"
+    n0="$(requests)"
+    a shell input swipe $((W / 2)) $((H / 4)) $((W / 2)) $((H * 3 / 4)) 400
+    sleep 4
+    n1="$(requests)"
+    capture "refresh-$run-top-after"
+    a shell input swipe $((W / 2)) $((H * 3 / 4)) $((W / 2)) $((H / 4)) 300
+    sleep 1
+    a shell input swipe $((W / 2)) $((H * 3 / 4)) $((W / 2)) $((H / 4)) 300
+    sleep 3
+    shot "refresh-$run-scrolled-before"
+    n2="$(requests)"
+    a shell input swipe $((W / 2)) $((H / 3)) $((W / 2)) $((H * 2 / 3)) 400
+    sleep 4
+    n3="$(requests)"
+    capture "refresh-$run-scrolled-after"
+    moved="$(differ "$OUT/refresh-$run-scrolled-before.png" "$OUT/refresh-$run-scrolled-after.png")"
+    vs_top="$(differ "$OUT/refresh-$run-top-before.png" "$OUT/refresh-$run-scrolled-after.png")"
+    printf '%s\t%s\t%s\t%s\t%s\n' "$run" "$((n1 - n0))" "$((n3 - n2))" "$moved" "$vs_top" >> "$OUT/refresh.tsv"
+    log "run $run: pull at the top -> $((n1 - n0)) reloads; pull inside the page -> $((n3 - n2)) reloads, page moved by diff $moved, diff from the top $vs_top"
+  done
+  webview_mode off
+  crash_check refresh
   ;;
 
 recreate)
