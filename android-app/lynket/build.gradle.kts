@@ -224,6 +224,15 @@ room3 {
     schemaDirectory("$projectDir/schemas")
 }
 
+// Compose compiler stability reports, only on request:
+// ./gradlew :lynket:assembleRelease -Plynket.composeReports=true writes build/compose_compiler/.
+if (providers.gradleProperty("lynket.composeReports").orNull == "true") {
+    composeCompiler {
+        reportsDestination = layout.buildDirectory.dir("compose_compiler")
+        metricsDestination = layout.buildDirectory.dir("compose_compiler")
+    }
+}
+
 kotlin {
     compilerOptions {
         // jvmTarget follows android.compileOptions.targetCompatibility (17) with built-in Kotlin.
