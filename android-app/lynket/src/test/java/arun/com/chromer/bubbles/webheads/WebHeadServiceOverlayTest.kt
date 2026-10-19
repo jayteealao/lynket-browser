@@ -193,7 +193,10 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
     heads.destroy(heads["https://a.example"]!!, receiveCallback = true)
     shadowOf(Looper.getMainLooper()).idle()
 
-    assertThat(events).containsExactly(Event.WebHeadEvent.Closed("https://a.example"))
+    // The sites load on the IO dispatcher, so a WebsiteUpdated for either head can arrive at any
+    // point; only the Closed events belong to this check.
+    assertThat(events.filterIsInstance<Event.WebHeadEvent.Closed>())
+      .containsExactly(Event.WebHeadEvent.Closed("https://a.example"))
   }
 
   @Test

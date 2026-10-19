@@ -107,7 +107,7 @@ class BubbleGate @Inject constructor(private val application: Application) {
         conversationCanBubble = recordChannel?.canBubble(),
       )
     } else {
-      @Suppress("DEPRECATION") // sdlc-debt: areBubblesAllowed is the only app-level query on API 29 and 30.
+      @Suppress("DEPRECATION") // sdlc-debt: areBubblesAllowed is the only app-level query on API 29 and 30; drop when minSdk reaches 31
       BubbleState(
         sdk = Build.VERSION.SDK_INT,
         notificationsEnabled = notificationsEnabled,

@@ -80,7 +80,7 @@ class BubbleRefusedActivity : BaseActivity() {
   private fun finishQuietly() {
     if (isFinishing) return
     finish()
-    @Suppress("DEPRECATION") // sdlc-debt: overrideActivityTransition needs API 34; minSdk is 24.
+    @Suppress("DEPRECATION") // sdlc-debt: overrideActivityTransition needs API 34; minSdk is 24; switch to it when minSdk reaches 34
     overridePendingTransition(0, 0)
   }
 
