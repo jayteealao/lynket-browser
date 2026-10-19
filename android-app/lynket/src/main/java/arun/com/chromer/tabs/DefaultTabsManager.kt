@@ -32,6 +32,7 @@ import android.content.Intent
 import android.content.Intent.*
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
@@ -51,12 +52,17 @@ import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.bubbles.BubbleType.NATIVE
 import arun.com.chromer.bubbles.BubbleType.WEB_HEADS
 import arun.com.chromer.bubbles.FloatingBubbleFactory
+import arun.com.chromer.bubbles.system.BubbleGate
+import arun.com.chromer.bubbles.system.BubbleRefusal
+import arun.com.chromer.bubbles.system.BubbleRefusedActivity
+import arun.com.chromer.bubbles.system.bubbleConversationId
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.extenstions.isPackageInstalled
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.settings.RxPreferences
+import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
@@ -88,7 +94,8 @@ constructor(
   private val backgroundLoadingStrategyFactory: BackgroundLoadingStrategyFactory,
   private val eventBus: EventBus,
   private val floatingBubbleFactory: FloatingBubbleFactory,
-  private val rxPreferences: RxPreferences
+  private val rxPreferences: RxPreferences,
+  private val bubbleGate: BubbleGate,
 ) : TabsManager {
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -349,8 +356,11 @@ constructor(
     fromNewTab: Boolean,
     activityNames: List<String>?,
     incognito: Boolean
-  ) = openBrowsingTab(context, website, smart, fromNewTab, activityNames, incognito, LinkSource.NONE)
+  ) {
+    openBrowsingTab(context, website, smart, fromNewTab, activityNames, incognito, LinkSource.NONE)
+  }
 
+  /** Returns false when an existing tab of [website] came to the front instead of a new one. */
   private fun openBrowsingTab(
     context: Context,
     website: Website,
@@ -359,7 +369,8 @@ constructor(
     activityNames: List<String>?,
     incognito: Boolean,
     linkSource: LinkSource,
-  ) {
+    extras: Bundle? = null,
+  ): Boolean {
     val reordered = smart && reOrderTabByUrl(context, website, activityNames)
 
     if (!reordered) {
@@ -376,6 +387,7 @@ constructor(
         if (isIncognito) {
           putExtra(EXTRA_KEY_INCOGNITO, true)
         }
+        extras?.let(::putExtras)
       }
 
       if (preferences.mergeTabs() || fromNewTab) {
@@ -386,6 +398,37 @@ constructor(
         browsingActivity.addFlags(FLAG_ACTIVITY_NEW_TASK)
       }
       context.startActivity(browsingActivity)
+    }
+    return !reordered
+  }
+
+  override fun openRefusedBubble(context: Context, website: Website, refusal: BubbleRefusal, incognito: Boolean) =
+    openRefusedBubble(context, website, refusal, incognito, LinkSource.NONE)
+
+  /**
+   * The page opens in a tab, which then shows the message (see BrowsingActivity). When the tab of
+   * this page already exists and only comes to the front, the message starts in a task of its own.
+   */
+  private fun openRefusedBubble(
+    context: Context,
+    website: Website,
+    refusal: BubbleRefusal,
+    incognito: Boolean,
+    linkSource: LinkSource,
+  ) {
+    val extras = Bundle().apply { putString(EXTRA_KEY_BUBBLE_REFUSAL, refusal.name) }
+    val opened = openBrowsingTab(
+      context,
+      website,
+      smart = true,
+      fromNewTab = false,
+      activityNames = null,
+      incognito = incognito,
+      linkSource = linkSource,
+      extras = extras,
+    )
+    if (!opened) {
+      context.startActivity(BubbleRefusedActivity.intent(context, refusal, newTask = true))
     }
   }
 
@@ -416,6 +459,16 @@ constructor(
     val url = website.preferredUrl()
     val bubbles = rxPreferences.nativeBubbles.get()
     val webHeads = preferences.webHeads()
+
+    if (bubbles && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      // Android would not show the bubble: open the page in a tab now and say why.
+      val refusal = bubbleGate.refusal(bubbleConversationId(website.url))
+      if (refusal != null) {
+        Timber.w("Bubble refused (%s); opening %s in a tab", refusal, website.url)
+        openRefusedBubble(context, website, refusal, incognito, linkSource)
+        return
+      }
+    }
 
     val opened = floatingBubbleFactory[if (bubbles) NATIVE else WEB_HEADS].openBubble(
       website,

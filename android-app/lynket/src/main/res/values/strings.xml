@@ -347,7 +347,6 @@
   <string name="web_head_action_list">Show all web heads</string>
   <string name="web_head_action_close">Close web head</string>
   <string name="web_heads_start_failed">Web heads could not start. Opening in a tab instead.</string>
-  <string name="bubbles_not_allowed">Turn on notifications and bubbles for Lynket in Settings to use bubbles.</string>
   <string name="not_now">Not now</string>
   <string name="bubble_refused_notifications_off">Notifications are off for Lynket, so the page opened in a tab.</string>
   <string name="bubble_refused_bubbles_off">Bubbles are off for Lynket, so the page opened in a tab.</string>

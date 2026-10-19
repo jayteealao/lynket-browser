@@ -28,6 +28,7 @@ import arun.com.chromer.browsing.article.ArticleActivity
 import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
+import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.data.website.model.Website
 
 /**
@@ -158,6 +159,12 @@ interface TabsManager {
     fromAmp: Boolean = false,
     incognito: Boolean = false
   )
+
+  /**
+   * Opens [website] in a browsing tab after Android refused its native bubble, and shows the
+   * message that names [refusal] above the tab.
+   */
+  fun openRefusedBubble(context: Context, website: Website, refusal: BubbleRefusal, incognito: Boolean = false)
 
   /**
    * Opens new tab activity.

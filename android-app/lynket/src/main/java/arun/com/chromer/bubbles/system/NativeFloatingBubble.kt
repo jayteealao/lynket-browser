@@ -21,20 +21,17 @@
 package arun.com.chromer.bubbles.system
 
 import android.app.Application
-import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
-import android.widget.Toast
 import androidx.annotation.RequiresApi
-import arun.com.chromer.R
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
+import arun.com.chromer.tabs.TabsManager
+import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -69,7 +66,10 @@ constructor(
   private val application: Application,
   private val websiteRepository: WebsiteRepository,
   private val bubbleNotificationManager: BubbleNotificationManager,
-  private val websiteIconsProvider: WebsiteIconsProvider
+  private val websiteIconsProvider: WebsiteIconsProvider,
+  private val bubbleGate: BubbleGate,
+  // Lazy: the tabs manager reaches this class through the bubble factory.
+  private val tabsManager: Lazy<TabsManager>,
 ) : FloatingBubble {
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -101,11 +101,9 @@ constructor(
     context: Context?,
     color: Int
   ): Boolean {
-    if (!bubblesAllowed()) {
-      Timber.w("Bubbles are not allowed; opening %s in a tab", website.url)
-      Handler(Looper.getMainLooper()).post {
-        Toast.makeText(application, R.string.bubbles_not_allowed, Toast.LENGTH_LONG).show()
-      }
+    val refusal = bubbleGate.refusal(bubbleConversationId(website.url))
+    if (refusal != null) {
+      Timber.w("Bubble refused (%s); opening %s in a tab", refusal, website.url)
       return false
     }
     loadQueue.trySend(
@@ -121,24 +119,21 @@ constructor(
     return true
   }
 
-  /** Notifications on, and on Android 11 and later, bubbles not switched off for the app. */
-  private fun bubblesAllowed(): Boolean {
-    val manager = application.getSystemService(NotificationManager::class.java) ?: return false
-    if (!manager.areNotificationsEnabled()) return false
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-      manager.bubblePreference == NotificationManager.BUBBLE_PREFERENCE_NONE
-    ) {
-      return false
-    }
-    return true
-  }
-
   private suspend fun showBubble(bubbleLoadData: BubbleLoadData): BubbleLoadData {
     // Show initial bubble
     val initialBubble = bubbleNotificationManager.showBubbles(bubbleLoadData)
 
     // Avoid notification throttling
     delay(1000)
+
+    // Android can still post the notification without showing it as a bubble. Then the page opens
+    // in a tab with a message instead of being lost in the notification shade.
+    if (!shownAsBubble(initialBubble.website.url)) {
+      Timber.w("Android did not show %s as a bubble; opening it in a tab", initialBubble.website.url)
+      bubbleNotificationManager.cancel(initialBubble.website.url)
+      tabsManager.get().openRefusedBubble(application, initialBubble.website, BubbleRefusal.NOT_SHOWN, initialBubble.incognito)
+      return initialBubble
+    }
 
     // Fetch website details and icon
     val updatedBubble = try {
@@ -159,5 +154,19 @@ constructor(
 
     // Show updated bubble with icon and color
     return bubbleNotificationManager.showBubbles(updatedBubble)
+  }
+
+  /** The bubble flag can follow the post by a moment, so it is read up to three times. */
+  private suspend fun shownAsBubble(url: String): Boolean {
+    repeat(FLAG_READS) { read ->
+      if (bubbleNotificationManager.isShownAsBubble(url)) return true
+      if (read < FLAG_READS - 1) delay(FLAG_READ_INTERVAL_MS)
+    }
+    return false
+  }
+
+  private companion object {
+    const val FLAG_READS = 3
+    const val FLAG_READ_INTERVAL_MS = 250L
   }
 }
