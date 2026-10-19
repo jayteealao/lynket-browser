@@ -13,6 +13,8 @@ package arun.com.chromer
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,6 +38,8 @@ import arun.com.chromer.ui.navigation.WebUrlDeepLinkMatcher
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -57,8 +61,34 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
 
-    val initialKeys = if (savedInstanceState == null) freshStartKeys(intent) else listOf(LynketKey.Home)
+    if (savedInstanceState != null) {
+      show(listOf(LynketKey.Home))
+      return
+    }
+    val repository = Preferences.entryPoint(this).userPreferencesRepository()
+    if (repository.snapshot.value != null) {
+      show(freshStartKeys(intent))
+      return
+    }
+    // The settings store's first read is not in yet (a cold start, or the first start after an
+    // update while the migration runs). Wait for it without blocking the main thread; the first
+    // frame is held back meanwhile, so the starting window stays on screen as before.
+    var ready = false
+    val content = findViewById<View>(android.R.id.content)
+    content.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+      override fun onPreDraw(): Boolean {
+        if (ready) content.viewTreeObserver.removeOnPreDrawListener(this)
+        return ready
+      }
+    })
+    lifecycleScope.launch {
+      repository.snapshot.filterNotNull().first()
+      show(freshStartKeys(intent))
+      ready = true
+    }
+  }
 
+  private fun show(initialKeys: List<LynketKey>) {
     setContent {
       ChromerThemeFromSettings {
         // Test tags double as resource ids so the device checks can find the shell's controls.
