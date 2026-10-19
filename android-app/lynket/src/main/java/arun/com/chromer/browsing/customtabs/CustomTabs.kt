@@ -26,7 +26,6 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color.WHITE
@@ -430,36 +429,6 @@ class CustomTabs @Inject constructor(
             Timber.e("App icon fetching for %s failed", packageName)
         }
         return null
-    }
-
-    private fun chromeVariantVersion(): Int {
-        val act = activity ?: return -1
-        val customTabPackage = Preferences.get(act).customTabPackage()
-        if (Utils.isPackageInstalled(act, customTabPackage) &&
-            (customTabPackage.equals(STABLE_PACKAGE, ignoreCase = true) ||
-                    customTabPackage.equals(DEV_PACKAGE, ignoreCase = true) ||
-                    customTabPackage.equals(BETA_PACKAGE, ignoreCase = true) ||
-                    customTabPackage.equals(LOCAL_PACKAGE, ignoreCase = true))
-        ) {
-            try {
-                val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    act.packageManager.getPackageInfo(customTabPackage!!, PackageManager.PackageInfoFlags.of(0))
-                } else {
-                    @Suppress("DEPRECATION")
-                    act.packageManager.getPackageInfo(customTabPackage!!, 0)
-                }
-                val versionName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo.longVersionCode.toString()
-                } else {
-                    @Suppress("DEPRECATION")
-                    packageInfo.versionName ?: ""
-                }
-                return versionName.split(".").getOrNull(0)?.toIntOrNull() ?: -1
-            } catch (e: Exception) {
-                return -1
-            }
-        }
-        return -1
     }
 
     /**
