@@ -86,7 +86,13 @@ so an event reaches only a collector that is subscribed; both collectors subscri
 and stop in `onDestroy`. The notification actions stay package-scoped system broadcasts.
 
 Native bubbles (`bubbles/system/`) are the alternative on newer Android: a conversation shortcut
-per site and a bubble notification that opens the page in `EmbeddableWebViewActivity`.
+per site and a bubble notification that opens the page in `EmbeddableWebViewActivity`. Before a
+bubble posts, `BubbleGate` reads the notification switch, the app's bubble setting, the device
+switch and the conversation's channel; after it posts, the app checks that Android set the bubble
+flag on it. A refused bubble opens its page in a tab, and `BubbleRefusedActivity` shows a snackbar
+above the tab that names the cause and opens the matching Android settings page. Browsing mode
+explains the choice "All conversations can bubble" and shows the current setting under the Native
+Bubbles row.
 
 ## Images: Coil 3
 
