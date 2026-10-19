@@ -29,7 +29,7 @@
         errorLine1="    fun isOnline(@NotNull context: Context): Boolean {"
         errorLine2="                 ~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="355"
             column="18"/>
     </issue>
@@ -832,7 +832,7 @@
         errorLine1="    @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="181"
             column="5"/>
     </issue>
@@ -843,7 +843,7 @@
         errorLine1="    @TargetApi(Build.VERSION_CODES.M)"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="337"
             column="5"/>
     </issue>
@@ -854,7 +854,7 @@
         errorLine1="    @TargetApi(21)"
         errorLine2="    ~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="404"
             column="5"/>
     </issue>
@@ -1154,7 +1154,7 @@
         errorLine1="    @TargetApi(Build.VERSION_CODES.LOLLIPOP)"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="181"
             column="5"/>
     </issue>
@@ -1165,7 +1165,7 @@
         errorLine1="    @TargetApi(Build.VERSION_CODES.M)"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="337"
             column="5"/>
     </issue>
@@ -1176,7 +1176,7 @@
         errorLine1="    @TargetApi(21)"
         errorLine2="    ~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="404"
             column="5"/>
     </issue>
@@ -3884,7 +3884,7 @@
         errorLine1="            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(&quot;market://details?id=$appPackageName&quot;)))"
         errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="76"
             column="62"/>
     </issue>
@@ -3895,7 +3895,7 @@
         errorLine1="            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(&quot;http://play.google.com/store/apps/details?id=$appPackageName&quot;)))"
         errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="78"
             column="62"/>
     </issue>
@@ -3906,7 +3906,7 @@
         errorLine1="        val webIntentImplicit = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.GOOGLE_URL))"
         errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="127"
             column="60"/>
     </issue>
@@ -3917,7 +3917,7 @@
         errorLine1="            Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="166"
             column="13"/>
     </issue>
@@ -3928,7 +3928,7 @@
         errorLine1="            Bitmap.createBitmap("
         errorLine2="            ^">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="168"
             column="13"/>
     </issue>
@@ -3939,7 +3939,7 @@
         errorLine1="            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse(&quot;package:&quot; + context.packageName))"
         errorLine2="                                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/arun/com/chromer/util/Utils.kt"
+            file="src/main/java/arun/com/chromer/util/utils.kt"
             line="341"
             column="76"/>
     </issue>
