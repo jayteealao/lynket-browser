@@ -29,6 +29,7 @@ import arun.com.chromer.R
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
 import arun.com.chromer.ui.browsing.BubbleRefusedMessage
+import arun.com.chromer.ui.browsing.TOUCH_EXPLORATION_TIMEOUT_MS
 import arun.com.chromer.ui.browsing.messageRes
 import arun.com.chromer.ui.theme.ChromerTheme
 import com.google.common.truth.Truth.assertThat
@@ -126,6 +127,27 @@ class BubbleRefusedMessageTest {
     assertThat(done).isFalse()
 
     composeRule.mainClock.advanceTimeBy(15_000)
+    composeRule.waitForIdle()
+    assertThat(done).isTrue()
+  }
+
+  @Test
+  fun withTouchExplorationTheMessageStaysPastTheLongTimeout() {
+    var done = false
+    val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+    controller.get().setContent {
+      ChromerTheme {
+        BubbleRefusedMessage(BubbleRefusal.BUBBLES_OFF, onOpenSettings = {}, onDone = { done = true }, touchExploration = true)
+      }
+    }
+    showSnackbar()
+
+    composeRule.mainClock.advanceTimeBy(15_000)
+    composeRule.waitForIdle()
+    assertThat(done).isFalse()
+    composeRule.onNodeWithText(string(R.string.open_settings)).assertExists()
+
+    composeRule.mainClock.advanceTimeBy(TOUCH_EXPLORATION_TIMEOUT_MS)
     composeRule.waitForIdle()
     assertThat(done).isTrue()
   }
