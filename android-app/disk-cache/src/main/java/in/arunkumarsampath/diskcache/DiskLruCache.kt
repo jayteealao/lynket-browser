@@ -112,6 +112,7 @@ class DiskLruCache private constructor(
   @Throws(IOException::class)
   private fun readJournal() {
     val reader = StrictLineReader(FileInputStream(journalFile), DiskCacheUtil.US_ASCII)
+    val truncated: Boolean
     try {
       val magic = reader.readLine()
       val version = reader.readLine()
@@ -139,17 +140,21 @@ class DiskLruCache private constructor(
         }
       }
       redundantOpCount = lineCount - lruEntries.size
-
-      // If we ended on a truncated line, rebuild the journal before appending to it.
-      if (reader.hasUnterminatedLine()) {
-        rebuildJournal()
-      } else {
-        journalWriter = BufferedWriter(
-          OutputStreamWriter(FileOutputStream(journalFile, true), DiskCacheUtil.US_ASCII)
-        )
-      }
+      truncated = reader.hasUnterminatedLine()
     } finally {
       DiskCacheUtil.closeQuietly(reader)
+    }
+
+    // Close the reader first: some Windows JDKs cannot rename a file that is open for reading,
+    // and rebuildJournal() renames the journal (repro: DiskLruCacheJournalTest's truncated-line
+    // test fails on Temurin 21.0.9 for Windows when the reader is still open). A truncated last
+    // line means rebuild before appending to it.
+    if (truncated) {
+      rebuildJournal()
+    } else {
+      journalWriter = BufferedWriter(
+        OutputStreamWriter(FileOutputStream(journalFile, true), DiskCacheUtil.US_ASCII)
+      )
     }
   }
 
