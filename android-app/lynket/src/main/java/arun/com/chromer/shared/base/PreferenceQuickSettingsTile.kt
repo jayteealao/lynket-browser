@@ -25,10 +25,13 @@ import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
+import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.settings.Preferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -43,6 +46,9 @@ abstract class PreferenceQuickSettingsTile : TileService() {
   @Inject
   internal lateinit var preferences: Preferences
 
+  @Inject
+  internal lateinit var userPreferencesRepository: UserPreferencesRepository
+
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
   private val writes = Dispatchers.IO.limitedParallelism(1)
 
@@ -51,7 +57,7 @@ abstract class PreferenceQuickSettingsTile : TileService() {
    */
   override fun onTileAdded() {
     Timber.d("Tile added")
-    updateTile()
+    showWhenLoaded()
   }
 
   /**
@@ -59,7 +65,7 @@ abstract class PreferenceQuickSettingsTile : TileService() {
    */
   override fun onStartListening() {
     Timber.d("Start listening")
-    updateTile()
+    showWhenLoaded()
   }
 
   /**
@@ -75,6 +81,14 @@ abstract class PreferenceQuickSettingsTile : TileService() {
   }
 
   abstract fun togglePreference()
+
+  /** Shows the stored state once the settings store's first read is in, without waiting for it. */
+  private fun showWhenLoaded() {
+    scope.launch {
+      userPreferencesRepository.snapshot.filterNotNull().first()
+      updateTile()
+    }
+  }
 
   /**
    * Called when this tile moves out of the listening state.
