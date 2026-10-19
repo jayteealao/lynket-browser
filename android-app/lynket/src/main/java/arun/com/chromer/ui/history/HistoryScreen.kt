@@ -77,6 +77,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -436,7 +437,7 @@ private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions:
           modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            .clickable { actions.onOpen(website) }
+            .clickable(role = Role.Button) { actions.onOpen(website) }
             .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
         ) {
           SiteAvatar(website.safeLabel(), website.faviconUrl)

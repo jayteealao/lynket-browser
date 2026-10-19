@@ -15,7 +15,8 @@ import android.content.Context
 import arun.com.chromer.data.database.ChromerDatabase
 import arun.com.chromer.data.database.HistoryDatabase
 import arun.com.chromer.data.database.entity.WebsiteEntity
-import arun.com.chromer.data.history.model.HistoryTable
+import arun.com.chromer.data.database.legacy.HistoryTable
+import arun.com.chromer.data.database.legacy.LegacyHistoryImport
 import arun.com.chromer.data.preferences.RecordingTree
 import arun.com.chromer.data.preferences.resourceBytes
 import com.google.common.truth.Truth.assertThat

@@ -24,7 +24,7 @@ import android.net.Uri
 import android.util.Patterns.WEB_URL
 import androidx.core.net.toUri
 import arun.com.chromer.data.preferences.SettingsSchema
-import arun.com.chromer.settings.RxPreferences
+import arun.com.chromer.settings.Preferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -56,7 +56,7 @@ data class SearchProvider(
 class SearchProviders
 @Inject
 constructor(
-  private val rxPreferences: RxPreferences
+  private val preferences: Preferences
 ) {
 
   // Application-level scope for this singleton
@@ -86,9 +86,8 @@ constructor(
     )
   )
 
-  val selectedProvider: Flow<SearchProvider> = rxPreferences
-    .searchEngine
-    .observe()
+  val selectedProvider: Flow<SearchProvider> = preferences
+    .searchEngineChanges()
     .map { selectedEngine ->
       availableProviders.find { it.name == selectedEngine } ?: GOOGLE_SEARCH_PROVIDER
     }
@@ -97,7 +96,7 @@ constructor(
 
   /** Saves [provider] as the search engine for typed searches. */
   fun select(provider: SearchProvider) {
-    rxPreferences.searchEngine.set(provider.name)
+    preferences.searchEngine(provider.name)
   }
 
   companion object {

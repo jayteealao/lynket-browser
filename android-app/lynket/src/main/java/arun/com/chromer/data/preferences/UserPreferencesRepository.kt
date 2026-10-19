@@ -58,6 +58,8 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     /** Writes [value] under [name] with the key type of the value; null removes the key. */
+    /** Writes every entry of [values] in one edit, with the key type of each value; null removes. */
+    /** Writes [value] under [name] with the key type of the value; null removes the key. */
     suspend fun setValue(name: String, value: Any?) {
         store.edit { preferences ->
             preferences.remove(stringPreferencesKey(name))
@@ -178,103 +180,7 @@ class UserPreferencesRepository @Inject constructor(
         }
 
     // ========== Update Methods ==========
-    // Suspend functions for updating individual preferences
-
-    suspend fun setFirstRunComplete() {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.FIRST_RUN] = false
-        }
-    }
-
-    suspend fun setToolbarColor(color: Int) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.TOOLBAR_COLOR] = color
-        }
-    }
-
-    suspend fun setColoredToolbar(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.TOOLBAR_COLOR_PREF] = enabled
-        }
-    }
-
-    suspend fun setWebHeadsEnabled(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.WEB_HEAD_ENABLED] = enabled
-        }
-    }
-
-    suspend fun setWebHeadsColor(color: Int) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.WEB_HEADS_COLOR] = color
-        }
-    }
-
-    suspend fun setWebHeadsFavicons(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.WEB_HEAD_FAVICON] = enabled
-        }
-    }
-
-    suspend fun setWebHeadsCloseOnOpen(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.WEB_HEAD_CLOSE_ON_OPEN] = enabled
-        }
-    }
-
-    suspend fun setDynamicToolbar(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.DYNAMIC_COLOR] = enabled
-        }
-    }
-
-    suspend fun setDynamicToolbarOnApp(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.DYNAMIC_COLOR_APP] = enabled
-        }
-    }
-
-    suspend fun setDynamicToolbarOnWeb(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.DYNAMIC_COLOR_WEB] = enabled
-        }
-    }
-
-    suspend fun setAmpMode(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.AMP_MODE] = enabled
-        }
-    }
-
-    suspend fun setArticleMode(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.ARTICLE_MODE] = enabled
-        }
-    }
-
-    suspend fun setArticleTheme(theme: Int) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.ARTICLE_THEME] = theme
-        }
-    }
-
-    suspend fun setArticleTextSizeIncrement(increment: Int) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.ARTICLE_TEXT_SIZE] = increment
-        }
-    }
-
-    suspend fun setIncognitoMode(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.INCOGNITO_MODE] = enabled
-        }
-    }
-
-    suspend fun setFullIncognitoMode(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.FULL_INCOGNITO_MODE] = enabled
-        }
-    }
+    // Screens write a setting with [set] or [setValues]; the two below also clear a dependent value.
 
     suspend fun setUseWebView(enabled: Boolean) {
         store.edit { preferences ->
@@ -291,110 +197,6 @@ class UserPreferencesRepository @Inject constructor(
             }
             // When setting custom tab, disable WebView
             preferences[PreferencesKeys.USE_WEBVIEW_PREF] = false
-        }
-    }
-
-    suspend fun setSecondaryBrowserComponent(component: String?) {
-        store.edit { preferences ->
-            if (component != null) {
-                preferences[PreferencesKeys.SECONDARY_PREF] = component
-            } else {
-                preferences.remove(PreferencesKeys.SECONDARY_PREF)
-            }
-        }
-    }
-
-    suspend fun setFavShareComponent(component: String?) {
-        store.edit { preferences ->
-            if (component != null) {
-                preferences[PreferencesKeys.FAV_SHARE_PREF] = component
-            } else {
-                preferences.remove(PreferencesKeys.FAV_SHARE_PREF)
-            }
-        }
-    }
-
-    suspend fun setWarmUp(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.WARM_UP] = enabled
-        }
-    }
-
-    suspend fun setPreFetch(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.PRE_FETCH] = enabled
-        }
-    }
-
-    suspend fun setWifiOnlyPrefetch(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.WIFI_PREFETCH] = enabled
-        }
-    }
-
-    suspend fun setPreFetchNotification(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.PRE_FETCH_NOTIFICATION] = enabled
-        }
-    }
-
-    suspend fun setAggressiveLoading(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.AGGRESSIVE_LOADING] = enabled
-        }
-    }
-
-    suspend fun setBottomBar(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.BOTTOM_BAR_ENABLED] = enabled
-        }
-    }
-
-    suspend fun setMergeTabs(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.MERGE_TABS_AND_APPS] = enabled
-        }
-    }
-
-    suspend fun setPerAppSettings(enabled: Boolean) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.PER_APP_SETTINGS] = enabled
-        }
-    }
-
-    suspend fun setMinimizeBehavior(behavior: String) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.MINIMIZE_BEHAVIOR_PREFERENCE] = behavior
-        }
-    }
-
-    suspend fun setAnimationType(type: Int) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.ANIMATION_TYPE] = type
-        }
-    }
-
-    suspend fun setAnimationSpeed(speed: Int) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.ANIMATION_SPEED] = speed
-        }
-    }
-
-    suspend fun setPreferredAction(action: Int) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.PREFERRED_ACTION] = action
-        }
-    }
-
-    suspend fun setWebHeadsSpawnLocation(location: Int) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.WEB_HEAD_SPAWN_LOCATION] = location
-        }
-    }
-
-    suspend fun setWebHeadsSize(size: Int) {
-        store.edit { preferences ->
-            preferences[PreferencesKeys.WEB_HEAD_SIZE] = size
         }
     }
 

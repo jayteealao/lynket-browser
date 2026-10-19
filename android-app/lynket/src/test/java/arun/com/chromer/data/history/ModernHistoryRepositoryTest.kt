@@ -21,7 +21,8 @@ import arun.com.chromer.data.database.HistoryDatabase
 import arun.com.chromer.data.database.dao.WebsiteDao
 import arun.com.chromer.data.database.entity.toEntity
 import arun.com.chromer.data.database.entity.toWebsite
-import arun.com.chromer.data.history.model.HistoryTable
+import arun.com.chromer.data.database.legacy.HistoryTable
+import arun.com.chromer.data.database.legacy.LegacyHistoryImport
 import arun.com.chromer.data.website.model.Website
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi

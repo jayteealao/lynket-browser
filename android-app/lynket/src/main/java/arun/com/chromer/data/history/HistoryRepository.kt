@@ -1,4 +1,3 @@
-// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -21,30 +20,18 @@
 
 package arun.com.chromer.data.history
 
-import androidx.paging.PagingData
 import arun.com.chromer.data.website.model.Website
-import kotlinx.coroutines.flow.Flow
 
 /**
- * Created by Arunkumar on 03-03-2017.
+ * History as the link path and the search suggestions use it: look a page up, record a visit and
+ * search. The History screen and the home read and change history through
+ * [ModernHistoryRepository].
  */
 interface HistoryRepository {
   suspend fun get(website: Website): Website?
 
+  /** Records a visit: a new row, or one more visit and a new visit time for a stored URL. */
   suspend fun insert(website: Website): Website
 
-  suspend fun update(website: Website): Website
-
-  suspend fun delete(website: Website): Website
-
-  suspend fun exists(website: Website): Boolean
-
-  suspend fun deleteAll(): Int
-
-  fun recents(): Flow<List<Website>>
-
   suspend fun search(text: String): List<Website>
-
-  /** Every history row, newest first, in pages. */
-  fun pagedHistory(): Flow<PagingData<Website>>
 }

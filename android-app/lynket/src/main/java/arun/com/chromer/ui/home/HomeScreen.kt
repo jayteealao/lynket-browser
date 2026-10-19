@@ -11,7 +11,6 @@
 
 package arun.com.chromer.ui.home
 
-import android.graphics.drawable.Drawable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -79,6 +78,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -446,19 +446,26 @@ private fun ProviderCard(info: CustomTabProviderInfo, onChange: () -> Unit, onRe
 
 private fun html(text: String): AnnotatedString = runCatching { AnnotatedString.fromHtml(text) }.getOrElse { AnnotatedString(text) }
 
-/** The provider's launcher icon from the package manager; a globe for the built-in web view. */
+/**
+ * The provider's launcher icon, loaded by the image loader off the main thread; a globe for the
+ * built-in web view and while the icon is missing or loading.
+ */
 @Composable
 private fun AppIcon(info: CustomTabProviderInfo, modifier: Modifier) {
-  val context = LocalContext.current
-  val packageName = info.iconUri.schemeSpecificPart
-  val icon: Drawable? = remember(packageName) {
-    runCatching { context.packageManager.getApplicationIcon(packageName) }.getOrNull()
-  }
-  if (icon != null && info.iconUri.scheme == ApplicationIcon.URI_SCHEME_APPLICATION_ICON) {
-    AsyncImage(model = icon, contentDescription = null, modifier = modifier)
-  } else {
-    Box(modifier.background(MaterialTheme.colorScheme.surface, CircleShape), contentAlignment = Alignment.Center) {
-      Icon(Icons.Outlined.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+  var loaded by remember(info.iconUri) { mutableStateOf(false) }
+  Box(modifier, contentAlignment = Alignment.Center) {
+    if (!loaded) {
+      Box(Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface, CircleShape), contentAlignment = Alignment.Center) {
+        Icon(Icons.Outlined.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+      }
+    }
+    if (info.iconUri.scheme == ApplicationIcon.URI_SCHEME_APPLICATION_ICON) {
+      AsyncImage(
+        model = info.iconUri,
+        contentDescription = null,
+        modifier = Modifier.matchParentSize(),
+        onSuccess = { loaded = true },
+      )
     }
   }
 }
@@ -473,6 +480,7 @@ private fun RecentsHeader(showHistory: Boolean, onHistory: () -> Unit) {
     Text(
       text = stringResource(R.string.recents),
       style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+      modifier = Modifier.semantics { heading() },
     )
     if (showHistory) {
       TextButton(onClick = onHistory, modifier = Modifier.heightIn(min = 48.dp).testTag("home-history")) {

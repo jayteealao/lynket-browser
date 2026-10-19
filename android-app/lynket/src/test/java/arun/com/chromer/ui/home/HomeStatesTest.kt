@@ -75,7 +75,7 @@ class HomeStatesTest {
       HomeActions(onRetryProvider = { retried++ }, onChangeProvider = { changed++ }),
     )
     composeRule.onNodeWithTag("home-provider-error").assertIsDisplayed()
-    composeRule.onNodeWithText("No browser for Custom Tabs").assertIsDisplayed()
+    composeRule.onNodeWithText("No Custom Tab provider found").assertIsDisplayed()
     composeRule.onNodeWithText("Retry").performClick()
     composeRule.onNodeWithText("Change").performClick()
     assertThat(retried).isEqualTo(1)

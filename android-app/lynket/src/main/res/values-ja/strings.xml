@@ -260,7 +260,6 @@
   <string name="contribute_to_chromer">コーディングが好きですか？Lynketをフォークして開発に貢献してみませんか。</string>
   <string name="fork_on_github">GitHubでフォーク</string>
   <string name="web_view_not_found">端末でWebViewが無効になっています。リンクを開けません。</string>
-  <string name="app_detection_service">アプリ探知サービス</string>
   <string name="shortcut_name">ショートカットの名前</string>
   <string name="create_shorcut">ショートカットを作成</string>
   <string name="create">作成</string>

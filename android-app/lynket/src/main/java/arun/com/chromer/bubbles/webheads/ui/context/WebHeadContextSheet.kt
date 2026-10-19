@@ -104,7 +104,7 @@ fun WebHeadContextContent(websites: List<Website>, actions: WebHeadContextAction
       text = stringResource(R.string.web_sites),
       style = MaterialTheme.typography.titleLarge,
       color = MaterialTheme.colorScheme.onSurface,
-      modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+      modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).semantics { heading() },
     )
     LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
       items(websites, key = { it.url }) { website ->

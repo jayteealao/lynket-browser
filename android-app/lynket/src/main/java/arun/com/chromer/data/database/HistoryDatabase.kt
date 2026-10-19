@@ -15,8 +15,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabaseCorruptException
 import android.database.sqlite.SQLiteException
 import arun.com.chromer.data.database.dao.WebsiteDao
-import arun.com.chromer.data.history.LegacyHistoryImport
-import arun.com.chromer.data.history.model.HistoryTable
+import arun.com.chromer.data.database.legacy.HistoryTable
+import arun.com.chromer.data.database.legacy.LegacyHistoryImport
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -125,12 +125,17 @@ internal constructor(
     listOf(legacy, File(legacy.path + "-journal")).filter { it.exists() }.forEach { it.delete() }
   }
 
-  /** True when [e] says the file is corrupt or its tables do not match the schema. */
+  /**
+   * True when [e] says the file is corrupt or its tables do not match the schema. Room reports a
+   * schema problem as an [IllegalStateException] with one of [ROOM_SCHEMA_ERRORS]; any other
+   * [IllegalStateException] (a closed pool, for example) passes, and the file stays.
+   */
   private fun isBrokenFile(e: Throwable): Boolean =
     generateSequence(e) { it.cause }.take(8).any { cause ->
       cause is SQLiteDatabaseCorruptException ||
-        // Room reports a missing migration or a table that does not match the schema this way.
-        cause is IllegalStateException ||
+        (cause is IllegalStateException && cause.message.orEmpty().let { message ->
+          ROOM_SCHEMA_ERRORS.any { message.contains(it, ignoreCase = true) }
+        }) ||
         (cause is SQLiteException && cause.message.orEmpty().let {
           it.contains("not a database", ignoreCase = true) || it.contains("malformed", ignoreCase = true)
         })
@@ -155,5 +160,13 @@ internal constructor(
   companion object {
     const val BROKEN_FOLDER = "history-broken"
     private val SQLITE_HEADER = "SQLite format 3\u0000".toByteArray(Charsets.US_ASCII)
+
+    /** How Room 3 words a missing migration and a schema that does not match (RoomConnectionManager). */
+    internal val ROOM_SCHEMA_ERRORS = listOf(
+      "Migration didn't properly handle",
+      "was required but not found",
+      "Room cannot verify the data integrity",
+      "has an invalid schema",
+    )
   }
 }

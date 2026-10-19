@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
@@ -96,7 +97,7 @@ fun ColorPickerContent(title: String, initial: Int, onDone: (Int) -> Unit) {
   var hex by rememberSaveable { mutableStateOf(hexOf(initial)) }
   val parsed = remember(hex) { parseHex(hex) }
   Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
-    Text(title, style = MaterialTheme.typography.headlineSmall)
+    Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
     Text(
       stringResource(R.string.color_sheet_body),
       style = MaterialTheme.typography.bodyMedium,

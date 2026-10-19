@@ -35,7 +35,9 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_AMP
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_MINIMIZE
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.debug.DebugHooks
 import timber.log.Timber
+import java.util.Optional
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,8 +46,11 @@ import javax.inject.Singleton
 class WebHeadsFloatingBubble
 @Inject
 constructor(
-  private val application: Application
+  private val application: Application,
+  debugHooks: Optional<DebugHooks>,
 ) : FloatingBubble {
+
+  private val debugHooks = DebugHooks.of(debugHooks)
 
   private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -72,7 +77,7 @@ constructor(
       putExtra(EXTRA_KEY_INCOGNITO, incognito)
     }
     try {
-      if (WebHeadStartFaults.isForced(ctx)) {
+      if (debugHooks.webHeadStartRefused(ctx)) {
         throw IllegalStateException("Web head start refused by the debug fault switch")
       }
       ContextCompat.startForegroundService(ctx, webHeadLauncher)

@@ -58,6 +58,36 @@ class HistoryDatabaseTransientFailureTest {
   }
 
   @Test
+  fun anIllegalStateThatIsNotASchemaErrorKeepsTheFile() {
+    var opens = 0
+    val history = HistoryDatabase(context, legacyImport = null) {
+      opens++
+      throw IllegalStateException("Cannot perform this operation because the connection pool has been closed.")
+    }
+
+    assertThrows(IllegalStateException::class.java) { runBlocking { history.get() } }
+
+    assertThat(opens).isEqualTo(1)
+    assertThat(dbFile.readBytes()).isEqualTo(header)
+    assertThat(brokenFolder().exists()).isFalse()
+  }
+
+  @Test
+  fun aMissingMigrationMovesTheFileAside() {
+    var opens = 0
+    val history = HistoryDatabase(context, legacyImport = null) {
+      opens++
+      throw IllegalStateException("A migration from 9 to 3 was required but not found.")
+    }
+
+    assertThrows(IllegalStateException::class.java) { runBlocking { history.get() } }
+
+    assertThat(opens).isEqualTo(2)
+    assertThat(dbFile.exists()).isFalse()
+    assertThat(brokenFolder().walk().any { it.name == ChromerDatabase.DATABASE_NAME }).isTrue()
+  }
+
+  @Test
   fun aCancelledOpenKeepsTheFile() {
     val history = HistoryDatabase(context, legacyImport = null) { throw CancellationException("left") }
 

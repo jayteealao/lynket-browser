@@ -75,8 +75,8 @@ class TabsScreenTest {
     show()
     composeRule.onNodeWithText("Site a").performClick()
     verify { tabsManager.reOrderTabByUrl(any(), match { it.url == "https://example.com/?t=a" }, listOf(TabsManager.CUSTOM_TAB_ACTIVITY)) }
-    verify(exactly = 0) { tabsManager.openUrl(any(), any(), any(), any(), any(), any(), any()) }
-    verify(exactly = 0) { tabsManager.openBrowsingTab(any(), any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { tabsManager.openUrl(any(), any(), any(), any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { tabsManager.openBrowsingTab(any(), any(), any(), any(), any(), any(), any()) }
   }
 
   @Test
@@ -87,8 +87,8 @@ class TabsScreenTest {
     composeRule.onNodeWithText("Site b").performClick()
     composeRule.waitForIdle()
     coVerify(exactly = 2) { tabsManager.getActiveTabs() }
-    verify(exactly = 0) { tabsManager.openUrl(any(), any(), any(), any(), any(), any(), any()) }
-    verify(exactly = 0) { tabsManager.openBrowsingTab(any(), any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { tabsManager.openUrl(any(), any(), any(), any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { tabsManager.openBrowsingTab(any(), any(), any(), any(), any(), any(), any()) }
   }
 
   @Test

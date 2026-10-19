@@ -6,7 +6,7 @@
 #   2. History switched on in the History screen (the 2.1.3 seed has it off and incognito
 #      browsing on); a link through BrowserInterceptActivity, and the router logs its address
 #   3. Custom Tab mode: "Slide over", AMP and article mode off, Chrome chosen on the provider
-#      screen (so "Use WebView" is off); a link opens in a Chrome Custom Tab with the bottom bar
+#      screen (so "Use Web View" is off); a link opens in a Chrome Custom Tab with the bottom bar
 #   4. options-item.yaml: the Lynket options sheet from Chrome's menu
 #   5. web heads through the permission explainer and the system screen (permission.yaml, the
 #      grant through appops); the stored setting reads web heads on
@@ -159,7 +159,7 @@ step3_custom_tab() {
   tap_text "Use" || fail "no Use button in the Chrome dialog"
   sleep 2
   shot 3-provider-after
-  [ "$(setting use_webview_pref 3-settings-provider.tsv)" = "false" ] || fail "Use WebView is still on"
+  [ "$(setting use_webview_pref 3-settings-provider.tsv)" = "false" ] || fail "Use Web View is still on"
   # The 2.1.3 seed turns the bottom bar off; it is switched on in Browsing options.
   if [ "$(setting bottombar_enabled_preference 3-settings-bar-before.tsv)" != "true" ]; then
     a shell am start -W -n "$PKG/$MAIN" -f 0x24000000 --es "$DESTINATION" BrowsingOptions >/dev/null

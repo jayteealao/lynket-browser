@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -48,6 +50,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import arun.com.chromer.R
 import arun.com.chromer.util.parser.extraction.legacyText
 import org.jsoup.nodes.Element
@@ -138,7 +141,10 @@ fun rememberReaderMeasure(bodyStyle: TextStyle): Dp {
   }
 }
 
-/** HTML of a block as styled text with links in [linkColour]; a link opens with the URI handler. */
+/** The link schemes the reader opens; any other link shows the unsupported-link message. */
+internal val OPENABLE_LINK_SCHEMES = setOf("http", "https", "mailto")
+
+/** HTML of a block as styled text with links in [linkColour]; a web or mail link opens with the URI handler. */
 @Composable
 fun rememberArticleText(html: String, linkColour: Color): AnnotatedString {
   val uriHandler = LocalUriHandler.current
@@ -151,6 +157,9 @@ fun rememberArticleText(html: String, linkColour: Color): AnnotatedString {
         val url = (link as? LinkAnnotation.Url)?.url
         try {
           if (url == null) error("no address")
+          // A page can plant links to any app (tel:, market:, content:, intent schemes); the
+          // reader opens only web and mail links and shows the unsupported-link message otherwise.
+          if (url.toUri().scheme?.lowercase() !in OPENABLE_LINK_SCHEMES) error("not a web link")
           uriHandler.openUri(url)
         } catch (e: Exception) {
           Timber.w(e, "Could not open %s", url)
@@ -190,7 +199,7 @@ fun ArticleBlockView(block: ArticleBlock, bodyStyle: TextStyle, increment: Int, 
         rememberArticleText(block.html, accent),
         style = base.copy(fontSize = base.fontSize.plus(increment), fontWeight = FontWeight.SemiBold),
         color = colours.onSurface,
-        modifier = textModifier.padding(top = 8.dp).testTag("article-heading"),
+        modifier = textModifier.padding(top = 8.dp).semantics { heading() }.testTag("article-heading"),
       )
     }
     BlockKind.Quote -> Row(modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("article-quote")) {

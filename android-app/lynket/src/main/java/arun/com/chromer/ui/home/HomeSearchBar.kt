@@ -46,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
 import arun.com.chromer.home.ModernHomeViewModel.Suggestions
@@ -159,7 +160,7 @@ fun HomeSearchBar(
             )
           },
           colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-          modifier = Modifier.clickable { onSuggestion(item) },
+          modifier = Modifier.clickable(role = Role.Button) { onSuggestion(item) },
         )
       }
     }

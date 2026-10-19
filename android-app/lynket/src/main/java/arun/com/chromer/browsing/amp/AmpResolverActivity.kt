@@ -20,8 +20,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import arun.com.chromer.appdetect.LinkSource
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.shared.Constants.EXTRA_KEY_LINK_SOURCE_APP
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.ui.browsing.AmpResolverDialog
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
@@ -42,6 +44,12 @@ class AmpResolverActivity : BrowsingActivity() {
   lateinit var tabsManager: TabsManager
 
   private val viewModel: AmpResolverViewModel by viewModels()
+
+  /** The app the link came from, so the page keeps that app's toolbar colour. */
+  private val linkSource: LinkSource
+    get() = intent?.getStringExtra(EXTRA_KEY_LINK_SOURCE_APP)
+      ?.let { LinkSource(filtered = it) }
+      ?: LinkSource.NONE
 
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
@@ -67,7 +75,7 @@ class AmpResolverActivity : BrowsingActivity() {
         viewModel.state.collect { state ->
           when (state) {
             is AmpState.Found -> {
-              tabsManager.openBrowsingTab(this@AmpResolverActivity, Website.Ampify(state.website), fromNewTab = false, incognito = incognito)
+              tabsManager.openBrowsingTab(this@AmpResolverActivity, Website.Ampify(state.website), fromNewTab = false, incognito = incognito, linkSource = linkSource)
               finish()
             }
             is AmpState.NotFound -> {
@@ -84,7 +92,7 @@ class AmpResolverActivity : BrowsingActivity() {
 
   /** Opens the page itself, past the AMP step (the browsing mode still applies). */
   private fun openNormal(website: Website) {
-    tabsManager.openUrl(this, Website.Ampify(website), fromAmp = true, incognito = incognito)
+    tabsManager.openUrl(this, Website.Ampify(website), fromAmp = true, incognito = incognito, linkSource = linkSource)
     finish()
   }
 

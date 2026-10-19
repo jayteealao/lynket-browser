@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -91,8 +91,10 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.unit.Dp
 import arun.com.chromer.ui.browsing.rememberHideOnScrollState
 import arun.com.chromer.ui.components.skeletonAlpha
@@ -140,7 +142,8 @@ fun ReaderScreen(
         Modifier
           .fillMaxSize()
           .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
-          .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClose)
+          // A tap beside the reader closes it; screen readers use Close or Back, so the scrim is no control.
+          .pointerInput(onClose) { detectTapGestures { onClose() } }
           .testTag("reader-scrim"),
       )
     }
@@ -304,7 +307,7 @@ private fun ArticleContent(
       item(key = "header-image") {
         AsyncImage(
           model = article.imageUrl,
-          contentDescription = article.title.ifBlank { stringResource(R.string.reader_article_image) },
+          contentDescription = stringResource(R.string.reader_article_image),
           contentScale = ContentScale.Crop,
           modifier = Modifier
             .fillMaxWidth()
@@ -321,7 +324,7 @@ private fun ArticleContent(
       item(key = "title") {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
           if (article.title.isNotBlank()) {
-            Text(article.title, style = titleStyle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.testTag("reader-title"))
+            Text(article.title, style = titleStyle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.semantics { heading() }.testTag("reader-title"))
           }
           if (article.siteName.isNotBlank()) {
             Text(
@@ -402,7 +405,6 @@ fun ReaderSkeleton(modifier: Modifier = Modifier) {
     modifier
       .fillMaxWidth()
       .padding(top = 8.dp)
-      .semantics { contentDescription = label }
       .testTag("reader-loading"),
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {

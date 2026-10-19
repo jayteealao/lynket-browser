@@ -20,7 +20,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,9 +59,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -89,7 +91,8 @@ fun NewTabDialog(
     modifier = Modifier
       .fillMaxSize()
       .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
-      .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss)
+      // A tap outside the card closes it; screen readers close it with Back, so the scrim is no control.
+      .pointerInput(onDismiss) { detectTapGestures { onDismiss() } }
       .imePadding()
       .navigationBarsPadding(),
     contentAlignment = Alignment.BottomCenter,
@@ -129,8 +132,8 @@ fun NewTabCard(
       .padding(16.dp)
       .widthIn(max = 680.dp)
       .fillMaxWidth()
-      // Taps on the card stay on the card.
-      .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+      // Taps on the card stay on the card (no click semantics, so it is not read as a button).
+      .pointerInput(Unit) { detectTapGestures { } }
       .testTag("new-tab-dialog"),
   ) {
     Column(Modifier.padding(vertical = 16.dp)) {
@@ -187,7 +190,7 @@ fun NewTabCard(
                 )
               },
               colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-              modifier = Modifier.clickable {
+              modifier = Modifier.clickable(role = Role.Button) {
                 onSubmit(if (item is SuggestionItem.HistorySuggestionItem) item.website.url else item.title)
               },
             )

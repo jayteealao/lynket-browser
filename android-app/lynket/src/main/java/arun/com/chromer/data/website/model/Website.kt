@@ -29,7 +29,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.text.TextUtils
 import androidx.annotation.ColorInt
-import arun.com.chromer.data.history.model.HistoryTable
+import arun.com.chromer.data.database.legacy.HistoryTable
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.util.parser.extraction.ExtractedArticle

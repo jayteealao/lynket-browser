@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ZoomIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -99,7 +101,8 @@ class ImageZoom(scale: Float = IMAGE_MIN_SCALE, offset: Offset = Offset.Zero) {
 }
 
 /**
- * The image viewer: the image fitted to the width on a dark surface, Close and Share at the top,
+ * The image viewer: the image fitted to the width on the theme's surface, Close and Share at the top
+ * on dark round plates (readable over any picture),
  * a "Pinch to zoom" hint at the bottom until the first zoom, and a message when the image cannot
  * be loaded.
  */
@@ -168,11 +171,12 @@ fun ImageViewerScreen(url: String, onClose: () -> Unit, onShare: () -> Unit, mod
         Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing).padding(4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
       ) {
-        IconButton(onClick = onClose, modifier = Modifier.testTag("image-close")) {
-          Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close), tint = MaterialTheme.colorScheme.onSurface)
+        val overImage = IconButtonDefaults.iconButtonColors(containerColor = ImageControlPlate, contentColor = Color.White)
+        IconButton(onClick = onClose, colors = overImage, modifier = Modifier.testTag("image-close")) {
+          Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close))
         }
-        IconButton(onClick = onShare, modifier = Modifier.testTag("image-share")) {
-          Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.share), tint = MaterialTheme.colorScheme.onSurface)
+        IconButton(onClick = onShare, colors = overImage, modifier = Modifier.testTag("image-share")) {
+          Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.share))
         }
       }
       if (!hintSeen) {
@@ -200,6 +204,12 @@ fun ImageViewerScreen(url: String, onClose: () -> Unit, onShare: () -> Unit, mod
     }
   }
 }
+
+/**
+ * The plate behind Close and Share: white on 60 % black stays above 3:1 over a white, a black or
+ * any other picture.
+ */
+private val ImageControlPlate = Color.Black.copy(alpha = 0.6f)
 
 private val imageZoomSaver = androidx.compose.runtime.saveable.Saver<ImageZoom, List<Float>>(
   save = { listOf(it.scale, it.offset.x, it.offset.y) },

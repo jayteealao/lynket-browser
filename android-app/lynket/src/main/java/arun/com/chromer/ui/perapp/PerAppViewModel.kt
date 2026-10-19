@@ -18,7 +18,7 @@ import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.common.App
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.readBoolean
-import arun.com.chromer.perapp.PerAppLoadFaults
+import arun.com.chromer.util.debug.DebugHooks
 import arun.com.chromer.ui.settings.SettingsKeyTable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.util.Optional
 import javax.inject.Inject
 
 /** One app row: its rules as stored in the per-app rule store. */
@@ -70,6 +71,7 @@ class PerAppViewModel(
   private val appRepository: AppRepository,
   private val preferencesRepository: UserPreferencesRepository,
   private val io: CoroutineDispatcher,
+  private val debugHooks: DebugHooks = DebugHooks.None,
 ) : ViewModel() {
 
   @Inject
@@ -77,7 +79,8 @@ class PerAppViewModel(
     @ApplicationContext context: Context,
     appRepository: AppRepository,
     preferencesRepository: UserPreferencesRepository,
-  ) : this(context, appRepository, preferencesRepository, Dispatchers.IO)
+    debugHooks: Optional<DebugHooks>,
+  ) : this(context, appRepository, preferencesRepository, Dispatchers.IO, DebugHooks.of(debugHooks))
 
   private val state = MutableStateFlow(PerAppState())
   val uiState: StateFlow<PerAppState> = state.asStateFlow()
@@ -100,7 +103,7 @@ class PerAppViewModel(
       state.update { it.copy(refreshing = true) }
       try {
         val apps = withContext(io) {
-          PerAppLoadFaults.delayMs(context).takeIf { it > 0 }?.let { delay(it) }
+          debugHooks.perAppLoadDelayMs(context).takeIf { it > 0 }?.let { delay(it) }
           appRepository.allApps().map { it.toRow() }
         }
         Timber.d("Per-app list: %d apps", apps.size)

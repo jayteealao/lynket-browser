@@ -69,6 +69,42 @@ class AppDetectionManagerTest : LynketRobolectricSuite() {
     assertThat(source.filtered).isEqualTo("com.google.android.apps.messaging")
   }
 
+  private fun paused(pkg: String, at: Long) =
+    usageStats.addEvent(pkg, at, UsageEvents.Event.ACTIVITY_PAUSED)
+
+  private fun stopped(pkg: String, at: Long) =
+    usageStats.addEvent(pkg, at, UsageEvents.Event.ACTIVITY_STOPPED)
+
+  @Test
+  fun anAppInFrontForLongerThanTheLookbackIsFoundByItsPause() {
+    usageAccess(AppOpsManager.MODE_ALLOWED)
+    val now = 1_000_000L
+    // Messages came forward a minute ago; the link tap pauses it and resumes Lynket.
+    resumed("com.google.android.apps.messaging", now - 60_000)
+    paused("com.google.android.apps.messaging", now - 400)
+    resumed(application.packageName, now - 300)
+
+    val source = appDetectionManager.detectLinkSource(now)
+
+    assertThat(source.nonFiltered).isEqualTo("com.google.android.apps.messaging")
+    assertThat(source.filtered).isEqualTo("com.google.android.apps.messaging")
+  }
+
+  @Test
+  fun theLatestEventOfAnotherAppWinsAndLynketsOwnEventsAreSkipped() {
+    usageAccess(AppOpsManager.MODE_ALLOWED)
+    val now = 1_000_000L
+    paused("com.google.android.calendar", now - 5_000)
+    stopped("com.google.android.apps.messaging", now - 600)
+    paused(application.packageName, now - 200)
+    stopped(application.packageName, now - 100)
+
+    val source = appDetectionManager.detectLinkSource(now)
+
+    assertThat(source.nonFiltered).isEqualTo("com.google.android.apps.messaging")
+    assertThat(source.filtered).isEqualTo("com.google.android.apps.messaging")
+  }
+
   @Test
   fun anAppOlderThanTheLookbackIsNotTheLinkSource() {
     usageAccess(AppOpsManager.MODE_ALLOWED)

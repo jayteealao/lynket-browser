@@ -13,11 +13,13 @@ package arun.com.chromer.data.database
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import arun.com.chromer.data.history.LegacyHistoryImport
+import arun.com.chromer.data.database.legacy.LegacyHistoryImport
+import arun.com.chromer.data.history.ModernHistoryRepository
 import arun.com.chromer.data.history.RoomHistoryStore
 import arun.com.chromer.data.preferences.RecordingTree
 import arun.com.chromer.data.website.model.Website
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -86,8 +88,9 @@ class HistoryDatabaseCorruptionTest {
 
   private suspend fun assertBrokenFileHandled(checkKept: (File) -> Unit) {
     val store = RoomHistoryStore(historyDatabase)
+    val history = ModernHistoryRepository(historyDatabase, Dispatchers.Unconfined)
 
-    assertThat(store.recents().first()).isEmpty()
+    assertThat(history.getRecents().first()).isEmpty()
     assertThat(tree.errors).isNotEmpty()
     val kept = File(context.filesDir, HistoryDatabase.BROKEN_FOLDER).walk()
       .filter { it.name == ChromerDatabase.DATABASE_NAME }.toList()
@@ -95,6 +98,6 @@ class HistoryDatabaseCorruptionTest {
     checkKept(kept[0])
 
     store.insert(Website("https://after.example/"))
-    assertThat(store.recents().first().map { it.url }).containsExactly("https://after.example/")
+    assertThat(history.getRecents().first().map { it.url }).containsExactly("https://after.example/")
   }
 }

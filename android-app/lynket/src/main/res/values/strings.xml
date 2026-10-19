@@ -48,7 +48,7 @@
   </string-array>
   <string name="share_text">Hey Checkout \‘Lynket\’ for quick and secure browsing experience! Download here https://goo.gl/992ils</string>
   <string name="share_via">Share via…</string>
-  <string name="custom_tab_provider_not_found">Compatible custom tab provider not found</string>
+  <string name="custom_tab_provider_not_found">No Custom Tab provider found</string>
   <string name="custom_tab_provider_not_found_expln">Lynket requires you to have any Custom tab compatible browser on your phone. Currently there are no browsers on your phone that supports it. Would you like to install Google Chrome (Free) from play store? If you already have it, then please update it to latest version.</string>
   <string name="custom_tab_provider_not_found_dialog_content"><![CDATA[Could not find compatible custom tab browser on your phone. Google Chrome (Free) is recommended. You can still view webpages within Lynket and use Article mode, but for the best experience, a custom tab provider is highly recommended. Would you like to install now?]]></string>
   <string name="install">Install</string>
@@ -101,7 +101,7 @@
   <string name="keep_chrome_warmedup">Keep your browser in memory for faster launch</string>
   <string name="warmup_browser">Warm up browser</string>
   <string name="set_default_chromer">Set As Default Browser</string>
-  <string name="default_provider">Custom tab provider</string>
+  <string name="default_provider">Custom Tab provider</string>
   <string name="pre_fetch_content">Prefetch content</string>
   <string name="pre_fetch_desc">Scan your screen for links and load them in background for instant launch</string>
   <string name="accessibility_description">This service will be used by Lynket to scan text links on your screen and load them in the background. No other information is processed by Lynket. You can still use Lynket in light mode if you choose to not grant this. For more information, launch Lynket app.</string>
@@ -264,9 +264,8 @@
   <string name="contribute_to_chromer">Love to code? Fork Lynket and contribute.</string>
   <string name="fork_on_github">Fork on GitHub</string>
   <string name="web_view_not_found">Web View disabled on device. Could not open link.</string>
-  <string name="web_heads_channel_description">Shown while web heads are on screen. Tap New tab, Manage or Close all.</string>
+  <string name="web_heads_channel_description">Shown while web heads are on screen. Use Open new tab or Manage, or tap the notification to close all.</string>
   <string name="web_view_page_stopped">This page stopped working and was closed.</string>
-  <string name="app_detection_service">App detection service</string>
   <string name="shortcut_name">Shortcut name</string>
   <string name="create_shorcut">Create shortcut</string>
   <string name="create">Create</string>
@@ -303,12 +302,12 @@
   <string name="save_size_dialog_title">Save size</string>
   <string name="save_size_dialog_content">Would like to save this size?</string>
   <string name="choose_provider">Choose provider</string>
-  <string name="webViewNotRecommended">For your Android version, using WebView is not recommended due to stability and security concerns.</string>
+  <string name="webViewNotRecommended">For your Android version, using Web View is not recommended due to stability and security concerns.</string>
   <string name="webViewPros">Rendering engine bundled with your phone.</string>
   <string name="tab_providers">Supported providers</string>
   <string name="use">Use</string>
   <string name="features">Features</string>
-  <string name="webview_disadvantages">WebView lacks many advantages like data saver, form auto fill and cloud sync that Custom Tab providers provide. Do you still want to use WebView for rendering web pages?</string>
+  <string name="webview_disadvantages">Web View lacks many advantages like data saver, form auto fill and cloud sync that Custom Tab providers provide. Do you still want to use Web View for rendering web pages?</string>
   <string name="try_it">Try it</string>
   <string name="slide_over_fragment_close_prompt">Press X to quickly close the tab</string>
   <string name="see_demo">See Demo</string>
@@ -362,7 +361,7 @@
   <string name="overlay_explainer_title">Allow web heads to float</string>
   <string name="overlay_explainer_body">To draw web heads over other apps, Lynket needs the \"Display over other apps\" permission. Android opens the setting next.</string>
   <string name="web_heads_notification_explainer_title">Show web head controls</string>
-  <string name="web_heads_notification_explainer_body">While web heads are on screen, a notification holds New tab, Manage and Close all. Android asks you to allow notifications next.</string>
+  <string name="web_heads_notification_explainer_body">While web heads are on screen, a notification offers Open new tab and Manage, and a tap on it closes all. Android asks you to allow notifications next.</string>
   <string name="bubbles_notification_explainer_title">Bubbles are notifications</string>
   <string name="bubbles_notification_explainer_body">Native bubbles are shown as notifications, so Lynket needs to post notifications. Android asks you next.</string>
   <string name="share_website">Share %1$s</string>
@@ -377,8 +376,8 @@
   <string name="home_tips_body">Learn the gestures and shortcuts that make Lynket faster.</string>
   <string name="recents_empty_title">Recents appear here</string>
   <string name="recents_empty_body">Open a link from any app and it shows up here for quick access.</string>
-  <string name="provider_missing_title">No browser for Custom Tabs</string>
-  <string name="provider_missing_body">Install a browser that supports Custom Tabs, such as Chrome or Firefox. Until then, links open in Lynket\'s own web view.</string>
+  <string name="provider_missing_title">No Custom Tab provider found</string>
+  <string name="provider_missing_body">Install a browser that supports Custom Tabs, such as Chrome or Firefox. Until then, links open in Lynket\'s own Web View.</string>
   <string name="retry">Retry</string>
   <string name="offline_message">You\'re offline. Pages open when you reconnect.</string>
   <string name="link_error_title">This link cannot be opened</string>
@@ -418,7 +417,7 @@
   <string name="per_app_secondary_browser">Open %1$s links in the secondary browser</string>
   <string name="per_app_incognito">Open %1$s links in incognito</string>
   <string name="no_provider_title">No Custom Tab provider found</string>
-  <string name="use_webview">Use WebView</string>
+  <string name="use_webview">Use Web View</string>
   <string name="get_chrome">Get Chrome</string>
   <string name="provider_current">Current provider</string>
   <string name="provider_installed">Installed</string>
@@ -446,7 +445,7 @@
   <string name="tabs_error_title">Tabs could not be loaded</string>
   <string name="yes_close">Yes, close</string>
   <!-- Browsing dialogs -->
-  <string name="amp_error_title">No AMP version found</string>
+  <string name="amp_error_title">Couldn\'t check for an AMP version</string>
   <string name="amp_error_body">The page could not be checked for an AMP version because the device is offline. You can open the normal page or try again.</string>
   <string name="amp_open_normal">Open normal page</string>
   <!-- Reader, image viewer and web view -->

@@ -263,7 +263,6 @@
   <string name="contribute_to_chromer">Volite kodirati? Forkajte Lynket i pridonesite razvoju.</string>
   <string name="fork_on_github">Forkaj na GitHubu</string>
   <string name="web_view_not_found">Web View je onemogućen na ovom uređaju. Nije moguće otvoriti poveznicu.</string>
-  <string name="app_detection_service">Usluga detekcije aplikacija</string>
   <string name="shortcut_name">Naziv prečaca</string>
   <string name="create_shorcut">Stvori prečac</string>
   <string name="create">Stvori</string>

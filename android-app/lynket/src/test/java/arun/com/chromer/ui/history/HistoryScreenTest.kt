@@ -252,9 +252,9 @@ class HistoryScreenTest {
   fun aRowOpensThroughTheBrowsingPath() {
     showWithViewModel()
     composeRule.onNodeWithText("Compose BOM mapping").performClick()
-    verify { tabsManager.openUrl(any(), match { it.url == "https://seed.example/page-001" }, any(), any(), any(), any(), any()) }
+    verify { tabsManager.openUrl(any(), match { it.url == "https://seed.example/page-001" }, any(), any(), any(), any(), any(), any()) }
     composeRule.onNodeWithTag("history-amp").performClick()
-    verify { tabsManager.openUrl(any(), match { it.url == "https://seed.example/amp/page-002" }, any(), any(), any(), any(), any()) }
+    verify { tabsManager.openUrl(any(), match { it.url == "https://seed.example/amp/page-002" }, any(), any(), any(), any(), any(), any()) }
   }
 
   @Test

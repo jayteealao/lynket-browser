@@ -24,7 +24,7 @@ import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.bubbles.system.bubbleConversationId
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.settings.RxPreferences
+import arun.com.chromer.settings.Preferences
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -53,7 +53,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
   lateinit var tabsManager: TabsManager
 
   @Inject
-  lateinit var rxPreferences: RxPreferences
+  lateinit var settings: Preferences
 
   private val notificationManager: NotificationManager
     get() = application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -62,7 +62,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @Test
   fun eachCauseOpensATabThatCarriesIt() {
-    rxPreferences.nativeBubbles.set(true)
+    settings.nativeBubbles(true)
     for (refusal in listOf(BubbleRefusal.NOTIFICATIONS_OFF, BubbleRefusal.BUBBLES_OFF)) {
       every { bubbleGate.refusal(bubbleConversationId(url)) } returns refusal
 
@@ -78,7 +78,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @Test
   fun noCauseShowsTheBubble() {
-    rxPreferences.nativeBubbles.set(true)
+    settings.nativeBubbles(true)
     every { bubbleGate.refusal(any()) } returns null
 
     tabsManager.openWebHeads(application, Website(url))
@@ -89,7 +89,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @Test
   fun webHeadsModeDoesNotAsk() {
-    rxPreferences.nativeBubbles.set(false)
+    settings.nativeBubbles(false)
 
     tabsManager.openWebHeads(application, Website(url))
 

@@ -38,8 +38,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.core.graphics.ColorUtils
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
@@ -52,7 +54,6 @@ import arun.com.chromer.ui.reader.ReaderScreen
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import arun.com.chromer.ui.theme.themeSettings
-import arun.com.chromer.util.ColorUtil
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -98,7 +99,8 @@ class ArticleActivity : BrowsingActivity() {
         val state by viewModel.state.collectAsStateWithLifecycle()
         val increment by viewModel.textSizeIncrement.collectAsStateWithLifecycle()
         var saved by remember { mutableIntStateOf(preferences.articleTextSizeIncrement()) }
-        val accent = websiteColour?.takeIf { canUseAsAccentColour(it) }?.let(::Color) ?: MaterialTheme.colorScheme.primary
+        val surface = MaterialTheme.colorScheme.surface
+        val accent = websiteColour?.takeIf { canUseAsAccentColour(it, surface) }?.let(::Color) ?: MaterialTheme.colorScheme.primary
         ReaderScreen(
           state = state,
           menuItems = menuItems,
@@ -157,15 +159,19 @@ class ArticleActivity : BrowsingActivity() {
     }
   }
 
-  /** The legacy rule: with the website colour on, a colour that reads on the reader's surface. */
-  private fun canUseAsAccentColour(colour: Int): Boolean {
+  /**
+   * With the website colour on, the colour is the accent (links, quotes and keyword chips) only
+   * when it reads as text on the reader's [surface] as resolved for this theme: a contrast of at
+   * least 4.5:1. Otherwise the theme's primary colour is used.
+   */
+  private fun canUseAsAccentColour(colour: Int, surface: Color): Boolean {
     if (!preferences.dynamiceToolbarEnabledAndWebEnabled()) return false
-    val isDark = preferences.articleTheme() != Preferences.THEME_LIGHT
-    return if (isDark) {
-      !ColorUtil.shouldUseLightForegroundOnBackground(colour)
-    } else {
-      ColorUtil.shouldUseLightForegroundOnBackground(colour)
-    }
+    return ColorUtils.calculateContrast(colour or OPAQUE, surface.toArgb() or OPAQUE) >= MIN_TEXT_CONTRAST
+  }
+
+  private companion object {
+    const val OPAQUE = 0xFF shl 24
+    const val MIN_TEXT_CONTRAST = 4.5
   }
 }
 

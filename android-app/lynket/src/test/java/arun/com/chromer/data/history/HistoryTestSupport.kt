@@ -14,7 +14,8 @@ package arun.com.chromer.data.history
 import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import arun.com.chromer.data.history.model.HistoryTable
+import arun.com.chromer.data.database.legacy.HistoryTable
+import arun.com.chromer.data.database.legacy.LegacyHistoryImport
 import java.io.File
 
 /** One row of the history file release 2.1.3 wrote (`CREATED` is stored as text). */

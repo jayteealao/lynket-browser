@@ -50,9 +50,9 @@ The Gradle project lives in `android-app/`. You need the JetBrains Runtime 21 (A
 | Run the macrobenchmarks on a connected device | `./gradlew :benchmark:connectedBenchmarkAndroidTest` |
 | Generate the Baseline Profile on a connected device (API 33 or later) | `./gradlew :lynket:generateBaselineProfile` |
 
-The screenshot goldens are in `android-app/lynket/src/test/screenshots`; every screen has one in the light, dark and black themes at a phone and a fold window size. Device checks are bash scripts under `android-app/maestro/` that drive an emulator with adb and [Maestro](https://maestro.mobile.dev); each script's header says what it checks and what it needs. `maestro/charter/charter-check.sh <phone> <fold> <dir>` runs the whole path of a user who updates from release 2.1.3.
+The screenshot goldens are in `android-app/lynket/src/test/screenshots`; every screen has one in the light, dark and black themes at a phone and a fold window size. Device checks are bash scripts under `android-app/maestro/` that drive an emulator with adb and [Maestro](https://maestro.mobile.dev); each script's header says what it checks and what it needs. `maestro/charter/charter-check.sh <phone> <fold> <dir>` runs the whole path of a user who updates from release 2.1.3: `<phone>` and `<fold>` are adb serials, the 2.1.3 APK must be built first (`maestro/build-old-apk.sh`), and both devices are reinstalled, which clears the app's data.
 
-### Code Style
+## Code Style
 
  - [mNo Hungarion notation.](http://jakewharton.com/just-say-no-to-hungarian-notation/)
  - No `Impl` suffixes for interface implementations. Instead name based on what it does. Ex: `AppStore` and implementations `AppDiskStore` and `AppSystemStore`.

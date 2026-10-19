@@ -40,7 +40,6 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +56,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -248,7 +248,7 @@ private fun IntroPageContent(
       Image(
         painter = painterResource(page.image),
         contentDescription = null,
-        modifier = Modifier.size(176.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(24.dp)),
+        modifier = Modifier.size(176.dp),
       )
     }
     Spacer(Modifier.height(32.dp))
@@ -257,6 +257,7 @@ private fun IntroPageContent(
         text = stringResource(page.title),
         style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
         color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.semantics { heading() },
       )
       Text(
         text = if ('<' in body) runCatching { AnnotatedString.fromHtml(body) }.getOrElse { AnnotatedString(body) } else AnnotatedString(body),

@@ -36,8 +36,8 @@ import javax.inject.Singleton
  * undo, delete all, bookmarks and the row count.
  *
  * It reads the same Room table as [RoomHistoryStore], which records visits from the link path and
- * serves suggestions; both use [RoomHistoryStore.PAGING_CONFIG] and the same recents rule. Visits
- * are recorded only through [HistoryRepository] (the link path), which applies the History switch.
+ * serves suggestions. Visits are recorded only through [HistoryRepository] (the link path), which
+ * applies the History switch; every other read and change of history is here.
  */
 @Singleton
 class ModernHistoryRepository @Inject constructor(
@@ -63,6 +63,10 @@ class ModernHistoryRepository @Inject constructor(
             emitAll(Pager(RoomHistoryStore.PAGING_CONFIG) { dao.getAllPaged() }.flow)
         }
             .map { pagingData -> pagingData.map { it.toWebsite() } }
+            .catch {
+                Timber.e(it, "History could not be read")
+                emit(PagingData.empty())
+            }
             .flowOn(ioDispatcher)
     }
 
@@ -75,6 +79,10 @@ class ModernHistoryRepository @Inject constructor(
             emitAll(Pager(RoomHistoryStore.PAGING_CONFIG) { dao.searchPaged(query) }.flow)
         }
             .map { pagingData -> pagingData.map { it.toWebsite() } }
+            .catch {
+                Timber.e(it, "History could not be read")
+                emit(PagingData.empty())
+            }
             .flowOn(ioDispatcher)
     }
 

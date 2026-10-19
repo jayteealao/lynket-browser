@@ -23,6 +23,7 @@ import org.junit.Test
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowSettings
 import org.robolectric.shadows.ShadowToast
+import arun.com.chromer.debug.FileDebugHooks
 import java.io.File
 import javax.inject.Inject
 
@@ -33,7 +34,7 @@ class WebHeadStartFallbackTest : LynketRobolectricSuite() {
   lateinit var tabs: TabsManager
 
   private val faultFile: File
-    get() = File(File(application.filesDir, WebHeadStartFaults.FAULT_DIR), WebHeadStartFaults.START_FAIL_FILE)
+    get() = FileDebugHooks.switchFile(application, FileDebugHooks.START_FAIL_FILE)
 
   @After
   fun removeFault() {
@@ -74,6 +75,6 @@ class WebHeadStartFallbackTest : LynketRobolectricSuite() {
 
   @Test
   fun the_fault_switch_is_off_without_the_marker_file() {
-    assertThat(WebHeadStartFaults.isForced(application)).isFalse()
+    assertThat(FileDebugHooks().webHeadStartRefused(application)).isFalse()
   }
 }

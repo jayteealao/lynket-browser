@@ -23,6 +23,7 @@ package arun.com.chromer.tabs
 
 import android.app.Activity
 import android.content.Context
+import arun.com.chromer.appdetect.LinkSource
 import android.content.Intent
 import arun.com.chromer.browsing.article.ArticleActivity
 import arun.com.chromer.browsing.customtabs.CustomTabActivity
@@ -91,11 +92,13 @@ interface TabsManager {
     fromWebHeads: Boolean = false,
     fromNewTab: Boolean = false,
     fromAmp: Boolean = false,
-    incognito: Boolean = false
+    incognito: Boolean = false,
+    linkSource: LinkSource = LinkSource.NONE,
   )
 
   /**
-   * Opens the given Uri in a browsing tab.
+   * Opens the given Uri in a browsing tab. [linkSource] is the app the link came from, when a
+   * step between the link and the tab (the AMP lookup) carries it on.
    */
   fun openBrowsingTab(
     context: Context,
@@ -103,7 +106,8 @@ interface TabsManager {
     smart: Boolean = false,
     fromNewTab: Boolean,
     activityNames: List<String>? = null,
-    incognito: Boolean = false
+    incognito: Boolean = false,
+    linkSource: LinkSource = LinkSource.NONE,
   )
 
   /**

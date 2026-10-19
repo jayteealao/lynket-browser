@@ -23,6 +23,9 @@ import arun.com.chromer.data.preferences.UserPreferencesRepository
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -33,7 +36,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
-/** The one history store on Room keeps the old store's visit rule, recents, paging and the history switch. */
+/** The history store on Room keeps the old store's visit rule, recents, paging and the history switch. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class RoomHistoryStoreTest {
@@ -43,7 +46,8 @@ class RoomHistoryStoreTest {
     .setDriver(AndroidSQLiteDriver())
     .build()
   private val dao = database.websiteDao()
-  private val store = RoomHistoryStore(HistoryDatabase(context, legacyImport = null) { database })
+  private val historyDatabase = HistoryDatabase(context, legacyImport = null) { database }
+  private val store = RoomHistoryStore(historyDatabase)
 
   @After
   fun close() = database.close()
@@ -63,10 +67,18 @@ class RoomHistoryStoreTest {
   }
 
   @Test
+  fun visitsToOneNewPageAtOnceGiveOneRowWithEveryVisit() = runTest {
+    (1..8).map { async(Dispatchers.Default) { store.insert(Website("https://once.example/")) } }.awaitAll()
+
+    assertThat(dao.getCount()).isEqualTo(1)
+    assertThat(dao.getByUrl("https://once.example/")!!.visitCount).isEqualTo(8)
+  }
+
+  @Test
   fun recentsAreTheEightNewest() = runTest {
     (1..10).forEach { dao.insert(WebsiteEntity(url = "https://site$it.example/", createdAt = it * 1_000L)) }
 
-    val recents = store.recents().first().map { it.url }
+    val recents = ModernHistoryRepository(historyDatabase, Dispatchers.Unconfined).getRecents().first().map { it.url }
 
     assertThat(recents).containsExactlyElementsIn((10 downTo 3).map { "https://site$it.example/" }).inOrder()
   }

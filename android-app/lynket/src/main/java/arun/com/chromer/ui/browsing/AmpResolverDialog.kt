@@ -35,6 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -88,7 +91,7 @@ private fun AmpLoadingDialog(state: AmpState, onSkip: () -> Unit, onDismiss: () 
           stringResource(status),
           style = MaterialTheme.typography.bodyLarge,
           color = MaterialTheme.colorScheme.onSurface,
-          modifier = Modifier.testTag("amp-status"),
+          modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("amp-status"),
         )
       }
     },

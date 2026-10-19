@@ -92,6 +92,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -424,7 +425,8 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
         websiteFlow
           .filter { it != null }
           .flowOn(Dispatchers.IO)
-          .onEach { website -> onSiteLoaded(webHeadUrl, website) }
+          // The heads and their map belong to the main thread.
+          .onEach { website -> withContext(Dispatchers.Main) { onSiteLoaded(webHeadUrl, website) } }
           .map { website -> websiteRepository.getWebsiteRoundIconAndColor(website) }
           .flowOn(Dispatchers.IO)
           .catch { error -> Timber.e(error) }

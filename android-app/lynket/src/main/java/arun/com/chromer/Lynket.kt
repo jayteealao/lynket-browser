@@ -24,7 +24,7 @@ import android.app.Application
 import androidx.core.app.NotificationManagerCompat
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
-import arun.com.chromer.util.DebugStrictMode
+import arun.com.chromer.util.debug.DebugHooks
 import arun.com.chromer.util.image.ApplicationIconFetcher
 import coil3.ImageLoader
 import coil3.PlatformContext
@@ -51,7 +51,7 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
   lateinit var appDiskStore: AppDiskStore
 
   override fun onCreate() {
-    DebugStrictMode.installIfRequested(this)
+    DebugHooks.from(this).installStrictModeIfRequested(this)
     super.onCreate()
     Timber.d(
       "Stores warming up: settings ready=%b, per-app rules ready=%b",

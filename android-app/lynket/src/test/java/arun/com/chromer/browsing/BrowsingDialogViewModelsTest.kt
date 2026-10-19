@@ -177,7 +177,7 @@ class BrowsingDialogViewModelsTest {
       onQueryChange("exam")
     }
     advanceUntilIdle()
-    verify(exactly = 0) { tabs.openUrl(any(), any(), any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { tabs.openUrl(any(), any(), any(), any(), any(), any(), any(), any()) }
     assertThat(newTab(tabs, state).query.value).isEqualTo("exam")
   }
 

@@ -69,6 +69,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -222,7 +225,7 @@ private fun AboutSectionCard(section: AboutSection, onRow: (AboutRow) -> Unit) {
         text = section.title,
         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
+        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp).semantics { heading() },
       )
       section.rows.forEachIndexed { index, row ->
         if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(start = 56.dp))
@@ -241,7 +244,7 @@ private fun AboutSectionCard(section: AboutSection, onRow: (AboutRow) -> Unit) {
           },
           colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
           modifier = if (row.link != null || row.opensChangelog) {
-            Modifier.clickable { onRow(row) }
+            Modifier.clickable(role = Role.Button) { onRow(row) }
           } else {
             Modifier
           },

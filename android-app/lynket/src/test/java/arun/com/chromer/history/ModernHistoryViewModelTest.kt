@@ -193,7 +193,7 @@ class ModernHistoryViewModelTest {
     val context = mockk<Context>()
     val vm = viewModel()
     vm.open(context, site)
-    verify { tabsManager.openUrl(context, site, any(), any(), any(), any(), any()) }
+    verify { tabsManager.openUrl(context, site, any(), any(), any(), any(), any(), any()) }
     vm.toggleBookmark(site)
     advanceUntilIdle()
     coVerify { repository.toggleBookmark("https://example.com/a") }

@@ -80,6 +80,8 @@ object Constants {
     const val EXTRA_KEY_FROM_AMP = "EXTRA_KEY_FROM_AMP"
     const val EXTRA_KEY_INCOGNITO = "EXTRA_KEY_INCOGNITO"
     const val EXTRA_KEY_BUBBLE_REFUSAL = "EXTRA_KEY_BUBBLE_REFUSAL"
+    // The app a link came from (for the app-based toolbar colour), carried past the AMP lookup.
+    const val EXTRA_KEY_LINK_SOURCE_APP = "EXTRA_KEY_LINK_SOURCE_APP"
 
     // Request codes
     const val REQUEST_CODE_VOICE = 112

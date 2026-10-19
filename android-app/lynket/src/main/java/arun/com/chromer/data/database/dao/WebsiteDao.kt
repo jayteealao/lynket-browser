@@ -219,6 +219,25 @@ interface WebsiteDao {
      *
      * @return the number of rows that were merged into an existing URL.
      */
+    /**
+     * Records one visit to [website] at [now], in one transaction: a new row with one visit, or
+     * one more visit and the new visit time for a stored URL (its title and other details stay).
+     * Two visits to the same new page at the same moment give one row with two visits.
+     *
+     * @return the row as stored.
+     */
+    @Transaction
+    suspend fun recordVisit(website: WebsiteEntity, now: Long): WebsiteEntity {
+        val stored = getByUrl(website.url)
+        val visited = if (stored != null) {
+            stored.copy(visitCount = stored.visitCount + 1, createdAt = now)
+        } else {
+            website.copy(id = 0, createdAt = now, visitCount = 1)
+        }
+        if (stored != null) update(visited) else insert(visited)
+        return visited
+    }
+
     @Transaction
     suspend fun mergeLegacyRows(rows: List<WebsiteEntity>): Int {
         var merged = 0
@@ -252,34 +271,4 @@ fun mergeHistoryRows(a: WebsiteEntity, b: WebsiteEntity): WebsiteEntity {
         createdAt = maxOf(a.createdAt, b.createdAt),
         visitCount = maxOf(a.visitCount, b.visitCount)
     )
-}
-
-/**
- * Helper function to upsert (insert or update) a website visit.
- * If the URL exists, increments visit count. Otherwise, inserts new entry.
- *
- * Usage:
- * ```
- * dao.upsertVisit(website.url) { websiteEntity }
- * ```
- */
-suspend fun WebsiteDao.upsertVisit(
-    url: String,
-    entityProvider: () -> WebsiteEntity
-) {
-    val existing = getByUrl(url)
-    if (existing != null) {
-        // URL exists - increment visit count and update timestamp
-        incrementVisitCount(url)
-        // Optionally update other fields if they've changed
-        val updated = entityProvider().copy(
-            id = existing.id,
-            visitCount = existing.visitCount + 1,
-            createdAt = System.currentTimeMillis()
-        )
-        update(updated)
-    } else {
-        // New URL - insert it
-        insert(entityProvider())
-    }
 }

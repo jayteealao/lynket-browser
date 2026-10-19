@@ -9,7 +9,7 @@
  *  (at your option) any later version.
  */
 
-package arun.com.chromer.data.history
+package arun.com.chromer.data.database.legacy
 
 import android.content.Context
 import android.database.DatabaseErrorHandler
@@ -19,7 +19,6 @@ import android.database.sqlite.SQLiteException
 import arun.com.chromer.data.database.ChromerDatabase
 import arun.com.chromer.data.database.entity.WebsiteEntity
 import arun.com.chromer.data.database.entity.toEntity
-import arun.com.chromer.data.history.model.HistoryTable
 import arun.com.chromer.data.website.model.Website
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber

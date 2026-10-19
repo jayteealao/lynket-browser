@@ -61,7 +61,7 @@ class BrowsingArticleViewModelTest {
   }
 
   private fun vm(repo: WebArticleRepository, handle: SavedStateHandle = SavedStateHandle()) =
-    BrowsingArticleViewModel(repo, providers, handle)
+    BrowsingArticleViewModel(repo, providers, handle, dispatcher)
 
   @Test
   fun anArticleLoadsIntoContent() = runTest(dispatcher) {

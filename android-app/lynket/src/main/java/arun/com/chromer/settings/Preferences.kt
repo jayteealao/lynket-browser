@@ -41,6 +41,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,6 +58,9 @@ import javax.inject.Singleton
  * A write blocks its thread until the store has it on disk. Screens and view models write
  * through [UserPreferencesRepository]'s suspend functions instead, so the main thread never waits.
  */
+const val SEARCH_ENGINE_PREFERENCE = "search_engine_preference"
+const val NATIVE_BUBBLES_PREFERENCE = "native_bubbles_preference"
+
 @Singleton
 class Preferences @Inject constructor(
   @ApplicationContext context: Context,
@@ -327,6 +334,19 @@ class Preferences @Inject constructor(
   fun themeMode(): Int = int(SettingsSchema.THEME_MODE)
 
   fun themeMode(mode: Int) = put(SettingsSchema.THEME_MODE, mode)
+
+  /** Native bubbles instead of web heads (Android 11 and later). */
+  fun nativeBubbles(): Boolean = bool(NATIVE_BUBBLES_PREFERENCE)
+
+  fun nativeBubbles(preference: Boolean) = put(NATIVE_BUBBLES_PREFERENCE, preference)
+
+  /** The search engine's name now and after each change. */
+  fun searchEngineChanges(): Flow<String> = repository.snapshot
+    .filterNotNull()
+    .map { it.readString(SEARCH_ENGINE_PREFERENCE, SettingsSchema.DEFAULT_SEARCH_ENGINE) ?: SettingsSchema.DEFAULT_SEARCH_ENGINE }
+    .distinctUntilChanged()
+
+  fun searchEngine(name: String) = put(SEARCH_ENGINE_PREFERENCE, name)
 
   fun webHeads(): Boolean {
     return bool(WEB_HEAD_ENABLED)

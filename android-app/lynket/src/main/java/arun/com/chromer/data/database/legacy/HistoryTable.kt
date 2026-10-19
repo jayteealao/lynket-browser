@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.data.history.model
+package arun.com.chromer.data.database.legacy
 
 /**
  * Phase 7: Converted from Java to Kotlin

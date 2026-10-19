@@ -1,5 +1,5 @@
 # Settings check, no provider: Chrome is disabled and provider selection is in front
-# (settings-check.sh). The error state offers WebView and Chrome; Use WebView goes back.
+# (settings-check.sh). The error state offers WebView and Chrome; Use Web View goes back.
 appId: arun.com.chromer.debug
 # A busy emulator can show an "isn't responding" dialog; Wait keeps the app running.
 ---
@@ -17,7 +17,7 @@ appId: arun.com.chromer.debug
       visible: "Wait"
     commands:
       - tapOn: "Wait"
-- assertVisible: "Use WebView"
+- assertVisible: "Use Web View"
 - runFlow:
     when:
       visible: "Wait"
@@ -35,7 +35,7 @@ appId: arun.com.chromer.debug
       visible: "Wait"
     commands:
       - tapOn: "Wait"
-- tapOn: "Use WebView"
+- tapOn: "Use Web View"
 - waitForAnimationToEnd
 - runFlow:
     when:

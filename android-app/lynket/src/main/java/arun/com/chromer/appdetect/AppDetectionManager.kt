@@ -46,7 +46,9 @@ data class LinkSource(val nonFiltered: String = "", val filtered: String = "") {
  * Finds the app a link came from, at the moment the link opens.
  *
  * When a link arrives, [detectLinkSource] reads the usage events of the last few seconds and returns
- * the most recent app that came to the foreground, other than Lynket. It keeps nothing: the caller
+ * the most recent app, other than Lynket, that came to the foreground or left it. An app the person
+ * has been reading in for a long time logged its resume long ago, but it logs a pause when the link
+ * hands over to Lynket, so the pause names it. It keeps nothing: the caller
  * passes the result along with the link it belongs to. Without usage access it returns
  * [LinkSource.NONE], so links open as they do without per-app rules.
  */
@@ -79,7 +81,7 @@ constructor(
     // Events come oldest first, so the last match is the most recent one.
     while (events.hasNextEvent()) {
       events.getNextEvent(event)
-      if (event.eventType != FOREGROUND_EVENT) continue
+      if (event.eventType !in SOURCE_EVENTS) continue
       val appPackage = event.packageName ?: continue
       if (nonFilterPackage(appPackage)) nonFiltered = appPackage
       if (filterPackage(appPackage, provider)) filtered = appPackage
@@ -117,13 +119,19 @@ constructor(
     // dialog stays open before Lynket starts.
     const val LOOKBACK_MS = 10_000L
 
-    // ACTIVITY_RESUMED (API 29) replaced MOVE_TO_FOREGROUND; both have the value 1.
-    val FOREGROUND_EVENT: Int =
+    // Events that name the app the person was in: it came forward, or it went back when the link
+    // handed over. ACTIVITY_RESUMED and ACTIVITY_PAUSED (API 29) replaced MOVE_TO_FOREGROUND and
+    // MOVE_TO_BACKGROUND with the same values (1 and 2); ACTIVITY_STOPPED is new in API 29.
+    val SOURCE_EVENTS: Set<Int> =
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        UsageEvents.Event.ACTIVITY_RESUMED
+        setOf(
+          UsageEvents.Event.ACTIVITY_RESUMED,
+          UsageEvents.Event.ACTIVITY_PAUSED,
+          UsageEvents.Event.ACTIVITY_STOPPED,
+        )
       } else {
-        @Suppress("DEPRECATION") // sdlc-debt: MOVE_TO_FOREGROUND is the only name below API 29; drop when minSdk reaches 29
-        UsageEvents.Event.MOVE_TO_FOREGROUND
+        @Suppress("DEPRECATION") // MOVE_TO_FOREGROUND and MOVE_TO_BACKGROUND are the only names below API 29; drop when minSdk reaches 29
+        setOf(UsageEvents.Event.MOVE_TO_FOREGROUND, UsageEvents.Event.MOVE_TO_BACKGROUND)
       }
   }
 }

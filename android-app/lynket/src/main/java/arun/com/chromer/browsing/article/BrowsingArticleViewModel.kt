@@ -25,6 +25,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.webarticle.WebArticleRepository
 import arun.com.chromer.data.webarticle.model.WebArticle
+import arun.com.chromer.di.hilt.DefaultDispatcher
 import arun.com.chromer.search.provider.SearchProviders
 import arun.com.chromer.ui.reader.ArticleBlock
 import arun.com.chromer.ui.reader.articleBlocks
@@ -39,6 +40,8 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
 
 /** The article as the reader shows it: metadata and the content blocks in page order. */
 data class ReaderArticle(
@@ -73,6 +76,7 @@ constructor(
   private val webArticleRepository: WebArticleRepository,
   private val searchProviders: SearchProviders,
   private val savedStateHandle: SavedStateHandle,
+  @DefaultDispatcher private val blockDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
   private val _state = MutableStateFlow<ReaderState>(ReaderState.Loading)
@@ -120,7 +124,9 @@ constructor(
         Timber.e(e, "Article extraction failed for %s", url)
         null
       }
-      _state.value = article?.toReaderArticle(url)?.let { ReaderState.Content(it) } ?: ReaderState.Error
+      // Building the blocks walks and serialises the whole article; it stays off the main thread.
+      val reader = article?.let { withContext(blockDispatcher) { it.toReaderArticle(url) } }
+      _state.value = reader?.let { ReaderState.Content(it) } ?: ReaderState.Error
     }
   }
 

@@ -202,7 +202,7 @@ article_theme() {
   log "article theme $1 -> stored $(stored article_theme_preference)"
 }
 
-# Web View mode on (Use WebView on the provider screen) or off (Chrome chosen again).
+# Web View mode on (Use Web View on the provider screen) or off (Chrome chosen again).
 webview_mode() {  # $1 = on|off
   destination ProviderSelection
   if [ "$1" = on ]; then
@@ -210,7 +210,7 @@ webview_mode() {  # $1 = on|off
     local attempt
     for attempt in 1 2 3; do
       [ "$attempt" = 1 ] || destination ProviderSelection
-      scroll_to 'resource-id="provider-webview"' || fail "no Use WebView row"
+      scroll_to 'resource-id="provider-webview"' || fail "no Use Web View row"
       tap_on 'resource-id="provider-webview"'
       wait_for 'text="Are you sure?"' || true
       sleep 1  # the dialog's enter animation can swallow an early tap

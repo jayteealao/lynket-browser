@@ -95,8 +95,8 @@ class ModernTabsViewModelTest {
     vm.open(context, webView)
     advanceUntilIdle()
     verify { tabsManager.reOrderTabByUrl(context, match { it.url == webView.url }, listOf(TabsManager.WEBVIEW_ACTIVITY)) }
-    verify(exactly = 0) { tabsManager.openUrl(any(), any(), any(), any(), any(), any(), any()) }
-    verify(exactly = 0) { tabsManager.openBrowsingTab(any(), any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { tabsManager.openUrl(any(), any(), any(), any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { tabsManager.openBrowsingTab(any(), any(), any(), any(), any(), any(), any()) }
     coVerify(exactly = 0) { tabsManager.getActiveTabs() }
   }
 
@@ -107,7 +107,7 @@ class ModernTabsViewModelTest {
     vm.open(context, custom)
     advanceUntilIdle()
     coVerify(exactly = 1) { tabsManager.getActiveTabs() }
-    verify(exactly = 0) { tabsManager.openUrl(any(), any(), any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { tabsManager.openUrl(any(), any(), any(), any(), any(), any(), any(), any()) }
   }
 
   @Test

@@ -41,10 +41,10 @@ class PreferencesFacadeTest : LynketRobolectricSuite() {
 
   @Test
   fun aWriteFromTheComposeSettingsScreenReachesTheFacade() {
-    runBlocking { userPreferencesRepository.setWebHeadsEnabled(true) }
+    runBlocking { userPreferencesRepository.setValue(Preferences.WEB_HEAD_ENABLED, true) }
     assertThat(preferences.webHeads()).isTrue()
 
-    runBlocking { userPreferencesRepository.setAnimationType(2) }
+    runBlocking { userPreferencesRepository.setValue(Preferences.ANIMATION_TYPE, 2) }
     assertThat(preferences.animationType()).isEqualTo(2)
   }
 

@@ -61,9 +61,9 @@ import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.extenstions.isPackageInstalled
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.settings.RxPreferences
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
+import arun.com.chromer.shared.Constants.EXTRA_KEY_LINK_SOURCE_APP
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
@@ -94,7 +94,6 @@ constructor(
   private val backgroundLoadingStrategyFactory: BackgroundLoadingStrategyFactory,
   private val eventBus: EventBus,
   private val floatingBubbleFactory: FloatingBubbleFactory,
-  private val rxPreferences: RxPreferences,
   private val bubbleGate: BubbleGate,
 ) : TabsManager {
 
@@ -107,7 +106,8 @@ constructor(
     fromWebHeads: Boolean,
     fromNewTab: Boolean,
     fromAmp: Boolean,
-    incognito: Boolean
+    incognito: Boolean,
+    linkSource: LinkSource,
   ) {
     scope.launch(Dispatchers.IO) {
       openUrlInternal(
@@ -117,7 +117,8 @@ constructor(
         fromWebHeads,
         fromNewTab,
         fromAmp,
-        incognito
+        incognito,
+        linkSource,
       )
     }
   }
@@ -138,7 +139,7 @@ constructor(
     }
     // Open in web heads mode if we this command did not come from web heads.
     val webHeads = preferences.webHeads()
-    val nativeBubbles = rxPreferences.nativeBubbles.get()
+    val nativeBubbles = preferences.nativeBubbles()
     Timber.d("Open %s: webHeads=%b nativeBubbles=%b", website.url, webHeads, nativeBubbles)
     if ((webHeads || nativeBubbles) && !fromWebHeads) {
       openWebHeads(context, website, fromMinimize = fromAmp, fromAmp = false, incognito = incognito, linkSource = linkSource)
@@ -175,6 +176,10 @@ constructor(
           addFlags(FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
           if (incognito) {
             putExtra(EXTRA_KEY_INCOGNITO, true)
+          }
+          // The resolver opens the page later; it passes the app colour source on.
+          if (linkSource.filtered.isNotEmpty()) {
+            putExtra(EXTRA_KEY_LINK_SOURCE_APP, linkSource.filtered)
           }
         }
         context.startActivity(ampResolver)
@@ -262,7 +267,7 @@ constructor(
 
   override fun minimizeTabByUrl(url: String, fromClass: String, incognito: Boolean) {
     eventBus.tryEmit(Event.TabEvent.Minimized(url, getTabType(fromClass)))
-    if (preferences.webHeads() || rxPreferences.nativeBubbles.get() || preferences.minimizeToWebHead()) {
+    if (preferences.webHeads() || preferences.nativeBubbles() || preferences.minimizeToWebHead()) {
       // When minimizing, don't try to handle aggressive loading cases.
       openWebHeads(application, website = Website(url), fromMinimize = true, incognito = incognito)
     }
@@ -298,7 +303,7 @@ constructor(
               proceed = false
             } else if (incognito) {
               withContext(Dispatchers.Main) {
-                doIncognitoAction(activity, url)
+                doIncognitoAction(activity, url, linkSource)
               }
               proceed = false
             }
@@ -355,9 +360,10 @@ constructor(
     smart: Boolean,
     fromNewTab: Boolean,
     activityNames: List<String>?,
-    incognito: Boolean
+    incognito: Boolean,
+    linkSource: LinkSource,
   ) {
-    openBrowsingTab(context, website, smart, fromNewTab, activityNames, incognito, LinkSource.NONE)
+    openBrowsingTab(context, website, smart, fromNewTab, activityNames, incognito, linkSource, extras = null)
   }
 
   /** Returns false when an existing tab of [website] came to the front instead of a new one. */
@@ -457,7 +463,7 @@ constructor(
     linkSource: LinkSource,
   ) {
     val url = website.preferredUrl()
-    val bubbles = rxPreferences.nativeBubbles.get()
+    val bubbles = preferences.nativeBubbles()
     val webHeads = preferences.webHeads()
 
     if (bubbles && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -607,8 +613,8 @@ constructor(
   }
 
 
-  private fun doIncognitoAction(activity: Activity, url: String) {
-    openUrl(activity, Website(url), fromApp = false, incognito = true)
+  private fun doIncognitoAction(activity: Activity, url: String, linkSource: LinkSource) {
+    openUrl(activity, Website(url), fromApp = false, incognito = true, linkSource = linkSource)
     if (BuildConfig.DEBUG) {
       Handler(Looper.getMainLooper()).post {
         Toast.makeText(activity, "Incognito", Toast.LENGTH_SHORT).show()

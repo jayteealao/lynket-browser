@@ -22,10 +22,12 @@ package arun.com.chromer.tabs
 import android.content.Intent
 import android.os.Looper
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.appdetect.LinkSource
 import arun.com.chromer.browsing.amp.AmpResolverActivity
 import arun.com.chromer.bubbles.webheads.WebHeadService
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.MainActivity
+import arun.com.chromer.shared.Constants
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Ignore
 import org.junit.Test
@@ -89,6 +91,23 @@ class DefaultTabsManagerTest : LynketRobolectricSuite() {
         AmpResolverActivity::class.java
       ).component
     )
+  }
+
+  @Test
+  fun theAmpLookupCarriesTheAppTheLinkCameFrom() {
+    clearPreferences()
+    preferences.ampMode(true)
+
+    val shadowApp = shadowOf(application)
+    tabs.openUrl(
+      application,
+      Website(url),
+      fromApp = false,
+      linkSource = LinkSource(nonFiltered = "com.example.chat", filtered = "com.example.chat"),
+    )
+    val started = awaitNextStartedActivity(shadowApp)
+    assert(started.component == Intent(application, AmpResolverActivity::class.java).component)
+    assert(started.getStringExtra(Constants.EXTRA_KEY_LINK_SOURCE_APP) == "com.example.chat")
   }
 
   /** openUrl() starts the activity from a background coroutine, so wait for it (bounded). */

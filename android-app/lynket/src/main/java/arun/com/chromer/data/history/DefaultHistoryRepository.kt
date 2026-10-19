@@ -1,4 +1,3 @@
-// Phase 8: Converted from RxJava to Kotlin Coroutines
 /*
  *
  *  Lynket
@@ -21,10 +20,8 @@
 
 package arun.com.chromer.data.history
 
-import androidx.paging.PagingData
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.data.preferences.UserPreferencesRepository
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import javax.inject.Inject
@@ -55,40 +52,8 @@ internal constructor(
   }
 
   override suspend fun insert(website: Website): Website {
-    return if (historyOff()) {
-      website
-    } else {
-      val result = historyStore.insert(website)
-      if (result != null) {
-        Timber.d("Added %s to history", result.url)
-      } else {
-        Timber.e("%s Did not add to history", website.url)
-      }
-      result ?: website
-    }
+    return if (historyOff()) website else historyStore.insert(website)
   }
-
-  override suspend fun update(website: Website): Website {
-    return if (historyOff()) {
-      website
-    } else {
-      val saved = historyStore.update(website)
-      if (saved != null) {
-        Timber.d("Updated %s in history table", saved.url)
-      }
-      saved ?: website
-    }
-  }
-
-  override fun pagedHistory(): Flow<PagingData<Website>> = historyStore.pagedHistory()
-
-  override suspend fun delete(website: Website) = historyStore.delete(website)
-
-  override suspend fun exists(website: Website) = historyStore.exists(website)
-
-  override suspend fun deleteAll() = historyStore.deleteAll()
-
-  override fun recents() = historyStore.recents()
 
   override suspend fun search(text: String) = historyStore.search(text)
 }

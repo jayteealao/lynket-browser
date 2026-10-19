@@ -17,7 +17,7 @@ import android.content.Intent
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.apps.store.PaperPerAppMigration
 import arun.com.chromer.data.database.HistoryDatabase
-import arun.com.chromer.data.history.LegacyHistoryImport
+import arun.com.chromer.data.database.legacy.LegacyHistoryImport
 import arun.com.chromer.data.preferences.LegacySettingsMigration
 import arun.com.chromer.data.preferences.SettingType
 import arun.com.chromer.data.preferences.SettingsSchema
