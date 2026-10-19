@@ -349,6 +349,9 @@
   <string name="web_heads_start_failed">Web heads could not start. Opening in a tab instead.</string>
   <string name="bubbles_not_allowed">Turn on notifications and bubbles for Lynket in Settings to use bubbles.</string>
   <string name="not_now">Not now</string>
+  <string name="bubble_refused_notifications_off">Notifications are off for Lynket, so the page opened in a tab.</string>
+  <string name="bubble_refused_bubbles_off">Bubbles are off for Lynket, so the page opened in a tab.</string>
+  <string name="bubble_refused_not_shown">Android did not show the bubble, so the page opened in a tab.</string>
   <string name="overlay_explainer_title">Allow web heads to float</string>
   <string name="overlay_explainer_body">To draw web heads over other apps, Lynket needs the \"Display over other apps\" permission. Android opens the setting next.</string>
   <string name="web_heads_notification_explainer_title">Show web head controls</string>

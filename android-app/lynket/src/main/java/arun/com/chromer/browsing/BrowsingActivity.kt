@@ -28,6 +28,7 @@ import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import arun.com.chromer.R
+import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.data.Result
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
@@ -76,6 +77,17 @@ abstract class BrowsingActivity : BaseActivity() {
     incognito = intent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)
     observeViewModel(savedInstanceState)
     setupMinimize()
+  }
+
+  /**
+   * After the subclass opened its page in [onCreate]: when a bubble was refused for this link, the
+   * message that says why opens above the page. Only on the first create, not after a recreation.
+   */
+  override fun onPostCreate(savedInstanceState: Bundle?) {
+    super.onPostCreate(savedInstanceState)
+    if (savedInstanceState == null && !isFinishing) {
+      BubbleRefusedActivity.showIfRefused(this)
+    }
   }
 
   open fun getCurrentUrl(): String = intent.dataString!!

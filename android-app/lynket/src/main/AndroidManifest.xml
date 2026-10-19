@@ -233,6 +233,11 @@
       android:noHistory="true"
       android:theme="@style/Theme.Lynket.Translucent" />
     <activity
+      android:name=".bubbles.system.BubbleRefusedActivity"
+      android:excludeFromRecents="true"
+      android:exported="false"
+      android:theme="@style/Theme.Lynket.Translucent" />
+    <activity
       android:name=".history.HistoryActivity"
       android:label="@string/title_history"
       android:theme="@style/AppTheme.NoActionBar" />

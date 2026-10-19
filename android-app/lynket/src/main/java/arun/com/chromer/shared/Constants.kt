@@ -79,6 +79,7 @@ object Constants {
     const val EXTRA_KEY_FROM_ARTICLE = "EXTRA_KEY_FROM_ARTICLE"
     const val EXTRA_KEY_FROM_AMP = "EXTRA_KEY_FROM_AMP"
     const val EXTRA_KEY_INCOGNITO = "EXTRA_KEY_INCOGNITO"
+    const val EXTRA_KEY_BUBBLE_REFUSAL = "EXTRA_KEY_BUBBLE_REFUSAL"
 
     // Request codes
     const val REQUEST_CODE_VOICE = 112
