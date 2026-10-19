@@ -26,6 +26,11 @@ import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
 import arun.com.chromer.settings.Preferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -37,6 +42,9 @@ abstract class PreferenceQuickSettingsTile : TileService() {
 
   @Inject
   internal lateinit var preferences: Preferences
+
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+  private val writes = Dispatchers.IO.limitedParallelism(1)
 
   /**
    * Called when the tile is added to the Quick Settings.
@@ -55,11 +63,15 @@ abstract class PreferenceQuickSettingsTile : TileService() {
   }
 
   /**
-   * Called when the user taps the tile.
+   * Called when the user taps the tile. The setting is written off the main thread, one tap after
+   * the other, and the tile shows the new value once the write has finished. The scope is not
+   * cancelled with the service, so a started write always completes.
    */
   override fun onClick() {
-    togglePreference()
-    updateTile()
+    scope.launch {
+      withContext(writes) { togglePreference() }
+      updateTile()
+    }
   }
 
   abstract fun togglePreference()
