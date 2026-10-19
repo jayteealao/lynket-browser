@@ -32,13 +32,13 @@ import arun.com.chromer.data.preferences.readInt
 import arun.com.chromer.data.preferences.readString
 import arun.com.chromer.shared.Constants.CHROME_PACKAGE
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.blockingWait
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -68,7 +68,7 @@ class Preferences @Inject constructor(
     repository.current().readString(name, SettingsSchema.require(name).default(context) as String?)
 
   private fun put(name: String, value: Any?) {
-    runBlocking(Dispatchers.IO) { repository.setValue(name, value) }
+    blockingWait("Preferences.put($name)", Dispatchers.IO) { repository.setValue(name, value) }
   }
 
   val isFirstRun: Boolean

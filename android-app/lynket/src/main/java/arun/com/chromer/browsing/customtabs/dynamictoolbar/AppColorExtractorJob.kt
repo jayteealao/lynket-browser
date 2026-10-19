@@ -35,6 +35,7 @@ import arun.com.chromer.shared.Constants.EXTRA_PACKAGE_NAME
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.util.ColorUtil
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.blockingWait
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -150,7 +151,7 @@ class AppColorExtractorJob : JobIntentService() {
 
     private fun saveColorToDb(packageName: String, @ColorInt extractedColor: Int) {
         try {
-            kotlinx.coroutines.runBlocking {
+            blockingWait("AppColorExtractorJob.saveColorToDb") {
                 appRepository.setPackageColor(packageName, extractedColor)
             }
         } catch (e: Exception) {

@@ -25,13 +25,13 @@ import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.data.preferences.readInt
 import arun.com.chromer.data.preferences.readString
 import arun.com.chromer.search.provider.SearchProviders
+import arun.com.chromer.util.blockingWait
 import androidx.datastore.preferences.core.Preferences as StoredPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -78,7 +78,7 @@ class PreferenceItem<T : Any>(
 
   /** Writes the value; the write is finished when this returns. */
   fun set(value: T) {
-    runBlocking(Dispatchers.IO) { repository.setValue(key, value) }
+    blockingWait("PreferenceItem.set($key)", Dispatchers.IO) { repository.setValue(key, value) }
   }
 
   /** The value now and after each change. */

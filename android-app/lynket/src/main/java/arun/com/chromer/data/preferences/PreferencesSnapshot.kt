@@ -16,6 +16,7 @@ import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import arun.com.chromer.util.blockingWait
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +25,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import java.io.IOException
 
@@ -54,7 +54,7 @@ class PreferencesSnapshot(
    * The latest stored values. Before the first read finishes, waits for it once on the IO
    * dispatcher (on the first start after an update this includes the settings migration).
    */
-  fun current(): Preferences = state.value ?: runBlocking(Dispatchers.IO) { fresh() }
+  fun current(): Preferences = state.value ?: blockingWait("PreferencesSnapshot.current", Dispatchers.IO) { fresh() }
 
   /** Reads the store itself, bypassing the hot copy. */
   suspend fun fresh(): Preferences =

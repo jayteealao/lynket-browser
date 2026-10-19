@@ -32,6 +32,7 @@ import arun.com.chromer.data.website.model.WebColor
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.data.website.stores.WebsiteStore
 import arun.com.chromer.shared.Constants.NO_COLOR
+import arun.com.chromer.util.blockingWait
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,7 +45,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -157,7 +157,7 @@ internal constructor(
   }.flowOn(Dispatchers.IO)
 
   override fun getWebsiteColorSync(url: String): Int {
-    return runBlocking {
+    return blockingWait("WebsiteRepository.getWebsiteColorSync") {
       val webColor = cacheStore.getWebsiteColor(url)
       if (webColor.color == NO_COLOR) {
         scope.launch {

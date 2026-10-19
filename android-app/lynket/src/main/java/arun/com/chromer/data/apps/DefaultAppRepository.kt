@@ -29,9 +29,9 @@ import arun.com.chromer.data.apps.store.AppStore
 import arun.com.chromer.data.common.App
 import arun.com.chromer.data.common.qualifiers.Disk
 import arun.com.chromer.shared.Constants
+import arun.com.chromer.util.blockingWait
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -83,7 +83,7 @@ class DefaultAppRepository
   }
 
   override fun getPackageColorSync(packageName: String): Int {
-    return runBlocking { getPackageColor(packageName) }
+    return blockingWait("AppRepository.getPackageColorSync") { getPackageColor(packageName) }
   }
 
   override fun isPackageIncognito(packageName: String): Boolean {
