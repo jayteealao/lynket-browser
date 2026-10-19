@@ -15,6 +15,7 @@ import android.content.Context
 import androidx.annotation.StringRes
 import androidx.datastore.preferences.core.Preferences
 import arun.com.chromer.R
+import arun.com.chromer.bubbles.system.BubbleSetting
 import arun.com.chromer.data.preferences.SettingType
 import arun.com.chromer.data.preferences.SettingsSchema
 import arun.com.chromer.data.preferences.readBoolean
@@ -72,6 +73,9 @@ sealed interface SettingsDialog {
   data object OverlayPermission : SettingsDialog
   data class NotificationPermission(val forBubbles: Boolean) : SettingsDialog
   data object NativeBubblesWarning : SettingsDialog
+
+  /** Native bubbles chosen while the app's bubble setting is not "All conversations can bubble". */
+  data class BubbleSettingExplainer(val setting: BubbleSetting) : SettingsDialog
 }
 
 /** What a change writes (in one store edit) and which dialogs it shows. */
@@ -152,9 +156,17 @@ object SettingsRules {
     if (notificationsAllowed) emptyList() else listOf(SettingsDialog.NotificationPermission(forBubbles = false)),
   )
 
-  /** After the native bubbles warning closes, notifications are asked for when not allowed. */
-  fun afterBubblesWarning(notificationsAllowed: Boolean): List<SettingsDialog> =
-    if (notificationsAllowed) emptyList() else listOf(SettingsDialog.NotificationPermission(forBubbles = true))
+  /**
+   * After the native bubbles warning closes, notifications are asked for when not allowed, then
+   * the bubble setting is explained when it does not let every conversation bubble.
+   */
+  fun afterBubblesWarning(notificationsAllowed: Boolean, bubbleSetting: BubbleSetting = BubbleSetting.ALL): List<SettingsDialog> =
+    buildList {
+      if (!notificationsAllowed) add(SettingsDialog.NotificationPermission(forBubbles = true))
+      if (bubbleSetting in BUBBLE_SETTINGS_TO_EXPLAIN) add(SettingsDialog.BubbleSettingExplainer(bubbleSetting))
+    }
+
+  private val BUBBLE_SETTINGS_TO_EXPLAIN = setOf(BubbleSetting.SELECTED, BubbleSetting.NONE, BubbleSetting.DEVICE_OFF)
 
   fun selectedMode(values: SettingsValues): BrowsingMode = when {
     values.bool(WEB_HEAD_ENABLED) -> BrowsingMode.WebHeads

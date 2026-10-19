@@ -23,6 +23,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BubbleChart
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.AlertDialog
@@ -54,6 +55,7 @@ class SettingsDialogActions(
   val onOpenUsageAccess: () -> Unit,
   val onUsageAccessDeclined: () -> Unit,
   val onBubblesGuide: () -> Unit,
+  val onOpenBubbleSettings: () -> Unit = {},
 )
 
 /** Shows the first queued dialog of [viewModel] with the system screens it can open. */
@@ -66,6 +68,9 @@ fun SettingsDialogHost(dialog: SettingsDialog?, viewModel: SettingsViewModel) {
   val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
   val usageAccess = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
     viewModel.syncAppColour(Utils.canReadUsageStats(context))
+  }
+  val bubbleSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+    viewModel.refreshBubbleSetting()
   }
   SettingsDialogContent(
     dialog = dialog,
@@ -102,6 +107,15 @@ fun SettingsDialogHost(dialog: SettingsDialog?, viewModel: SettingsViewModel) {
       onBubblesGuide = {
         viewModel.dismissDialog(notificationsAllowed(context))
         viewModel.openBubblesGuide(context)
+      },
+      onOpenBubbleSettings = {
+        viewModel.dismissDialog()
+        try {
+          bubbleSettings.launch(viewModel.bubbleSettingsIntent())
+        } catch (e: ActivityNotFoundException) {
+          Timber.e(e, "No bubble settings screen")
+          bubbleSettings.launch(viewModel.appDetailsIntent())
+        }
       },
     ),
   )
@@ -143,6 +157,14 @@ fun SettingsDialogContent(dialog: SettingsDialog?, actions: SettingsDialogAction
       ),
       onGrant = actions.onRequestNotifications,
       onDismiss = actions.onDismiss,
+    )
+    is SettingsDialog.BubbleSettingExplainer -> PermissionExplainerDialog(
+      icon = Icons.Outlined.BubbleChart,
+      title = stringResource(R.string.bubble_setting_explainer_title),
+      body = stringResource(R.string.bubble_setting_explainer_body),
+      onGrant = actions.onOpenBubbleSettings,
+      onDismiss = actions.onDismiss,
+      confirmLabel = stringResource(R.string.open_settings),
     )
     SettingsDialog.NativeBubblesWarning -> AlertDialog(
       onDismissRequest = actions.onDismiss,

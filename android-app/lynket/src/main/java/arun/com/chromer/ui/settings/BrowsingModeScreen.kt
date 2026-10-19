@@ -11,7 +11,11 @@
 
 package arun.com.chromer.ui.settings
 
+import android.content.ActivityNotFoundException
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
@@ -27,8 +31,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arun.com.chromer.R
+import arun.com.chromer.bubbles.system.BubbleSetting
 import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.ui.settings.SettingsKeyTable.AMP_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_MODE
@@ -39,6 +45,7 @@ import arun.com.chromer.ui.settings.components.SettingsRow
 import arun.com.chromer.ui.settings.components.SettingsScaffold
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
+import timber.log.Timber
 
 /** Browsing mode: slide over, web heads, native bubbles (Android 10+), then load pages faster. */
 @Composable
@@ -46,12 +53,26 @@ fun BrowsingModeScreen(navigator: LynketNavigator, viewModel: SettingsViewModel 
   val context = LocalContext.current
   val values by viewModel.values.collectAsStateWithLifecycle()
   val dialogs by viewModel.dialogs.collectAsStateWithLifecycle()
+  val bubbleSetting by viewModel.bubbleSetting.collectAsStateWithLifecycle()
+  RefreshBubbleSettingOnResume(viewModel)
+  val bubbleSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+    viewModel.refreshBubbleSetting()
+  }
   BrowsingModeContent(
     values = values,
     showNativeBubbles = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q,
     onBack = { navigator.back() },
     onMode = { mode -> viewModel.chooseMode(mode, Utils.isOverlayGranted(context), notificationsAllowed(context)) },
     onSet = viewModel::set,
+    bubbleSetting = bubbleSetting,
+    onBubbleSetting = { setting ->
+      try {
+        bubbleSettings.launch(viewModel.bubbleSettingsIntent(setting))
+      } catch (e: ActivityNotFoundException) {
+        Timber.e(e, "No settings screen for %s", setting)
+        bubbleSettings.launch(viewModel.appDetailsIntent())
+      }
+    },
   )
   SettingsDialogHost(dialogs.firstOrNull(), viewModel)
 }
@@ -63,6 +84,8 @@ fun BrowsingModeContent(
   onBack: () -> Unit,
   onMode: (BrowsingMode) -> Unit,
   onSet: (String, Any?) -> Unit,
+  bubbleSetting: BubbleSetting? = null,
+  onBubbleSetting: (BubbleSetting) -> Unit = {},
 ) {
   val selected = SettingsRules.selectedMode(values)
   SettingsScaffold(
@@ -107,6 +130,19 @@ fun BrowsingModeContent(
               onClick = { onMode(BrowsingMode.NativeBubbles) },
             )
           }
+          // Android's bubble setting for Lynket, while native bubbles are chosen.
+          if (selected == BrowsingMode.NativeBubbles && bubbleSetting != null && bubbleSetting != BubbleSetting.UNSUPPORTED) {
+            row {
+              SettingsRow(
+                title = stringResource(R.string.bubble_setting_row_title),
+                summary = AnnotatedString(stringResource(bubbleSettingSummary(bubbleSetting))),
+                control = RowControl.Chevron,
+                indent = true,
+                modifier = Modifier.testTag("bubble-setting"),
+                onClick = { onBubbleSetting(bubbleSetting) },
+              )
+            }
+          }
         }
       }
     }
@@ -121,4 +157,23 @@ fun BrowsingModeContent(
       }
     }
   }
+}
+
+/** The person may change the bubble setting in Android settings and come back by any route. */
+@Composable
+fun RefreshBubbleSettingOnResume(viewModel: SettingsViewModel) {
+  LifecycleResumeEffect(viewModel) {
+    viewModel.refreshBubbleSetting()
+    onPauseOrDispose { }
+  }
+}
+
+/** The summary of the bubble setting row: the setting, and what to choose when it is not "all". */
+@StringRes
+fun bubbleSettingSummary(setting: BubbleSetting): Int = when (setting) {
+  BubbleSetting.ALL -> R.string.bubble_setting_all
+  BubbleSetting.SELECTED -> R.string.bubble_setting_selected
+  BubbleSetting.NONE -> R.string.bubble_setting_none
+  BubbleSetting.DEVICE_OFF -> R.string.bubble_setting_device_off
+  BubbleSetting.NOTIFICATIONS_OFF, BubbleSetting.UNSUPPORTED -> R.string.bubble_setting_notifications_off
 }

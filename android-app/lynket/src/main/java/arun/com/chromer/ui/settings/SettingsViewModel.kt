@@ -13,8 +13,11 @@ package arun.com.chromer.ui.settings
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import arun.com.chromer.bubbles.system.BubbleGate
+import arun.com.chromer.bubbles.system.BubbleSetting
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
@@ -59,6 +62,7 @@ class SettingsViewModel @Inject constructor(
   private val preferences: Preferences,
   private val tabsManager: TabsManager,
   private val eventBus: EventBus,
+  private val bubbleGate: BubbleGate,
 ) : ViewModel() {
 
   val values: StateFlow<SettingsValues> = repository.snapshot
@@ -74,6 +78,25 @@ class SettingsViewModel @Inject constructor(
   private val labels = MutableStateFlow(AppLabels())
   val appLabels: StateFlow<AppLabels> = labels.asStateFlow()
 
+  private val bubbles = MutableStateFlow(bubbleGate.setting())
+
+  /** The app's bubble setting in Android, read again by [refreshBubbleSetting]. */
+  val bubbleSetting: StateFlow<BubbleSetting> = bubbles.asStateFlow()
+
+  /** Reads the bubble setting again, for example after the person returns from Android settings. */
+  fun refreshBubbleSetting() {
+    bubbles.value = bubbleGate.setting()
+  }
+
+  /** The Android settings page that changes [setting]. */
+  fun bubbleSettingsIntent(setting: BubbleSetting): Intent = bubbleGate.settingsIntent(setting)
+
+  /** Android's own page for the app's bubble setting. */
+  fun bubbleSettingsIntent(): Intent = bubbleGate.bubbleSettingsIntent()
+
+  /** The app details page, when a device has no settings page for [bubbleSettingsIntent]. */
+  fun appDetailsIntent(): Intent = bubbleGate.appDetailsIntent()
+
   /** Sets [key] to [value] with every write and dialog the old screens tied to it. */
   fun set(key: String, value: Any?, canReadUsageStats: Boolean = Utils.canReadUsageStats(context)) {
     val result = SettingsRules.change(key, value, values.value, canReadUsageStats)
@@ -88,21 +111,28 @@ class SettingsViewModel @Inject constructor(
     }
   }
 
-  fun chooseMode(mode: BrowsingMode, overlayGranted: Boolean, notificationsAllowed: Boolean) =
+  fun chooseMode(mode: BrowsingMode, overlayGranted: Boolean, notificationsAllowed: Boolean) {
+    if (mode == BrowsingMode.NativeBubbles) refreshBubbleSetting()
     apply(SettingsRules.chooseMode(mode, overlayGranted, notificationsAllowed))
+  }
 
   /** Back from the overlay setting; nothing changes when the permission is still missing. */
   fun onOverlayResult(granted: Boolean, notificationsAllowed: Boolean) {
     if (granted) apply(SettingsRules.overlayGranted(notificationsAllowed))
   }
 
-  /** Closes the dialog on screen; the native bubbles warning is followed by the notification ask. */
+  /**
+   * Closes the dialog on screen; the native bubbles warning is followed by the notification ask and
+   * the bubble setting explainer.
+   */
   fun dismissDialog(notificationsAllowed: Boolean = true) {
-    queue.update { current ->
-      val closed = current.firstOrNull() ?: return@update current
-      val next = current.drop(1)
-      if (closed == SettingsDialog.NativeBubblesWarning) SettingsRules.afterBubblesWarning(notificationsAllowed) + next else next
+    val closed = queue.value.firstOrNull() ?: return
+    val after = if (closed == SettingsDialog.NativeBubblesWarning) {
+      SettingsRules.afterBubblesWarning(notificationsAllowed, bubbleGate.preference())
+    } else {
+      emptyList()
     }
+    queue.update { current -> if (current.firstOrNull() == closed) after + current.drop(1) else current }
   }
 
   /** After the usage access dialog: the app colour box follows the permission, as before. */

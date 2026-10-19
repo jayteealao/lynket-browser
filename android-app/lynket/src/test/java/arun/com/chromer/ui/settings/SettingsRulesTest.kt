@@ -12,6 +12,7 @@
 package arun.com.chromer.ui.settings
 
 import arun.com.chromer.R
+import arun.com.chromer.bubbles.system.BubbleSetting
 import arun.com.chromer.ui.settings.SettingsKeyTable.AGGRESSIVE_LOADING
 import arun.com.chromer.ui.settings.SettingsKeyTable.AMP_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
@@ -173,6 +174,18 @@ class SettingsRulesTest {
     assertThat(SettingsRules.afterBubblesWarning(notificationsAllowed = false))
       .containsExactly(SettingsDialog.NotificationPermission(forBubbles = true))
     assertThat(SettingsRules.afterBubblesWarning(notificationsAllowed = true)).isEmpty()
+  }
+
+  @Test
+  fun afterTheWarningABubbleSettingThatIsNotAllIsExplained() {
+    for (setting in BubbleSetting.entries) {
+      val explained = setting in setOf(BubbleSetting.SELECTED, BubbleSetting.NONE, BubbleSetting.DEVICE_OFF)
+      val explainer = listOfNotNull(SettingsDialog.BubbleSettingExplainer(setting).takeIf { explained })
+      assertThat(SettingsRules.afterBubblesWarning(notificationsAllowed = true, bubbleSetting = setting))
+        .containsExactlyElementsIn(explainer).inOrder()
+      assertThat(SettingsRules.afterBubblesWarning(notificationsAllowed = false, bubbleSetting = setting))
+        .containsExactlyElementsIn(listOf(SettingsDialog.NotificationPermission(forBubbles = true)) + explainer).inOrder()
+    }
   }
 
   @Test

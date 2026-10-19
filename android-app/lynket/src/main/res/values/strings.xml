@@ -351,6 +351,14 @@
   <string name="bubble_refused_notifications_off">Notifications are off for Lynket, so the page opened in a tab.</string>
   <string name="bubble_refused_bubbles_off">Bubbles are off for Lynket, so the page opened in a tab.</string>
   <string name="bubble_refused_not_shown">Android did not show the bubble, so the page opened in a tab.</string>
+  <string name="bubble_setting_explainer_title">Choose \"All conversations can bubble\"</string>
+  <string name="bubble_setting_explainer_body">Android shows a link as a bubble only when Lynket\'s bubble setting allows it. On the next screen, choose All conversations can bubble.</string>
+  <string name="bubble_setting_row_title">Android bubble setting</string>
+  <string name="bubble_setting_all">All conversations can bubble</string>
+  <string name="bubble_setting_selected">Selected conversations can bubble. Choose All conversations can bubble.</string>
+  <string name="bubble_setting_none">Nothing can bubble. Choose All conversations can bubble.</string>
+  <string name="bubble_setting_device_off">Bubbles are off on this device. Turn them on, then choose All conversations can bubble.</string>
+  <string name="bubble_setting_notifications_off">Notifications are off for Lynket.</string>
   <string name="overlay_explainer_title">Allow web heads to float</string>
   <string name="overlay_explainer_body">To draw web heads over other apps, Lynket needs the \"Display over other apps\" permission. Android opens the setting next.</string>
   <string name="web_heads_notification_explainer_title">Show web head controls</string>

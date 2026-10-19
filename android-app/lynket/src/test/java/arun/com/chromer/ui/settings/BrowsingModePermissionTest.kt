@@ -18,6 +18,8 @@ import android.content.Intent
 import android.os.Looper
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertTextContains
+import androidx.lifecycle.Lifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -25,6 +27,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arun.com.chromer.R
+import arun.com.chromer.bubbles.system.BubbleGate
+import arun.com.chromer.bubbles.system.BubbleSetting
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.settings.Preferences
@@ -34,6 +38,7 @@ import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -68,16 +73,27 @@ class BrowsingModePermissionTest {
 
   private lateinit var viewModel: SettingsViewModel
 
+  /** What Android reports for the app's bubble setting; tests change it as the person would. */
+  private var bubbleSetting = BubbleSetting.ALL
+
+  private val bubbleGate = mockk<BubbleGate>(relaxed = true).also { gate ->
+    every { gate.setting() } answers { bubbleSetting }
+    every { gate.preference() } answers { bubbleSetting }
+    every { gate.bubbleSettingsIntent() } returns Intent(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS)
+  }
+
   @Before
   fun setUp() {
     hiltRule.inject()
     runBlocking { repository.clearAll() }
     val application = RuntimeEnvironment.getApplication() as Application
     shadowOf(application).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
-    viewModel = SettingsViewModel(application, repository, preferences, mockk<TabsManager>(relaxed = true), EventBus())
+    viewModel = SettingsViewModel(application, repository, preferences, mockk<TabsManager>(relaxed = true), EventBus(), bubbleGate)
     composeRule.setContent {
       val values by viewModel.values.collectAsStateWithLifecycle()
       val dialogs by viewModel.dialogs.collectAsStateWithLifecycle()
+      val setting by viewModel.bubbleSetting.collectAsStateWithLifecycle()
+      RefreshBubbleSettingOnResume(viewModel)
       BrowsingModeContent(
         values = values,
         showNativeBubbles = true,
@@ -86,6 +102,7 @@ class BrowsingModePermissionTest {
           viewModel.chooseMode(mode, Settings.canDrawOverlays(composeRule.activity), notificationsAllowed(composeRule.activity))
         },
         onSet = viewModel::set,
+        bubbleSetting = setting,
       )
       SettingsDialogHost(dialogs.firstOrNull(), viewModel)
     }
@@ -173,6 +190,60 @@ class BrowsingModePermissionTest {
     awaitStore { nativeBubbles() }
     composeRule.onNodeWithText(string(android.R.string.ok)).performClick()
     composeRule.onNodeWithText(string(R.string.bubbles_notification_explainer_title)).assertExists()
+  }
+
+  @Test
+  fun withAllConversationsNoBubbleExplainerShows() {
+    bubbleSetting = BubbleSetting.ALL
+    composeRule.onNodeWithTag("mode-native-bubbles").performClick()
+    awaitStore { nativeBubbles() }
+    composeRule.onNodeWithText(string(android.R.string.ok)).performClick()
+
+    composeRule.onNodeWithText(string(R.string.bubble_setting_explainer_title)).assertDoesNotExist()
+  }
+
+  @Test
+  fun selectedConversationsAreExplainedAndTheBubblePageOpens() {
+    bubbleSetting = BubbleSetting.SELECTED
+    composeRule.onNodeWithTag("mode-native-bubbles").performClick()
+    awaitStore { nativeBubbles() }
+    composeRule.onNodeWithText(string(android.R.string.ok)).performClick()
+
+    composeRule.onNodeWithText(string(R.string.bubble_setting_explainer_title)).assertExists()
+    composeRule.onNodeWithTag("bubble-setting").assertTextContains(string(R.string.bubble_setting_selected))
+    composeRule.onNodeWithText(string(R.string.open_settings)).performClick()
+
+    val shadow = shadowOf(composeRule.activity)
+    val request = shadow.nextStartedActivityForResult
+    assertThat(request.intent.action).isEqualTo(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS)
+    composeRule.onNodeWithText(string(R.string.bubble_setting_explainer_title)).assertDoesNotExist()
+
+    // The person chooses "All conversations can bubble" in Android settings and comes back.
+    bubbleSetting = BubbleSetting.ALL
+    shadow.receiveResult(request.intent, Activity.RESULT_CANCELED, Intent())
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("bubble-setting").assertTextContains(string(R.string.bubble_setting_all))
+  }
+
+  @Test
+  fun theBubbleSettingIsReadAgainOnResume() {
+    bubbleSetting = BubbleSetting.ALL
+    composeRule.onNodeWithTag("mode-native-bubbles").performClick()
+    awaitStore { nativeBubbles() }
+    composeRule.onNodeWithText(string(android.R.string.ok)).performClick()
+    composeRule.onNodeWithTag("bubble-setting").assertTextContains(string(R.string.bubble_setting_all))
+
+    // Changed in Android settings, reached through the recents screen: no result comes back.
+    bubbleSetting = BubbleSetting.NONE
+    composeRule.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
+    composeRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("bubble-setting").assertTextContains(string(R.string.bubble_setting_none))
+  }
+
+  @Test
+  fun theBubbleSettingRowShowsOnlyWithNativeBubbles() {
+    composeRule.onNodeWithTag("bubble-setting").assertDoesNotExist()
   }
 
   @Test

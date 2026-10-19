@@ -13,6 +13,7 @@ package arun.com.chromer.ui.settings
 
 import android.os.Looper
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
@@ -42,7 +43,7 @@ class SettingsViewModelEventsTest : LynketRobolectricSuite() {
   fun cancelCollectors() = collectorScope.cancel()
 
   private fun viewModel() =
-    SettingsViewModel(application, userPreferencesRepository, preferences, mockk<TabsManager>(relaxed = true), eventBus)
+    SettingsViewModel(application, userPreferencesRepository, preferences, mockk<TabsManager>(relaxed = true), eventBus, BubbleGate(application))
 
   private fun webHeadEvents(): List<Event.WebHeadEvent> {
     val events = mutableListOf<Event.WebHeadEvent>()

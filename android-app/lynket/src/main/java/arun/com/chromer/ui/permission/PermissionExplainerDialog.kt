@@ -22,8 +22,9 @@ import androidx.compose.ui.res.stringResource
 import arun.com.chromer.R
 
 /**
- * Says why a permission is needed before Android asks for it. "Grant" moves on to the system
- * screen or prompt; "Not now" changes nothing.
+ * Says why a permission or setting is needed before Android shows it. The confirm button ("Grant"
+ * unless [confirmLabel] names another action) moves on to the system screen or prompt; "Not now"
+ * changes nothing.
  */
 @Composable
 fun PermissionExplainerDialog(
@@ -32,13 +33,14 @@ fun PermissionExplainerDialog(
   body: String,
   onGrant: () -> Unit,
   onDismiss: () -> Unit,
+  confirmLabel: String = stringResource(R.string.grant),
 ) {
   AlertDialog(
     onDismissRequest = onDismiss,
     icon = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) },
     title = { Text(title) },
     text = { Text(body, style = MaterialTheme.typography.bodyMedium) },
-    confirmButton = { TextButton(onClick = onGrant) { Text(stringResource(R.string.grant)) } },
+    confirmButton = { TextButton(onClick = onGrant) { Text(confirmLabel) } },
     dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.not_now)) } },
   )
 }
