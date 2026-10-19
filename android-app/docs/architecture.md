@@ -47,7 +47,10 @@ intercept activity shows a Compose error dialog and stays open until it closes.
   the store's latest snapshot and waits for the store before the first read and on each write.
   `MainActivity` and the Quick Settings tiles wait for the first snapshot in a coroutine (the
   activity holds its first frame until then), and the tiles and the home's search engine choice
-  write off the main thread. Debug builds log every main-thread wait under `MainThreadWait`.
+  write off the main thread. When the stored Custom Tab provider is missing, the facade returns
+  the default provider at once and stores it from a coroutine. The reader's Open full page still
+  reads the website colour on the main thread, so the tab still starts before the calling
+  screen closes. Debug builds log every main-thread wait under `MainThreadWait`.
 - Per-app rules live in a second DataStore, `per_app_rules`.
 - Both stores migrate once from what earlier releases saved. `LegacySettingsMigration` copies the
   old SharedPreferences file before reading it and converts the six list settings that release

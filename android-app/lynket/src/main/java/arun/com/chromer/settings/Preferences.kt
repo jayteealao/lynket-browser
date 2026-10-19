@@ -30,6 +30,7 @@ import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.data.preferences.readInt
 import arun.com.chromer.data.preferences.readString
+import arun.com.chromer.di.hilt.ApplicationScope
 import arun.com.chromer.shared.Constants.CHROME_PACKAGE
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.blockingWait
@@ -38,7 +39,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -55,6 +58,7 @@ import javax.inject.Singleton
 class Preferences @Inject constructor(
   @ApplicationContext context: Context,
   private val repository: UserPreferencesRepository,
+  @ApplicationScope private val appScope: CoroutineScope,
 ) {
   private val context: Context = context.applicationContext
 
@@ -127,16 +131,24 @@ class Preferences @Inject constructor(
     return int(PREFERRED_ACTION)
   }
 
+  /**
+   * The stored provider when it is installed, else the default provider. The default is stored
+   * as the new provider (and Web View mode turned off, as [customTabPackage] with a value does)
+   * on the application scope, so a caller on the main thread does not wait for the disk; the
+   * value returned is the same either way, and a provider chosen meanwhile is not overwritten.
+   */
   fun customTabPackage(): String? {
-    var packageName = string(PREFERRED_CUSTOM_TAB_PACKAGE)
-    if (packageName != null && Utils.isPackageInstalled(context, packageName)) {
-      return packageName
-    } else {
-      packageName = defaultCustomTabApp
-      // update the new custom tab package
-      customTabPackage(packageName)
+    val stored = string(PREFERRED_CUSTOM_TAB_PACKAGE)
+    if (stored != null && Utils.isPackageInstalled(context, stored)) {
+      return stored
     }
-    return packageName
+    val fallback = defaultCustomTabApp
+    appScope.launch {
+      if (string(PREFERRED_CUSTOM_TAB_PACKAGE) == stored) {
+        repository.setValues(mapOf(USE_WEBVIEW_PREF to false, PREFERRED_CUSTOM_TAB_PACKAGE to fallback))
+      }
+    }
+    return fallback
   }
 
   val defaultCustomTabApp: String?
