@@ -1,12 +1,3 @@
-buildscript {
-  dependencies {
-    // AGP 9 compiles Kotlin itself (built-in Kotlin) and brings KGP 2.2.10; a newer KGP and KSP
-    // go on this classpath (AGP 9.0 release notes, "Upgrade to a higher KGP version").
-    classpath(libs.kotlin.gradle.plugin)
-    classpath(libs.ksp.gradle.plugin)
-  }
-}
-
 plugins {
   alias(libs.plugins.androidApplication) apply false
   alias(libs.plugins.androidLibrary) apply false

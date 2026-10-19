@@ -55,10 +55,6 @@ swiperefreshlayout = "1.1.0"
 palette = "1.0.0"
 
 [libraries]
-# Gradle plugins put on the root buildscript classpath (AGP 9 built-in Kotlin uses this KGP)
-kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
-ksp-gradle-plugin = { group = "com.google.devtools.ksp", name = "symbol-processing-gradle-plugin", version.ref = "ksp" }
-
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
