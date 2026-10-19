@@ -111,9 +111,13 @@ fun BrowsingOptionsScreen(navigator: LynketNavigator, viewModel: SettingsViewMod
   )
   picker?.let { key ->
     val secondary = key == SECONDARY_BROWSER
+    // One intent per picker: the sheet looks up the apps again whenever it gets a new intent.
+    val pickerIntent = remember(secondary) {
+      if (secondary) Constants.WEB_INTENT else Intent(Intent.ACTION_SEND).setType("text/plain")
+    }
     AppPickerSheet(
       title = stringResource(if (secondary) R.string.choose_secondary_browser else R.string.choose_fav_share_app),
-      intent = if (secondary) Constants.WEB_INTENT else Intent(Intent.ACTION_SEND).setType("text/plain"),
+      intent = pickerIntent,
       onPick = { app ->
         picker = null
         viewModel.setApp(key, app.component)
