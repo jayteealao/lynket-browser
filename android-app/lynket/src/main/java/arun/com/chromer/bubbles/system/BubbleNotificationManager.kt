@@ -48,7 +48,7 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val BUBBLE_NOTIFICATION_CHANNEL_ID = "BUBBLE_NOTIFICATION_CHANNEL_ID"
+internal const val BUBBLE_NOTIFICATION_CHANNEL_ID = "BUBBLE_NOTIFICATION_CHANNEL_ID"
 private const val BUBBLE_NOTIFICATION_GROUP = "bubbles"
 
 @Singleton
@@ -185,9 +185,38 @@ constructor(
   }
 
 
+  /**
+   * Whether Android shows the posted notification of [url] as a bubble: the system sets
+   * [Notification.FLAG_BUBBLE] on it when it honours the bubble request.
+   */
+  fun isShownAsBubble(url: String): Boolean = try {
+    notificationManager.activeNotifications.any {
+      it.id == url.hashCode() && it.notification.flags and Notification.FLAG_BUBBLE != 0
+    }
+  } catch (e: RuntimeException) {
+    Timber.e(e, "Could not read the active notifications")
+    // Unknown: keep the notification rather than remove a bubble that may be showing.
+    true
+  }
+
+  /** Removes the notification of [url], and the group summary when no other bubble is left. */
+  fun cancel(url: String) {
+    notificationManager.cancel(url.hashCode())
+    val othersLeft = try {
+      notificationManager.activeNotifications.any {
+        it.id != url.hashCode() && it.id != BUBBLE_NOTIFICATION_GROUP.hashCode() &&
+          it.notification.group == BUBBLE_NOTIFICATION_GROUP
+      }
+    } catch (e: RuntimeException) {
+      Timber.e(e, "Could not read the active notifications")
+      true
+    }
+    if (!othersLeft) notificationManager.cancel(BUBBLE_NOTIFICATION_GROUP.hashCode())
+  }
+
   /** Publishes the long-lived shortcut a bubble is tied to; returns its id, or null when refused. */
   private fun pushConversationShortcut(url: String, label: String, icon: Icon): String? = try {
-    val id = "bubble_${url.hashCode()}"
+    val id = bubbleConversationId(url)
     val iconCompat = IconCompat.createFromIcon(application, icon)
     val person = Person.Builder()
       .setName(label)
