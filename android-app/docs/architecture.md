@@ -44,7 +44,10 @@ intercept activity shows a Compose error dialog and stays open until it closes.
 - Settings live in one Preferences DataStore, `user_preferences`. `data/preferences/SettingsSchema.kt`
   lists every key with its type and default. Screens read through `UserPreferencesRepository`
   flows; older code reads synchronously through the `settings/Preferences` facade, which serves
-  the store's latest snapshot.
+  the store's latest snapshot and waits for the store before the first read and on each write.
+  `MainActivity` and the Quick Settings tiles wait for the first snapshot in a coroutine (the
+  activity holds its first frame until then), and the tiles and the home's search engine choice
+  write off the main thread. Debug builds log every main-thread wait under `MainThreadWait`.
 - Per-app rules live in a second DataStore, `per_app_rules`.
 - Both stores migrate once from what earlier releases saved. `LegacySettingsMigration` copies the
   old SharedPreferences file before reading it and converts the six list settings that release
