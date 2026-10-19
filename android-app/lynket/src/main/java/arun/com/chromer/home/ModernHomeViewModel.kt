@@ -173,8 +173,9 @@ class ModernHomeViewModel @Inject constructor(
     query.value = text
   }
 
+  /** Saves the engine off the main thread; the selected chip follows the stored value. */
   fun selectSearchEngine(provider: SearchProvider) {
-    searchProviders.select(provider)
+    viewModelScope.launch(Dispatchers.IO) { searchProviders.select(provider) }
   }
 
   /** Opens typed text: a web address as is, anything else as a search with the chosen engine. */
