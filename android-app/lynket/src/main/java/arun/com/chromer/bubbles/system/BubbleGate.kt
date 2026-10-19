@@ -14,9 +14,10 @@ package arun.com.chromer.bubbles.system
 import android.app.Application
 import android.app.NotificationManager
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.annotation.RequiresApi
+import androidx.core.net.toUri
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -78,22 +79,26 @@ class BubbleGate @Inject constructor(private val application: Application) {
   fun preference(): BubbleSetting = preference(read(null))
 
   fun read(conversationId: String?): BubbleState {
-    val sdk = Build.VERSION.SDK_INT
     val manager = notificationManager
     val notificationsEnabled = manager?.let { query("notifications") { it.areNotificationsEnabled() } } ?: false
-    if (manager == null || sdk < Build.VERSION_CODES.Q) {
-      return BubbleState(sdk, notificationsEnabled, false, null, null, null, null)
+    if (manager == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+      return BubbleState(Build.VERSION.SDK_INT, notificationsEnabled, false, null, null, null, null)
     }
+    return readBubbles(manager, notificationsEnabled, conversationId)
+  }
+
+  @RequiresApi(Build.VERSION_CODES.Q)
+  private fun readBubbles(manager: NotificationManager, notificationsEnabled: Boolean, conversationId: String?): BubbleState {
     val parent = query("bubble channel") { manager.getNotificationChannel(BUBBLE_NOTIFICATION_CHANNEL_ID) }
     val channelBlocked = parent?.importance == NotificationManager.IMPORTANCE_NONE
-    val recordChannel = if (conversationId != null && sdk >= Build.VERSION_CODES.R) {
+    val recordChannel = if (conversationId != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       query("conversation channel") { manager.getNotificationChannel(BUBBLE_NOTIFICATION_CHANNEL_ID, conversationId) }
     } else {
       parent
     }
-    return if (sdk >= Build.VERSION_CODES.S) {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       BubbleState(
-        sdk = sdk,
+        sdk = Build.VERSION.SDK_INT,
         notificationsEnabled = notificationsEnabled,
         channelBlocked = channelBlocked,
         appPreference = query("bubble preference") { manager.bubblePreference },
@@ -104,7 +109,7 @@ class BubbleGate @Inject constructor(private val application: Application) {
     } else {
       @Suppress("DEPRECATION") // sdlc-debt: areBubblesAllowed is the only app-level query on API 29 and 30.
       BubbleState(
-        sdk = sdk,
+        sdk = Build.VERSION.SDK_INT,
         notificationsEnabled = notificationsEnabled,
         channelBlocked = channelBlocked,
         appPreference = null,
@@ -117,13 +122,13 @@ class BubbleGate @Inject constructor(private val application: Application) {
 
   /** The settings page for [refusal]: notification settings, or the app's bubble settings. */
   fun settingsIntent(refusal: BubbleRefusal): Intent = when (refusal) {
-    BubbleRefusal.NOTIFICATIONS_OFF -> pageIntent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+    BubbleRefusal.NOTIFICATIONS_OFF -> notificationSettingsIntent()
     BubbleRefusal.BUBBLES_OFF, BubbleRefusal.NOT_SHOWN -> bubbleSettingsIntent()
   }
 
   /** The settings page the browsing mode screen opens for [setting]. */
   fun settingsIntent(setting: BubbleSetting): Intent = when (setting) {
-    BubbleSetting.NOTIFICATIONS_OFF -> pageIntent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+    BubbleSetting.NOTIFICATIONS_OFF -> notificationSettingsIntent()
     else -> bubbleSettingsIntent()
   }
 
@@ -131,13 +136,21 @@ class BubbleGate @Inject constructor(private val application: Application) {
   fun bubbleSettingsIntent(): Intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
     pageIntent(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS)
   } else {
+    notificationSettingsIntent()
+  }
+
+  /** The app's notification settings page (Android 8 and later), else the app details page. */
+  private fun notificationSettingsIntent(): Intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
     pageIntent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+  } else {
+    appDetailsIntent()
   }
 
   /** The app details page, for a device that has no notification or bubble page. */
   fun appDetailsIntent(): Intent =
-    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${application.packageName}"))
+    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${application.packageName}".toUri())
 
+  @RequiresApi(Build.VERSION_CODES.O)
   private fun pageIntent(action: String): Intent {
     val intent = Intent(action).putExtra(Settings.EXTRA_APP_PACKAGE, application.packageName)
     return if (intent.resolveActivity(application.packageManager) != null) intent else appDetailsIntent()
