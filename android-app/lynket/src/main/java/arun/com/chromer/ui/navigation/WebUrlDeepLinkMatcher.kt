@@ -13,6 +13,7 @@ package arun.com.chromer.ui.navigation
 
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.navigation3.runtime.deeplink.DeepLinkMatcher
 import androidx.navigation3.runtime.deeplink.DeepLinkRequest
 import androidx.navigation3.runtime.deeplink.actionFilter
@@ -39,7 +40,7 @@ value class WebUrl private constructor(val value: String) {
      * that opens today still opens; `javascript:`, `file:`, `content:` and `intent:` links do not.
      */
     fun hasWebScheme(raw: String?): Boolean =
-      !raw.isNullOrEmpty() && isWebScheme(runCatching { Uri.parse(raw).scheme }.getOrNull())
+      !raw.isNullOrEmpty() && isWebScheme(runCatching { raw.toUri().scheme }.getOrNull())
   }
 }
 
