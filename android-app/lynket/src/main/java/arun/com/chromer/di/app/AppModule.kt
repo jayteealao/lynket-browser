@@ -22,7 +22,6 @@ package arun.com.chromer.di.app
 
 import arun.com.chromer.browsing.icons.DefaultWebsiteIconsProvider
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
-import arun.com.chromer.di.viewmodel.ViewModelModule
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

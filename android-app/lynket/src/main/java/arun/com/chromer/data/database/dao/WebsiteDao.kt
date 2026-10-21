@@ -210,16 +210,6 @@ interface WebsiteDao {
     suspend fun getBookmarkCount(): Int
 
     /**
-     * Merges rows read from an older history store, in one transaction.
-     *
-     * One row per URL remains. When the URL is already stored, the newest visit time and the larger
-     * visit count win; title, icons and other details come from the newer row, and an empty detail
-     * is filled from the other row; the row is bookmarked when either is. A visit count below 1
-     * counts as 1. Running it twice with the same rows gives the same table.
-     *
-     * @return the number of rows that were merged into an existing URL.
-     */
-    /**
      * Records one visit to [website] at [now], in one transaction: a new row with one visit, or
      * one more visit and the new visit time for a stored URL (its title and other details stay).
      * Two visits to the same new page at the same moment give one row with two visits.
@@ -238,6 +228,16 @@ interface WebsiteDao {
         return visited
     }
 
+    /**
+     * Merges rows read from an older history store, in one transaction.
+     *
+     * One row per URL remains. When the URL is already stored, the newest visit time and the larger
+     * visit count win; title, icons and other details come from the newer row, and an empty detail
+     * is filled from the other row; the row is bookmarked when either is. A visit count below 1
+     * counts as 1. Running it twice with the same rows gives the same table.
+     *
+     * @return the number of rows that were merged into an existing URL.
+     */
     @Transaction
     suspend fun mergeLegacyRows(rows: List<WebsiteEntity>): Int {
         var merged = 0

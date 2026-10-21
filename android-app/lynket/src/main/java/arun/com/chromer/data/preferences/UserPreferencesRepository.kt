@@ -58,8 +58,6 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     /** Writes [value] under [name] with the key type of the value; null removes the key. */
-    /** Writes every entry of [values] in one edit, with the key type of each value; null removes. */
-    /** Writes [value] under [name] with the key type of the value; null removes the key. */
     suspend fun setValue(name: String, value: Any?) {
         store.edit { preferences ->
             preferences.remove(stringPreferencesKey(name))
@@ -69,10 +67,20 @@ class UserPreferencesRepository @Inject constructor(
 
     /** Writes every entry of [values] in one edit, with the key type of each value; null removes. */
     suspend fun setValues(values: Map<String, Any?>) {
+        setValuesIf(values) { true }
+    }
+
+    /**
+     * Writes every entry of [values] in one edit when [condition] holds for the stored values. The
+     * check and the write are one step, so a write made meanwhile by another caller is not lost.
+     */
+    suspend fun setValuesIf(values: Map<String, Any?>, condition: (Preferences) -> Boolean) {
         store.edit { preferences ->
-            values.forEach { (name, value) ->
-                preferences.remove(stringPreferencesKey(name))
-                if (value != null) preferences[keyFor(name, value)] = value
+            if (condition(preferences)) {
+                values.forEach { (name, value) ->
+                    preferences.remove(stringPreferencesKey(name))
+                    if (value != null) preferences[keyFor(name, value)] = value
+                }
             }
         }
     }

@@ -21,8 +21,8 @@ import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
-import arun.com.chromer.ui.history.HistoryListItem
-import arun.com.chromer.ui.history.withDayHeaders
+import arun.com.chromer.history.HistoryListItem
+import arun.com.chromer.history.withDayHeaders
 import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.lifecycle.HiltViewModel

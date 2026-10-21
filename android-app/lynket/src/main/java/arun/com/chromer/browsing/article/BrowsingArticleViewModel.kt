@@ -20,6 +20,7 @@
 
 package arun.com.chromer.browsing.article
 
+import arun.com.chromer.util.WebUrl
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,8 +28,6 @@ import arun.com.chromer.data.webarticle.WebArticleRepository
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.di.hilt.DefaultDispatcher
 import arun.com.chromer.search.provider.SearchProviders
-import arun.com.chromer.ui.reader.ArticleBlock
-import arun.com.chromer.ui.reader.articleBlocks
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -121,7 +120,7 @@ constructor(
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        Timber.e(e, "Article extraction failed for %s", url)
+        Timber.e(e, "Article extraction failed for %s", WebUrl.hostForLog(url))
         null
       }
       // Building the blocks walks and serialises the whole article; it stays off the main thread.

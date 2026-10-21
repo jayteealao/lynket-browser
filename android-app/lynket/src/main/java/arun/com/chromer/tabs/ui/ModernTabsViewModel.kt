@@ -20,6 +20,7 @@ import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.TabsManager.Tab
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,10 +50,16 @@ class ModernTabsViewModel @Inject constructor(
   private val _uiState = MutableStateFlow<TabsUiState>(TabsUiState.Loading)
   val uiState: StateFlow<TabsUiState> = _uiState.asStateFlow()
 
-  /** Reads the open tasks, with the stored site of each page when there is one. */
+  private var loadJob: Job? = null
+
+  /**
+   * Reads the open tasks, with the stored site of each page when there is one. A new load cancels
+   * the one in progress, so an older, slower read never replaces a newer list.
+   */
   fun load() {
     _uiState.update { if (it is TabsUiState.Loaded) it.copy(refreshing = true) else it }
-    viewModelScope.launch {
+    loadJob?.cancel()
+    loadJob = viewModelScope.launch {
       try {
         val tabs = tabsManager.getActiveTabs().map { tab ->
           tab.website = try {

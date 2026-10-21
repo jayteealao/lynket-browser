@@ -11,6 +11,7 @@
 
 package arun.com.chromer.ui.tabs
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -262,7 +263,7 @@ private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions
           modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            .clickable { actions.onOpen(tab) }
+            .clickable(role = Role.Button, onClickLabel = stringResource(R.string.open)) { actions.onOpen(tab) }
             .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
         ) {
           SiteAvatar(title, tab.website?.faviconUrl)

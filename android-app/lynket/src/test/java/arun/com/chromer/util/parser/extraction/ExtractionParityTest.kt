@@ -11,6 +11,7 @@
 
 package arun.com.chromer.util.parser.extraction
 
+import arun.com.chromer.browsing.article.articleBlocks
 import android.app.Application
 import android.os.Parcel
 import androidx.compose.ui.text.AnnotatedString
@@ -19,7 +20,6 @@ import androidx.compose.ui.text.fromHtml
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.data.website.model.Website
-import arun.com.chromer.ui.reader.articleBlocks
 import com.google.common.truth.Truth.assertWithMessage
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements

@@ -23,6 +23,7 @@ package arun.com.chromer.data.apps.store
 
 import android.app.Application
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -88,11 +89,11 @@ class AppDiskStore @Inject constructor(
         rules().readBoolean(blacklistedKey(packageName).name, false)
 
     override suspend fun setPackageBlacklisted(packageName: String): App {
-        val app = getApp(packageName)
-        app.blackListed = true
-        app.incognito = false
-        Timber.d("Set %s as blacklisted", app.packageName)
-        return saveApp(app)
+        Timber.d("Set %s as blacklisted", packageName)
+        return update(packageName) { rules ->
+            rules[blacklistedKey(packageName)] = true
+            rules.remove(incognitoKey(packageName))
+        }
     }
 
     override fun getPackageColorSync(packageName: String): Int =
@@ -105,24 +106,20 @@ class AppDiskStore @Inject constructor(
     }
 
     override suspend fun setPackageColor(packageName: String, color: Int): App {
-        val app = getApp(packageName)
-        app.color = color
-        Timber.d("Saved %d color for %s", color, app.packageName)
-        return saveApp(app)
+        Timber.d("Saved %d color for %s", color, packageName)
+        return update(packageName) { rules ->
+            if (color != Constants.NO_COLOR) rules[colorKey(packageName)] = color else rules.remove(colorKey(packageName))
+        }
     }
 
     override suspend fun removeBlacklist(packageName: String): App {
-        val app = getApp(packageName)
-        app.blackListed = false
-        Timber.d("Blacklist removed %s", app.packageName)
-        return saveApp(app)
+        Timber.d("Blacklist removed %s", packageName)
+        return update(packageName) { rules -> rules.remove(blacklistedKey(packageName)) }
     }
 
     override suspend fun removeIncognito(packageName: String): App {
-        val app = getApp(packageName)
-        app.incognito = false
-        Timber.d("Incognito removed %s", app.packageName)
-        return saveApp(app)
+        Timber.d("Incognito removed %s", packageName)
+        return update(packageName) { rules -> rules.remove(incognitoKey(packageName)) }
     }
 
     override fun getInstalledApps(): Flow<App> = emptyFlow()
@@ -131,11 +128,21 @@ class AppDiskStore @Inject constructor(
         rules().readBoolean(incognitoKey(packageName).name, false)
 
     override suspend fun setPackageIncognito(packageName: String): App {
-        val app = getApp(packageName)
-        app.incognito = true
-        app.blackListed = false
-        Timber.d("Set %s as incognito", app.packageName)
-        return saveApp(app)
+        Timber.d("Set %s as incognito", packageName)
+        return update(packageName) { rules ->
+            rules[incognitoKey(packageName)] = true
+            rules.remove(blacklistedKey(packageName))
+        }
+    }
+
+    /**
+     * Changes only the keys that [change] touches, inside one store edit, then reads the app back.
+     * A change made meanwhile to another rule of the same package (for example the colour saved by
+     * the background colour job while the person toggles a rule) is kept.
+     */
+    private suspend fun update(packageName: String, change: (MutablePreferences) -> Unit): App {
+        withContext(Dispatchers.IO) { store.edit(change) }
+        return getApp(packageName)
     }
 
     override suspend fun allProviders(): List<Provider> = emptyList()

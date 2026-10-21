@@ -27,6 +27,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.abs
 import kotlin.math.sign
 
@@ -56,8 +57,12 @@ class ReaderDragDismissState(
 
   private var dismissed = false
 
+  /** Bumped by each drag step, so a return in progress stops as soon as the finger moves again. */
+  private var dragGeneration = 0
+
   /** Adds [dy] px of drag the list did not use. */
   internal fun onOverscroll(dy: Float) {
+    dragGeneration++
     drag += dy
   }
 
@@ -69,10 +74,25 @@ class ReaderDragDismissState(
       onDismiss()
       return
     }
-    animate(drag, 0f, animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)) { value, _ ->
-      drag = value
+    // The return starts at the release velocity, so the column does not stop before it eases back.
+    val started = dragGeneration
+    try {
+      animate(
+        initialValue = drag,
+        targetValue = 0f,
+        initialVelocity = velocity,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
+      ) { value, _ ->
+        if (dragGeneration != started) throw ReturnInterrupted()
+        drag = value
+      }
+    } catch (_: ReturnInterrupted) {
+      // The finger took over; the drag continues from where the column is.
     }
   }
+
+  /** Ends a return when a new drag starts; caught in [release], never seen by callers. */
+  private class ReturnInterrupted : CancellationException("A drag took over the reader")
 
   val connection: NestedScrollConnection = object : NestedScrollConnection {
     override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -80,6 +100,7 @@ class ReaderDragDismissState(
       if (source != NestedScrollSource.UserInput || drag == 0f || sign(available.y) == sign(drag)) return Offset.Zero
       val next = drag + available.y
       val consumed = if (sign(next) != sign(drag)) -drag else available.y
+      dragGeneration++
       drag += consumed
       return Offset(0f, consumed)
     }

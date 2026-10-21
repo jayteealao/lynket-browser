@@ -34,7 +34,7 @@ import arun.com.chromer.tabs.WEB_VIEW
 import arun.com.chromer.tabs.ui.TabsUiState
 import arun.com.chromer.ui.history.HistoryActions
 import arun.com.chromer.ui.history.HistoryContent
-import arun.com.chromer.ui.history.HistoryListItem
+import arun.com.chromer.history.HistoryListItem
 import arun.com.chromer.ui.history.TEST_NOW
 import arun.com.chromer.ui.history.UiDispatcherResetRule
 import arun.com.chromer.ui.history.TEST_ZONE

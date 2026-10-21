@@ -11,9 +11,11 @@
 
 package arun.com.chromer.ui.browsing
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import kotlin.coroutines.cancellation.CancellationException
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.MutatorMutex
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -171,8 +173,13 @@ class HideOnScrollState(initialOffset: Float = 0f) {
 
   val fraction: Float get() = if (limit <= 0f) 0f else (-offset / limit).coerceIn(0f, 1f)
 
+  /** Bumped by each scroll, so a settle in progress stops as soon as a finger moves the bars. */
+  private var scrollGeneration = 0
+  private val settleMutex = MutatorMutex()
+
   /** Applies a scroll by [dy] px (positive when the content moves up, that is scrolling down). */
   fun onScroll(dy: Float) {
+    scrollGeneration++
     offset = (offset - dy).coerceIn(-limit, 0f)
   }
 
@@ -191,10 +198,27 @@ class HideOnScrollState(initialOffset: Float = 0f) {
   /** Slides the bars fully into view. */
   suspend fun animateShow() = animateTo(0f)
 
+  /**
+   * Springs the bars to [target]. A new settle cancels the one running, and a scroll that starts
+   * meanwhile stops it at once, so the finger and the animation never fight over [offset].
+   */
   private suspend fun animateTo(target: Float) {
     if (offset == target) return
-    animate(offset, target, animationSpec = tween(SETTLE_MS, easing = FastOutSlowInEasing)) { value, _ -> offset = value }
+    settleMutex.mutate {
+      val started = scrollGeneration
+      try {
+        animate(offset, target, animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)) { value, _ ->
+          if (scrollGeneration != started) throw SettleInterrupted()
+          offset = value
+        }
+      } catch (_: SettleInterrupted) {
+        // The finger took over; the bars stay where the scroll puts them.
+      }
+    }
   }
+
+  /** Ends a settle when a scroll starts; caught in [animateTo], never seen by callers. */
+  private class SettleInterrupted : CancellationException("A scroll took over the bars")
 
   /** Reads list scroll deltas without consuming them, and settles the bars when the list comes to rest. */
   val connection: NestedScrollConnection = object : NestedScrollConnection {
@@ -209,9 +233,6 @@ class HideOnScrollState(initialOffset: Float = 0f) {
     }
   }
 
-  private companion object {
-    const val SETTLE_MS = 200
-  }
 }
 
 @Composable

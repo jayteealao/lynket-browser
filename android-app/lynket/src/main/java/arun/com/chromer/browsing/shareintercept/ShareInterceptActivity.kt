@@ -31,6 +31,7 @@ import android.content.Intent.*
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
@@ -39,6 +40,7 @@ import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.SafeIntent
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.WebUrl
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -101,10 +103,18 @@ class ShareInterceptActivity : BaseActivity() {
     }
   }
 
-  /** Hands the link on, then finishes; plain text is first turned into a search, which waits for the engine. */
+  /**
+   * Hands the link on, then finishes; plain text is first turned into a search, which waits for the
+   * engine. Only web links open: shared text such as a `file:`, `content:` or `intent:` address is
+   * refused, and only its scheme is logged.
+   */
   private fun openLink(url: String?) {
-    when (url) {
-      null -> invalidLink()
+    when {
+      url == null -> invalidLink()
+      !WebUrl.hasWebScheme(url) -> {
+        Timber.w("Refused a shared link with scheme %s", runCatching { url.toUri().scheme }.getOrNull())
+        invalidLink()
+      }
       else -> tabsManager.openUrl(this, website = Website(url))
     }
     finish()

@@ -92,7 +92,15 @@ internal constructor(
       }
     }
     legacyImport?.let { import ->
-      runCatching { import.runOnce(db) }.onFailure { Timber.e(it, "Old history import failed") }
+      try {
+        import.runOnce(db)
+      } catch (e: CancellationException) {
+        // The caller is gone and will not keep this instance; close it so the next open is the only one.
+        runCatching { db.close() }
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e, "Old history import failed")
+      }
     }
     return db
   }

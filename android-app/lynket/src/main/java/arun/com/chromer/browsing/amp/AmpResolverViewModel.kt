@@ -11,6 +11,7 @@
 
 package arun.com.chromer.browsing.amp
 
+import arun.com.chromer.util.WebUrl
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arun.com.chromer.data.website.WebsiteRepository
@@ -79,7 +80,7 @@ class AmpResolverViewModel @Inject constructor(
     lookup = viewModelScope.launch {
       val website = runCatching {
         if (incognito) websiteRepository.getWebsiteReadOnly(url).first() else websiteRepository.getWebsite(url).first()
-      }.onFailure { Timber.e(it, "AMP lookup failed for %s", url) }.getOrNull()
+      }.onFailure { Timber.e(it, "AMP lookup failed for %s", WebUrl.hostForLog(url)) }.getOrNull()
       _state.value = when {
         website != null && website.hasAmp() -> AmpState.Found(website)
         !networkMonitor.isOnlineNow() -> AmpState.Error(url)

@@ -11,6 +11,8 @@
 
 package arun.com.chromer.ui.reader
 
+import arun.com.chromer.browsing.article.BlockKind
+import arun.com.chromer.browsing.article.articleBlocks
 import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.browsing.article.toReaderArticle

@@ -52,7 +52,7 @@ import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.browsing.menu.MenuDelegate
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
-import arun.com.chromer.ui.navigation.WebUrl
+import arun.com.chromer.util.WebUrl
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import arun.com.chromer.ui.webview.WebViewBarsState
 import arun.com.chromer.ui.webview.WebViewPage

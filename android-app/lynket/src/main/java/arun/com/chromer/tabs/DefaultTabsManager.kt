@@ -69,7 +69,7 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.tabs.ui.TabsActivity
 import arun.com.chromer.ui.browsing.showSecondaryBrowserError
-import arun.com.chromer.ui.navigation.WebUrl
+import arun.com.chromer.util.WebUrl
 import arun.com.chromer.util.SafeIntent
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.events.EventBus

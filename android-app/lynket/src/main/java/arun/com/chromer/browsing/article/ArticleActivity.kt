@@ -115,9 +115,14 @@ class ArticleActivity : BrowsingActivity() {
           onImage = ::openImage,
           onKeyword = ::searchKeyword,
           onTextSizeChange = viewModel::setTextSize,
-          onSaveTextSize = {
-            preferences.articleTextSizeIncrement(it)
-            saved = it
+          onSaveTextSize = { increment ->
+            saved = increment
+            // Saved off the main thread so the dialog closes without waiting for the disk.
+            val repository = Preferences.entryPoint(this).userPreferencesRepository()
+            lifecycleScope.launch {
+              runCatching { repository.setValue(Preferences.ARTICLE_TEXT_SIZE, increment) }
+                .onFailure { Timber.e(it, "Text size could not be saved") }
+            }
           },
           modifier = Modifier.semantics { testTagsAsResourceId = true },
         )

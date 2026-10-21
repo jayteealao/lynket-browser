@@ -46,6 +46,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import timber.log.Timber
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -78,8 +80,16 @@ class Preferences @Inject constructor(
   private fun string(name: String): String? =
     repository.current().readString(name, SettingsSchema.require(name).default(context) as String?)
 
+  /**
+   * Writes [value] and waits for the store. A failed write (for example a full disk) is logged
+   * and not thrown, as the earlier `apply()` writes never threw; the stored value stays as it was.
+   */
   private fun put(name: String, value: Any?) {
-    blockingWait("Preferences.put($name)", Dispatchers.IO) { repository.setValue(name, value) }
+    try {
+      blockingWait("Preferences.put($name)", Dispatchers.IO) { repository.setValue(name, value) }
+    } catch (e: IOException) {
+      Timber.e(e, "Setting %s could not be saved", name)
+    }
   }
 
   val isFirstRun: Boolean
@@ -151,9 +161,12 @@ class Preferences @Inject constructor(
     }
     val fallback = defaultCustomTabApp
     appScope.launch {
-      if (string(PREFERRED_CUSTOM_TAB_PACKAGE) == stored) {
-        repository.setValues(mapOf(USE_WEBVIEW_PREF to false, PREFERRED_CUSTOM_TAB_PACKAGE to fallback))
-      }
+      val default = SettingsSchema.require(PREFERRED_CUSTOM_TAB_PACKAGE).default(context) as String?
+      runCatching {
+        repository.setValuesIf(mapOf(USE_WEBVIEW_PREF to false, PREFERRED_CUSTOM_TAB_PACKAGE to fallback)) {
+          it.readString(PREFERRED_CUSTOM_TAB_PACKAGE, default) == stored
+        }
+      }.onFailure { Timber.e(it, "Default Custom Tab provider could not be saved") }
     }
     return fallback
   }

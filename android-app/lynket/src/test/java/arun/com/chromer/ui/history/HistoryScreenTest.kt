@@ -11,6 +11,7 @@
 
 package arun.com.chromer.ui.history
 
+import arun.com.chromer.history.HistoryListItem
 import android.app.Application
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsOff

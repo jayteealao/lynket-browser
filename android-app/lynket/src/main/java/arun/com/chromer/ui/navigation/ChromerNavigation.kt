@@ -11,6 +11,13 @@
 
 package arun.com.chromer.ui.navigation
 
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
@@ -37,6 +44,7 @@ import arun.com.chromer.ui.components.ErrorState
 import arun.com.chromer.ui.intro.IntroScreen
 import arun.com.chromer.ui.tips.TipsScreen
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.WebUrl
 import arun.com.chromer.ui.article.ArticleScreen
 import arun.com.chromer.ui.browser.BrowserScreen
 import arun.com.chromer.ui.history.HistoryScreen
@@ -71,6 +79,11 @@ fun LynketNavDisplay(
       rememberViewModelStoreNavEntryDecorator(),
     ),
     sceneStrategies = listOf(DialogSceneStrategy()),
+    // A short fade-through between screens, forward and back, in place of the library's 700 ms
+    // cross-fade (navigation3-ui 1.2.0 defaultTransitionSpec). Predictive back keeps the library's
+    // gesture-driven spec, and the changelog dialog scene is not animated by these specs.
+    transitionSpec = { screenFadeThrough() },
+    popTransitionSpec = { screenFadeThrough() },
     entryProvider = entryProvider<NavKey> {
       entry<LynketKey.Home> { entries.home(navigator) }
       entry<LynketKey.History> { entries.history(navigator) }
@@ -96,6 +109,17 @@ fun LynketNavDisplay(
     },
   )
 }
+
+/** Duration of the outgoing screen's fade; the incoming screen fades in after it. */
+private const val SCREEN_FADE_OUT_MS = 70
+
+/** Duration of the incoming screen's fade; with [SCREEN_FADE_OUT_MS] a change takes 200 ms. */
+private const val SCREEN_FADE_IN_MS = 130
+
+/** Material fade-through: the old screen fades out quickly, then the new one fades in, eased out. */
+private fun screenFadeThrough(): ContentTransform =
+  fadeIn(tween(SCREEN_FADE_IN_MS, delayMillis = SCREEN_FADE_OUT_MS, easing = LinearOutSlowInEasing)) togetherWith
+    fadeOut(tween(SCREEN_FADE_OUT_MS, easing = FastOutLinearInEasing))
 
 /** Screens that tests replace with fakes; the app uses [Default]. */
 class LynketEntries(

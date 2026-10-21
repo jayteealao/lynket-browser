@@ -11,6 +11,8 @@
 
 package arun.com.chromer.ui.reader
 
+import arun.com.chromer.util.WebUrl
+import arun.com.chromer.browsing.article.ArticleBlock
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.background
@@ -303,7 +305,8 @@ private fun ArticleContent(
     verticalArrangement = Arrangement.spacedBy(16.dp),
     modifier = modifier.fillMaxSize().testTag("article"),
   ) {
-    if (article.imageUrl.isNotBlank()) {
+    // Only a web image loads: a page cannot point the header at a local content: or file: address.
+    if (article.imageUrl.isNotBlank() && WebUrl.hasWebScheme(article.imageUrl)) {
       item(key = "header-image") {
         AsyncImage(
           model = article.imageUrl,

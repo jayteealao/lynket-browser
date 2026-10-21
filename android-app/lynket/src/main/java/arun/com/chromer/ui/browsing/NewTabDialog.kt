@@ -64,6 +64,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -143,6 +145,8 @@ fun NewTabCard(
         color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(horizontal = 24.dp),
       )
+      // The field keeps its name after typing hides the placeholder.
+      val fieldName = stringResource(R.string.search_or_type_url)
       OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
@@ -171,6 +175,7 @@ fun NewTabCard(
           .padding(horizontal = 16.dp, vertical = 12.dp)
           .fillMaxWidth()
           .focusRequester(focusRequester)
+          .semantics { contentDescription = fieldName }
           .testTag("new-tab-field"),
       )
       if (suggestions.all.isNotEmpty()) {

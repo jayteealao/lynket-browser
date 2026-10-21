@@ -41,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 
 /**
@@ -82,11 +83,25 @@ class MainActivity : ComponentActivity() {
       }
     })
     lifecycleScope.launch {
-      repository.snapshot.filterNotNull().first()
-      show(freshStartKeys(intent))
-      ready = true
+      try {
+        val loaded = withTimeoutOrNull(FIRST_READ_TIMEOUT_MS) { repository.snapshot.filterNotNull().first() }
+        if (loaded != null) {
+          show(freshStartKeys(intent))
+        } else {
+          // The store could not be read in time (for example a full disk during the settings
+          // migration). Start on the default screens instead of keeping the starting window up.
+          Timber.w("Settings were not read in time; starting with the default screens")
+          show(LynketNavigator.initialKeys(isFirstRun = false, showChangelog = false, deepLink = deepLinkKey(intent)))
+        }
+      } finally {
+        ready = true
+        content.invalidate()
+      }
     }
   }
+
+  private fun deepLinkKey(intent: Intent?): LynketKey? =
+    intent?.let { WebUrlDeepLinkMatcher.keyFor(it) ?: Destination.keyFor(it) }
 
   private fun show(initialKeys: List<LynketKey>) {
     setContent {
@@ -134,7 +149,12 @@ class MainActivity : ComponentActivity() {
     return LynketNavigator.initialKeys(
       isFirstRun = firstRun,
       showChangelog = Changelog.shouldShow(savedVersionCode, BuildConfig.VERSION_CODE),
-      deepLink = intent?.let { WebUrlDeepLinkMatcher.keyFor(it) ?: Destination.keyFor(it) },
+      deepLink = deepLinkKey(intent),
     )
+  }
+
+  private companion object {
+    /** How long the first frame waits for the settings store before the default screens show. */
+    const val FIRST_READ_TIMEOUT_MS = 2_000L
   }
 }

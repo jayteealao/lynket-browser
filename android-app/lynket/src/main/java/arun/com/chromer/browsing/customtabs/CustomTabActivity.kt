@@ -24,6 +24,7 @@ import android.os.Bundle
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
+import arun.com.chromer.util.WebUrl
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -38,8 +39,12 @@ class CustomTabActivity : BrowsingActivity() {
   @Inject
   lateinit var customTabs: CustomTabs
 
+  /** Only web links go to the Custom Tab provider (no javascript:, file:, content: or intent:). */
+  override fun acceptsLink(url: String): Boolean = WebUrl.hasWebScheme(url)
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    if (isFinishing) return
 
     val toolbarColor = intent.getIntExtra(EXTRA_KEY_TOOLBAR_COLOR, 0)
 

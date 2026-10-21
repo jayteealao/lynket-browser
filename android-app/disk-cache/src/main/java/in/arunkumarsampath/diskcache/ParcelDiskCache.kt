@@ -32,7 +32,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
-import java.util.regex.Pattern
+import java.security.MessageDigest
 
 /**
  * Cache implementation to store [Parcelable] objects.
@@ -126,23 +126,13 @@ class ParcelDiskCache<T : Parcelable> private constructor(
     return parcel
   }
 
-  private fun validateKey(key: String): String {
-    val keyMatcher = getPattern(VALIDATE_KEY_REGEX).matcher(key)
-    val newKey = StringBuilder()
-    while (keyMatcher.find()) {
-      val group = keyMatcher.group()
-      if (newKey.length + group.length > MAX_KEY_SYMBOLS) {
-        break
-      }
-      newKey.append(group)
-    }
-    return newKey.toString().lowercase()
-  }
-
-  fun getPattern(bodyRegex: String): Pattern {
-    val flags = Pattern.MULTILINE or Pattern.DOTALL or Pattern.CASE_INSENSITIVE
-    return Pattern.compile(bodyRegex, flags)
-  }
+  /**
+   * The file key of [key]: the lowercase hex SHA-256 of the trimmed key. Two different keys (for
+   * example two links that differ only in letter case or in punctuation) never share a file. The
+   * cache folder version changes with each release, so entries written with the older keys are not
+   * read.
+   */
+  private fun validateKey(key: String): String = cacheKey(key)
 
   @JvmOverloads
   fun getList(key: String, itemClass: Class<*>? = null): List<T> {
@@ -232,8 +222,20 @@ class ParcelDiskCache<T : Parcelable> private constructor(
   companion object {
     private const val LIST = "list"
     private const val PARCELABLE = "parcelable"
-    private const val VALIDATE_KEY_REGEX = "[a-z0-9_-]{1,5}"
-    private const val MAX_KEY_SYMBOLS = 120
+
+    /** Lowercase hex SHA-256 of the trimmed [key]; 64 characters, valid as a cache file key. */
+    @JvmStatic
+    fun cacheKey(key: String): String {
+      val digest = MessageDigest.getInstance("SHA-256").digest(key.trim().toByteArray(Charsets.UTF_8))
+      val out = StringBuilder(digest.size * 2)
+      for (byte in digest) {
+        val value = byte.toInt() and 0xff
+        out.append(HEX[value ushr 4]).append(HEX[value and 0x0f])
+      }
+      return out.toString()
+    }
+
+    private const val HEX = "0123456789abcdef"
 
     @JvmStatic
     @Throws(IOException::class)

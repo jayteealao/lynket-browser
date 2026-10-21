@@ -254,3 +254,18 @@ tasks.withType<JavaCompile>().configureEach {
 dependencyLocking {
     lockAllConfigurations()
 }
+
+// The app stays Compose-only on KSP alone: `check` runs scripts/check-compose-only.sh (it needs
+// bash, as shipped with Git for Windows), so a layout, a View screen, a Fragment, an adapter or an
+// old annotation processor plugin that comes back fails the build check. Run it alone with
+// ./gradlew :lynket:checkComposeOnly.
+val checkComposeOnly by tasks.registering(Exec::class) {
+    group = "verification"
+    description = "Fails when a layout, a View screen, a Fragment, an adapter or the old annotation processor plugin comes back."
+    workingDir = rootDir
+    commandLine("bash", "scripts/check-compose-only.sh")
+}
+
+tasks.named("check") {
+    dependsOn(checkComposeOnly)
+}

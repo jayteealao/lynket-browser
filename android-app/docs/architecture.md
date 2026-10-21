@@ -8,7 +8,7 @@ app and how they connect. Build and test commands are in the repository `README.
 Every screen is Jetpack Compose with Material 3. The only XML layout left is the Custom Tab
 bottom bar (`res/layout/widget_bottom_bar_layout.xml`), because Chrome draws it as RemoteViews.
 `scripts/check-compose-only.sh` fails the build check if a layout, a View screen, a Fragment or
-kapt comes back.
+kapt comes back: `./gradlew :lynket:check` runs it as the `checkComposeOnly` task.
 
 ## One back stack, thin entry activities
 

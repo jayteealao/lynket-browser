@@ -49,8 +49,8 @@
   <string name="share_text">Hey Checkout \‘Lynket\’ for quick and secure browsing experience! Download here https://goo.gl/992ils</string>
   <string name="share_via">Share via…</string>
   <string name="custom_tab_provider_not_found">No Custom Tab provider found</string>
-  <string name="custom_tab_provider_not_found_expln">Lynket requires you to have any Custom tab compatible browser on your phone. Currently there are no browsers on your phone that supports it. Would you like to install Google Chrome (Free) from play store? If you already have it, then please update it to latest version.</string>
-  <string name="custom_tab_provider_not_found_dialog_content"><![CDATA[Could not find compatible custom tab browser on your phone. Google Chrome (Free) is recommended. You can still view webpages within Lynket and use Article mode, but for the best experience, a custom tab provider is highly recommended. Would you like to install now?]]></string>
+  <string name="custom_tab_provider_not_found_expln">Lynket requires you to have any Custom Tab compatible browser on your phone. Currently there are no browsers on your phone that supports it. Would you like to install Google Chrome (Free) from play store? If you already have it, then please update it to latest version.</string>
+  <string name="custom_tab_provider_not_found_dialog_content"><![CDATA[Could not find a compatible Custom Tab browser on your phone. Google Chrome (Free) is recommended. You can still view webpages within Lynket and use Article mode, but for the best experience, a Custom Tab provider is highly recommended. Would you like to install now?]]></string>
   <string name="install">Install</string>
   <string name="licenses">Licenses</string>
   <string name="about">About</string>
@@ -61,7 +61,7 @@
   <string name="feedback">Feedback</string>
   <string name="intro">Intro</string>
   <string name="send_email">Send email…</string>
-  <string name="fallback_msg">Could not open custom tab, falling back to webview.</string>
+  <string name="fallback_msg">Could not open a Custom Tab, falling back to Web View.</string>
   <string name="open_with">Open with…</string>
   <string name="open_in_browser">Open in %1$s</string>
   <string name="unxp_err">Unexpected error, try again</string>
@@ -259,7 +259,7 @@
   <string name="recents">Recents</string>
   <string name="enable_history">History enabled</string>
   <string name="enable_history_subtitle">Disabling history will stop recording items here.</string>
-  <string name="enable_history_subtitle_custom_tab"><![CDATA[Disabling history will stop recording items here. The custom tab provider, <b>%1$s</b> might still record entries.]]></string>
+  <string name="enable_history_subtitle_custom_tab"><![CDATA[Disabling history will stop recording items here. The Custom Tab provider, <b>%1$s</b> might still record entries.]]></string>
   <string name="source">Source</string>
   <string name="contribute_to_chromer">Love to code? Fork Lynket and contribute.</string>
   <string name="fork_on_github">Fork on GitHub</string>
@@ -294,7 +294,7 @@
   <string name="feature_requires_lollipop">This feature requires Android Lollipop</string>
   <string name="article_loading_failed">Could not extract article.</string>
   <string name="full_incognito_mode">Incognito browsing</string>
-  <string name="full_incognito_mode_explanation">For full incognito browsing Lynket will switch to Webview for rendering pages. Entries will not be recorded anywhere.</string>
+  <string name="full_incognito_mode_explanation">For full incognito browsing Lynket will switch to Web View for rendering pages. Entries will not be recorded anywhere.</string>
   <string name="per_app_settings">Per app settings</string>
   <string name="per_app_settings_explanation">Configure secondary browser and incognito mode for apps individually.</string>
   <string name="provider_web_view_incognito_reason">Required for incognito mode. Turn off incognito for choosing another provider.</string>
@@ -335,7 +335,7 @@
   <string name="bubble_notification_channel_description">Channel for showing bubbles</string>
   <string name="browsing_mode_native_bubbles_explanation">Use Android 10\'s native bubbles to load multiple links in floating windows.</string>
   <string name="browsing_mode_native_bubbles">Native Bubbles (Beta)</string>
-  <string name="browsing_mode_native_bubbles_warning">Native bubbles integration is in beta and requires extra steps to be enabled. Please note that current implementation is not final and may change in the future. \n\nKnown issues:\nOnly WebView provider works with floating window.</string>
+  <string name="browsing_mode_native_bubbles_warning">Native bubbles integration is in beta and requires extra steps to be enabled. Please note that current implementation is not final and may change in the future. \n\nKnown issues:\nOnly the Web View provider works with floating window.</string>
   <string name="browsing_mode_native_bubbles_guide">Guide</string>
   <string name="bubble_notification_group_title">Active bubbles</string>
   <string name="bubble_notification_group_description">Showing bubble notifications, swipe to expand</string>
@@ -382,7 +382,10 @@
   <string name="offline_message">You\'re offline. Pages open when you reconnect.</string>
   <string name="link_error_title">This link cannot be opened</string>
   <string name="go_back">Go back</string>
-  <string name="active_tabs_count">%1$d open tabs</string>
+  <plurals name="open_tabs_count">
+    <item quantity="one">%1$d open tab</item>
+    <item quantity="other">%1$d open tabs</item>
+  </plurals>
   <string name="add_bookmark">Bookmark</string>
   <string name="remove_bookmark">Remove bookmark</string>
   <string name="remove_from_history">Remove from history</string>
@@ -451,7 +454,7 @@
   <!-- Reader, image viewer and web view -->
   <string name="reader_loading">Extracting the article…</string>
   <string name="reader_error_title">Couldn\'t read this page</string>
-  <string name="reader_error_body">Lynket could not find an article on this page. Open it in the browser instead.</string>
+  <string name="reader_error_body">Lynket could not load an article from this page. Check your connection and retry, or open it in the browser.</string>
   <string name="reader_open_in_browser">Open in browser</string>
   <string name="reader_open_image">Open image</string>
   <string name="pinch_to_zoom">Pinch to zoom</string>

@@ -11,7 +11,7 @@
 
 package arun.com.chromer.util.parser.extraction
 
-import arun.com.chromer.ui.reader.articleBlocks
+import arun.com.chromer.browsing.article.articleBlocks
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.jsoup.Jsoup

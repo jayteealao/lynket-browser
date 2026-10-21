@@ -11,6 +11,7 @@
 
 package arun.com.chromer.util.image
 
+import arun.com.chromer.util.WebUrl
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Bitmap.Config.ARGB_8888
@@ -69,7 +70,11 @@ object WebsiteIconLoader {
       .apply { if (circleCrop) transformations(CircleCropTransformation()) }
       .build()
 
-  /** The favicon at [url], or null when it cannot load. Blocks; call it off the main thread. */
+  /**
+   * The favicon at [url], or null when it cannot load. Only `http` and `https` addresses load: a
+   * page cannot make the app read a local `content:`, `file:` or app-icon address as its icon.
+   * Blocks; call it off the main thread.
+   */
   @WorkerThread
   fun favicon(
     context: Context,
@@ -77,13 +82,13 @@ object WebsiteIconLoader {
     circleCrop: Boolean = false,
     imageLoader: ImageLoader = context.imageLoader,
   ): Bitmap? {
-    if (url.isNullOrEmpty()) return null
+    if (url.isNullOrEmpty() || !WebUrl.hasWebScheme(url)) return null
     return try {
       (imageLoader.executeBlocking(request(context, url, circleCrop)) as? SuccessResult)
         ?.image
         ?.toBitmap()
     } catch (e: Exception) {
-      Timber.e(e, "Favicon failed to load: %s", url)
+      Timber.e(e, "Favicon failed to load from %s", WebUrl.hostForLog(url))
       null
     }
   }
@@ -94,13 +99,13 @@ object WebsiteIconLoader {
     url: String?,
     imageLoader: ImageLoader = context.imageLoader,
   ): Bitmap? {
-    if (url.isNullOrEmpty()) return null
+    if (url.isNullOrEmpty() || !WebUrl.hasWebScheme(url)) return null
     return try {
       (imageLoader.execute(request(context, url, circleCrop = false)) as? SuccessResult)
         ?.image
         ?.toBitmap()
     } catch (e: Exception) {
-      Timber.e(e, "Favicon failed to load: %s", url)
+      Timber.e(e, "Favicon failed to load from %s", WebUrl.hostForLog(url))
       null
     }
   }

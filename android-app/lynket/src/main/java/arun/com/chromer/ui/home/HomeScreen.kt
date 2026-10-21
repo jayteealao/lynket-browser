@@ -11,6 +11,7 @@
 
 package arun.com.chromer.ui.home
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -376,7 +377,7 @@ private fun TabsCard(openTabs: Int, onTabs: () -> Unit) {
     ) {
       Icon(Icons.Outlined.Tab, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
       Text(
-        text = stringResource(R.string.active_tabs_count, openTabs),
+        text = pluralStringResource(R.plurals.open_tabs_count, openTabs, openTabs),
         style = MaterialTheme.typography.bodyLarge,
         modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
       )

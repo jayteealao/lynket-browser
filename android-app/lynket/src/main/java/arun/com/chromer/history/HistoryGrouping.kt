@@ -9,7 +9,7 @@
  *  (at your option) any later version.
  */
 
-package arun.com.chromer.ui.history
+package arun.com.chromer.history
 
 import android.content.Context
 import android.text.format.DateUtils

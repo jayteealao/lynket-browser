@@ -79,20 +79,40 @@ object DataStoreModule {
     ): DataStore<Preferences> =
         perAppRulesDataStore(context) { context.preferencesDataStoreFile(PER_APP_RULES_NAME) }
 
+    /** Folder in the app files where a corrupt store file is kept before the store starts empty. */
+    const val CORRUPT_FOLDER = "datastore-corrupt"
+
     fun settingsDataStore(context: Context, file: () -> File): DataStore<Preferences> =
-        create(file, LegacySettingsMigration(context))
+        create(context, USER_PREFERENCES_NAME, file, LegacySettingsMigration(context))
 
     fun perAppRulesDataStore(context: Context, file: () -> File): DataStore<Preferences> =
-        create(file, PaperPerAppMigration(context))
+        create(context, PER_APP_RULES_NAME, file, PaperPerAppMigration(context))
 
-    private fun create(file: () -> File, migration: DataMigration<Preferences>): DataStore<Preferences> =
+    private fun create(
+        context: Context,
+        name: String,
+        file: () -> File,
+        migration: DataMigration<Preferences>,
+    ): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(
             corruptionHandler = ReplaceFileCorruptionHandler { exception ->
-                Timber.e(exception, "DataStore file corrupted, using empty preferences")
+                // The corrupt file is copied aside first, so the settings or rules in it are not
+                // lost for good when the store starts again empty.
+                val kept = keepCorruptCopy(context, name, file)
+                Timber.e(exception, "The %s store was corrupt and starts empty; copy kept: %s", name, kept != null)
                 emptyPreferences()
             },
             migrations = listOf(migration),
             scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
             produceFile = file,
         )
+
+    /** Copies the store file of [name] to [CORRUPT_FOLDER]; returns the copy, or null when it fails. */
+    private fun keepCorruptCopy(context: Context, name: String, file: () -> File): File? =
+        runCatching {
+            val source = file()
+            if (!source.exists()) return@runCatching null
+            val folder = File(context.filesDir, CORRUPT_FOLDER).apply { mkdirs() }
+            source.copyTo(File(folder, "$name-${System.currentTimeMillis()}.preferences_pb"), overwrite = true)
+        }.onFailure { Timber.e(it, "Could not keep a copy of the corrupt %s store", name) }.getOrNull()
 }

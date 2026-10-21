@@ -22,6 +22,7 @@
 // Phase 7: Converted to Kotlin
 package arun.com.chromer.data.webarticle.stores
 
+import arun.com.chromer.util.WebUrl
 import arun.com.chromer.data.webarticle.WebArticleStore
 import arun.com.chromer.data.webarticle.model.WebArticle
 import arun.com.chromer.util.parser.RxParser
@@ -64,7 +65,7 @@ class WebArticleNetworkStore @Inject constructor() : WebArticleStore {
                 null
             }
         } catch (e: Exception) {
-            Timber.e(e, "Article extraction failed for %s", url)
+            Timber.e(e, "Article extraction failed for %s", WebUrl.hostForLog(url))
             null
         }
     }

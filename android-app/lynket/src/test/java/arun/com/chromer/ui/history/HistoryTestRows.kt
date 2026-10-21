@@ -11,6 +11,8 @@
 
 package arun.com.chromer.ui.history
 
+import arun.com.chromer.history.HistoryListItem
+import arun.com.chromer.history.withDayHeaders
 import androidx.paging.LoadState
 import androidx.paging.LoadStates
 import androidx.paging.PagingData
