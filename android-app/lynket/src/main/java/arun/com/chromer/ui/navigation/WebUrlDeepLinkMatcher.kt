@@ -26,11 +26,20 @@ value class WebUrl private constructor(val value: String) {
     fun parseOrNull(raw: String?): WebUrl? {
       if (raw.isNullOrBlank() || raw.any { it.isWhitespace() }) return null
       val uri = runCatching { Uri.parse(raw) }.getOrNull() ?: return null
-      val scheme = uri.scheme?.lowercase() ?: return null
-      if (scheme != "http" && scheme != "https") return null
+      if (!isWebScheme(uri.scheme)) return null
       if (uri.host.isNullOrBlank()) return null
       return WebUrl(raw)
     }
+
+    /** True for `http` and `https` in any case; the one scheme rule of every link entry. */
+    fun isWebScheme(scheme: String?): Boolean = scheme?.lowercase().let { it == "http" || it == "https" }
+
+    /**
+     * True when [raw] parses to an `http` or `https` URI. Checks the scheme only, so every web link
+     * that opens today still opens; `javascript:`, `file:`, `content:` and `intent:` links do not.
+     */
+    fun hasWebScheme(raw: String?): Boolean =
+      !raw.isNullOrEmpty() && isWebScheme(runCatching { Uri.parse(raw).scheme }.getOrNull())
   }
 }
 
@@ -50,8 +59,7 @@ class WebUrlDeepLinkMatcher :
 
   override fun matchRequest(request: DeepLinkRequest): MatchResult<LynketKey.Browser>? {
     val uri = request.uri ?: return null
-    val scheme = uri.scheme?.lowercase() ?: return null
-    if (scheme != "http" && scheme != "https") return null
+    if (!WebUrl.isWebScheme(uri.scheme)) return null
     return MatchResult(LynketKey.Browser(uri.toString()))
   }
 

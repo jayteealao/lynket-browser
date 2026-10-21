@@ -52,6 +52,7 @@ import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.browsing.menu.MenuDelegate
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
+import arun.com.chromer.ui.navigation.WebUrl
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import arun.com.chromer.ui.webview.WebViewBarsState
 import arun.com.chromer.ui.webview.WebViewPage
@@ -87,10 +88,14 @@ open class WebViewActivity : BrowsingActivity() {
     }
   }
 
+  /** The WebView runs JavaScript, so it loads web links only (no javascript:, file:, content:). */
+  override fun acceptsLink(url: String): Boolean = WebUrl.hasWebScheme(url)
+
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
-    val url = intent?.dataString ?: return // BrowsingActivity already closed with a message.
+    // BrowsingActivity already closed: with a message for a missing link, silently for a refused one.
+    val url = intent?.dataString?.takeUnless { isFinishing } ?: return
     toolbarColour = intent.getIntExtra(Constants.EXTRA_KEY_TOOLBAR_COLOR, ContextCompat.getColor(this, R.color.colorPrimary))
     page = page.copy(title = website?.safeLabel() ?: url, address = url)
 

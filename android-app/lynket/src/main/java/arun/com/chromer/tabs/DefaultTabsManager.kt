@@ -69,6 +69,7 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.tabs.ui.TabsActivity
 import arun.com.chromer.ui.browsing.showSecondaryBrowserError
+import arun.com.chromer.ui.navigation.WebUrl
 import arun.com.chromer.util.SafeIntent
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.events.EventBus
@@ -282,6 +283,12 @@ constructor(
         // Safety check against malicious intents
         val safeIntent = SafeIntent(intent)
         val url = safeIntent.dataString ?: return@withContext
+        // An explicit intent can carry any scheme; only web links open (never javascript:, file:,
+        // content: or intent:). The scheme is logged, never the link.
+        if (!WebUrl.hasWebScheme(url)) {
+          Timber.w("Refused a link with scheme %s", Uri.parse(url).scheme)
+          return@withContext
+        }
         var proceed = true
         // Find the app this link came from, for per-app rules and the app-based toolbar colour.
         val linkSource = if (preferences.perAppSettings() || preferences.isAppBasedToolbar()) {

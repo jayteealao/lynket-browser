@@ -83,4 +83,27 @@ class WebUrlDeepLinkMatcherTest {
       "example.com", "://", "https//example.com", "%%%", "\u0000",
     ).forEach { raw -> assertThat(WebUrl.parseOrNull(raw)).isNull() }
   }
+
+  @Test
+  fun hasWebSchemeAcceptsHttpAndHttpsInAnyCase() {
+    listOf("http://a", "https://a", "HTTPS://a", "Http://a", "https://", "https:///path-only")
+      .forEach { raw -> assertThat(WebUrl.hasWebScheme(raw)).isTrue() }
+    urls.forEach { url -> assertThat(WebUrl.hasWebScheme(url)).isTrue() }
+  }
+
+  @Test
+  fun hasWebSchemeRefusesEveryOtherLink() {
+    listOf(
+      "javascript:alert(1)", "file:///sdcard/x.html", "content://x/y", "intent://x#Intent;end",
+      "", null, "example.com", "ftp://x", "mailto:a@b.c", "JavaScript:alert(1)",
+    ).forEach { raw -> assertThat(WebUrl.hasWebScheme(raw)).isFalse() }
+  }
+
+  @Test
+  fun isWebSchemeIsTheSchemeRule() {
+    listOf("http", "https", "HTTP", "hTtPs").forEach { assertThat(WebUrl.isWebScheme(it)).isTrue() }
+    listOf(null, "", "javascript", "file", "content", "intent", "httpx").forEach {
+      assertThat(WebUrl.isWebScheme(it)).isFalse()
+    }
+  }
 }

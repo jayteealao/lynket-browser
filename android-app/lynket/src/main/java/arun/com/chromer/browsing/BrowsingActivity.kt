@@ -44,6 +44,7 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.filter
+import timber.log.Timber
 import javax.inject.Inject
 
 const val EXTRA_CURRENT_LOADING_URL = "EXTRA_CURRENT_LOADING_URL"
@@ -74,6 +75,13 @@ abstract class BrowsingActivity : BaseActivity() {
       finish()
       return
     }
+    if (!acceptsLink(intent.dataString!!)) {
+      // Nothing loads for a refused link: no page details, no history, no page. The scheme is
+      // logged, never the link.
+      Timber.w("Refused a link with scheme %s", intent.data?.scheme)
+      finish()
+      return
+    }
     incognito = intent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)
     observeViewModel(savedInstanceState)
     setupMinimize()
@@ -89,6 +97,9 @@ abstract class BrowsingActivity : BaseActivity() {
       BubbleRefusedActivity.showIfRefused(this)
     }
   }
+
+  /** Whether this screen may open [url]; checked in [onCreate] before anything loads. */
+  protected open fun acceptsLink(url: String): Boolean = true
 
   open fun getCurrentUrl(): String = intent.dataString!!
 
