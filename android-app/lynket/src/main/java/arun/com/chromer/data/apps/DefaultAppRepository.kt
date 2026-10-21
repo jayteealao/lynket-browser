@@ -29,7 +29,6 @@ import arun.com.chromer.data.apps.store.AppStore
 import arun.com.chromer.data.common.App
 import arun.com.chromer.data.common.qualifiers.Disk
 import arun.com.chromer.shared.Constants
-import arun.com.chromer.util.blockingWait
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import timber.log.Timber
@@ -54,16 +53,18 @@ class DefaultAppRepository
 
   override suspend fun getPackageColor(packageName: String): Int {
     val color = diskStore.getPackageColor(packageName)
-    if (color == Constants.NO_COLOR) {
-      Timber.d("Color not found, starting extraction.")
-      androidx.core.app.JobIntentService.enqueueWork(
-        application,
-        AppColorExtractorJob::class.java,
-        AppColorExtractorJob.JOB_ID,
-        Intent().putExtra(Constants.EXTRA_PACKAGE_NAME, packageName)
-      )
-    }
+    if (color == Constants.NO_COLOR) startColorExtraction(packageName)
     return color
+  }
+
+  private fun startColorExtraction(packageName: String) {
+    Timber.d("Color not found, starting extraction.")
+    androidx.core.app.JobIntentService.enqueueWork(
+      application,
+      AppColorExtractorJob::class.java,
+      AppColorExtractorJob.JOB_ID,
+      Intent().putExtra(Constants.EXTRA_PACKAGE_NAME, packageName)
+    )
   }
 
   override suspend fun setPackageColor(packageName: String, color: Int): App {
@@ -82,8 +83,11 @@ class DefaultAppRepository
     return diskStore.setPackageBlacklisted(packageName)
   }
 
+  /** Reads the in-memory per-app rules, so the link path does not wait on the main thread. */
   override fun getPackageColorSync(packageName: String): Int {
-    return blockingWait("AppRepository.getPackageColorSync") { getPackageColor(packageName) }
+    val color = diskStore.getPackageColorSync(packageName)
+    if (color == Constants.NO_COLOR) startColorExtraction(packageName)
+    return color
   }
 
   override fun isPackageIncognito(packageName: String): Boolean {
