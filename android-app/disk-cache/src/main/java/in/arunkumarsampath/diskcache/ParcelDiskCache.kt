@@ -171,21 +171,6 @@ class ParcelDiskCache<T : Parcelable> private constructor(
     return false
   }
 
-  override fun getAll(): List<T?> = getAll(null)
-
-  fun getAll(prefix: String?): List<T?> {
-    val files = cache.directory.listFiles() ?: return ArrayList(1)
-    val list = ArrayList<T?>(files.size)
-    for (file in files) {
-      val fileName = file.name
-      val dot = fileName.indexOf(".")
-      if (dot > 0 && (prefix.isNullOrEmpty() || fileName.startsWith(prefix))) {
-        list.add(get(fileName.substring(0, dot)))
-      }
-    }
-    return list
-  }
-
   override fun clear() {
     try {
       cache.delete()

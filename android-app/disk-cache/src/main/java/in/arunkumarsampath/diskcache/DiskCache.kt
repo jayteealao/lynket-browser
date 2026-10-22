@@ -39,9 +39,6 @@ interface DiskCache<T> {
    */
   fun remove(key: String): Boolean
 
-  /** Returns all values from the cache directory if all files are the same type. */
-  fun getAll(): List<T?>
-
   /** Deletes all files from the cache directory. */
   fun clear()
 
