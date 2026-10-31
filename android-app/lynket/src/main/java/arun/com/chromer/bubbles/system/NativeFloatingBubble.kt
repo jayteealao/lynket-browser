@@ -146,13 +146,17 @@ constructor(
       }
       val website = read.firstOrNull() ?: initialBubble.website
 
-      val iconData = websiteIconsProvider.getBubbleIconAndColor(website)
-
-      initialBubble.copy(
-        website = website,
-        icon = iconData.icon,
-        color = iconData.color
-      )
+      if (initialBubble.incognito) {
+        // An incognito bubble shows the Lynket icon, so the site icon is never fetched.
+        initialBubble.copy(website = website)
+      } else {
+        val iconData = websiteIconsProvider.getBubbleIconAndColor(website)
+        initialBubble.copy(
+          website = website,
+          icon = iconData.icon,
+          color = iconData.color
+        )
+      }
     } catch (e: Exception) {
       Timber.e(e)
       initialBubble
