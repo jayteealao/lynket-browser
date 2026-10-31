@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="wf:screen" content="bubble-refused-message">
+<title>Bubble refused message</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+:root { color-scheme: light dark; }
+body { margin: 0; font: 14px/1.45 Roboto, "Google Sans Flex", system-ui, sans-serif;
+  background: var(--surface-container); color: var(--on-surface); }
+body [data-state] { display: none; }
+html[data-state="default"] [data-state~="default"], html[data-state="empty"] [data-state~="empty"],
+html[data-state="loading"] [data-state~="loading"], html[data-state="error"] [data-state~="error"],
+html[data-state="worst"] [data-state~="worst"] { display: block; }
+header.page { max-width: 1180px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--on-surface-variant); max-width: 70ch; }
+nav.flow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+nav.flow a { display: inline-flex; align-items: center; min-height: 48px; padding: 0 16px; border-radius: 24px;
+  border: 1px solid var(--outline-variant); color: var(--primary); text-decoration: none; font-weight: 600; }
+nav.flow a[aria-current] { background: var(--primary-container); color: var(--on-primary-container); border-color: transparent; }
+.board { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;
+  max-width: 1180px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
+.panel h2 { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+.panel p.note { margin: 0 0 12px; color: var(--on-surface-variant); font-size: 13px; max-width: 46ch; }
+.phone { position: relative; width: 100%; max-width: 340px; height: 640px; border-radius: 28px; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--outline-variant); box-sizing: border-box; }
+.status { display: flex; justify-content: space-between; align-items: center; height: 32px; padding: 0 20px;
+  font-size: 13px; font-weight: 600; }
+.status svg { width: 40px; height: 12px; fill: currentColor; }
+.appbar { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--on-primary-container);
+  display: grid; place-items: center; font-weight: 600; flex: none; }
+.chat { padding: 8px 80px 8px 16px; display: grid; gap: 8px; }
+.msg { max-width: 78%; padding: 10px 14px; border-radius: 18px; background: var(--surface-container-high); }
+.msg.me { justify-self: end; background: var(--primary-container); color: var(--on-primary-container); }
+.msg a { color: var(--primary); overflow-wrap: anywhere; }
+.bubble { position: absolute; right: 8px; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface); border: 2px solid var(--primary); box-sizing: border-box; }
+.bubble .site { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 18px;
+  background: var(--primary-container); color: var(--on-primary-container); }
+.bubble .fallback { width: 40px; height: 40px; border-radius: 50%; background: var(--brand); }
+.lynket { width: 40px; height: 40px; }
+.shade { position: absolute; inset: 0; background: var(--surface-container); padding: 0 8px; }
+.shade .status { padding: 0 12px; }
+.qs { display: flex; gap: 8px; padding: 8px 4px 12px; }
+.qs span { flex: 1; height: 48px; border-radius: 24px; background: var(--surface-container-high); }
+.notif { background: var(--surface); border-radius: 24px; padding: 12px 16px; margin-bottom: 8px; display: grid;
+  grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; }
+.notif .app { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--on-surface-variant); }
+.notif .app svg { width: 16px; height: 16px; }
+.notif .title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.notif .text { color: var(--on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; grid-column: 1; }
+.notif .large { grid-row: 2 / span 2; grid-column: 2; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--primary-container); color: var(--on-primary-container); font-weight: 700; }
+.notif.summary { background: var(--surface-container-high); }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 8px;
+  background: var(--primary-container); color: var(--on-primary-container); }
+.home { position: absolute; inset: 32px 0 0; background: var(--primary-container); }
+.icons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 8px; padding: 24px 12px; text-align: center;
+  font-size: 12px; color: var(--on-primary-container); }
+.icons i { display: block; width: 52px; height: 52px; margin: 0 auto 4px; border-radius: 50%; background: var(--surface); }
+.menu { position: absolute; left: 12px; right: 12px; top: 150px; background: var(--surface); border-radius: 24px; padding: 8px 0; }
+.menu .row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 16px; }
+.menu .row b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.menu .ico { width: 32px; height: 32px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 13px;
+  background: var(--primary-container); color: var(--on-primary-container); }
+.menu .ico svg { width: 32px; height: 32px; }
+.target { position: absolute; left: 50%; bottom: 56px; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--inverse-surface); color: var(--inverse-on-surface); }
+.target svg { width: 28px; height: 28px; fill: currentColor; }
+.gesture { position: absolute; left: 50%; bottom: 8px; width: 108px; height: 4px; margin-left: -54px; border-radius: 2px; background: var(--on-surface); }
+.lock { position: absolute; inset: 0; background: var(--inverse-surface); color: var(--inverse-on-surface); }
+.lock .clock { text-align: center; font-size: 72px; font-weight: 300; line-height: 1; margin-top: 56px; }
+.lock .date { text-align: center; margin: 8px 0 32px; }
+.lock .notif { background: var(--surface-container-high); color: var(--on-surface); margin: 0 12px 8px; }
+.lock .unlock { position: absolute; bottom: 40px; left: 0; right: 0; text-align: center; font-size: 13px; }
+.lock .padlock { width: 24px; height: 24px; margin: 0 auto 4px; display: block; fill: currentColor; }
+.tab { position: absolute; inset: 0; background: var(--surface); }
+.tab .bar { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; background: var(--surface-container); }
+.tab .bar .url { flex: 1; min-width: 0; height: 40px; border-radius: 20px; background: var(--surface-container-high);
+  display: flex; align-items: center; padding: 0 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tab article { padding: 16px; }
+.tab article h3 { font-size: 22px; line-height: 1.25; margin: 0 0 8px; }
+.tab article p { margin: 0 0 12px; }
+.progress { height: 4px; background: var(--primary-container); }
+.progress i { display: block; width: 40%; height: 4px; background: var(--primary); }
+.snack { position: absolute; left: 12px; right: 12px; bottom: 28px; background: var(--inverse-surface); color: var(--inverse-on-surface);
+  border-radius: 8px; padding: 6px 8px 6px 16px; display: flex; align-items: center; gap: 8px; }
+.snack span { flex: 1; padding: 8px 0; }
+.snack button { min-height: 48px; min-width: 48px; padding: 0 12px; border: 0; background: transparent; color: var(--inverse-primary);
+  font: inherit; font-weight: 600; border-radius: 20px; }
+.navbar { position: absolute; left: 0; right: 0; bottom: 0; height: 24px; }
+.share { position: absolute; inset: 0; background: var(--inverse-surface); color: var(--inverse-on-surface); display: grid; place-items: center;
+  text-align: center; padding: 24px; }
+.share .blank { width: 220px; height: 380px; border-radius: 16px; background: var(--scrim); display: grid; place-items: center; padding: 16px;
+  color: var(--inverse-on-surface); }
+.dark { background: var(--surface-dark); color: var(--on-surface-dark); }
+.dark .tab { background: var(--surface-dark); }
+.dark .tab .bar { background: var(--surface-container-dark); }
+.dark .tab .bar .url { background: var(--surface-container-high-dark); }
+.dark .snack { background: var(--inverse-surface-dark); color: var(--inverse-on-surface-dark); }
+.dark .snack button { color: var(--inverse-primary-dark); }
+.dark .gesture { background: var(--on-surface-dark); }
+.dark .progress i { background: var(--primary-dark); }
+@media (prefers-color-scheme: dark) {
+  body { background: var(--surface-container-dark); color: var(--on-surface-dark); }
+  header.page p, .panel p.note { color: var(--on-surface-variant-dark); }
+  nav.flow a { color: var(--primary-dark); }
+}
+</style>
+<script>
+  // The canvas and the checks open a state with ?state=<name>.
+  document.documentElement.dataset.state = new URLSearchParams(location.search).get('state') || 'default';
+</script>
+</head>
+<body>
+<header class="page"><h1>Bubble refused message</h1><p>The existing message over the tab when Android refuses a bubble. New: the window is edge to edge, so the message sits above the gesture bar and the bar icons are readable in light and dark themes (AC-14).</p><nav class="flow" aria-label="Flow: open a link as a bubble"><a href="bubble-notification.html">Bubble</a><a href="incognito-bubble.html">Incognito bubble</a><a href="bubble-lock-screen.html">Lock screen</a><a href="bubble-refused-message.html" aria-current="page">Refused</a></nav></header>
+<main>
+<section data-state="default"><div class="board"><div class="panel"><h2>Light theme</h2><p class="note">Edge to edge: the page draws behind the status bar and the gesture bar; dark bar icons.</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">developer.android.com/develop/ui/views/notifications/bubbles</span></div>
+<article><h3>Use bubbles to let users participate in conversations</h3><p>Bubbles make it easier for users to see and participate in conversations.</p><p>Bubbles are built into the notification system.</p></article>
+<div class="snack" role="status"><span>Android did not show the bubble, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div><div class="panel"><h2>Dark theme</h2><p class="note">Light bar icons on the dark page.</p><div class="phone dark"><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">developer.android.com/develop/ui/views/notifications/bubbles</span></div>
+<article><h3>Use bubbles to let users participate in conversations</h3><p>Bubbles make it easier for users to see and participate in conversations.</p><p>Bubbles are built into the notification system.</p></article>
+<div class="snack" role="status"><span>Android did not show the bubble, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div></div></section>
+<section data-state="loading"><div class="board"><div class="panel"><h2>Page still loading</h2><p class="note">The message shows while the tab loads.</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">developer.android.com/develop/ui/views/notifications/bubbles</span></div><div class="progress"><i></i></div>
+<article><h3>Use bubbles to let users participate in conversations</h3><p>Bubbles make it easier for users to see and participate in conversations.</p><p>Bubbles are built into the notification system.</p></article>
+<div class="snack" role="status"><span>Android did not show the bubble, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div></div></section>
+<section data-state="empty"><div class="board"><div class="panel"><h2>Message gone</h2><p class="note">After its timeout or after Open Settings, only the tab stays.</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">developer.android.com/develop/ui/views/notifications/bubbles</span></div>
+<article><h3>Use bubbles to let users participate in conversations</h3><p>Bubbles make it easier for users to see and participate in conversations.</p><p>Bubbles are built into the notification system.</p></article>
+</div><span class="gesture"></span></div></div></div></section>
+<section data-state="error"><div class="board"><div class="panel"><h2>Notifications off</h2><p class="note">The cause sentence names the setting.</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">developer.android.com/develop/ui/views/notifications/bubbles</span></div>
+<article><h3>Use bubbles to let users participate in conversations</h3><p>Bubbles make it easier for users to see and participate in conversations.</p><p>Bubbles are built into the notification system.</p></article>
+<div class="snack" role="status"><span>Notifications are off for Lynket, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div><div class="panel"><h2>Bubbles off, dark theme</h2><p class="note">Same pattern in the dark theme.</p><div class="phone dark"><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">developer.android.com/develop/ui/views/notifications/bubbles</span></div>
+<article><h3>Use bubbles to let users participate in conversations</h3><p>Bubbles make it easier for users to see and participate in conversations.</p><p>Bubbles are built into the notification system.</p></article>
+<div class="snack" role="status"><span>Bubbles are off for Lynket, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div></div></section>
+<section data-state="worst"><div class="board"><div class="panel"><h2>Largest font size</h2><p class="note">At 200% font size the sentence wraps to three lines; Open Settings stays a 48 dp target.</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">developer.android.com/develop/ui/views/notifications/bubbles</span></div>
+<article><h3>Use bubbles to let users participate in conversations</h3><p>Bubbles make it easier for users to see and participate in conversations.</p><p>Bubbles are built into the notification system.</p></article>
+<div class="snack" style="font-size:22px;line-height:1.3" role="status"><span>Android did not show the bubble, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div></div></section>
+</main>
+</body>
+</html>

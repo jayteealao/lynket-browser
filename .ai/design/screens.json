@@ -1,0 +1,67 @@
+{
+  "schema": "sdlc/design-screens/v1",
+  "viewports": {
+    "phone": "375x812",
+    "tablet": "768x1024",
+    "desktop": "1280x800"
+  },
+  "areas": [
+    "bubbles",
+    "shared"
+  ],
+  "screens": {
+    "bubble-notification": {
+      "title": "Native bubble and its notification",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 10,
+      "workflows": [
+        "native-bubble-privacy-lifecycle"
+      ],
+      "slices": [],
+      "created-at": "2026-10-31T20:41:39Z",
+      "updated-at": "2026-10-31T20:41:39Z",
+      "approvals": []
+    },
+    "incognito-bubble": {
+      "title": "Incognito native bubble",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 20,
+      "workflows": [
+        "native-bubble-privacy-lifecycle"
+      ],
+      "slices": [],
+      "created-at": "2026-10-31T20:41:39Z",
+      "updated-at": "2026-10-31T20:41:39Z",
+      "approvals": []
+    },
+    "bubble-lock-screen": {
+      "title": "Bubble notification on the lock screen",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 30,
+      "workflows": [
+        "native-bubble-privacy-lifecycle"
+      ],
+      "slices": [],
+      "created-at": "2026-10-31T20:41:40Z",
+      "updated-at": "2026-10-31T20:41:40Z",
+      "approvals": []
+    },
+    "bubble-refused-message": {
+      "title": "Bubble refused message",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 40,
+      "workflows": [
+        "native-bubble-privacy-lifecycle"
+      ],
+      "slices": [],
+      "created-at": "2026-10-31T20:41:41Z",
+      "updated-at": "2026-10-31T20:41:41Z",
+      "approvals": []
+    }
+  },
+  "explore": {}
+}
