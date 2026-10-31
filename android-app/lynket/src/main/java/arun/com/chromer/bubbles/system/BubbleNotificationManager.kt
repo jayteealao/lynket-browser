@@ -126,9 +126,7 @@ constructor(
         flags
       )
 
-      val bubbleIcon: Icon = bubbleData.icon
-        ?.let(Icon::createWithAdaptiveBitmap)
-        ?: bubbleData.fallbackIcon()
+      val identity = bubbleData.identity()
 
       val displayHeight = (application.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
         .defaultDisplay
@@ -136,12 +134,12 @@ constructor(
 
       // Android 11 and later only show a bubble for a conversation, which needs a long-lived
       // shortcut for it.
-      val shortcutId = pushConversationShortcut(website.url, website.safeLabel(), bubbleIcon, bubbleData.incognito)
+      val shortcutId = pushConversationShortcut(website.url, website.safeLabel(), identity.icon, bubbleData.incognito)
 
       val bubbleNotification = notification(context, BUBBLE_NOTIFICATION_CHANNEL_ID) {
         shortcutId?.let(::setShortcutId)
-        setContentTitle(website.safeLabel())
-        setContentText(website.preferredUrl())
+        setContentTitle(identity.label)
+        identity.text?.let(::setContentText)
         setGroup(BUBBLE_NOTIFICATION_GROUP)
 
         setAllowSystemGeneratedContextualActions(true)
@@ -152,11 +150,11 @@ constructor(
 
         setOngoing(false) // TODO Register a broadcast receiver and call notificationManager.cancel
         setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
-        setLargeIcon(bubbleIcon)
+        setLargeIcon(identity.icon)
 
         bubbleMetadata {
-          setIcon(bubbleIcon)
-          setIcon(bubbleIcon)
+          setIcon(identity.icon)
+          setIcon(identity.icon)
           setIntent(bubbleIntent)
           setAutoExpandBubble(false)
           setSuppressNotification(true)
@@ -169,8 +167,8 @@ constructor(
         style = Notification.MessagingStyle(addPerson {
           // A conversation whose only person is a bot is not a conversation, and only
           // conversations bubble.
-          setIcon(bubbleIcon)
-          setName(website.safeLabel())
+          setIcon(identity.icon)
+          setName(identity.label)
           setImportant(true)
         })
       }
@@ -247,6 +245,24 @@ constructor(
   } catch (e: Exception) {
     Timber.e(e, "Could not publish the bubble shortcut")
     null
+  }
+
+  /** What a bubble shows outside itself: its notification, its person and its shortcut. */
+  private class BubbleIdentity(val label: String, val text: String?, val icon: Icon)
+
+  /** An incognito bubble shows only the neutral label and the Lynket icon, never its page. */
+  private fun BubbleLoadData.identity(): BubbleIdentity = if (incognito) {
+    BubbleIdentity(
+      application.getString(R.string.bubble_incognito_label),
+      null,
+      Icon.createWithResource(application, R.mipmap.ic_launcher),
+    )
+  } else {
+    BubbleIdentity(
+      website.safeLabel(),
+      website.preferredUrl(),
+      icon?.let(Icon::createWithAdaptiveBitmap) ?: fallbackIcon(),
+    )
   }
 
   private fun BubbleLoadData.fallbackIcon(): Icon = if (color != Constants.NO_COLOR) {
