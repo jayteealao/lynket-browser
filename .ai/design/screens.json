@@ -21,7 +21,13 @@
       "slices": [],
       "created-at": "2026-10-31T20:41:39Z",
       "updated-at": "2026-10-31T20:41:39Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
+          "at": "2026-10-31T21:05:44Z",
+          "workflow": "native-bubble-privacy-lifecycle"
+        }
+      ]
     },
     "incognito-bubble": {
       "title": "Incognito native bubble",
@@ -34,7 +40,13 @@
       "slices": [],
       "created-at": "2026-10-31T20:41:39Z",
       "updated-at": "2026-10-31T20:41:39Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
+          "at": "2026-10-31T21:05:44Z",
+          "workflow": "native-bubble-privacy-lifecycle"
+        }
+      ]
     },
     "bubble-lock-screen": {
       "title": "Bubble notification on the lock screen",
@@ -47,7 +59,13 @@
       "slices": [],
       "created-at": "2026-10-31T20:41:40Z",
       "updated-at": "2026-10-31T20:41:40Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
+          "at": "2026-10-31T21:05:44Z",
+          "workflow": "native-bubble-privacy-lifecycle"
+        }
+      ]
     },
     "bubble-refused-message": {
       "title": "Bubble refused message",
@@ -60,7 +78,13 @@
       "slices": [],
       "created-at": "2026-10-31T20:41:41Z",
       "updated-at": "2026-10-31T20:41:41Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
+          "at": "2026-10-31T21:05:44Z",
+          "workflow": "native-bubble-privacy-lifecycle"
+        }
+      ]
     }
   },
   "explore": {}
