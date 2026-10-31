@@ -156,6 +156,17 @@ internal constructor(
     emit(Website(url))
   }.flowOn(Dispatchers.IO)
 
+  override fun getWebsiteWithoutSaving(url: String): Flow<Website> = flow {
+    val website = cacheStore.getWebsite(url).filterNotNull().firstOrNull()
+      ?: historyRepository.get(Website(url))
+      ?: webNetworkStore.getWebsite(url).filterNotNull().firstOrNull()
+      ?: Website(url)
+    emit(website)
+  }.catch { throwable ->
+    Timber.e(throwable)
+    emit(Website(url))
+  }.flowOn(Dispatchers.IO)
+
   override fun getWebsiteColorSync(url: String): Int {
     return blockingWait("WebsiteRepository.getWebsiteColorSync") {
       val webColor = cacheStore.getWebsiteColor(url)
