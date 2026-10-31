@@ -25,6 +25,7 @@ import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
@@ -110,6 +111,7 @@ open class WebViewActivity : BrowsingActivity() {
     }
     Timber.d("WebView created")
     webView = view
+    hideFromScreenShareWhenIncognito(view)
     setupWebView(view)
     val restored = savedInstanceState?.getBundle(KEY_WEB_VIEW_STATE)?.let { view.restoreState(it) } != null
     if (!restored) view.loadUrl(url)
@@ -148,6 +150,12 @@ open class WebViewActivity : BrowsingActivity() {
         }
       }
     }
+  }
+
+  /** On Android 15 and later, an incognito page is hidden from a screen share; normal pages are not. */
+  private fun hideFromScreenShareWhenIncognito(view: WebView) {
+    if (!incognito || Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return
+    view.contentSensitivity = View.CONTENT_SENSITIVITY_SENSITIVE
   }
 
   @SuppressLint("SetJavaScriptEnabled")
