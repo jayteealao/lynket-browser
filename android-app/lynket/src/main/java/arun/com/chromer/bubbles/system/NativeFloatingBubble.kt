@@ -137,8 +137,14 @@ constructor(
 
     // Fetch website details and icon
     val updatedBubble = try {
-      val website = websiteRepository.getWebsite(initialBubble.website.url)
-        .firstOrNull() ?: initialBubble.website
+      val url = initialBubble.website.url
+      // An incognito page must leave no history row and no cache entry.
+      val read = if (initialBubble.incognito) {
+        websiteRepository.getWebsiteWithoutSaving(url)
+      } else {
+        websiteRepository.getWebsite(url)
+      }
+      val website = read.firstOrNull() ?: initialBubble.website
 
       val iconData = websiteIconsProvider.getBubbleIconAndColor(website)
 
