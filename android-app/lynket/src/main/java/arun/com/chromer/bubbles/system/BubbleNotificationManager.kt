@@ -37,6 +37,7 @@ import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.graphics.drawable.toBitmap
+import arun.com.chromer.MainActivity
 import arun.com.chromer.R
 import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.shared.Constants
@@ -134,7 +135,7 @@ constructor(
 
       // Android 11 and later only show a bubble for a conversation, which needs a long-lived
       // shortcut for it.
-      val shortcutId = pushConversationShortcut(website.url, website.safeLabel(), identity.icon, bubbleData.incognito)
+      val shortcutId = pushConversationShortcut(website.url, identity, bubbleData.incognito)
 
       val bubbleNotification = notification(context, BUBBLE_NOTIFICATION_CHANNEL_ID) {
         shortcutId?.let(::setShortcutId)
@@ -216,28 +217,34 @@ constructor(
   /** Publishes the long-lived shortcut a bubble is tied to; returns its id, or null when refused. */
   private fun pushConversationShortcut(
     url: String,
-    label: String,
-    icon: Icon,
+    identity: BubbleIdentity,
     incognito: Boolean,
   ): String? = try {
     val id = bubbleConversationId(url)
-    val iconCompat = IconCompat.createFromIcon(application, icon)
+    val iconCompat = IconCompat.createFromIcon(application, identity.icon)
+    val label = if (incognito) identity.label else identity.label.ifBlank { url }
     val person = Person.Builder()
       .setName(label)
       .setKey(id)
       .setImportant(true)
       .apply { iconCompat?.let(::setIcon) }
       .build()
+    // The system keeps the shortcut, so an incognito one opens the Lynket home and holds no address.
+    val intent = if (incognito) {
+      Intent(application, MainActivity::class.java)
+        .setAction(Intent.ACTION_MAIN)
+        .putExtra(Constants.EXTRA_KEY_INCOGNITO, true)
+    } else {
+      Intent(application, EmbeddableWebViewActivity::class.java)
+        .setAction(Intent.ACTION_VIEW)
+        .setData(Uri.parse(url))
+        .putExtra(Constants.EXTRA_KEY_INCOGNITO, false)
+    }
     val shortcut = ShortcutInfoCompat.Builder(application, id)
-      .setShortLabel(label.ifBlank { url })
+      .setShortLabel(label)
       .setLongLived(true)
       .setPerson(person)
-      .setIntent(
-        Intent(application, EmbeddableWebViewActivity::class.java)
-          .setAction(Intent.ACTION_VIEW)
-          .setData(Uri.parse(url))
-          .putExtra(Constants.EXTRA_KEY_INCOGNITO, incognito),
-      )
+      .setIntent(intent)
       .apply { iconCompat?.let(::setIcon) }
       .build()
     ShortcutManagerCompat.pushDynamicShortcut(application, shortcut)
