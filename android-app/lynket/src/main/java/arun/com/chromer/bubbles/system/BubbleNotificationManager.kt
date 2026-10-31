@@ -121,6 +121,7 @@ constructor(
         website.url.hashCode(),
         Intent(context, EmbeddableWebViewActivity::class.java).apply {
           data = Uri.parse(website.url)
+          putExtra(Constants.EXTRA_KEY_INCOGNITO, bubbleData.incognito)
         },
         flags
       )
@@ -135,7 +136,7 @@ constructor(
 
       // Android 11 and later only show a bubble for a conversation, which needs a long-lived
       // shortcut for it.
-      val shortcutId = pushConversationShortcut(website.url, website.safeLabel(), bubbleIcon)
+      val shortcutId = pushConversationShortcut(website.url, website.safeLabel(), bubbleIcon, bubbleData.incognito)
 
       val bubbleNotification = notification(context, BUBBLE_NOTIFICATION_CHANNEL_ID) {
         shortcutId?.let(::setShortcutId)
@@ -215,7 +216,12 @@ constructor(
   }
 
   /** Publishes the long-lived shortcut a bubble is tied to; returns its id, or null when refused. */
-  private fun pushConversationShortcut(url: String, label: String, icon: Icon): String? = try {
+  private fun pushConversationShortcut(
+    url: String,
+    label: String,
+    icon: Icon,
+    incognito: Boolean,
+  ): String? = try {
     val id = bubbleConversationId(url)
     val iconCompat = IconCompat.createFromIcon(application, icon)
     val person = Person.Builder()
@@ -231,7 +237,8 @@ constructor(
       .setIntent(
         Intent(application, EmbeddableWebViewActivity::class.java)
           .setAction(Intent.ACTION_VIEW)
-          .setData(Uri.parse(url)),
+          .setData(Uri.parse(url))
+          .putExtra(Constants.EXTRA_KEY_INCOGNITO, incognito),
       )
       .apply { iconCompat?.let(::setIcon) }
       .build()
