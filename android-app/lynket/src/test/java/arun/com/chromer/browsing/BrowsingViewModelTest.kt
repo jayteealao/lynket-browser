@@ -24,6 +24,7 @@ import arun.com.chromer.shared.Constants
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -60,6 +61,7 @@ class BrowsingViewModelTest {
     mockk<WebsiteRepository> {
       every { getWebsite(url) } returns flowOf(website)
       every { getWebsiteReadOnly(url) } returns flowOf(website)
+      every { getWebsiteWithoutSaving(url) } returns flowOf(website)
       every { getWebsiteIconWithPlaceholderAndColor(any()) } returns android.util.Pair(null, Constants.NO_COLOR)
     }
 
@@ -107,5 +109,22 @@ class BrowsingViewModelTest {
       assertThat(awaitItem().label).isEqualTo("Example")
       cancelAndIgnoreRemainingEvents()
     }
+  }
+
+  @Test
+  fun anIncognitoPageReadsWithoutSaving() = runTest {
+    val repo = repository()
+    val vm = vm(repo)
+    vm.isIncognito = true
+    vm.loadWebSiteDetails(url)
+
+    vm.website.test {
+      val result = awaitItem()
+      assertThat((result as Result.Success).data!!.url).isEqualTo(url)
+      cancelAndIgnoreRemainingEvents()
+    }
+    verify(exactly = 1) { repo.getWebsiteWithoutSaving(url) }
+    verify(exactly = 0) { repo.getWebsite(any()) }
+    verify(exactly = 0) { repo.getWebsiteReadOnly(any()) }
   }
 }

@@ -132,7 +132,8 @@ constructor(
   private fun websiteFlow(url: String): Flow<Website> = if (!isIncognito) {
     websiteRepository.getWebsite(url)
   } else {
-    websiteRepository.getWebsiteReadOnly(url)
+    // An incognito page must leave no history row and no cache entry.
+    websiteRepository.getWebsiteWithoutSaving(url)
   }
 
   private fun setTaskDescription(task: TaskDescriptionCompat?) {
