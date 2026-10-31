@@ -22,9 +22,11 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
 import org.junit.Before
+import org.junit.FixMethodOrder
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.MethodSorters
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -38,6 +40,10 @@ import org.robolectric.annotation.Config
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
 @Config(application = HiltTestApplication::class)
+// The API 35 and 36 cases run before the API 34 case. Started right after an API 34 page, the first
+// API 35 setup sometimes failed inside Robolectric (FileSystemAlreadyExistsException while copying
+// its fonts), before any test code ran.
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class WebViewActivitySensitiveContentTest {
   @get:Rule
   val hiltRule = HiltAndroidRule(this)
@@ -81,7 +87,7 @@ class WebViewActivitySensitiveContentTest {
   /** The API 34 framework has no content sensitivity method, so any call would throw during setup. */
   @Test
   @Config(sdk = [34])
-  fun anIncognitoBubbleOnApi34MakesNoCallAndStillLoads() {
+  fun onApi34AnIncognitoBubbleMakesNoCallAndStillLoads() {
     val link = "https://example.com/private-34"
     val activity = open(EmbeddableWebViewActivity::class.java, link, incognito = true)
 
