@@ -24,6 +24,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowSettings
 import org.robolectric.shadows.ShadowToast
 import arun.com.chromer.debug.FileDebugHooks
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import java.io.File
 import javax.inject.Inject
 
@@ -55,6 +56,16 @@ class WebHeadStartFallbackTest : LynketRobolectricSuite() {
     val started = shadowOf(application).nextStartedService
     assertThat(started?.component?.className).isEqualTo(WebHeadService::class.java.name)
     assertThat(shadowOf(application).nextStartedActivity).isNull()
+  }
+
+  @Test
+  fun app_wide_incognito_opens_the_bubble_as_incognito() {
+    webHeadsOn()
+    preferences.fullIncognitoMode(true)
+    tabs.openWebHeads(application, Website("https://a.example"))
+
+    val started = shadowOf(application).nextStartedService
+    assertThat(started?.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
   }
 
   @Test

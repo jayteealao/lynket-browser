@@ -469,6 +469,8 @@ constructor(
     incognito: Boolean,
     linkSource: LinkSource,
   ) {
+    // App-wide incognito makes every bubble incognito, the same as a tab.
+    val isIncognito = preferences.fullIncognitoMode() || incognito
     val url = website.preferredUrl()
     val bubbles = preferences.nativeBubbles()
     val webHeads = preferences.webHeads()
@@ -478,7 +480,7 @@ constructor(
       val refusal = bubbleGate.refusal(bubbleConversationId(website.url))
       if (refusal != null) {
         Timber.w("Bubble refused (%s); opening %s in a tab", refusal, website.url)
-        openRefusedBubble(context, website, refusal, incognito, linkSource)
+        openRefusedBubble(context, website, refusal, isIncognito, linkSource)
         return
       }
     }
@@ -487,17 +489,17 @@ constructor(
       website,
       fromMinimize,
       fromAmp,
-      incognito,
+      isIncognito,
       context,
       customizedWebsiteColor(website, linkSource)
     )
     if (!opened) {
       // The bubble could not show; the page opens in a tab instead of being lost.
-      openBrowsingTab(context, website, smart = true, fromNewTab = false, activityNames = null, incognito = incognito, linkSource = linkSource)
+      openBrowsingTab(context, website, smart = true, fromNewTab = false, activityNames = null, incognito = isIncognito, linkSource = linkSource)
       return
     }
 
-    val shouldUseWebView = shouldUseWebView(incognito)
+    val shouldUseWebView = shouldUseWebView(isIncognito)
 
     // If this command was not issued for minimizing, then attempt aggressive loading.
     if (preferences.aggressiveLoading() && !fromMinimize) {
@@ -517,7 +519,7 @@ constructor(
             smart = true,
             fromNewTab = false,
             activityNames = null,
-            incognito = incognito,
+            incognito = isIncognito,
             linkSource = linkSource,
           )
         }
