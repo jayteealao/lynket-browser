@@ -56,7 +56,10 @@ data class BubbleState(
 )
 
 /** The id of the conversation (and its long-lived shortcut) a bubble of [url] belongs to. */
-fun bubbleConversationId(url: String): String = "bubble_${url.hashCode()}"
+fun bubbleConversationId(url: String): String = bubbleConversationId(url.hashCode())
+
+/** The id of the conversation (and its long-lived shortcut) of the bubble posted as [notificationId]. */
+fun bubbleConversationId(notificationId: Int): String = "bubble_$notificationId"
 
 /**
  * Reads the notification and bubble settings before a bubble posts, names the cause when Android
