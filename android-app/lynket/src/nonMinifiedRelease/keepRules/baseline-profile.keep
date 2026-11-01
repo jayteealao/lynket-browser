@@ -1,0 +1,3 @@
+# The Baseline Profile is generated on this build type, which copies release's R8 settings.
+# Keep names so the profile's rules name the real classes; R8 maps them onto the release build.
+-dontobfuscate
