@@ -56,6 +56,7 @@ import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.bubbles.system.bubbleConversationId
+import arun.com.chromer.bubbles.webheads.OverlayRefusal
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
@@ -96,6 +97,7 @@ constructor(
   private val eventBus: EventBus,
   private val floatingBubbleFactory: FloatingBubbleFactory,
   private val bubbleGate: BubbleGate,
+  private val overlayRefusal: OverlayRefusal,
 ) : TabsManager {
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -483,6 +485,12 @@ constructor(
         openRefusedBubble(context, website, refusal, isIncognito, linkSource)
         return
       }
+    }
+
+    if (!bubbles && !Utils.isOverlayGranted(context)) {
+      // Web heads cannot draw: the page opens in one tab, and aggressive loading adds no second.
+      overlayRefusal.refuse(context, website, isIncognito, linkSource)
+      return
     }
 
     val opened = floatingBubbleFactory[if (bubbles) NATIVE else WEB_HEADS].openBubble(
