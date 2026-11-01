@@ -44,6 +44,7 @@ import arun.com.chromer.R
 import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.image.WebsiteIconLoader
 import dev.arunkumar.android.common.dpToPx
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -357,7 +358,8 @@ constructor(
   }
 
   private fun BubbleLoadData.fallbackIcon(): Icon = if (color != Constants.NO_COLOR) {
-    val iconSize = 108.dpToPx()
+    // The same size the bubble's favicon decodes at.
+    val iconSize = WebsiteIconLoader.LARGEST_ICON_DP.dpToPx()
     Icon.createWithAdaptiveBitmap(
       ColorDrawable(color).toBitmap(
         width = iconSize,
