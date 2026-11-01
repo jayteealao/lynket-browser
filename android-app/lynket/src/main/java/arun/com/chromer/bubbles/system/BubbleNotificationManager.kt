@@ -100,6 +100,7 @@ constructor(
       setOngoing(false)
       setSmallIcon(Icon.createWithResource(application, R.drawable.ic_chromer_notification))
       setLargeIcon(Icon.createWithResource(application, R.mipmap.ic_launcher_round))
+      privateOnLockScreen()
       build()
     }
     notificationManager.notify(BUBBLE_NOTIFICATION_GROUP.hashCode(), bubblesSummaryNotification)
@@ -152,6 +153,7 @@ constructor(
         setOngoing(false) // TODO Register a broadcast receiver and call notificationManager.cancel
         setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
         setLargeIcon(identity.icon)
+        privateOnLockScreen()
 
         bubbleMetadata {
           setIcon(identity.icon)
