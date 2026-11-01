@@ -9,9 +9,9 @@
  *  (at your option) any later version.
  */
 
-// Produces the app's Baseline Profile from the link-open and home journeys.
-// Run on an API 33+ emulator or device (no root needed):
-//   ANDROID_SERIAL=<serial> ./gradlew :lynket:generateBaselineProfile
+// Produces the app's Baseline Profile from the link-open and home journeys on a Gradle Managed
+// Device (API 36, Google Play image, created by Gradle): ./gradlew :lynket:generateBaselineProfile.
+// The host needs the x86_64 emulator with hardware acceleration; no adb device is used.
 plugins {
     alias(libs.plugins.androidTest)
     alias(libs.plugins.androidx.baselineprofile)
@@ -34,11 +34,26 @@ android {
     }
 
     targetProjectPath = ":lynket"
+
+    testOptions {
+        managedDevices {
+            localDevices {
+                // The emulator the Baseline Profile is generated on. A Google Play image, because the
+                // link-open journey hands the link to Chrome's Custom Tab; API 36 is the app's targetSdk.
+                create("pixel6Api36") {
+                    device = "Pixel 6"
+                    sdkVersion = 36
+                    systemImageSource = "google_apis_playstore"
+                }
+            }
+        }
+    }
 }
 
-// Uses the devices connected to adb (pick one with ANDROID_SERIAL).
+// Generates on the managed device above; Gradle creates and boots it, so no adb device is needed.
 baselineProfile {
-    useConnectedDevices = true
+    managedDevices += "pixel6Api36"
+    useConnectedDevices = false
 }
 
 dependencies {
