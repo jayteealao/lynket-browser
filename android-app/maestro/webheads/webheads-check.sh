@@ -8,13 +8,15 @@
 #         fail (debug marker file) the link opens in a Custom Tab with a message
 #   bubble  native bubbles mode: the app's notification request, bubbles allowed for the app, then a
 #         link shows a system bubble that opens the page
+#   refused  web heads chosen, then the overlay permission denied: a link opens in a tab, no settings
+#         page opens and no head shows
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused>   (from android-app/)
 set -euo pipefail
 
-SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble>}"
-OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble>}"
-WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble>}"
+SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused>}"
+OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused>}"
+WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused>}"
 source "$(dirname "$0")/lib.sh"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
@@ -179,9 +181,35 @@ check_bubble() {
   log "bubble passed"
 }
 
+check_refused() {
+  web_heads_mode
+  a shell appops set "$PKG" SYSTEM_ALERT_WINDOW deny
+  # Never leave the permission denied behind: later checks expect web heads to draw.
+  trap 'a shell appops set "$PKG" SYSTEM_ALERT_WINDOW allow' EXIT
+  a logcat -c
+  open_link "https://example.com/?refused=1"
+  for _ in $(seq 1 60); do
+    a logcat -d | grep -q "Overlay permission is off; the link opens in a tab" && break
+    sleep 1
+  done
+  sleep 2
+  shot refused-tab
+  local top
+  top="$(a shell dumpsys activity activities | tr -d '\r' | grep -m1 "topResumedActivity" || true)"
+  echo "$top" | tee -a "$OUT/refused.txt"
+  app_logcat refused
+  grep -q "Overlay permission is off; the link opens in a tab" "$OUT/refused.logcat.txt" || fail "no refusal in logcat"
+  ! echo "$top" | grep -q "com.android.settings" || fail "a settings page opened on its own"
+  [ "$(overlay_count)" -eq 0 ] || fail "a head showed although the overlay permission is off"
+  [ ! -s "$OUT/refused.crash.txt" ] || fail "crash during the refusal (see refused.crash.txt)"
+  log "refused passed"
+  a shell input keyevent HOME
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
   bubble) check_bubble ;;
+  refused) check_refused ;;
   *) echo "unknown check: $WHICH" >&2; exit 2 ;;
 esac
