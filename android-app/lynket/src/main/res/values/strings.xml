@@ -340,6 +340,7 @@
   <string name="bubble_notification_group_title">Active bubbles</string>
   <string name="bubble_notification_group_description">Showing bubble notifications, swipe to expand</string>
   <string name="bubble_incognito_label">Incognito page</string>
+  <string name="bubble_lock_screen_text">A page is open in a bubble</string>
   <string name="discuss_on_reddit">Discuss on Reddit</string>
   <!-- Web heads in Compose -->
   <string name="web_head_content_description">Web head: %1$s</string>
