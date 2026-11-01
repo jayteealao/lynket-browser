@@ -109,7 +109,13 @@
       "slices": [],
       "created-at": "2026-11-01T20:27:52Z",
       "updated-at": "2026-11-01T20:27:52Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
+          "at": "2026-11-01T20:59:19Z",
+          "workflow": "web-heads-reliability"
+        }
+      ]
     },
     "web-heads-rotation": {
       "title": "Web heads after a rotation",
@@ -122,7 +128,13 @@
       "slices": [],
       "created-at": "2026-11-01T20:27:52Z",
       "updated-at": "2026-11-01T20:27:52Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
+          "at": "2026-11-01T20:59:19Z",
+          "workflow": "web-heads-reliability"
+        }
+      ]
     },
     "web-heads-wide-fling": {
       "title": "Web head fling on a wide window",
@@ -135,7 +147,13 @@
       "slices": [],
       "created-at": "2026-11-01T20:27:53Z",
       "updated-at": "2026-11-01T20:27:53Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
+          "at": "2026-11-01T20:59:19Z",
+          "workflow": "web-heads-reliability"
+        }
+      ]
     },
     "web-heads-trash": {
       "title": "Web head trash lock",
@@ -148,7 +166,13 @@
       "slices": [],
       "created-at": "2026-11-01T20:27:53Z",
       "updated-at": "2026-11-01T20:27:53Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
+          "at": "2026-11-01T20:59:19Z",
+          "workflow": "web-heads-reliability"
+        }
+      ]
     }
   },
   "explore": {}
