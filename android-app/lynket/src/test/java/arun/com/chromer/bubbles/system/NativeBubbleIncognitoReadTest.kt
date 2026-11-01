@@ -13,18 +13,21 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import java.util.Collections
 
 /**
  * An incognito bubble reads its site with the read that saves nothing; a normal bubble keeps the
- * read that records history and the cache.
+ * read that records history and the cache. The bubble runs on a test dispatcher, so each case
+ * runs it to the end on virtual time.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
 class NativeBubbleIncognitoReadTest {
@@ -38,11 +41,13 @@ class NativeBubbleIncognitoReadTest {
     every { getWebsiteWithoutSaving(url) } returns flowOf(Website(url))
   }
 
-  /** Every post of the bubble, in order; the posts happen on the IO pool. */
-  private val posts: MutableList<BubbleLoadData> = Collections.synchronizedList(mutableListOf())
+  private val dispatcher = StandardTestDispatcher()
+
+  /** Every post of the bubble, in order. */
+  private val posts = mutableListOf<BubbleLoadData>()
 
   private val notifications = mockk<BubbleNotificationManager> {
-    coEvery { showBubbles(capture(posts)) } answers { firstArg() }
+    coEvery { showBubbles(capture(posts), any()) } answers { firstArg() }
     every { isShownAsBubble(any()) } returns true
   }
 
@@ -58,46 +63,45 @@ class NativeBubbleIncognitoReadTest {
 
   private val tabsManager = mockk<TabsManager>(relaxed = true)
 
-  private fun bubble() = NativeFloatingBubble(application, repo, notifications, icons, gate) { tabsManager }
+  private fun bubble() = NativeFloatingBubble(application, repo, notifications, icons, gate, dispatcher) { tabsManager }
 
   @Test
   fun an_incognito_bubble_reads_its_site_without_saving() {
     val opened = bubble().openBubble(Website(url), false, false, true, null, 0)
+    dispatcher.scheduler.advanceUntilIdle()
 
     assertThat(opened).isTrue()
-    verify(timeout = 5_000) { repo.getWebsiteWithoutSaving(url) }
+    verify { repo.getWebsiteWithoutSaving(url) }
     verify(exactly = 0) { repo.getWebsite(any()) }
   }
 
   @Test
   fun a_normal_bubble_keeps_the_read_that_saves() {
     val opened = bubble().openBubble(Website(url), false, false, false, null, 0)
+    dispatcher.scheduler.advanceUntilIdle()
 
     assertThat(opened).isTrue()
-    verify(timeout = 5_000) { repo.getWebsite(url) }
+    verify { repo.getWebsite(url) }
     verify(exactly = 0) { repo.getWebsiteWithoutSaving(any()) }
   }
 
   @Test
   fun an_incognito_bubble_never_loads_the_site_icon() {
     bubble().openBubble(Website(url), false, false, true, null, 0)
+    dispatcher.scheduler.advanceUntilIdle()
 
-    awaitPosts(2)
+    // One post, with the Lynket icon: nothing an incognito bubble shows comes from the site.
+    assertThat(posts).hasSize(1)
+    assertThat(posts.single().icon).isNull()
     coVerify(exactly = 0) { icons.getBubbleIconAndColor(any()) }
-    assertThat(posts.last().icon).isNull()
   }
 
   @Test
   fun a_normal_bubble_still_loads_the_site_icon() {
     bubble().openBubble(Website(url), false, false, false, null, 0)
+    dispatcher.scheduler.advanceUntilIdle()
 
-    coVerify(timeout = 5_000) { icons.getBubbleIconAndColor(any()) }
+    coVerify { icons.getBubbleIconAndColor(any()) }
   }
 
-  /** The first post and the post after the read, with a 1 s pause between. */
-  private fun awaitPosts(count: Int) {
-    val deadline = System.currentTimeMillis() + 5_000
-    while (posts.size < count && System.currentTimeMillis() < deadline) Thread.sleep(10)
-    assertThat(posts.size).isAtLeast(count)
-  }
 }
