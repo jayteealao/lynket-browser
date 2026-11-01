@@ -108,12 +108,18 @@ constructor(
     notificationManager.notify(BUBBLE_NOTIFICATION_GROUP.hashCode(), bubblesSummaryNotification)
   }
 
-  /** An update of a posted bubble passes withSummary = false: the summary is already there. */
+  /**
+   * An update of a posted bubble passes withSummary = false: the summary is already there, and the
+   * update is dropped when the bubble is no longer posted.
+   */
   suspend fun showBubbles(bubbleData: BubbleLoadData, withSummary: Boolean = true): BubbleLoadData = try {
     withContext(Dispatchers.IO) {
+      val website = bubbleData.website
+      // A bubble the person dismissed while its icon loaded stays dismissed: an update of it would
+      // post it, and its shortcut, again.
+      if (!withSummary && !isPosted(website.url.hashCode())) return@withContext bubbleData
       createNotificationChannel()
       val context = bubbleData.contextRef.get() ?: application
-      val website = bubbleData.website
 
       // Bubbles require FLAG_MUTABLE on Android 12+ because they need to update the intent
       val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -221,6 +227,14 @@ constructor(
   } catch (e: RuntimeException) {
     Timber.e(e, "Could not read the active notifications")
     // Unknown: keep the notification rather than remove a bubble that may be showing.
+    true
+  }
+
+  private fun isPosted(notificationId: Int): Boolean = try {
+    notificationManager.activeNotifications.any { it.id == notificationId }
+  } catch (e: RuntimeException) {
+    Timber.e(e, "Could not read the active notifications")
+    // Unknown: update the bubble rather than leave a stale one showing.
     true
   }
 

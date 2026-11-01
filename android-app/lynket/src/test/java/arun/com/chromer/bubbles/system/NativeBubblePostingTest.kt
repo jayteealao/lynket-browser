@@ -216,6 +216,23 @@ class NativeBubblePostingTest {
     assertThat(all).hasSize(2)
   }
 
+  @Test
+  fun a_late_update_does_not_bring_back_a_dismissed_bubble() {
+    val manager = BubbleNotificationManager(application)
+    val website = Website("Title", URL, null, null, null, null, false, 0, 0)
+    val first = BubbleLoadData(website, false, false, false, color = Color.RED)
+    val icon = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
+
+    runBlocking {
+      manager.showBubbles(first)
+      manager.dismissed(URL.hashCode())
+      manager.showBubbles(first.copy(icon = icon, color = Color.BLUE), withSummary = false)
+    }
+
+    val all = shadowOf(application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).allNotifications
+    assertThat(all).isEmpty()
+  }
+
   private companion object {
     const val URL = "https://example.com/bubble"
   }
