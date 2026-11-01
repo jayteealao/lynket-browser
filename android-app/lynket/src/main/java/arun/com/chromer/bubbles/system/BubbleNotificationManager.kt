@@ -172,7 +172,6 @@ constructor(
 
         bubbleMetadata {
           setIcon(identity.icon)
-          setIcon(identity.icon)
           setIntent(bubbleIntent)
           setDeleteIntent(dismissIntent)
           setAutoExpandBubble(false)
