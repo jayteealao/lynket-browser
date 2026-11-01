@@ -32,7 +32,7 @@
 # One-time read of the per-app rules that release 2.1.3 saved with PaperDB (Kryo). Kryo finds
 # classes and fields by name, and the stored records name the App class and its five fields.
 # Paper 2.6's own consumer rules keep io.paperdb.**, com.esotericsoftware.** (Kryo) and de.javakaffee.kryoserializers.** with { *; }.
--keep class org.objenesis.** { *; }
+# Objenesis needs no rule: Kryo, kept by Paper's rules, references the instantiators it uses, and App is built through the no-arg constructor kept below.
 -keepnames class arun.com.chromer.data.common.App
 -keepclassmembernames class arun.com.chromer.data.common.App { <fields>; }
 -keepclassmembers class arun.com.chromer.data.common.App { <init>(); }
