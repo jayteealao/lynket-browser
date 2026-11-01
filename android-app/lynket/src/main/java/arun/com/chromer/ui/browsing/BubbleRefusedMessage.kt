@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -30,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import arun.com.chromer.R
@@ -76,14 +78,20 @@ fun BubbleRefusedMessage(
     }
     done()
   }
+  // At a large text size the sentence takes the full width and the action moves to its own line.
+  val actionOnNewLine = LocalDensity.current.fontScale >= ACTION_ON_NEW_LINE_FONT_SCALE
   SnackbarHost(
     hostState = hostState,
     modifier = modifier
       .fillMaxWidth()
       .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
       .testTag("bubble-refused"),
+    snackbar = { data -> Snackbar(data, actionOnNewLine = actionOnNewLine) },
   )
 }
+
+/** The text size from which the action sits below the sentence instead of beside it. */
+private const val ACTION_ON_NEW_LINE_FONT_SCALE = 1.5f
 
 /** How long the message stays while TalkBack explores by touch: time to hear it and reach the action. */
 const val TOUCH_EXPLORATION_TIMEOUT_MS = 60_000L
