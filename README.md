@@ -48,7 +48,7 @@ The Gradle project lives in `android-app/`. You need the JetBrains Runtime 21 (A
 | Check that no XML layout, View screen or kapt came back | `bash scripts/check-compose-only.sh` |
 | Build the benchmark app and the macrobenchmarks | `./gradlew :lynket:assembleBenchmark :benchmark:assembleBenchmark` |
 | Run the macrobenchmarks on a connected device | `./gradlew :benchmark:connectedBenchmarkAndroidTest` |
-| Generate the Baseline Profile on a Gradle Managed Device (emulator created by Gradle) | `./gradlew :lynket:generateBaselineProfile` |
+| Generate the Baseline Profile on a Gradle Managed Device (an API 36 Google Play emulator that Gradle creates; needs x86_64 hardware acceleration, WHPX/Hyper-V on Windows, and about 1.9 GB of download on the first run) | `./gradlew :lynket:generateBaselineProfile` |
 
 The screenshot goldens are in `android-app/lynket/src/test/screenshots`; every screen has one in the light, dark and black themes at a phone and a fold window size. Device checks are bash scripts under `android-app/maestro/` that drive an emulator with adb and [Maestro](https://maestro.mobile.dev); each script's header says what it checks and what it needs. `maestro/charter/charter-check.sh <phone> <fold> <dir>` runs the whole path of a user who updates from release 2.1.3: `<phone>` and `<fold>` are adb serials, the 2.1.3 APK must be built first (`maestro/build-old-apk.sh`), and both devices are reinstalled, which clears the app's data.
 
