@@ -106,9 +106,13 @@
       "workflows": [
         "web-heads-reliability"
       ],
-      "slices": [],
+      "slices": [
+        "overlay-refusal-path",
+        "refused-tab-message",
+        "service-intent-guard"
+      ],
       "created-at": "2026-11-01T20:27:52Z",
-      "updated-at": "2026-11-01T20:27:52Z",
+      "updated-at": "2026-11-01T21:50:13Z",
       "approvals": [
         {
           "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
@@ -125,9 +129,13 @@
       "workflows": [
         "web-heads-reliability"
       ],
-      "slices": [],
+      "slices": [
+        "empty-restart-stop",
+        "stack-anchor",
+        "rotation-resnap"
+      ],
       "created-at": "2026-11-01T20:27:52Z",
-      "updated-at": "2026-11-01T20:27:52Z",
+      "updated-at": "2026-11-01T21:50:14Z",
       "approvals": [
         {
           "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
@@ -144,9 +152,11 @@
       "workflows": [
         "web-heads-reliability"
       ],
-      "slices": [],
+      "slices": [
+        "wide-fling-cap"
+      ],
       "created-at": "2026-11-01T20:27:53Z",
-      "updated-at": "2026-11-01T20:27:53Z",
+      "updated-at": "2026-11-01T21:50:14Z",
       "approvals": [
         {
           "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
@@ -163,9 +173,14 @@
       "workflows": [
         "web-heads-reliability"
       ],
-      "slices": [],
+      "slices": [
+        "empty-restart-stop",
+        "head-talkback-position",
+        "trash-talkback-lock",
+        "trash-haptics"
+      ],
       "created-at": "2026-11-01T20:27:53Z",
-      "updated-at": "2026-11-01T20:27:53Z",
+      "updated-at": "2026-11-01T21:50:14Z",
       "approvals": [
         {
           "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
