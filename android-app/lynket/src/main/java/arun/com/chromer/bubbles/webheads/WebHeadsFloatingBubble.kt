@@ -48,6 +48,7 @@ class WebHeadsFloatingBubble
 constructor(
   private val application: Application,
   debugHooks: Optional<DebugHooks>,
+  private val overlayRefusal: OverlayRefusal,
 ) : FloatingBubble {
 
   private val debugHooks = DebugHooks.of(debugHooks)
@@ -64,9 +65,8 @@ constructor(
   ): Boolean {
     val ctx = context ?: application
     if (!Utils.isOverlayGranted(ctx)) {
-      mainHandler.post {
-        Utils.openDrawOverlaySettings(ctx)
-      }
+      // The link is handled: it opens in a tab, so the caller must not open a second one.
+      overlayRefusal.refuse(ctx, website, incognito)
       return true
     }
     val webHeadLauncher = Intent(ctx, WebHeadService::class.java).apply {
