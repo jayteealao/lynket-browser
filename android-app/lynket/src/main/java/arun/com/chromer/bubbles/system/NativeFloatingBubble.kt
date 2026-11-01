@@ -33,20 +33,18 @@ import arun.com.chromer.di.hilt.IoDispatcher
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.tabs.TabsManager
 import dagger.Lazy
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import java.lang.ref.WeakReference
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -76,25 +74,10 @@ constructor(
 ) : FloatingBubble {
 
   private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
-  // A channel keeps a link sent before the collector below has started; a shared flow without
-  // subscribers dropped the first link after a cold start.
-  private val loadQueue = Channel<BubbleLoadData>(Channel.UNLIMITED)
-
-  init {
-    scope.launch {
-      loadQueue.receiveAsFlow()
-        .mapNotNull { bubbleData ->
-          try {
-            showBubble(bubbleData)
-          } catch (e: Exception) {
-            Timber.e(e)
-            null
-          }
-        }
-        .flowOn(Dispatchers.IO)
-        .collect { /* Process bubbles */ }
-    }
-  }
+  // sdlc-debt: one small lock per distinct url stays for the life of the process; drop an entry
+  // with reference counting if a person ever opens a very large number of distinct bubble links.
+  /** Two sends of one link post in turn; different links never wait for each other. */
+  private val postLocks = ConcurrentHashMap<String, Mutex>()
 
   override fun openBubble(
     website: Website,
@@ -109,16 +92,23 @@ constructor(
       Timber.w("Bubble refused (%s); opening %s in a tab", refusal, website.url)
       return false
     }
-    loadQueue.trySend(
-      BubbleLoadData(
-        website = website,
-        fromMinimize = fromMinimize,
-        fromAmp = fromAmp,
-        incognito = incognito,
-        contextRef = WeakReference(context),
-        color = color
-      )
+    val data = BubbleLoadData(
+      website = website,
+      fromMinimize = fromMinimize,
+      fromAmp = fromAmp,
+      incognito = incognito,
+      contextRef = WeakReference(context),
+      color = color
     )
+    scope.launch {
+      try {
+        postLocks.computeIfAbsent(website.url) { Mutex() }.withLock { showBubble(data) }
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e)
+      }
+    }
     return true
   }
 
