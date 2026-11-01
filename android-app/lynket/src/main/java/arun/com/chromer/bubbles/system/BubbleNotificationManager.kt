@@ -62,6 +62,9 @@ constructor(
   private val application: Application
 ) {
 
+  /** Guards every post and removal, so the summary and the check for other bubbles agree. */
+  private val postLock = Any()
+
   private val notificationManager by lazy {
     application.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
   }
@@ -113,95 +116,99 @@ constructor(
    * update is dropped when the bubble is no longer posted.
    */
   suspend fun showBubbles(bubbleData: BubbleLoadData, withSummary: Boolean = true): BubbleLoadData = try {
-    withContext(Dispatchers.IO) {
-      val website = bubbleData.website
-      // A bubble the person dismissed while its icon loaded stays dismissed: an update of it would
-      // post it, and its shortcut, again.
-      if (!withSummary && !isPosted(website.url.hashCode())) return@withContext bubbleData
-      createNotificationChannel()
-      val context = bubbleData.contextRef.get() ?: application
-
-      // Bubbles require FLAG_MUTABLE on Android 12+ because they need to update the intent
-      val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-      } else {
-        PendingIntent.FLAG_UPDATE_CURRENT
-      }
-      val bubbleIntent = PendingIntent.getActivity(
-        context,
-        website.url.hashCode(),
-        Intent(context, EmbeddableWebViewActivity::class.java).apply {
-          data = Uri.parse(website.url)
-          putExtra(Constants.EXTRA_KEY_INCOGNITO, bubbleData.incognito)
-        },
-        flags
-      )
-      // Holds only the notification id, so an incognito bubble leaves no address in it.
-      val dismissIntent = PendingIntent.getBroadcast(
-        application,
-        website.url.hashCode(),
-        Intent(application, BubbleDismissReceiver::class.java)
-          .putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, website.url.hashCode()),
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-      )
-
-      val identity = bubbleData.identity()
-
-      // Android 11 and later only show a bubble for a conversation, which needs a long-lived
-      // shortcut for it.
-      val shortcutId = pushConversationShortcut(website.url, identity, bubbleData.incognito)
-
-      val bubbleNotification = notification(context, BUBBLE_NOTIFICATION_CHANNEL_ID) {
-        shortcutId?.let {
-          setShortcutId(it)
-          // The same id as the shortcut, so Android ties the notification, the shortcut and the bubble together.
-          setLocusId(LocusId(it))
-        }
-        setContentTitle(identity.label)
-        identity.text?.let(::setContentText)
-        setGroup(BUBBLE_NOTIFICATION_GROUP)
-
-        setAllowSystemGeneratedContextualActions(true)
-        bubbleData.color.takeIf { it != Constants.NO_COLOR }?.let(::setColor)
-
-        setColorized(true)
-        setLocalOnly(true)
-
-        setOngoing(false) // A dismissed bubble cleans up through its delete intent.
-        setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
-        setLargeIcon(identity.icon)
-        if (bubbleData.incognito) secretOnLockScreen() else privateOnLockScreen()
-
-        bubbleMetadata {
-          setIcon(identity.icon)
-          setIntent(bubbleIntent)
-          setDeleteIntent(dismissIntent)
-          setAutoExpandBubble(false)
-          setSuppressNotification(true)
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setSuppressableBubble(true)
-          setDesiredHeight(desiredHeightDp(context))
-        }
-
-        // A bubble is a conversation: the messaging style with an important person qualifies it on
-        // Android 10, and the shortcut on Android 11 and later.
-        setCategory(Notification.CATEGORY_MESSAGE)
-        style = Notification.MessagingStyle(addPerson {
-          // A conversation whose only person is a bot is not a conversation, and only
-          // conversations bubble.
-          setIcon(identity.icon)
-          setName(identity.label)
-          setImportant(true)
-        })
-      }
-
-      if (withSummary) updateGroupSummaryNotification(bubbleData.color)
-
-      notificationManager.notify(website.url.hashCode(), bubbleNotification)
-      bubbleData
-    }
+    // Posting a bubble and its summary, and removing a bubble and the summary it leaves alone, each
+    // run whole: bubbles of different links post from different threads.
+    withContext(Dispatchers.IO) { synchronized(postLock) { post(bubbleData, withSummary) } }
   } catch (e: Exception) {
     Timber.e(e)
     bubbleData
+  }
+
+  private fun post(bubbleData: BubbleLoadData, withSummary: Boolean): BubbleLoadData {
+    val website = bubbleData.website
+    // A bubble the person dismissed while its icon loaded stays dismissed: an update of it would
+    // post it, and its shortcut, again.
+    if (!withSummary && !isPosted(website.url.hashCode())) return bubbleData
+    createNotificationChannel()
+    val context = bubbleData.contextRef.get() ?: application
+
+    // Bubbles require FLAG_MUTABLE on Android 12+ because they need to update the intent
+    val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+    } else {
+      PendingIntent.FLAG_UPDATE_CURRENT
+    }
+    val bubbleIntent = PendingIntent.getActivity(
+      context,
+      website.url.hashCode(),
+      Intent(context, EmbeddableWebViewActivity::class.java).apply {
+        data = Uri.parse(website.url)
+        putExtra(Constants.EXTRA_KEY_INCOGNITO, bubbleData.incognito)
+      },
+      flags
+    )
+    // Holds only the notification id, so an incognito bubble leaves no address in it.
+    val dismissIntent = PendingIntent.getBroadcast(
+      application,
+      website.url.hashCode(),
+      Intent(application, BubbleDismissReceiver::class.java)
+        .putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, website.url.hashCode()),
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    val identity = bubbleData.identity()
+
+    // Android 11 and later only show a bubble for a conversation, which needs a long-lived
+    // shortcut for it.
+    val shortcutId = pushConversationShortcut(website.url, identity, bubbleData.incognito)
+
+    val bubbleNotification = notification(context, BUBBLE_NOTIFICATION_CHANNEL_ID) {
+      shortcutId?.let {
+        setShortcutId(it)
+        // The same id as the shortcut, so Android ties the notification, the shortcut and the bubble together.
+        setLocusId(LocusId(it))
+      }
+      setContentTitle(identity.label)
+      identity.text?.let(::setContentText)
+      setGroup(BUBBLE_NOTIFICATION_GROUP)
+
+      setAllowSystemGeneratedContextualActions(true)
+      bubbleData.color.takeIf { it != Constants.NO_COLOR }?.let(::setColor)
+
+      setColorized(true)
+      setLocalOnly(true)
+
+      setOngoing(false) // A dismissed bubble cleans up through its delete intent.
+      setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
+      setLargeIcon(identity.icon)
+      if (bubbleData.incognito) secretOnLockScreen() else privateOnLockScreen()
+
+      bubbleMetadata {
+        setIcon(identity.icon)
+        setIntent(bubbleIntent)
+        setDeleteIntent(dismissIntent)
+        setAutoExpandBubble(false)
+        setSuppressNotification(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setSuppressableBubble(true)
+        setDesiredHeight(desiredHeightDp(context))
+      }
+
+      // A bubble is a conversation: the messaging style with an important person qualifies it on
+      // Android 10, and the shortcut on Android 11 and later.
+      setCategory(Notification.CATEGORY_MESSAGE)
+      style = Notification.MessagingStyle(addPerson {
+        // A conversation whose only person is a bot is not a conversation, and only
+        // conversations bubble.
+        setIcon(identity.icon)
+        setName(identity.label)
+        setImportant(true)
+      })
+    }
+
+    if (withSummary) updateGroupSummaryNotification(bubbleData.color)
+
+    notificationManager.notify(website.url.hashCode(), bubbleNotification)
+    return bubbleData
   }
 
   /** 80 % of the height of the window that posts the bubble, so split screen gets a bubble that fits. */
@@ -245,7 +252,7 @@ constructor(
    * Called when the person dismisses the bubble posted as [notificationId]: its notification, the
    * group summary when it was the last bubble, and its shortcut go.
    */
-  fun dismissed(notificationId: Int) {
+  fun dismissed(notificationId: Int) = synchronized(postLock) {
     cancel(notificationId)
     try {
       ShortcutManagerCompat.removeLongLivedShortcuts(application, listOf(bubbleConversationId(notificationId)))
@@ -254,7 +261,7 @@ constructor(
     }
   }
 
-  private fun cancel(notificationId: Int) {
+  private fun cancel(notificationId: Int) = synchronized(postLock) {
     notificationManager.cancel(notificationId)
     val othersLeft = try {
       notificationManager.activeNotifications.any {

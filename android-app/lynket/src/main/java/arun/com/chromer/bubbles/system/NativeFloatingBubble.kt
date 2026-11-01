@@ -47,7 +47,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.lang.ref.WeakReference
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -77,10 +76,26 @@ constructor(
 ) : FloatingBubble {
 
   private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
-  // sdlc-debt: one small lock per distinct url stays for the life of the process; drop an entry
-  // with reference counting if a person ever opens a very large number of distinct bubble links.
-  /** Two sends of one link post in turn; different links never wait for each other. */
-  private val postLocks = ConcurrentHashMap<String, Mutex>()
+  /**
+   * Two sends of one link post in turn; different links never wait for each other. A link's lock
+   * is dropped once no send of it is posting or waiting, so the map holds only links in flight.
+   */
+  private val postLocks = HashMap<String, PostLock>()
+
+  private class PostLock {
+    val mutex = Mutex()
+    /** Sends of the link that hold or wait for [mutex]; read and written under postLocks. */
+    var users = 0
+  }
+
+  private suspend fun <T> withPostLock(url: String, block: suspend () -> T): T {
+    val lock = synchronized(postLocks) { postLocks.getOrPut(url) { PostLock() }.also { it.users++ } }
+    try {
+      return lock.mutex.withLock { block() }
+    } finally {
+      synchronized(postLocks) { if (--lock.users == 0) postLocks.remove(url) }
+    }
+  }
 
   override fun openBubble(
     website: Website,
@@ -105,7 +120,7 @@ constructor(
     )
     scope.launch {
       try {
-        postLocks.computeIfAbsent(website.url) { Mutex() }.withLock { showBubble(data) }
+        withPostLock(website.url) { showBubble(data) }
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {

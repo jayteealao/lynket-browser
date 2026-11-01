@@ -217,6 +217,19 @@ class NativeBubblePostingTest {
   }
 
   @Test
+  fun no_link_lock_is_kept_once_every_bubble_has_posted() = posting { bubble ->
+    iconDelayMs = 500
+    bubble.open(URL)
+    bubble.open(URL)
+    bubble.open("https://example.com/other")
+    advanceUntilIdle()
+
+    val locks = NativeFloatingBubble::class.java.getDeclaredField("postLocks").apply { isAccessible = true }
+    assertThat(locks.get(bubble) as Map<*, *>).isEmpty()
+    assertThat(posts).hasSize(6)
+  }
+
+  @Test
   fun a_late_update_does_not_bring_back_a_dismissed_bubble() {
     val manager = BubbleNotificationManager(application)
     val website = Website("Title", URL, null, null, null, null, false, 0, 0)
