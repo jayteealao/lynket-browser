@@ -84,6 +84,18 @@ class NativeBubbleIdentityTest {
   }
 
   @Test
+  fun an_incognito_notification_and_its_summary_take_no_page_colour() {
+    post(URL, incognito = true)
+
+    val all = shadowOf(notificationManager).allNotifications
+    val summary = all.single { it.flags and Notification.FLAG_GROUP_SUMMARY != 0 }
+    listOf(notificationOf(URL), summary).forEach { notification ->
+      assertThat(notification.color).isEqualTo(Notification.COLOR_DEFAULT)
+      assertThat(notification.extras.getBoolean(Notification.EXTRA_COLORIZED)).isFalse()
+    }
+  }
+
+  @Test
   fun an_incognito_shortcut_carries_only_the_neutral_label_and_the_lynket_icon() {
     post(URL, incognito = true)
 
@@ -118,6 +130,7 @@ class NativeBubbleIdentityTest {
     assertThat(notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString()).isEqualTo(TITLE)
     assertThat(notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()).isEqualTo(url)
     assertThat(notification.getLargeIcon().type).isEqualTo(Icon.TYPE_ADAPTIVE_BITMAP)
+    assertThat(notification.color).isEqualTo(Color.BLUE)
     val shortcut = shortcutOf(url)
     assertThat(shortcut.shortLabel.toString()).isEqualTo(TITLE)
     assertThat(shortcut.persons().single().name.toString()).isEqualTo(TITLE)

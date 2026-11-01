@@ -100,8 +100,10 @@ constructor(
       setGroup(BUBBLE_NOTIFICATION_GROUP)
       setGroupSummary(true)
       setAllowSystemGeneratedContextualActions(true)
-      setColor(lastNotificationColor)
-      setColorized(true)
+      if (lastNotificationColor != Constants.NO_COLOR) {
+        setColor(lastNotificationColor)
+        setColorized(true)
+      }
       setLocalOnly(true)
       setOngoing(false)
       setSmallIcon(Icon.createWithResource(application, R.drawable.ic_chromer_notification))
@@ -175,9 +177,11 @@ constructor(
       setGroup(BUBBLE_NOTIFICATION_GROUP)
 
       setAllowSystemGeneratedContextualActions(true)
-      bubbleData.color.takeIf { it != Constants.NO_COLOR }?.let(::setColor)
-
-      setColorized(true)
+      // An incognito bubble takes no colour from the page or from the app that sent it.
+      if (!bubbleData.incognito) {
+        bubbleData.color.takeIf { it != Constants.NO_COLOR }?.let(::setColor)
+        setColorized(true)
+      }
       setLocalOnly(true)
 
       setOngoing(false) // A dismissed bubble cleans up through its delete intent.
@@ -207,7 +211,7 @@ constructor(
       })
     }
 
-    if (withSummary) updateGroupSummaryNotification(bubbleData.color)
+    if (withSummary) updateGroupSummaryNotification(if (bubbleData.incognito) Constants.NO_COLOR else bubbleData.color)
 
     notificationManager.notify(notificationId, bubbleNotification)
     return bubbleData
