@@ -128,35 +128,39 @@ constructor(
       return initialBubble
     }
 
-    // Fetch website details and icon
-    val updatedBubble = try {
-      val url = initialBubble.website.url
-      // An incognito page must leave no history row and no cache entry.
-      val read = if (initialBubble.incognito) {
-        websiteRepository.getWebsiteWithoutSaving(url)
-      } else {
-        websiteRepository.getWebsite(url)
-      }
-      val website = read.firstOrNull() ?: initialBubble.website
-
-      if (initialBubble.incognito) {
-        // An incognito bubble shows the Lynket icon, so the site icon is never fetched.
-        initialBubble.copy(website = website)
-      } else {
-        val iconData = websiteIconsProvider.getBubbleIconAndColor(website)
-        initialBubble.copy(
-          website = website,
-          icon = iconData.icon,
-          color = iconData.color
-        )
-      }
-    } catch (e: Exception) {
-      Timber.e(e)
-      initialBubble
-    }
+    val updatedBubble = withDetails(initialBubble)
 
     // Show updated bubble with icon and color
     return bubbleNotificationManager.showBubbles(updatedBubble)
+  }
+
+  /** The site read (without saving for incognito) and, for a normal bubble, its icon and colour. */
+  private suspend fun withDetails(initial: BubbleLoadData): BubbleLoadData = try {
+    val url = initial.website.url
+    // An incognito page must leave no history row and no cache entry.
+    val read = if (initial.incognito) {
+      websiteRepository.getWebsiteWithoutSaving(url)
+    } else {
+      websiteRepository.getWebsite(url)
+    }
+    val website = read.firstOrNull() ?: initial.website
+
+    if (initial.incognito) {
+      // An incognito bubble shows the Lynket icon, so the site icon is never fetched.
+      initial.copy(website = website)
+    } else {
+      val iconData = websiteIconsProvider.getBubbleIconAndColor(website)
+      initial.copy(
+        website = website,
+        icon = iconData.icon,
+        color = iconData.color
+      )
+    }
+  } catch (e: CancellationException) {
+    throw e
+  } catch (e: Exception) {
+    Timber.e(e)
+    initial
   }
 
   /** The bubble flag can follow the post by a moment, so it is read up to three times. */
