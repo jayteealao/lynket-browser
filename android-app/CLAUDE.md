@@ -21,7 +21,7 @@ Lynket is an Android browser application that provides custom tabs functionality
 ### Toolchain
 
 - **Android Gradle Plugin**: 9.4.1, with AGP's built-in Kotlin (no `org.jetbrains.kotlin.android` plugin).
-- **Gradle**: 9.8.1 (wrapper).
+- **Gradle**: 9.8.1 (wrapper), from the `-all` distribution, which the wrapper checks against `distributionSha256Sum` in `gradle/wrapper/gradle-wrapper.properties` when it downloads. A version change takes the new sum from `https://services.gradle.org/distributions/gradle-<version>-all.zip.sha256`, for example `./gradlew wrapper --gradle-version <v> --distribution-type all --gradle-distribution-sha256-sum <sum>`.
 - **Kotlin**: 2.4.21. AGP 9 brings KGP 2.2.10; the Kotlin plugins in the root `build.gradle.kts` `plugins {}` block (parcelize, serialization, the Compose compiler, all at the catalog's `kotlin` version) and KSP put KGP 2.4.21 and the KSP Gradle plugin on the build classpath, so there is no `buildscript` block.
 - **KSP**: 2.3.12. Hilt 2.60.1 and Room 3 (`androidx.room3` 3.0.3, Gradle plugin `androidx.room3`) run on KSP. There is no kapt; `scripts/check-compose-only.sh` fails if kapt, the Kotlin Android plugin or an AGP opt-out flag comes back.
 - **gradle.properties**: AGP 9 defaults (non-transitive and final R class, optimized resource shrinking, Hilt's install-in check). Jetifier is off; no dependency needs it.
