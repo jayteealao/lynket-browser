@@ -22,6 +22,7 @@ package arun.com.chromer.bubbles.webheads
 
 import android.content.Context
 import arun.com.chromer.appdetect.LinkSource
+import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.tabs.TabsManager
 import dagger.Lazy
@@ -32,9 +33,10 @@ import javax.inject.Singleton
 /**
  * Where a web heads link goes when the overlay permission ("Display over other apps") is off.
  *
- * The link opens in a browsing tab and keeps its incognito flag, so it is never lost. This path
- * never opens the overlay settings page: that page opens only when a person taps to open it.
- * Every web heads entry that finds the permission off hands its link here.
+ * The link opens in a browsing tab and keeps its incognito flag, so it is never lost; the tab then
+ * shows a message that names the setting, with Open Settings. This path never opens the overlay
+ * settings page: that page opens only when a person taps Open Settings. Every web heads entry that
+ * finds the permission off hands its link here.
  */
 @Singleton
 class OverlayRefusal
@@ -51,13 +53,6 @@ constructor(
   ) {
     // No address in the log: the event is enough to see the refusal on a device.
     Timber.w("Overlay permission is off; the link opens in a tab")
-    tabsManager.get().openBrowsingTab(
-      context,
-      website,
-      smart = true,
-      fromNewTab = false,
-      incognito = incognito,
-      linkSource = linkSource,
-    )
+    tabsManager.get().openRefusedBubble(context, website, BubbleRefusal.OVERLAY_OFF, incognito, linkSource)
   }
 }
