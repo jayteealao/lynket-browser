@@ -33,6 +33,7 @@ import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -66,6 +67,9 @@ class BrowsingModePermissionTest {
 
   @get:Rule(order = 1)
   val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   @Inject lateinit var repository: UserPreferencesRepository
 

@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.R
 import arun.com.chromer.extenstions.StringResource
 import arun.com.chromer.home.CustomTabProviderInfo
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.util.appicon.ApplicationIcon
 import com.google.common.truth.Truth.assertThat
@@ -36,6 +37,9 @@ class HomeDrawerBackTest {
 
   @get:Rule
   val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val chrome = CustomTabProviderInfo(
     iconUri = ApplicationIcon.createUri("com.android.chrome"),

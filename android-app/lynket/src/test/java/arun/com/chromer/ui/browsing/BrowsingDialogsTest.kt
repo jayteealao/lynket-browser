@@ -33,6 +33,7 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.home.ModernHomeViewModel.Suggestions
 import arun.com.chromer.search.suggestion.items.SuggestionItem
 import arun.com.chromer.shortcuts.ShortcutState
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.settings.components.AppPickerSheet
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
@@ -49,6 +50,9 @@ class BrowsingDialogsTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val url = "https://developer.android.com/guide/navigation/navigation-3"
 

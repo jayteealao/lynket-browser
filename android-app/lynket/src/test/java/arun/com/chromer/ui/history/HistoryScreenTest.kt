@@ -39,6 +39,7 @@ import arun.com.chromer.history.HistoryUiState
 import arun.com.chromer.history.ModernHistoryViewModel
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import arun.com.chromer.util.events.Event
@@ -74,6 +75,9 @@ class HistoryScreenTest {
 
   @get:Rule(order = 1)
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val log = mutableListOf<String>()
 

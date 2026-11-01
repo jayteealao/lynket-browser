@@ -28,6 +28,7 @@ import arun.com.chromer.tabs.ARTICLE
 import arun.com.chromer.tabs.CUSTOM_TAB
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.ui.ModernTabsViewModel
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import io.mockk.coEvery
@@ -52,6 +53,9 @@ class TabsScreenTest {
 
   @get:Rule
   val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val tabsManager = mockk<TabsManager>(relaxed = true)
   private val websites = mockk<WebsiteRepository>()
