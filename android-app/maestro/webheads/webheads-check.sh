@@ -225,23 +225,32 @@ kill_app() {
   local pid
   pid="$(a shell pidof "$PKG" | tr -d '\r' || true)"
   [ -n "$pid" ] || fail "no app process to kill"
+  # The device's SELinux policy may refuse a kill from run-as; su then works on an AOSP image.
   a shell run-as "$PKG" kill -9 "$pid" >/dev/null 2>&1 || true
   sleep 1
-  if [ -z "$(a shell "ps -p $pid -o PID= 2>/dev/null" | tr -d '\r' || true)" ]; then
+  if ! process_alive "$pid"; then
     log "process $pid killed with run-as"
     return
   fi
   a shell su 0 kill -9 "$pid" >/dev/null 2>&1 || true
   sleep 1
-  if [ -z "$(a shell "ps -p $pid -o PID= 2>/dev/null" | tr -d '\r' || true)" ]; then
+  if ! process_alive "$pid"; then
     log "process $pid killed with su"
     return
   fi
   fail "could not kill the app's process"
 }
 
+# True while the process $1 exists.
+process_alive() {
+  [ -n "$(a shell "[ -d /proc/$1 ] && echo alive" | tr -d '\r' || true)" ]
+}
+
 check_restart() {
   web_heads_mode
+  # The shade shows the web heads notification only while the app may post notifications (Android 13
+  # and later ask for it; web_heads_mode declines the request). Without it every read below is empty.
+  a shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
   # 1. A start with no link (the debug build exports the service to the shell): the service stops
   #    at once and leaves no notification.
   a logcat -c
