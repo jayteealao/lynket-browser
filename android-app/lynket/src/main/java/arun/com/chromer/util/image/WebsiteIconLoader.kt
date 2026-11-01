@@ -52,6 +52,16 @@ import java.util.Locale
  */
 object WebsiteIconLoader {
 
+  /**
+   * The largest use of a favicon in dp: the 108 dp adaptive bitmap of a native bubble and its
+   * shortcut. A web head (76 dp), a task description and a home screen shortcut are smaller.
+   */
+  const val LARGEST_ICON_DP = 108
+
+  /** [LARGEST_ICON_DP] in pixels at the density of [context]. */
+  fun largestIconPx(context: Context): Int =
+    (LARGEST_ICON_DP * context.resources.displayMetrics.density + 0.5f).toInt()
+
   private val placeholderColors = intArrayOf(
     Color.parseColor("#3891A6"),
     Color.parseColor("#FDE74C"),
