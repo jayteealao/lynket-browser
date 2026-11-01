@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.dismiss
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -161,6 +162,45 @@ class AccessibilityChecksTest {
 
     assertThat(error).hasMessageThat().contains("TouchTarget: tag=cut")
     assertThat(error).hasMessageThat().contains("size=24.0 x 24.0 dp")
+    hide()
+  }
+
+  /** The sheet drag handle exemption needs Material's own description on the handle. */
+  @Test
+  fun aSmallLongPressElementShapedLikeTheDragHandleStillFails() {
+    show {
+      Box(Modifier.testTag("anchor").size(24.dp).semantics { onLongClick { true } }) {
+        Box(
+          Modifier.size(24.dp).semantics {
+            contentDescription = "Close panel"
+            dismiss { true }
+          },
+        )
+      }
+    }
+
+    val error = assertThrows(AssertionError::class.java) {
+      composeRule.onRoot().tryPerformAccessibilityChecks()
+    }
+
+    assertThat(error).hasMessageThat().contains("TouchTarget: tag=anchor")
+    hide()
+  }
+
+  @Test
+  fun theMaterialSheetDragHandleAnchorPasses() {
+    show {
+      Box(Modifier.size(32.dp, 24.dp).semantics { onLongClick { true } }) {
+        Box(
+          Modifier.size(32.dp, 24.dp).semantics {
+            contentDescription = "Drag handle"
+            dismiss { true }
+          },
+        )
+      }
+    }
+
+    composeRule.onRoot().tryPerformAccessibilityChecks()
     hide()
   }
 

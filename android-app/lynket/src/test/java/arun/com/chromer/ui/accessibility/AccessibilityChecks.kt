@@ -51,20 +51,23 @@ class LynketAccessibilityValidator : ComposeAccessibilityValidator {
 
   override fun check(view: View) {
     val density = view.resources.displayMetrics.density
+    val dragHandleLabel = materialDragHandleLabel(view)
     val failures = mutableListOf<String>()
     composeRoots(view).forEach { root ->
-      walk(root.semanticsOwner.rootSemanticsNode) { node -> failures += check(node, density) }
+      walk(root.semanticsOwner.rootSemanticsNode) { node ->
+        failures += check(node, density, dragHandleLabel)
+      }
     }
     if (failures.isNotEmpty()) {
       throw AssertionError("Accessibility checks failed:\n" + failures.joinToString("\n"))
     }
   }
 
-  private fun check(node: SemanticsNode, density: Float): List<String> {
+  private fun check(node: SemanticsNode, density: Float, dragHandleLabel: String?): List<String> {
     val config = node.config
     val pressable = SemanticsActions.OnClick in config || SemanticsActions.OnLongClick in config
     val actionable = pressable || SemanticsActions.SetProgress in config
-    if (!actionable || isHidden(config) || isExempt(node)) return emptyList()
+    if (!actionable || isHidden(config) || isExempt(node, dragHandleLabel)) return emptyList()
     val bounds = node.boundsInRoot
     if (bounds.width <= 0f || bounds.height <= 0f) return emptyList()
 
@@ -114,7 +117,8 @@ class LynketAccessibilityValidator : ComposeAccessibilityValidator {
   private fun isHidden(config: SemanticsConfiguration): Boolean =
     SemanticsProperties.HideFromAccessibility in config || SemanticsProperties.InvisibleToUser in config
 
-  private fun isExempt(node: SemanticsNode): Boolean = isTextLink(node) || isSheetDragHandleAnchor(node)
+  private fun isExempt(node: SemanticsNode, dragHandleLabel: String?): Boolean =
+    isTextLink(node) || isSheetDragHandleAnchor(node, dragHandleLabel)
 
   /**
    * E1, text links. An inline link in a `Text` (`LinkAnnotation`) gets its own clickable node that
@@ -130,14 +134,28 @@ class LynketAccessibilityValidator : ComposeAccessibilityValidator {
    * child is the handle itself, which carries the "Drag handle" description and the dismiss
    * action, and is what a screen reader focuses. The sheets also close by back and by a scrim
    * tap. The anchor is drawn by the library; widening it means a custom drag handle in every sheet,
-   * a visible layout change.
+   * a visible layout change. Only a child with Material's own drag handle description qualifies, so
+   * another long-press element of the same shape is still judged.
    */
-  private fun isSheetDragHandleAnchor(node: SemanticsNode): Boolean {
+  private fun isSheetDragHandleAnchor(node: SemanticsNode, dragHandleLabel: String?): Boolean {
+    if (dragHandleLabel == null) return false
     val config = node.config
     if (SemanticsActions.OnClick in config || SemanticsActions.OnLongClick !in config) return false
     val child = node.children.singleOrNull() ?: return false
-    return !child.config.getOrNull(SemanticsProperties.ContentDescription).isNullOrEmpty() &&
-      SemanticsActions.Dismiss in child.config
+    return child.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty()
+      .contains(dragHandleLabel) && SemanticsActions.Dismiss in child.config
+  }
+
+  /** Material's drag handle description in the current locale ("Drag handle" in English). */
+  @Suppress("DiscouragedApi") // the string is internal to Material 3, so it is looked up by name
+  private fun materialDragHandleLabel(view: View): String? {
+    val resources = view.resources
+    val id = resources.getIdentifier(
+      "m3c_bottom_sheet_drag_handle_description",
+      "string",
+      view.context.packageName,
+    )
+    return if (id == 0) null else resources.getString(id)
   }
 
   private fun composeRoots(view: View): List<ViewRootForTest> {
