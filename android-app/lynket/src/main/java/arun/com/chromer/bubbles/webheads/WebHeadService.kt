@@ -286,12 +286,14 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    // The overlay check comes first: with the permission off, its message names the cause that
+    // Open Settings fixes, and no head is added over a refused overlay.
+    if (!checkForOverlayPermission(intent)) return START_NOT_STICKY
     if (!foregroundStarted) {
       openInTabInstead(intent)
       stopSelf()
       return START_NOT_STICKY
     }
-    checkForOverlayPermission()
     processIntent(intent)
     return START_STICKY
   }

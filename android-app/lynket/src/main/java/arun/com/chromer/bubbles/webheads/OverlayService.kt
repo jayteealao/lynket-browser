@@ -26,25 +26,27 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
-import android.widget.Toast
-import android.widget.Toast.LENGTH_LONG
 import androidx.annotation.IntRange
 import androidx.core.app.ServiceCompat
-import arun.com.chromer.R
 import arun.com.chromer.bubbles.webheads.overlay.OverlayLifecycleOwner
+import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.base.service.BaseService
 import arun.com.chromer.util.Utils
 import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * A foreground service that draws over other apps. It owns the lifecycle, saved state and view
  * model store of its Compose overlay windows, and stops when the overlay permission goes away.
+ *
+ * A subclass asks [checkForOverlayPermission] first in `onStartCommand`, with the start's intent,
+ * so a link that arrives after the permission went away still opens in a tab.
  */
 abstract class OverlayService : BaseService() {
   @IntRange(from = 1)
@@ -53,6 +55,9 @@ abstract class OverlayService : BaseService() {
   abstract fun getNotification(): Notification
 
   abstract override fun onBind(intent: Intent): IBinder?
+
+  @Inject
+  lateinit var overlayRefusal: OverlayRefusal
 
   /** Owner of every Compose view this service puts in a window. */
   protected val overlayOwner = OverlayLifecycleOwner()
@@ -67,7 +72,6 @@ abstract class OverlayService : BaseService() {
   override fun onCreate() {
     super.onCreate()
     overlayOwner.create()
-    checkForOverlayPermission()
     foregroundStarted = startInForeground()
     watchOverlayPermission()
   }
@@ -141,15 +145,18 @@ abstract class OverlayService : BaseService() {
     nm.notify(getNotificationId(), notification)
   }
 
-  protected fun checkForOverlayPermission() {
-    if (!Utils.isOverlayGranted(this)) {
-      Toast.makeText(this, getString(R.string.web_head_permission_toast), LENGTH_LONG).show()
-      val intent =
-        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
-      intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-      startActivity(intent)
-      Timber.d("Exited overlay service since overlay permission was revoked")
-      stopSelf()
+  /**
+   * True when the overlay permission is on and the start may go on. Otherwise the link of [intent],
+   * if it has one, opens in a tab with a message that names the setting, the service stops, and
+   * this returns false. It never opens the overlay settings page: only a tap on Open Settings does.
+   */
+  protected fun checkForOverlayPermission(intent: Intent?): Boolean {
+    if (Utils.isOverlayGranted(this)) return true
+    intent?.dataString?.let { url ->
+      overlayRefusal.refuse(this, Website(url), intent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false))
     }
+    Timber.d("Overlay permission is off; stopping the overlay service")
+    stopService()
+    return false
   }
 }
