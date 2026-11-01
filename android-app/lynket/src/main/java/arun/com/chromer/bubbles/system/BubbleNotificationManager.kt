@@ -106,7 +106,8 @@ constructor(
     notificationManager.notify(BUBBLE_NOTIFICATION_GROUP.hashCode(), bubblesSummaryNotification)
   }
 
-  suspend fun showBubbles(bubbleData: BubbleLoadData): BubbleLoadData = try {
+  /** An update of a posted bubble passes withSummary = false: the summary is already there. */
+  suspend fun showBubbles(bubbleData: BubbleLoadData, withSummary: Boolean = true): BubbleLoadData = try {
     withContext(Dispatchers.IO) {
       createNotificationChannel()
       val context = bubbleData.contextRef.get() ?: application
@@ -185,7 +186,7 @@ constructor(
         })
       }
 
-      updateGroupSummaryNotification(bubbleData.color)
+      if (withSummary) updateGroupSummaryNotification(bubbleData.color)
 
       notificationManager.notify(website.url.hashCode(), bubbleNotification)
       bubbleData
