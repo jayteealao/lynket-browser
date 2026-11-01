@@ -127,6 +127,14 @@ constructor(
         },
         flags
       )
+      // Holds only the notification id, so an incognito bubble leaves no address in it.
+      val dismissIntent = PendingIntent.getBroadcast(
+        application,
+        website.url.hashCode(),
+        Intent(application, BubbleDismissReceiver::class.java)
+          .putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, website.url.hashCode()),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+      )
 
       val identity = bubbleData.identity()
 
@@ -150,7 +158,7 @@ constructor(
         setColorized(true)
         setLocalOnly(true)
 
-        setOngoing(false) // TODO Register a broadcast receiver and call notificationManager.cancel
+        setOngoing(false) // A dismissed bubble cleans up through its delete intent.
         setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
         setLargeIcon(identity.icon)
         if (bubbleData.incognito) secretOnLockScreen() else privateOnLockScreen()
@@ -159,6 +167,7 @@ constructor(
           setIcon(identity.icon)
           setIcon(identity.icon)
           setIntent(bubbleIntent)
+          setDeleteIntent(dismissIntent)
           setAutoExpandBubble(false)
           setSuppressNotification(true)
           setDesiredHeight(Utils.pxToDp((displayHeight * 0.8).toInt()))
