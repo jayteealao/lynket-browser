@@ -43,7 +43,7 @@ import org.robolectric.annotation.Config
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class BrowsingViewModelTest {
 
   @get:Rule

@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /** The hot copy of the settings store: edits from many callers, and a read that fails first. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class PreferencesSnapshotTest {
 
   @Test

@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
  * notification never shows: nothing of the page either way.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class NativeBubbleLockScreenTest {
 
   private val application: Application get() = RuntimeEnvironment.getApplication()

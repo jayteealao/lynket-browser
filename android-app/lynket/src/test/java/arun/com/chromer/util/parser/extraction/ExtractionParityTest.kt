@@ -46,7 +46,7 @@ import java.io.File
 private typealias SameRule = (index: Int, golden: List<String>, actual: List<String>) -> String?
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class ExtractionParityTest {
 
   @Test

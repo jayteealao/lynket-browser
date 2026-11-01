@@ -50,7 +50,7 @@ import org.robolectric.annotation.GraphicsMode
 /** Goldens of the web head, the trash, the list sheet and the permission explainer. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [36], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class WebHeadsGoldenTest {
 
   @get:Rule

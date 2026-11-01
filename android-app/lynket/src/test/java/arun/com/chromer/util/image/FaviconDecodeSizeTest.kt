@@ -46,7 +46,7 @@ import kotlin.math.roundToInt
  * icon), and a small favicon keeps its own size, so it still becomes the letter placeholder.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class, qualifiers = "xxhdpi")
+@Config(application = Application::class, qualifiers = "xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class FaviconDecodeSizeTest {
 

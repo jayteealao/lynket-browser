@@ -33,7 +33,6 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.junit.Test
 import org.robolectric.Shadows.shadowOf
-import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAppTask
 import javax.inject.Inject
 
@@ -42,7 +41,6 @@ import javax.inject.Inject
  * carries the cause, and no bubble notification posts. Web heads mode never asks.
  */
 @HiltAndroidTest
-@Config(sdk = [36])
 class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @BindValue

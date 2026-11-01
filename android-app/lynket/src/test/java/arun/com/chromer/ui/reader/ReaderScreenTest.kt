@@ -74,7 +74,7 @@ internal fun readerMenu(text: (Int) -> String, bottomBar: Boolean = true) = brow
 )
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class ReaderScreenTest {
 
   @get:Rule

@@ -38,7 +38,7 @@ import org.robolectric.annotation.GraphicsMode
  * a missing, tiny or failing one becomes the 56 dp letter placeholder, and a failure never throws.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class WebsiteIconLoaderTest {
 

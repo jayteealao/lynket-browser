@@ -27,7 +27,7 @@ import org.robolectric.util.ReflectionHelpers
  * its launcher shortcut; a normal bubble keeps its title, address and site icon.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class NativeBubbleIdentityTest {
 
   private val application: Application get() = RuntimeEnvironment.getApplication()

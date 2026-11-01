@@ -31,7 +31,7 @@ import org.robolectric.annotation.Config
 
 /** Which cause the gate names for each bubble setting, and which settings page it opens. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class BubbleGateTest {
 
   private fun state(

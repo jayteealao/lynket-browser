@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
  * and non-ASCII characters (the same serializer `rememberNavBackStack` uses on Android).
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class NavKeyRoundTripTest {
 
   private val urls = listOf(

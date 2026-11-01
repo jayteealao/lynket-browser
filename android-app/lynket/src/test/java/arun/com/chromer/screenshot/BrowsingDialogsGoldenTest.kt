@@ -53,7 +53,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [36], application = Application::class, qualifiers = BD_PHONE)
+@Config(application = Application::class, qualifiers = BD_PHONE)
 class BrowsingDialogsGoldenTest {
 
   @get:Rule

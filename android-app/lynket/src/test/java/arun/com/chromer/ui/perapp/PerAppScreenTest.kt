@@ -61,7 +61,7 @@ import org.robolectric.annotation.Config
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class PerAppScreenTest {
 
   @get:Rule
@@ -171,7 +171,7 @@ class PerAppScreenTest {
 /** The view model saves each toggle in the per-app rule store and keeps the row in step. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class PerAppViewModelTest {
 
   private val dispatcher = StandardTestDispatcher()

@@ -136,7 +136,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class ThemeMatrixGoldenTest(
   private val screen: Screen,
   private val theme: ThemeMode,

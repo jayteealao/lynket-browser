@@ -40,7 +40,6 @@ import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * The Tabs screen with a fake tab manager: a tap brings the task forward and never opens a page,
@@ -48,7 +47,6 @@ import org.robolectric.annotation.Config
  * asks first, the empty state, and a reload whenever the screen comes back.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36])
 class TabsScreenTest {
 
   @get:Rule

@@ -45,7 +45,7 @@ import java.lang.ref.WeakReference
  * posted it, not the whole display.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class NativeBubbleConversationTest {
 
   private val application: Application get() = RuntimeEnvironment.getApplication()

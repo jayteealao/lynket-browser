@@ -28,14 +28,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import timber.log.Timber
 import java.io.File
 import kotlin.random.Random
 
 /** A broken history database opens as empty history, with a logged error, no crash and the file kept. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
 class HistoryDatabaseCorruptionTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

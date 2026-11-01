@@ -56,7 +56,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [36], application = Application::class, qualifiers = RW_PHONE)
+@Config(application = Application::class, qualifiers = RW_PHONE)
 class ReaderWebViewGoldenTest {
 
   @get:Rule

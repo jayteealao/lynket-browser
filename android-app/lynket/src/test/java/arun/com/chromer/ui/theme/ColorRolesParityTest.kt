@@ -31,7 +31,7 @@ import org.robolectric.annotation.Config
  * computed them itself.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class ColorRolesParityTest {
 
   @Test

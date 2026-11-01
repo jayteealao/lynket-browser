@@ -60,7 +60,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [36], application = Application::class, qualifiers = HT_PHONE)
+@Config(application = Application::class, qualifiers = HT_PHONE)
 class HistoryTabsGoldenTest {
 
   @get:Rule(order = 0)

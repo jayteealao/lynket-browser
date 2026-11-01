@@ -50,7 +50,7 @@ import org.robolectric.annotation.Config
 
 /** The accessibility checker itself: what it fails and what it lets through. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class AccessibilityChecksTest {
 
   @get:Rule

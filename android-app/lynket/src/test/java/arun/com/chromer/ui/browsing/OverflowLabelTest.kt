@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
  * the app still used it.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class OverflowLabelTest {
 
   private val context: Application get() = ApplicationProvider.getApplicationContext()

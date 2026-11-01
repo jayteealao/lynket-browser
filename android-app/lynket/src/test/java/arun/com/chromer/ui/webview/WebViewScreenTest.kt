@@ -40,7 +40,7 @@ import org.robolectric.annotation.Config
 /** The web view's bars: title, address, progress, the actions, the bottom bar and hide on scroll. */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class WebViewScreenTest {
 
   @get:Rule

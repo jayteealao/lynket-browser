@@ -13,7 +13,7 @@ import kotlin.concurrent.thread
 
 /** A blocking wait on the main thread is logged with its site; one off the main thread is not. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class BlockingCallsTest {
 
   @Before

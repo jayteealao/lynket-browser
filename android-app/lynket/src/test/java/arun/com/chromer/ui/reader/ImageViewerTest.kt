@@ -33,7 +33,7 @@ import org.robolectric.annotation.Config
 
 /** The image viewer: pinch and double-tap zoom, the hint, Close and Share. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class ImageViewerTest {
 
   @get:Rule

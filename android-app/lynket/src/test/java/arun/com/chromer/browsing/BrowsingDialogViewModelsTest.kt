@@ -49,7 +49,7 @@ import org.robolectric.annotation.Config
 /** The AMP lookup, New tab and shortcut view models (Robolectric for the Android types they carry). */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class BrowsingDialogViewModelsTest {
 
   private val dispatcher = StandardTestDispatcher()

@@ -36,7 +36,7 @@ import org.robolectric.annotation.Config
 
 /** The home's designed states: empty recents, no provider, offline, loading, and the drawer order. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [36], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class HomeStatesTest {
 
   @get:Rule

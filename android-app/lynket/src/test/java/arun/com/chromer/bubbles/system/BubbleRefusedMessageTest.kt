@@ -54,7 +54,7 @@ import org.robolectric.annotation.Config
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = HiltTestApplication::class)
+@Config(application = HiltTestApplication::class)
 class BubbleRefusedMessageTest {
   @get:Rule(order = 0)
   val hiltRule = HiltAndroidRule(this)
