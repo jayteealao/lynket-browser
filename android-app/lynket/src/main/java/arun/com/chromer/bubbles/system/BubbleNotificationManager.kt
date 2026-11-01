@@ -174,9 +174,9 @@ constructor(
           setDesiredHeight(Utils.pxToDp((displayHeight * 0.8).toInt()))
         }
 
-        // Required when targeting 10
-        // https://developer.android.com/guide/topics/ui/bubbles#when_bubbles_appear
-        setCategory(Notification.CATEGORY_CALL)
+        // A bubble is a conversation: the messaging style with an important person qualifies it on
+        // Android 10, and the shortcut on Android 11 and later.
+        setCategory(Notification.CATEGORY_MESSAGE)
         style = Notification.MessagingStyle(addPerson {
           // A conversation whose only person is a bot is not a conversation, and only
           // conversations bubble.
