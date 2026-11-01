@@ -38,10 +38,10 @@ import org.junit.runners.model.Statement
  * person can click or long-press that has a touch target under 48 x 48 dp. A slider is dragged
  * along its length and set with a screen reader's adjust gestures, so its height is not judged.
  *
- * Elements with only other actions (scrolling, dragging, custom actions) are not judged. An
- * element with an empty size (scrolled out of view) or cut by its container is not judged, as the
- * Accessibility Test Framework does on a device. Colour contrast is not checked: it needs pixels,
- * and these checks read semantics only.
+ * Elements with only other actions (scrolling, dragging, custom actions) are not judged, nor is an
+ * element with an empty size (scrolled out of view). An element its container cuts is judged at its
+ * full layout size, so cutting it cannot hide a small target. Colour contrast is not checked: it
+ * needs pixels, and these checks read semantics only.
  *
  * The Compose library's own `enableAccessibilityChecks()` is not used: under Robolectric the
  * Accessibility Test Framework reports "Composable content is not evaluated in this environment"
@@ -72,20 +72,35 @@ class LynketAccessibilityValidator : ComposeAccessibilityValidator {
     val label = speakableLabel(config)
     if (label.isBlank()) failures += describe("SpeakableLabel", node, label, density)
 
-    val clipped = bounds.width + 0.5f < node.size.width || bounds.height + 0.5f < node.size.height
-    val touch = node.touchBoundsInRoot
-    if (pressable && !clipped && (touch.width / density < MIN_TOUCH_DP || touch.height / density < MIN_TOUCH_DP)) {
-      failures += describe("TouchTarget", node, label, density)
+    if (pressable) {
+      val (width, height) = fullTouchSize(node)
+      if (width / density < MIN_TOUCH_DP || height / density < MIN_TOUCH_DP) {
+        failures += describe("TouchTarget", node, label, density)
+      }
     }
     return failures
+  }
+
+  /**
+   * The touch target in pixels at the element's full layout size: the visible bounds a container
+   * cuts are replaced by the layout size, and the touch area Compose adds around the element is
+   * kept. So an element that a container cuts is judged by the size it has, not skipped.
+   */
+  private fun fullTouchSize(node: SemanticsNode): Pair<Float, Float> {
+    val bounds = node.boundsInRoot
+    val touch = node.touchBoundsInRoot
+    val width = maxOf(bounds.width, node.size.width.toFloat()) + (touch.width - bounds.width)
+    val height = maxOf(bounds.height, node.size.height.toFloat()) + (touch.height - bounds.height)
+    return width to height
   }
 
   private fun describe(check: String, node: SemanticsNode, label: String, density: Float): String {
     val config = node.config
     val touch = node.touchBoundsInRoot
+    val (width, height) = fullTouchSize(node)
     val tag = config.getOrNull(SemanticsProperties.TestTag) ?: "-"
     val role = config.getOrNull(SemanticsProperties.Role)?.toString() ?: "-"
-    val size = "%.1f x %.1f dp".format(touch.width / density, touch.height / density)
+    val size = "%.1f x %.1f dp".format(width / density, height / density)
     val position = "(%.1f, %.1f) dp".format(touch.left / density, touch.top / density)
     return "$check: tag=$tag role=$role label='${label.take(40)}' size=$size at $position"
   }
