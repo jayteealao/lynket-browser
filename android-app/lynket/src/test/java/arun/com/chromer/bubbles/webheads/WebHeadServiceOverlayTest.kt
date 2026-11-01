@@ -11,12 +11,16 @@
 
 package arun.com.chromer.bubbles.webheads
 
+import android.app.Service
 import android.content.Intent
 import android.net.Uri
 import android.os.Looper
+import android.provider.Settings
 import androidx.compose.ui.graphics.Color
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
@@ -32,6 +36,7 @@ import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ServiceController
 import org.robolectric.shadows.ShadowSettings
+import org.robolectric.shadows.ShadowToast
 import java.time.Duration
 import javax.inject.Inject
 
@@ -220,6 +225,82 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
     controller.destroy()
 
     assertThat(job.isCancelled).isTrue()
+  }
+
+  /** Every activity started so far, after the posted work of the main thread ran. */
+  private fun startedActivities(): List<Intent> {
+    shadowOf(Looper.getMainLooper()).idle()
+    return generateSequence { shadowOf(application).nextStartedActivity }.toList()
+  }
+
+  private fun List<Intent>.settingsPages() =
+    filter { it.action == Settings.ACTION_MANAGE_OVERLAY_PERMISSION }
+
+  @Test
+  fun with_the_permission_off_a_link_goes_to_the_refusal_path_and_the_service_stops() {
+    ShadowSettings.setCanDrawOverlays(false)
+    val intent = intentFor("https://a.example").putExtra(EXTRA_KEY_INCOGNITO, true)
+    val controller = Robolectric.buildService(WebHeadService::class.java, intent).create()
+    val service = controller.get()
+
+    val result = service.onStartCommand(intent, 0, 1)
+    val started = startedActivities()
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(started.settingsPages()).isEmpty()
+    val tab = started.single { it.dataString == "https://a.example" }
+    assertThat(tab.getStringExtra(EXTRA_KEY_BUBBLE_REFUSAL)).isEqualTo("OVERLAY_OFF")
+    assertThat(tab.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+    assertThat(service.controller).isNull()
+    assertThat(service.overlayWindows).isEmpty()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+    assertThat(ShadowToast.shownToastCount()).isEqualTo(0)
+  }
+
+  @Test
+  fun a_revocation_after_create_refuses_the_link_and_adds_no_head() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val controller = Robolectric.buildService(WebHeadService::class.java).create()
+    val service = controller.get()
+    assertThat(service.controller).isNotNull()
+
+    ShadowSettings.setCanDrawOverlays(false)
+    val result = service.onStartCommand(intentFor("https://b.example"), 0, 1)
+    val started = startedActivities()
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(service.controller!!.size).isEqualTo(0)
+    assertThat(started.settingsPages()).isEmpty()
+    val tab = started.single { it.dataString == "https://b.example" }
+    assertThat(tab.getStringExtra(EXTRA_KEY_BUBBLE_REFUSAL)).isEqualTo("OVERLAY_OFF")
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+  }
+
+  @Test
+  fun with_the_permission_off_a_restart_without_a_link_stops_and_opens_nothing() {
+    ShadowSettings.setCanDrawOverlays(false)
+    val controller = Robolectric.buildService(WebHeadService::class.java).create()
+    val service = controller.get()
+
+    val result = service.onStartCommand(null, 0, 1)
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(startedActivities()).isEmpty()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+  }
+
+  @Test
+  fun with_the_permission_on_a_link_keeps_the_service_sticky() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val intent = intentFor("https://a.example")
+    val controller = Robolectric.buildService(WebHeadService::class.java, intent).create()
+    val service = controller.get()
+
+    val result = service.onStartCommand(intent, 0, 1)
+
+    assertThat(result).isEqualTo(Service.START_STICKY)
+    assertThat(service.controller!!.size).isEqualTo(1)
+    assertThat(startedActivities()).isEmpty()
   }
 
   @Test
