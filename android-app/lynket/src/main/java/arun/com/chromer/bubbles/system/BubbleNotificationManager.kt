@@ -79,6 +79,8 @@ constructor(
         enableVibration(false)
         setBypassDnd(true)
         importance = IMPORTANCE_HIGH
+        // Android keeps the lock screen setting of a channel that exists, so each notification also carries its own private version.
+        lockscreenVisibility = Notification.VISIBILITY_PRIVATE
       }
       notificationManager.createNotificationChannel(channel)
     }
