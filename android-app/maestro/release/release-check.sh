@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Release build on a device: the minified, resource-shrunk APK opens a link, the article reader
-# and a web head. The release build type has no signing config, so the script signs a copy of the
+# and a web head, and lists them in History. The release build type has no signing config, so the script signs a copy of the
 # unsigned APK with this host's SDK debug key, for an emulator only.
 #
 #   build     ./gradlew :lynket:assembleRelease (skipped with SKIP_BUILD=1), then zipalign and
