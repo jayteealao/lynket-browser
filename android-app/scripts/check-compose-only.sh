@@ -8,6 +8,8 @@
 #    no res/menu folder and no preference screen XML.
 #  - Sources: no class in lynket/src/main extends a View, layout, widget, Fragment, preference
 #    fragment or adapter type, and no code inflates a layout or calls setContentView(R.layout...).
+#  - Tests: every JVM test file that creates a Compose test rule also declares the accessibility
+#    checks rule (AccessibilityChecksRule), so a new Compose UI test cannot skip those checks.
 #
 # Usage: bash android-app/scripts/check-compose-only.sh
 # Prints every hit and exits 1 when there is at least one; exits 0 when the app is clean.
@@ -90,6 +92,10 @@ if [ -n "$hits" ]; then fail "classes extending View, Fragment or Adapter types"
 # 8. No layout inflation
 hits="$(grep -r -n -E 'setContentView\([[:space:]]*R\.layout|setContentView\([[:space:]]*layoutRes|LayoutInflater|\.inflate\([[:space:]]*R\.layout' "$APP/java" 2>/dev/null | sed "s|^$ROOT/||")"
 if [ -n "$hits" ]; then fail "layout inflation in sources" "$hits"; else ok "no setContentView(R.layout...) or layout inflation"; fi
+
+# 9. Every JVM test file that creates a Compose test rule declares AccessibilityChecksRule
+hits="$(grep -r -l -E 'create(Android|Empty)?ComposeRule|runComposeUiTest' --include='*.kt' "$ROOT/lynket/src/test" 2>/dev/null |   xargs -r grep -L 'AccessibilityChecksRule' | sed "s|^$ROOT/||")"
+if [ -n "$hits" ]; then fail "Compose UI tests without AccessibilityChecksRule" "$hits"; else ok "every Compose UI test declares AccessibilityChecksRule"; fi
 
 echo
 if [ "$FAIL" -ne 0 ]; then
