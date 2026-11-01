@@ -63,7 +63,7 @@ class TabsScreenTest {
 
   private fun show(open: List<TabsManager.Tab> = tabs) {
     coEvery { tabsManager.getActiveTabs() } returns open
-    every { websites.getWebsiteWithoutHistory(any()) } answers { flowOf(Website("Site ${firstArg<String>().last()}", firstArg(), null, null, null, null, false, 0, 1)) }
+    every { websites.getWebsiteWithoutSaving(any()) } answers { flowOf(Website("Site ${firstArg<String>().last()}", firstArg(), null, null, null, null, false, 0, 1)) }
     val viewModel = ModernTabsViewModel(tabsManager, websites)
     composeRule.setContent { ChromerTheme(themeMode = ThemeMode.Light) { TabsScreen(onBack = {}, closeIcon = true, viewModel = viewModel) } }
     composeRule.waitForIdle()

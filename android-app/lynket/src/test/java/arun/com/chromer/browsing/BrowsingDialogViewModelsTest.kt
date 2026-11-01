@@ -120,12 +120,14 @@ class BrowsingDialogViewModelsTest {
   }
 
   @Test
-  fun anIncognitoLookupDoesNotWriteHistory() = runTest(dispatcher) {
-    val repo = mockk<WebsiteRepository> { every { getWebsiteWithoutHistory(url) } returns flowOf(site()) }
+  fun anIncognitoLookupStoresNothing() = runTest(dispatcher) {
+    val repo = mockk<WebsiteRepository> { every { getWebsiteWithoutSaving(url) } returns flowOf(site()) }
     val vm = AmpResolverViewModel(repo, FakeNetwork(online = true))
     vm.start(url, incognito = true)
     advanceUntilIdle()
+    verify(exactly = 1) { repo.getWebsiteWithoutSaving(url) }
     verify(exactly = 0) { repo.getWebsite(any()) }
+    verify(exactly = 0) { repo.getWebsiteWithoutHistory(any()) }
     assertThat(vm.state.value).isInstanceOf(AmpState.NotFound::class.java)
   }
 
