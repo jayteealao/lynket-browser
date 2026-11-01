@@ -28,6 +28,7 @@ import androidx.compose.ui.test.performClick
 import arun.com.chromer.R
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.browsing.BubbleRefusedMessage
 import arun.com.chromer.ui.browsing.TOUCH_EXPLORATION_TIMEOUT_MS
 import arun.com.chromer.ui.browsing.messageRes
@@ -60,6 +61,9 @@ class BubbleRefusedMessageTest {
 
   @get:Rule(order = 1)
   val composeRule = createEmptyComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val application: Application get() = RuntimeEnvironment.getApplication()
 
