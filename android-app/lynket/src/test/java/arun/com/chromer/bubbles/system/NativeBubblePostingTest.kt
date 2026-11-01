@@ -189,7 +189,8 @@ class NativeBubblePostingTest {
     assertThat(posts).hasSize(1)
     assertThat(posts.single().at).isEqualTo(0L)
     assertThat(posts.single().withIcon).isFalse()
-    verify { repo.getWebsiteWithoutSaving(URL) }
+    verify(exactly = 0) { repo.getWebsiteWithoutSaving(any()) }
+    verify(exactly = 0) { repo.getWebsite(any()) }
     coVerify(exactly = 0) { icons.getBubbleIconAndColor(any()) }
   }
 

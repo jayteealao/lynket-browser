@@ -117,51 +117,38 @@ constructor(
 
   private suspend fun showBubble(initial: BubbleLoadData): Unit = coroutineScope {
     val url = initial.website.url
-    // The site and its icon load while the first post publishes the shortcut.
-    val details = async { withDetails(initial) }
-    // An incognito bubble shows the Lynket icon, so it has no icon to wait for.
-    val ready = if (initial.incognito) null else withTimeoutOrNull(ICON_WAIT_MS) { details.await() }
+    // An incognito bubble shows only its generic label and the Lynket icon, so nothing about the
+    // site is read for it. A normal bubble's site and icon load while the first post publishes.
+    val details = if (initial.incognito) null else async { withDetails(initial) }
+    val ready = details?.let { withTimeoutOrNull(ICON_WAIT_MS) { it.await() } }
     bubbleNotificationManager.showBubbles(ready ?: initial)
 
     // Android can still post the notification without showing it as a bubble. Then the page opens
     // in a tab with a message instead of being lost in the notification shade.
     if (!shownAsBubble(url)) {
-      details.cancel()
+      details?.cancel()
       Timber.w("Android did not show %s as a bubble; opening it in a tab", url)
       bubbleNotificationManager.cancel(url)
       tabsManager.get().openRefusedBubble(application, initial.website, BubbleRefusal.NOT_SHOWN, initial.incognito)
       return@coroutineScope
     }
 
-    if (ready == null && !initial.incognito) {
+    if (details != null && ready == null) {
       val late = details.await()
       // Same url, so the same notification is updated in place; the summary is already posted.
       if (late !== initial) bubbleNotificationManager.showBubbles(late, withSummary = false)
     }
   }
 
-  /** The site read (without saving for incognito) and, for a normal bubble, its icon and colour. */
+  /** The site read, with its icon and colour, of a normal bubble. */
   private suspend fun withDetails(initial: BubbleLoadData): BubbleLoadData = try {
-    val url = initial.website.url
-    // An incognito page must leave no history row and no cache entry.
-    val read = if (initial.incognito) {
-      websiteRepository.getWebsiteWithoutSaving(url)
-    } else {
-      websiteRepository.getWebsite(url)
-    }
-    val website = read.firstOrNull() ?: initial.website
-
-    if (initial.incognito) {
-      // An incognito bubble shows the Lynket icon, so the site icon is never fetched.
-      initial.copy(website = website)
-    } else {
-      val iconData = websiteIconsProvider.getBubbleIconAndColor(website)
-      initial.copy(
-        website = website,
-        icon = iconData.icon,
-        color = iconData.color
-      )
-    }
+    val website = websiteRepository.getWebsite(initial.website.url).firstOrNull() ?: initial.website
+    val iconData = websiteIconsProvider.getBubbleIconAndColor(website)
+    initial.copy(
+      website = website,
+      icon = iconData.icon,
+      color = iconData.color
+    )
   } catch (e: CancellationException) {
     throw e
   } catch (e: Exception) {

@@ -66,12 +66,12 @@ class NativeBubbleIncognitoReadTest {
   private fun bubble() = NativeFloatingBubble(application, repo, notifications, icons, gate, dispatcher) { tabsManager }
 
   @Test
-  fun an_incognito_bubble_reads_its_site_without_saving() {
+  fun an_incognito_bubble_reads_nothing_about_its_site() {
     val opened = bubble().openBubble(Website(url), false, false, true, null, 0)
     dispatcher.scheduler.advanceUntilIdle()
 
     assertThat(opened).isTrue()
-    verify { repo.getWebsiteWithoutSaving(url) }
+    verify(exactly = 0) { repo.getWebsiteWithoutSaving(any()) }
     verify(exactly = 0) { repo.getWebsite(any()) }
   }
 
