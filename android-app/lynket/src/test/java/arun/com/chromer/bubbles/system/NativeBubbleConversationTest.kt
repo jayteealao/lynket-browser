@@ -45,7 +45,7 @@ import java.lang.ref.WeakReference
  * posted it, not the whole display.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class NativeBubbleConversationTest {
 
   private val application: Application get() = RuntimeEnvironment.getApplication()
@@ -136,7 +136,7 @@ class NativeBubbleConversationTest {
   }
 
   @Test
-  @Config(sdk = [34], qualifiers = "w411dp-h914dp-420dpi")
+  @Config(sdk = [36], qualifiers = "w411dp-h914dp-420dpi")
   fun the_desired_height_follows_the_window_not_the_display() = assertHeightFollowsTheWindow()
 
   @Test

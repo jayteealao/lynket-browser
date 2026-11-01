@@ -44,7 +44,7 @@ import org.robolectric.annotation.Config
 
 /** The browsing dialogs: controls, order, enablement and callbacks. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class BrowsingDialogsTest {
 
   @get:Rule

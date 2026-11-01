@@ -34,7 +34,7 @@ import kotlin.random.Random
 
 /** The history file of release 2.1.3 comes into the Room database once, merged by URL. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [36])
 class LegacyHistoryImportTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

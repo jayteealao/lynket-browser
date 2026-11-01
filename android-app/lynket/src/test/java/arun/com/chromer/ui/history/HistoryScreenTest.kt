@@ -66,7 +66,7 @@ import java.util.concurrent.TimeUnit
  */
 @RunWith(AndroidJUnit4::class)
 // A phone-sized window: the default Robolectric screen is too short for the switches and the first day.
-@Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [36], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class HistoryScreenTest {
 
   @get:Rule(order = 0)

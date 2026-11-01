@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
 
 /** The history store on Room keeps the old store's visit rule, recents, paging and the history switch. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [36])
 class RoomHistoryStoreTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

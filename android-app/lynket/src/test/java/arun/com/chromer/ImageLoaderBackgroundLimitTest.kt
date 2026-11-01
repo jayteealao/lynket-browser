@@ -37,7 +37,7 @@ import org.robolectric.annotation.Config
  * visible. The value is read back from the loader that [Lynket.newImageLoader] builds.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class ImageLoaderBackgroundLimitTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

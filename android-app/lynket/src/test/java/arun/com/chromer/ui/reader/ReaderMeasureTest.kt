@@ -41,7 +41,7 @@ import java.io.File
  */
 @RunWith(AndroidJUnit4::class)
 @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = Application::class, qualifiers = "w841dp-h701dp-xxhdpi")
+@Config(sdk = [36], application = Application::class, qualifiers = "w841dp-h701dp-xxhdpi")
 class ReaderMeasureTest {
 
   @get:Rule

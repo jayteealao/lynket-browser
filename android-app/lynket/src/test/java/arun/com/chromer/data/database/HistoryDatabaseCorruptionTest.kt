@@ -35,7 +35,7 @@ import kotlin.random.Random
 
 /** A broken history database opens as empty history, with a logged error, no crash and the file kept. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [36])
 class HistoryDatabaseCorruptionTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

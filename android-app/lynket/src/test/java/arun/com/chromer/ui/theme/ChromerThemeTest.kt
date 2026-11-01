@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
 
 /** The seed schemes, the black variant and the person's colour as primary. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class ChromerThemeTest {
   @get:Rule
   val composeRule = createComposeRule()

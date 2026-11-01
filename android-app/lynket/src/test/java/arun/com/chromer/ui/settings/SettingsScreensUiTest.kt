@@ -58,7 +58,7 @@ import org.robolectric.annotation.Config
 
 /** Each settings screen: its rows, the rows that follow another, and where each row leads. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class SettingsScreensUiTest {
 
   @get:Rule

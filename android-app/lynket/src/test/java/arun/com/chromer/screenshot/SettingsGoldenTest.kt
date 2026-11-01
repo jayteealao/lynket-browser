@@ -59,7 +59,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = Application::class, qualifiers = SETTINGS_PHONE)
+@Config(sdk = [36], application = Application::class, qualifiers = SETTINGS_PHONE)
 class SettingsGoldenTest {
 
   @get:Rule

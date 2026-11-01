@@ -30,7 +30,7 @@ import java.util.TimeZone
 
 /** Day headers of the History list: where they go and what they say. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class HistoryGroupingTest {
 
   @get:Rule(order = 0)

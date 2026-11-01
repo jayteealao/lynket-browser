@@ -43,7 +43,7 @@ import javax.inject.Inject
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = HiltTestApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [36], application = HiltTestApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class BubbleRefusedWindowGoldenTest {
   @get:Rule(order = 0)
   val hiltRule = HiltAndroidRule(this)

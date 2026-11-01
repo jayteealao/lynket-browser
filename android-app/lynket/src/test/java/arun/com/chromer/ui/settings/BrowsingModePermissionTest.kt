@@ -59,7 +59,7 @@ import javax.inject.Inject
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = HiltTestApplication::class)
+@Config(sdk = [36], application = HiltTestApplication::class)
 class BrowsingModePermissionTest {
   @get:Rule(order = 0)
   val hiltRule = HiltAndroidRule(this)

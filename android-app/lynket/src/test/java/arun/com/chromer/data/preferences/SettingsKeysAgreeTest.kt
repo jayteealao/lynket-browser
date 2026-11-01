@@ -32,7 +32,7 @@ import java.lang.reflect.Modifier
  * A name or a default that drifts in one of them fails here.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [36])
 class SettingsKeysAgreeTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

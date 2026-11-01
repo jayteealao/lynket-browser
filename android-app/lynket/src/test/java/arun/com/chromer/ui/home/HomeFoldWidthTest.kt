@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
 
 /** On a wide window the home is one centred column of at most 680 dp. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class, qualifiers = "w841dp-h701dp-xxhdpi")
+@Config(sdk = [36], application = Application::class, qualifiers = "w841dp-h701dp-xxhdpi")
 class HomeFoldWidthTest {
 
   @get:Rule

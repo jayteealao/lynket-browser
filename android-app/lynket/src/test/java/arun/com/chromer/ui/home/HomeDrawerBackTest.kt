@@ -31,7 +31,7 @@ import org.robolectric.annotation.Config
 
 /** Back with the drawer open closes the drawer and keeps the person on home. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [36], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class HomeDrawerBackTest {
 
   @get:Rule

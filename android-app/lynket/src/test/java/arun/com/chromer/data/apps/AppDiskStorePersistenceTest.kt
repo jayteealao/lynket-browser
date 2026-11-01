@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 
 /** Per-app rules survive a new store instance on the same file (a process restart). */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class AppDiskStorePersistenceTest {
   private val application: Application get() = RuntimeEnvironment.getApplication()
 

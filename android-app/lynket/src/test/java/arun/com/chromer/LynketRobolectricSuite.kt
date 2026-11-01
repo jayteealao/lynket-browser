@@ -35,7 +35,7 @@ import javax.inject.Inject
 
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = HiltTestApplication::class)
+@Config(sdk = [36], application = HiltTestApplication::class)
 abstract class LynketRobolectricSuite {
   @get:Rule
   val hiltRule = HiltAndroidRule(this)

@@ -47,7 +47,7 @@ import org.robolectric.annotation.Config
  * asks first, the empty state, and a reload whenever the screen comes back.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34])
+@Config(sdk = [36])
 class TabsScreenTest {
 
   @get:Rule

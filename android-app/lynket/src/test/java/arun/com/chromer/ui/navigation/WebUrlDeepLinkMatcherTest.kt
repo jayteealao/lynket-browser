@@ -26,7 +26,7 @@ import org.robolectric.annotation.Config
  * anything that is not a web address is refused without an exception.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class WebUrlDeepLinkMatcherTest {
 
   private val urls = listOf(

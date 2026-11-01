@@ -50,7 +50,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [36], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class BubbleGuidanceGoldenTest {
 
   @get:Rule

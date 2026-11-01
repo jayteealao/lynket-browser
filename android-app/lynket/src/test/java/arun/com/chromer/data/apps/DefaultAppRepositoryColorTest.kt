@@ -43,7 +43,7 @@ import org.robolectric.shadows.ShadowLog
  * rules without a main-thread wait, and a missing colour still starts the colour extraction once.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class DefaultAppRepositoryColorTest {
   private val application: Application get() = RuntimeEnvironment.getApplication()
   private val jobScheduler: JobScheduler

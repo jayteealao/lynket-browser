@@ -39,7 +39,7 @@ import java.io.File
  * Room's validation of every table, the same path a person's update takes.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [36])
 class ChromerDatabaseMigrationTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

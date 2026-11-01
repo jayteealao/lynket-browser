@@ -37,7 +37,7 @@ import org.robolectric.shadows.ShadowAppTask
  * Custom Tab starts in the intercept's own task, so removing that task closed the page at once.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class FinishPassThroughTest {
 
   private val activity: Activity = Robolectric.buildActivity(Activity::class.java).setup().get()

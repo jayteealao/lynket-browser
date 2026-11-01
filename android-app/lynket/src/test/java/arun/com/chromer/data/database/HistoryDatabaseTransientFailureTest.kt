@@ -27,7 +27,7 @@ import java.io.File
 
 /** A history file that cannot be opened for a passing reason stays where it is for the next try. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [36])
 class HistoryDatabaseTransientFailureTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

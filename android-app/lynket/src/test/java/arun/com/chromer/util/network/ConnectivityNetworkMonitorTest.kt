@@ -31,7 +31,7 @@ import org.robolectric.shadows.ShadowNetworkCapabilities
  * lost (platform javadoc of `NetworkCallback.onLost`), so the monitor must trust the callback.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class ConnectivityNetworkMonitorTest {
 
   private val application: Application get() = RuntimeEnvironment.getApplication()

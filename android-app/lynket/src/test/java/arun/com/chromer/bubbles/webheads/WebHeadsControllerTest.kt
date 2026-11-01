@@ -80,7 +80,7 @@ private class RecordingHost : WebHeadHost {
 /** Drag, fling, trash, chain, queue and coasting of the web heads, on virtual time. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class WebHeadsControllerTest {
   private val width = 1080
   private val height = 2400

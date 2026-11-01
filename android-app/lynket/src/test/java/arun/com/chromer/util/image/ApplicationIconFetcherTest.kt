@@ -33,7 +33,7 @@ import org.robolectric.annotation.Config
  * loads the installed app's launcher icon, so `AsyncImage(model = iconUri)` shows it.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [36], application = Application::class)
 class ApplicationIconFetcherTest {
 
   private val context: Application get() = RuntimeEnvironment.getApplication()
