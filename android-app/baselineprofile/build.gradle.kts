@@ -45,6 +45,12 @@ dependencies {
     implementation(libs.androidx.junit)
     implementation(libs.androidx.uiautomator)
     implementation(libs.androidx.benchmark.macro.junit4)
+
+    constraints {
+        // The benchmark APK resolves coroutines at the app's catalog version; the Macrobenchmark
+        // libraries ask for older ones.
+        implementation(libs.kotlinx.coroutines.core)
+    }
 }
 
 // Resolved versions are pinned in gradle.lockfile; refresh with --write-locks after a dependency change.
