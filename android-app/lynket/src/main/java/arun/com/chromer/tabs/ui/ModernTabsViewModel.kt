@@ -63,7 +63,7 @@ class ModernTabsViewModel @Inject constructor(
       try {
         val tabs = tabsManager.getActiveTabs().map { tab ->
           tab.website = try {
-            websiteRepository.getWebsiteReadOnly(tab.url).first()
+            websiteRepository.getWebsiteWithoutHistory(tab.url).first()
           } catch (e: CancellationException) {
             throw e
           } catch (e: Exception) {

@@ -418,7 +418,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     val websiteFlow = if (!isIncognito) {
       websiteRepository.getWebsite(webHeadUrl)
     } else {
-      websiteRepository.getWebsiteReadOnly(webHeadUrl)
+      websiteRepository.getWebsiteWithoutHistory(webHeadUrl)
     }
     serviceScope.launch {
       try {

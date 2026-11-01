@@ -60,7 +60,7 @@ class BrowsingViewModelTest {
   private fun repository(website: Website = Website(url).apply { title = "Example" }) =
     mockk<WebsiteRepository> {
       every { getWebsite(url) } returns flowOf(website)
-      every { getWebsiteReadOnly(url) } returns flowOf(website)
+      every { getWebsiteWithoutHistory(url) } returns flowOf(website)
       every { getWebsiteWithoutSaving(url) } returns flowOf(website)
       every { getWebsiteIconWithPlaceholderAndColor(any()) } returns android.util.Pair(null, Constants.NO_COLOR)
     }
@@ -125,6 +125,6 @@ class BrowsingViewModelTest {
     }
     verify(exactly = 1) { repo.getWebsiteWithoutSaving(url) }
     verify(exactly = 0) { repo.getWebsite(any()) }
-    verify(exactly = 0) { repo.getWebsiteReadOnly(any()) }
+    verify(exactly = 0) { repo.getWebsiteWithoutHistory(any()) }
   }
 }

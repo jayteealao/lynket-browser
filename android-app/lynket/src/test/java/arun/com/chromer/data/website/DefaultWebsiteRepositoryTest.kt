@@ -94,6 +94,19 @@ class DefaultWebsiteRepositoryTest {
     assertThat(cache.saves).isEmpty()
   }
 
+  @Test
+  fun a_read_without_history_from_the_network_writes_only_the_cache() = runBlocking<Unit> {
+    network.website = site
+
+    val read = repository.getWebsiteWithoutHistory(url).first()
+
+    assertThat(read.title).isEqualTo("Example page")
+    withTimeout(5_000) { cache.firstSave.await() }
+    assertThat(cache.saves.map { it.url }).containsExactly(url)
+    delay(SETTLE_MS)
+    assertThat(history.inserts).isEmpty()
+  }
+
   private class CountingStore : WebsiteStore {
     @Volatile var website: Website? = null
     val saves: MutableList<Website> = Collections.synchronizedList(mutableListOf())
