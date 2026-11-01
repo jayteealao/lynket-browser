@@ -36,7 +36,7 @@ Lynket is an all-Compose app in Kotlin. One activity holds every in-app screen o
 
 ## Building
 
-The Gradle project lives in `android-app/`. You need the JetBrains Runtime 21 (Android Studio's bundled JDK; see `android-app/CLAUDE.md` if Gradle does not find it) and the Android SDK with platform 37 (`compileSdk`; the app targets SDK 36). Run these from `android-app/`:
+The Gradle project lives in `android-app/`. You need the JetBrains Runtime 21 (Android Studio's bundled JDK; see `android-app/CLAUDE.md` if Gradle does not find it) and the Android SDK with platform 37 (`compileSdk`; the app targets SDK 36). Gradle checks every downloaded dependency against `android-app/gradle/verification-metadata.xml`, whose checksums were written on Windows; on a first build on Linux or macOS, AGP's aapt2 for that system fails the check, so run the checksum command under "Dependency changes" in `android-app/CLAUDE.md` once and review the diff. Run these from `android-app/`:
 
 | Task | Command |
 |---|---|
