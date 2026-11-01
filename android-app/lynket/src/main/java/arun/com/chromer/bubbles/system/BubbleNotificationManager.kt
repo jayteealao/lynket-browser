@@ -141,10 +141,6 @@ constructor(
 
       val identity = bubbleData.identity()
 
-      val displayHeight = (application.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-        .defaultDisplay
-        .let { display -> Point().apply(display::getSize).y }
-
       // Android 11 and later only show a bubble for a conversation, which needs a long-lived
       // shortcut for it.
       val shortcutId = pushConversationShortcut(website.url, identity, bubbleData.incognito)
@@ -177,7 +173,7 @@ constructor(
           setAutoExpandBubble(false)
           setSuppressNotification(true)
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setSuppressableBubble(true)
-          setDesiredHeight(Utils.pxToDp((displayHeight * 0.8).toInt()))
+          setDesiredHeight(desiredHeightDp(context))
         }
 
         // A bubble is a conversation: the messaging style with an important person qualifies it on
@@ -202,6 +198,17 @@ constructor(
     bubbleData
   }
 
+  /** 80 % of the height of the window that posts the bubble, so split screen gets a bubble that fits. */
+  private fun desiredHeightDp(context: Context): Int {
+    val windowManager = context.getSystemService(WindowManager::class.java)
+    val windowHeight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      windowManager.currentWindowMetrics.bounds.height()
+    } else {
+      @Suppress("DEPRECATION") // sdlc-debt: Android 10 has no window metrics; its display size is the old source.
+      Point().apply(windowManager.defaultDisplay::getSize).y
+    }
+    return Utils.pxToDp((windowHeight * 0.8).toInt())
+  }
 
   /**
    * Whether Android shows the posted notification of [url] as a bubble: the system sets
