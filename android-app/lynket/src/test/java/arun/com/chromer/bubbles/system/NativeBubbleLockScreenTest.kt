@@ -20,8 +20,9 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
- * On a locked phone every bubble notification and the group summary show only the app name and
- * "A page is open in a bubble": nothing of the page, normal or incognito.
+ * On a locked phone a normal bubble notification and the group summary show only the app name and
+ * "A page is open in a bubble" when the phone hides sensitive content, and an incognito bubble
+ * notification never shows: nothing of the page either way.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
@@ -55,8 +56,8 @@ class NativeBubbleLockScreenTest {
   private fun summary(): Notification =
     shadowOf(notificationManager).allNotifications.single { it.flags and Notification.FLAG_GROUP_SUMMARY != 0 }
 
-  private fun assertGenericPublicVersion(n: Notification) {
-    assertThat(n.visibility).isEqualTo(Notification.VISIBILITY_PRIVATE)
+  private fun assertGenericPublicVersion(n: Notification, visibility: Int = Notification.VISIBILITY_PRIVATE) {
+    assertThat(n.visibility).isEqualTo(visibility)
     val public = n.publicVersion
     assertThat(public).isNotNull()
     public!!
@@ -86,12 +87,12 @@ class NativeBubbleLockScreenTest {
   }
 
   @Test
-  fun an_incognito_bubble_is_private_with_the_generic_public_version() {
+  fun an_incognito_bubble_never_shows_on_a_locked_phone() {
     post(URL, incognito = true, icon = null, color = Constants.NO_COLOR)
-    assertGenericPublicVersion(notificationOf(URL))
+    assertGenericPublicVersion(notificationOf(URL), Notification.VISIBILITY_SECRET)
 
     post(URL, incognito = true)
-    assertGenericPublicVersion(notificationOf(URL))
+    assertGenericPublicVersion(notificationOf(URL), Notification.VISIBILITY_SECRET)
   }
 
   @Test
@@ -114,14 +115,6 @@ class NativeBubbleLockScreenTest {
     post(URL, incognito = false)
 
     assertGenericPublicVersion(summary())
-  }
-
-  @Test
-  fun a_new_bubble_channel_hides_sensitive_content_on_the_lock_screen() {
-    post(URL, incognito = false)
-
-    val channel = notificationManager.getNotificationChannel(BUBBLE_NOTIFICATION_CHANNEL_ID)
-    assertThat(channel.lockscreenVisibility).isEqualTo(Notification.VISIBILITY_PRIVATE)
   }
 
   @Test

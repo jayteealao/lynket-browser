@@ -79,8 +79,6 @@ constructor(
         enableVibration(false)
         setBypassDnd(true)
         importance = IMPORTANCE_HIGH
-        // Android keeps the lock screen setting of a channel that exists, so each notification also carries its own private version.
-        lockscreenVisibility = Notification.VISIBILITY_PRIVATE
       }
       notificationManager.createNotificationChannel(channel)
     }
@@ -155,7 +153,7 @@ constructor(
         setOngoing(false) // TODO Register a broadcast receiver and call notificationManager.cancel
         setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
         setLargeIcon(identity.icon)
-        privateOnLockScreen()
+        if (bubbleData.incognito) secretOnLockScreen() else privateOnLockScreen()
 
         bubbleMetadata {
           setIcon(identity.icon)
@@ -265,9 +263,16 @@ constructor(
     setSmallIcon(Icon.createWithResource(application, R.drawable.ic_chromer_notification))
   }
 
-  /** Hides the page on a secure lock screen, whatever the channel holds. */
+  /**
+   * Hides the page on a secure lock screen when the phone hides sensitive content, whatever the
+   * channel holds: Android keeps no lock screen setting that an app puts on its channel.
+   */
   private fun Notification.Builder.privateOnLockScreen(): Notification.Builder =
     setVisibility(Notification.VISIBILITY_PRIVATE).setPublicVersion(lockScreenVersion())
+
+  /** An incognito bubble never shows on a secure lock screen, whatever the phone setting. */
+  private fun Notification.Builder.secretOnLockScreen(): Notification.Builder =
+    setVisibility(Notification.VISIBILITY_SECRET).setPublicVersion(lockScreenVersion())
 
   /** What a bubble shows outside itself: its notification, its person and its shortcut. */
   private class BubbleIdentity(val label: String, val text: String?, val icon: Icon)
