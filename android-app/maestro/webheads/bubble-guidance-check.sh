@@ -106,7 +106,7 @@ web_heads_denied() {
 
 # The number of Android settings activities in the activity stack.
 settings_records() {  # $1 = output name
-  a shell dumpsys activity activities | tr -d '' > "$OUT/$1.txt"
+  a shell dumpsys activity activities | tr -d '\r' > "$OUT/$1.txt"
   grep -c "com.android.settings/" "$OUT/$1.txt" || true
 }
 
