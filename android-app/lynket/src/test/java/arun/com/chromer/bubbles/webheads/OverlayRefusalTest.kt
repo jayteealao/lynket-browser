@@ -1,0 +1,123 @@
+/*
+ *  Lynket
+ *
+ *  Copyright (C) 2026 Arunkumar
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ */
+
+package arun.com.chromer.bubbles.webheads
+
+import android.content.Intent
+import android.os.Looper
+import android.provider.Settings
+import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
+import arun.com.chromer.tabs.TabsManager
+import com.google.common.truth.Truth.assertThat
+import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.Test
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.shadows.ShadowSettings
+import javax.inject.Inject
+
+/**
+ * With the overlay permission off, a web heads link opens in a tab, keeps its incognito flag, and
+ * the "Display over other apps" settings page never opens on its own.
+ */
+@HiltAndroidTest
+class OverlayRefusalTest : LynketRobolectricSuite() {
+  @Inject
+  lateinit var webHeads: WebHeadsFloatingBubble
+
+  @Inject
+  lateinit var tabs: TabsManager
+
+  @Inject
+  lateinit var overlayRefusal: OverlayRefusal
+
+  private val url = "https://example.com/refused"
+
+  private fun overlayOff() {
+    ShadowSettings.setCanDrawOverlays(false)
+    preferences.webHeads(true)
+    preferences.nativeBubbles(false)
+    preferences.fullIncognitoMode(false)
+    preferences.aggressiveLoading(false)
+  }
+
+  /** Every activity started so far, after the posted work of the main thread ran. */
+  private fun startedActivities(): List<Intent> {
+    shadowOf(Looper.getMainLooper()).idle()
+    return generateSequence { shadowOf(application).nextStartedActivity }.toList()
+  }
+
+  private fun List<Intent>.settingsPages() =
+    filter { it.action == Settings.ACTION_MANAGE_OVERLAY_PERMISSION }
+
+  @Test
+  fun open_bubble_without_the_permission_opens_a_tab_and_no_settings_page() {
+    overlayOff()
+
+    val handled = webHeads.openBubble(Website(url), false, false, false, application, 0)
+
+    assertThat(handled).isTrue()
+    val started = startedActivities()
+    assertThat(started.settingsPages()).isEmpty()
+    assertThat(shadowOf(application).nextStartedService).isNull()
+    assertThat(started.map { it.dataString }).containsExactly(url)
+  }
+
+  @Test
+  fun web_heads_with_aggressive_loading_open_exactly_one_tab() {
+    overlayOff()
+    preferences.aggressiveLoading(true)
+
+    tabs.openWebHeads(application, Website(url))
+
+    val started = startedActivities()
+    assertThat(started.settingsPages()).isEmpty()
+    assertThat(started.map { it.dataString }).containsExactly(url)
+    assertThat(shadowOf(application).nextStartedService).isNull()
+  }
+
+  @Test
+  fun refusal_keeps_the_incognito_flag() {
+    overlayOff()
+
+    overlayRefusal.refuse(application, Website(url), incognito = true)
+
+    val started = startedActivities()
+    assertThat(started).hasSize(1)
+    assertThat(started.single().dataString).isEqualTo(url)
+    assertThat(started.single().getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+  }
+
+  @Test
+  fun refusal_of_a_normal_link_opens_a_normal_tab() {
+    overlayOff()
+
+    overlayRefusal.refuse(application, Website(url), incognito = false)
+
+    val started = startedActivities()
+    assertThat(started).hasSize(1)
+    assertThat(started.single().dataString).isEqualTo(url)
+    assertThat(started.single().hasExtra(EXTRA_KEY_INCOGNITO)).isFalse()
+  }
+
+  @Test
+  fun web_heads_keep_the_incognito_flag_of_a_refused_link() {
+    overlayOff()
+
+    tabs.openWebHeads(application, Website(url), incognito = true)
+
+    val started = startedActivities()
+    assertThat(started.settingsPages()).isEmpty()
+    assertThat(started).hasSize(1)
+    assertThat(started.single().getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+  }
+}
