@@ -37,11 +37,14 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
@@ -112,26 +115,29 @@ constructor(
     return true
   }
 
-  private suspend fun showBubble(bubbleLoadData: BubbleLoadData): BubbleLoadData {
-    // Show initial bubble
-    val initialBubble = bubbleNotificationManager.showBubbles(bubbleLoadData)
-
-    // Avoid notification throttling
-    delay(1000)
+  private suspend fun showBubble(initial: BubbleLoadData): Unit = coroutineScope {
+    val url = initial.website.url
+    // The site and its icon load while the first post publishes the shortcut.
+    val details = async { withDetails(initial) }
+    // An incognito bubble shows the Lynket icon, so it has no icon to wait for.
+    val ready = if (initial.incognito) null else withTimeoutOrNull(ICON_WAIT_MS) { details.await() }
+    bubbleNotificationManager.showBubbles(ready ?: initial)
 
     // Android can still post the notification without showing it as a bubble. Then the page opens
     // in a tab with a message instead of being lost in the notification shade.
-    if (!shownAsBubble(initialBubble.website.url)) {
-      Timber.w("Android did not show %s as a bubble; opening it in a tab", initialBubble.website.url)
-      bubbleNotificationManager.cancel(initialBubble.website.url)
-      tabsManager.get().openRefusedBubble(application, initialBubble.website, BubbleRefusal.NOT_SHOWN, initialBubble.incognito)
-      return initialBubble
+    if (!shownAsBubble(url)) {
+      details.cancel()
+      Timber.w("Android did not show %s as a bubble; opening it in a tab", url)
+      bubbleNotificationManager.cancel(url)
+      tabsManager.get().openRefusedBubble(application, initial.website, BubbleRefusal.NOT_SHOWN, initial.incognito)
+      return@coroutineScope
     }
 
-    val updatedBubble = withDetails(initialBubble)
-
-    // Show updated bubble with icon and color
-    return bubbleNotificationManager.showBubbles(updatedBubble)
+    if (ready == null && !initial.incognito) {
+      val late = details.await()
+      // Same url, so the same notification is updated in place; the summary is already posted.
+      if (late !== initial) bubbleNotificationManager.showBubbles(late, withSummary = false)
+    }
   }
 
   /** The site read (without saving for incognito) and, for a normal bubble, its icon and colour. */
@@ -163,7 +169,10 @@ constructor(
     initial
   }
 
-  /** The bubble flag can follow the post by a moment, so it is read up to three times. */
+  /**
+   * The bubble flag can follow the post by a moment, so it is read every 250 ms for up to 1.5 s,
+   * stopping as soon as it shows.
+   */
   private suspend fun shownAsBubble(url: String): Boolean {
     repeat(FLAG_READS) { read ->
       if (bubbleNotificationManager.isShownAsBubble(url)) return true
@@ -173,7 +182,9 @@ constructor(
   }
 
   private companion object {
-    const val FLAG_READS = 3
+    /** The longest wait for the site icon before the first post. */
+    const val ICON_WAIT_MS = 300L
+    const val FLAG_READS = 7
     const val FLAG_READ_INTERVAL_MS = 250L
   }
 }
