@@ -202,11 +202,26 @@ constructor(
   }
 
   /** Removes the notification of [url], and the group summary when no other bubble is left. */
-  fun cancel(url: String) {
-    notificationManager.cancel(url.hashCode())
+  fun cancel(url: String) = cancel(url.hashCode())
+
+  /**
+   * Called when the person dismisses the bubble posted as [notificationId]: its notification, the
+   * group summary when it was the last bubble, and its shortcut go.
+   */
+  fun dismissed(notificationId: Int) {
+    cancel(notificationId)
+    try {
+      ShortcutManagerCompat.removeLongLivedShortcuts(application, listOf(bubbleConversationId(notificationId)))
+    } catch (e: Exception) {
+      Timber.e(e, "Could not remove the bubble shortcut")
+    }
+  }
+
+  private fun cancel(notificationId: Int) {
+    notificationManager.cancel(notificationId)
     val othersLeft = try {
       notificationManager.activeNotifications.any {
-        it.id != url.hashCode() && it.id != BUBBLE_NOTIFICATION_GROUP.hashCode() &&
+        it.id != notificationId && it.id != BUBBLE_NOTIFICATION_GROUP.hashCode() &&
           it.notification.group == BUBBLE_NOTIFICATION_GROUP
       }
     } catch (e: RuntimeException) {
