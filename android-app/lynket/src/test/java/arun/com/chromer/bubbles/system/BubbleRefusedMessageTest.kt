@@ -53,6 +53,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * The message over a refused bubble's tab: its text per cause, one "Open Settings" action that
@@ -203,7 +204,9 @@ class BubbleRefusedMessageTest {
     composeRule.onNodeWithText("Open Settings").assertHasClickAction()
   }
 
+  // Real text measurement: the legacy graphics mode does not break lines.
   @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
   fun overlayCauseAtDoubleTextSizeKeepsTheSentenceWholeAndTheActionOnItsOwnLine() {
     val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
     controller.get().setContent {
@@ -214,7 +217,7 @@ class BubbleRefusedMessageTest {
     }
     showSnackbar()
 
-    val sentence = composeRule.onNodeWithText(string(R.string.web_heads_refused_overlay_off))
+    val sentence = composeRule.onNodeWithText(string(R.string.web_heads_refused_overlay_off), useUnmergedTree = true)
     val layouts = mutableListOf<TextLayoutResult>()
     sentence.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
     assertThat(layouts.single().hasVisualOverflow).isFalse()

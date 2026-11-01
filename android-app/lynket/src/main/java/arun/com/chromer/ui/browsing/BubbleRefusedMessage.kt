@@ -45,6 +45,7 @@ fun BubbleRefusal.messageRes(): Int = when (this) {
   BubbleRefusal.NOTIFICATIONS_OFF -> R.string.bubble_refused_notifications_off
   BubbleRefusal.BUBBLES_OFF -> R.string.bubble_refused_bubbles_off
   BubbleRefusal.NOT_SHOWN -> R.string.bubble_refused_not_shown
+  BubbleRefusal.OVERLAY_OFF -> R.string.web_heads_refused_overlay_off
 }
 
 /**
