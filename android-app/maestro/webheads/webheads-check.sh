@@ -10,13 +10,16 @@
 #         link shows a system bubble that opens the page
 #   refused  web heads chosen, then the overlay permission denied: a link opens in a tab, no settings
 #         page opens and no head shows
+#   restart  web heads chosen: a start of the service with no link stops it with no notification; then
+#         one head open, the app's process killed, and after Android restarts the service no web
+#         heads notification stays and no head shows
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart>   (from android-app/)
 set -euo pipefail
 
-SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused>}"
-OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused>}"
-WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused>}"
+SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart>}"
+OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart>}"
+WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart>}"
 source "$(dirname "$0")/lib.sh"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
@@ -206,10 +209,113 @@ check_refused() {
   a shell input keyevent HOME
 }
 
+# The web heads notification lines of the notification dump; empty when none is posted.
+web_head_notification() {
+  a shell dumpsys notification --noredact | tr -d '\r' | grep -F "channel=$WEB_HEAD_SERVICE" || true
+}
+
+# The web head service records of the app; empty when the service does not run.
+web_head_service_record() {
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' | grep -F "ServiceRecord" || true
+}
+
+# Kills the app's process with a signal, as the system does under memory pressure. `am kill` spares a
+# process that holds a foreground service, so it cannot stand in here.
+kill_app() {
+  local pid
+  pid="$(a shell pidof "$PKG" | tr -d '\r' || true)"
+  [ -n "$pid" ] || fail "no app process to kill"
+  a shell run-as "$PKG" kill -9 "$pid" >/dev/null 2>&1 || true
+  sleep 1
+  if [ -z "$(a shell "ps -p $pid -o PID= 2>/dev/null" | tr -d '\r' || true)" ]; then
+    log "process $pid killed with run-as"
+    return
+  fi
+  a shell su 0 kill -9 "$pid" >/dev/null 2>&1 || true
+  sleep 1
+  if [ -z "$(a shell "ps -p $pid -o PID= 2>/dev/null" | tr -d '\r' || true)" ]; then
+    log "process $pid killed with su"
+    return
+  fi
+  fail "could not kill the app's process"
+}
+
+check_restart() {
+  web_heads_mode
+  # 1. A start with no link (the debug build exports the service to the shell): the service stops
+  #    at once and leaves no notification.
+  a logcat -c
+  a shell am start -W -n "$PKG/$MAIN" >/dev/null
+  sleep 2
+  a shell am start-foreground-service -n "$PKG/$WEB_HEAD_SERVICE" >/dev/null
+  for _ in $(seq 1 30); do
+    a logcat -d | grep -q "Web heads started with no head; stopping" && break
+    sleep 1
+  done
+  sleep 2
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/restart-empty-notifications.txt"
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/restart-empty-service.txt"
+  a logcat -d | grep -q "Web heads started with no head; stopping" || fail "a start with no link did not stop the service"
+  [ -z "$(web_head_notification)" ] || fail "a web heads notification stayed after a start with no link"
+  [ -z "$(web_head_service_record)" ] || fail "the service still runs after a start with no link"
+  log "a start with no link stopped the service with no notification"
+
+  # 2. One head open, with its notification.
+  a shell input keyevent HOME
+  sleep 1
+  open_link "https://example.com/?restart=1"
+  for _ in $(seq 1 60); do
+    a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' | grep -q "isForeground=true" && break
+    sleep 1
+  done
+  sleep 2
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/restart-before-notifications.txt"
+  [ "$(overlay_count)" -ge 2 ] || fail "no head before the kill"
+  [ -n "$(web_head_notification)" ] || fail "no head before the kill: no web heads notification"
+  log "one head open with its notification"
+
+  # 3. The process killed; Android restarts the sticky service with no link.
+  local old_pid new_pid="" line=""
+  old_pid="$(a shell pidof "$PKG" | tr -d '\r' || true)"
+  a logcat -c
+  kill_app
+  for _ in $(seq 1 90); do
+    new_pid="$(a shell pidof "$PKG" | tr -d '\r' || true)"
+    if [ -n "$new_pid" ] && [ "$new_pid" != "$old_pid" ]; then
+      if a logcat -d | grep -q "Web heads started with no head; stopping"; then
+        line="Web heads started with no head; stopping"
+        break
+      fi
+      if a logcat -d | grep -q "Web heads could not start in the foreground"; then
+        line="Web heads could not start in the foreground"
+        break
+      fi
+    fi
+    sleep 1
+  done
+  [ -n "$line" ] || fail "Android did not restart the service within 90 s"
+
+  # 4. The shade after the restart.
+  sleep 3
+  shot restart-after
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/restart-after-notifications.txt"
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/restart-after-service.txt"
+  app_logcat restart
+  log "restart logged: $line"
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  [ -z "$(web_head_notification)" ] || fail "a web heads notification stayed after the restart"
+  [ -z "$(web_head_service_record)" ] || fail "the service still runs after the restart"
+  [ "$(overlay_count)" -eq 0 ] || fail "a head showed after the restart"
+  [ ! -s "$OUT/restart.crash.txt" ] || fail "crash during the restart (see restart.crash.txt)"
+  log "restart passed"
+  a shell input keyevent HOME
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
   bubble) check_bubble ;;
   refused) check_refused ;;
+  restart) check_restart ;;
   *) echo "unknown check: $WHICH" >&2; exit 2 ;;
 esac
