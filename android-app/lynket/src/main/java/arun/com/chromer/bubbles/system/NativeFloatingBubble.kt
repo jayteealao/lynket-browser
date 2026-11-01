@@ -29,9 +29,11 @@ import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.di.hilt.IoDispatcher
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.tabs.TabsManager
 import dagger.Lazy
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -68,11 +70,12 @@ constructor(
   private val bubbleNotificationManager: BubbleNotificationManager,
   private val websiteIconsProvider: WebsiteIconsProvider,
   private val bubbleGate: BubbleGate,
+  @IoDispatcher ioDispatcher: CoroutineDispatcher,
   // Lazy: the tabs manager reaches this class through the bubble factory.
   private val tabsManager: Lazy<TabsManager>,
 ) : FloatingBubble {
 
-  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+  private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
   // A channel keeps a link sent before the collector below has started; a shared flow without
   // subscribers dropped the first link after a cold start.
   private val loadQueue = Channel<BubbleLoadData>(Channel.UNLIMITED)
