@@ -109,4 +109,22 @@ class BubbleRefusedWindowGoldenTest {
     RuntimeEnvironment.setFontScale(2f)
     capture(BubbleRefusal.NOT_SHOWN, ThemeMode.Light)
   }
+
+  @Test
+  fun overlay_off_light() = capture(BubbleRefusal.OVERLAY_OFF, ThemeMode.Light)
+
+  @Test
+  fun overlay_off_dark() = capture(BubbleRefusal.OVERLAY_OFF, ThemeMode.Dark)
+
+  @Test
+  fun overlay_off_light_font_200() {
+    RuntimeEnvironment.setFontScale(2f)
+    capture(BubbleRefusal.OVERLAY_OFF, ThemeMode.Light)
+  }
+
+  @Test
+  fun overlay_off_dark_font_200() {
+    RuntimeEnvironment.setFontScale(2f)
+    capture(BubbleRefusal.OVERLAY_OFF, ThemeMode.Dark)
+  }
 }
