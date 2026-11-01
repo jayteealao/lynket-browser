@@ -165,6 +165,14 @@ class BubbleGateTest {
   }
 
   @Test
+  fun overlayCauseOpensDisplayOverOtherAppsForThisApp() {
+    val intent = BubbleGate(application).settingsIntent(BubbleRefusal.OVERLAY_OFF)
+
+    assertThat(intent.action).isEqualTo(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+    assertThat(intent.dataString).isEqualTo("package:${application.packageName}")
+  }
+
+  @Test
   fun withoutASettingsPageTheAppDetailsPageOpens() {
     val intent = BubbleGate(application).settingsIntent(BubbleRefusal.BUBBLES_OFF)
 

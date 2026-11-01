@@ -15,12 +15,17 @@ import android.content.Intent
 import android.os.Looper
 import android.provider.Settings
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.browsing.webview.WebViewActivity
+import arun.com.chromer.bubbles.system.BubbleRefusal
+import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.tabs.TabsManager
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
+import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowSettings
 import javax.inject.Inject
@@ -95,6 +100,7 @@ class OverlayRefusalTest : LynketRobolectricSuite() {
     assertThat(started).hasSize(1)
     assertThat(started.single().dataString).isEqualTo(url)
     assertThat(started.single().getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+    assertThat(started.single().getStringExtra(EXTRA_KEY_BUBBLE_REFUSAL)).isEqualTo("OVERLAY_OFF")
   }
 
   @Test
@@ -107,6 +113,23 @@ class OverlayRefusalTest : LynketRobolectricSuite() {
     assertThat(started).hasSize(1)
     assertThat(started.single().dataString).isEqualTo(url)
     assertThat(started.single().hasExtra(EXTRA_KEY_INCOGNITO)).isFalse()
+    assertThat(started.single().getStringExtra(EXTRA_KEY_BUBBLE_REFUSAL)).isEqualTo("OVERLAY_OFF")
+  }
+
+  @Test
+  fun refused_tab_shows_the_overlay_message_and_no_settings_page_before_a_tap() {
+    overlayOff()
+    // Web View mode, so the tab is a Lynket activity that Robolectric can start.
+    preferences.useWebView(true)
+
+    overlayRefusal.refuse(application, Website(url), incognito = false)
+    val tab = startedActivities().single()
+    val controller = Robolectric.buildActivity(WebViewActivity::class.java, Intent(tab).setClass(application, WebViewActivity::class.java)).setup()
+    val fromTab = generateSequence { shadowOf(controller.get()).nextStartedActivity }.toList() + startedActivities()
+
+    val message = fromTab.single { it.component?.className == BubbleRefusedActivity::class.java.name }
+    assertThat(BubbleRefusedActivity.refusalOf(message)).isEqualTo(BubbleRefusal.OVERLAY_OFF)
+    assertThat((listOf(tab) + fromTab).settingsPages()).isEmpty()
   }
 
   @Test

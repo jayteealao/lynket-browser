@@ -19,9 +19,16 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -182,6 +189,55 @@ class BubbleRefusedMessageTest {
       controller.pause().stop().destroy()
       composeRule.mainClock.autoAdvance = true
     }
+  }
+
+  @Test
+  fun overlayCauseShowsTheApprovedSentence() {
+    val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+    controller.get().setContent {
+      ChromerTheme { BubbleRefusedMessage(BubbleRefusal.OVERLAY_OFF, onOpenSettings = {}, onDone = {}) }
+    }
+    showSnackbar()
+
+    composeRule.onNodeWithText("Web heads need Display over other apps, so the page opened in a tab.").assertExists()
+    composeRule.onNodeWithText("Open Settings").assertHasClickAction()
+  }
+
+  @Test
+  fun overlayCauseAtDoubleTextSizeKeepsTheSentenceWholeAndTheActionOnItsOwnLine() {
+    val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+    controller.get().setContent {
+      val density = LocalDensity.current.density
+      CompositionLocalProvider(LocalDensity provides Density(density, fontScale = 2f)) {
+        ChromerTheme { BubbleRefusedMessage(BubbleRefusal.OVERLAY_OFF, onOpenSettings = {}, onDone = {}) }
+      }
+    }
+    showSnackbar()
+
+    val sentence = composeRule.onNodeWithText(string(R.string.web_heads_refused_overlay_off))
+    val layouts = mutableListOf<TextLayoutResult>()
+    sentence.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+    assertThat(layouts.single().hasVisualOverflow).isFalse()
+    val action = composeRule.onNodeWithText(string(R.string.open_settings))
+    action.assertHeightIsAtLeast(48.dp)
+    val sentenceBottom = sentence.fetchSemanticsNode().boundsInRoot.bottom
+    val actionTop = action.fetchSemanticsNode().boundsInRoot.top
+    assertThat(actionTop).isAtLeast(sentenceBottom)
+  }
+
+  @Test
+  fun overlayCauseOpenSettingsOpensDisplayOverOtherAppsAndCloses() {
+    val controller = messageActivity(BubbleRefusal.OVERLAY_OFF)
+    showSnackbar()
+
+    composeRule.onNodeWithText(string(R.string.open_settings)).performClick()
+    composeRule.mainClock.advanceTimeBy(1_000)
+    composeRule.waitForIdle()
+
+    val started = shadowOf(controller.get()).nextStartedActivity
+    assertThat(started.action).isEqualTo(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+    assertThat(started.dataString).isEqualTo("package:${application.packageName}")
+    assertThat(controller.get().isFinishing).isTrue()
   }
 
   @Test
