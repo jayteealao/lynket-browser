@@ -107,7 +107,7 @@ class NativeBubbleTest : LynketRobolectricSuite() {
     awaitCondition("the bubble notification") { bubbleNotification() != null }
     bubbleNotification()!!.flags = bubbleNotification()!!.flags or Notification.FLAG_BUBBLE
 
-    // Past the 1 s pause and the three flag reads, and the second post with the icon.
+    // Past the flag reads and the in-place update with the icon.
     Thread.sleep(2_500)
     shadowOf(Looper.getMainLooper()).idle()
     assertThat(bubbleNotification()).isNotNull()
@@ -157,7 +157,7 @@ class NativeBubbleTest : LynketRobolectricSuite() {
     return started!!
   }
 
-  /** The bubble posts and is checked on background threads, with a 1 s pause between. */
+  /** The bubble posts and is checked on background threads. */
   private fun awaitCondition(what: String, condition: () -> Boolean) {
     repeat(500) {
       shadowOf(Looper.getMainLooper()).idle()
