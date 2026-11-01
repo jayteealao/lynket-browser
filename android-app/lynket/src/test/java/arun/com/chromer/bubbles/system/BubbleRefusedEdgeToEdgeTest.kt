@@ -19,9 +19,16 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import arun.com.chromer.R
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
+import arun.com.chromer.ui.browsing.messageRes
 import arun.com.chromer.ui.theme.ThemeMode
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -129,6 +136,35 @@ class BubbleRefusedEdgeToEdgeTest {
     assertThat(attributes.height).isEqualTo(ViewGroup.LayoutParams.WRAP_CONTENT)
     assertThat(attributes.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL).isNotEqualTo(0)
     assertThat(attributes.flags and WindowManager.LayoutParams.FLAG_DIM_BEHIND).isEqualTo(0)
+    close(controller)
+  }
+
+  private fun px(dp: Int): Int = (dp * application.resources.displayMetrics.density).toInt()
+
+  /** Gives the window a navigation bar of [height] px, as a three-button bar would. */
+  private fun dispatchNavigationBar(activity: BubbleRefusedActivity, height: Int) {
+    val insets = WindowInsetsCompat.Builder()
+      .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, height))
+      .setVisible(WindowInsetsCompat.Type.navigationBars(), true)
+      .build()
+    ViewCompat.dispatchApplyWindowInsets(activity.window.decorView, insets)
+    composeRule.mainClock.advanceTimeBy(100)
+    composeRule.waitForIdle()
+  }
+
+  @Test
+  fun the_message_sits_above_the_navigation_bar_inset() {
+    val controller = launch(BubbleRefusal.NOT_SHOWN, ThemeMode.Light)
+    val inset = px(48)
+    dispatchNavigationBar(controller.get(), inset)
+
+    val rootHeight = composeRule.onRoot().fetchSemanticsNode().boundsInRoot.height
+    val message = composeRule.onNodeWithText(application.getString(BubbleRefusal.NOT_SHOWN.messageRes()))
+      .fetchSemanticsNode().boundsInRoot
+    val action = composeRule.onNodeWithText(application.getString(R.string.open_settings))
+      .fetchSemanticsNode().boundsInRoot
+    assertThat(message.bottom).isAtMost(rootHeight - inset + 0.5f)
+    assertThat(action.bottom).isAtMost(rootHeight - inset + 0.5f)
     close(controller)
   }
 }
