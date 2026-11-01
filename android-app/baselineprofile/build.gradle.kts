@@ -62,8 +62,9 @@ dependencies {
     implementation(libs.androidx.benchmark.macro.junit4)
 
     constraints {
-        // The benchmark APK resolves coroutines at the app's catalog version; the Macrobenchmark
-        // libraries ask for older ones.
+        // The profile generator APK resolves coroutines at the app's catalog version; the
+        // Macrobenchmark libraries ask for older ones. :benchmark has the same constraint: change
+        // both together.
         implementation(libs.kotlinx.coroutines.core)
     }
 }

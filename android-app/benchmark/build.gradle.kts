@@ -52,7 +52,8 @@ dependencies {
 
     constraints {
         // The benchmark APK resolves coroutines at the app's catalog version; the Macrobenchmark
-        // libraries ask for older ones.
+        // libraries ask for older ones. :baselineprofile has the same constraint: change both
+        // together.
         implementation(libs.kotlinx.coroutines.core)
     }
 }
