@@ -213,7 +213,7 @@ tap_text "OK" >/dev/null 2>&1 && sleep 1 || true  # a leftover app dialog
 history_ok=0
 menu_xy="$(ui_dump | tr '>' '\n' | grep -F 'resource-id="home-menu"' | head -1 |
   sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
-  awk 'NF == 4 { print int(($1 + $3) / 2), int(($2 + $4) / 2) }')"
+  awk 'NF == 4 { print int(($1 + $3) / 2), int(($2 + $4) / 2) }' || true)"  # no node: the FAIL below
 if [ -n "$menu_xy" ]; then
   # shellcheck disable=SC2086
   a shell input tap $menu_xy
