@@ -254,6 +254,17 @@ constructor(
     null
   }
 
+  /** What a locked phone shows for every bubble and the summary: the app name and one generic line. */
+  private fun lockScreenVersion(): Notification = notification(application, BUBBLE_NOTIFICATION_CHANNEL_ID) {
+    setContentTitle(application.getString(R.string.app_name))
+    setContentText(application.getString(R.string.bubble_lock_screen_text))
+    setSmallIcon(Icon.createWithResource(application, R.drawable.ic_chromer_notification))
+  }
+
+  /** Hides the page on a secure lock screen, whatever the channel holds. */
+  private fun Notification.Builder.privateOnLockScreen(): Notification.Builder =
+    setVisibility(Notification.VISIBILITY_PRIVATE).setPublicVersion(lockScreenVersion())
+
   /** What a bubble shows outside itself: its notification, its person and its shortcut. */
   private class BubbleIdentity(val label: String, val text: String?, val icon: Icon)
 
