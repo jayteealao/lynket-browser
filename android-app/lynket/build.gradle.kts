@@ -49,13 +49,15 @@ android {
     buildTypes {
         release {
             resValue("string", "app_name", "Lynket")
-            isMinifyEnabled = true
-            isShrinkResources = true
             isDebuggable = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            // R8 code and resource shrinking. AGP adds proguard-android-optimize.txt (includeDefault) and
+            // the app rules in src/main/keepRules/*.keep, which also reach the benchmark build type.
+            optimization {
+                enable = true
+                keepRules {
+                    includeDefault = true
+                }
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -67,6 +69,7 @@ android {
         }
         // Release-like build used only by the :benchmark module to measure start-up and frame times.
         create("benchmark") {
+            // initWith copies release's optimization block: R8 and resource shrinking with the same rules.
             initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
