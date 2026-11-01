@@ -25,6 +25,7 @@ import android.app.NotificationManager.IMPORTANCE_HIGH
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
+import android.content.LocusId
 import android.graphics.Point
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Icon
@@ -33,6 +34,7 @@ import android.os.Build
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.core.app.Person
+import androidx.core.content.LocusIdCompat
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
@@ -148,7 +150,11 @@ constructor(
       val shortcutId = pushConversationShortcut(website.url, identity, bubbleData.incognito)
 
       val bubbleNotification = notification(context, BUBBLE_NOTIFICATION_CHANNEL_ID) {
-        shortcutId?.let(::setShortcutId)
+        shortcutId?.let {
+          setShortcutId(it)
+          // The same id as the shortcut, so Android ties the notification, the shortcut and the bubble together.
+          setLocusId(LocusId(it))
+        }
         setContentTitle(identity.label)
         identity.text?.let(::setContentText)
         setGroup(BUBBLE_NOTIFICATION_GROUP)
@@ -270,6 +276,7 @@ constructor(
     val shortcut = ShortcutInfoCompat.Builder(application, id)
       .setShortLabel(label)
       .setLongLived(true)
+      .setLocusId(LocusIdCompat(id))
       .setPerson(person)
       .setIntent(intent)
       .apply { iconCompat?.let(::setIcon) }
