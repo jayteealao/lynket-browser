@@ -245,8 +245,11 @@ constructor(
     true
   }
 
-  /** Removes the notification of [url], and the group summary when no other bubble is left. */
-  fun cancel(url: String) = cancel(url.hashCode())
+  /**
+   * Removes the bubble of [url] that Android did not show: its notification, the group summary
+   * when no other bubble is left, and its shortcut, the same as a dismissal.
+   */
+  fun cancel(url: String) = dismissed(url.hashCode())
 
   /**
    * Called when the person dismisses the bubble posted as [notificationId]: its notification, the

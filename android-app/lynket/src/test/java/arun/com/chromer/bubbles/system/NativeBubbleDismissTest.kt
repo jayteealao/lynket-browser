@@ -104,6 +104,19 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
   }
 
   @Test
+  fun removing_a_bubble_android_did_not_show_also_removes_its_shortcut() {
+    post(first, incognito = true)
+    assertThat(shortcutIds()).contains(bubbleConversationId(first))
+
+    manager.cancel(first)
+
+    assertThat(notificationOf(first)).isNull()
+    assertThat(shortcutIds()).doesNotContain(bubbleConversationId(first))
+    assertThat(RecordingShortcutManagerShadow.removedLongLived).containsExactly(bubbleConversationId(first))
+    assertThat(summary()).isNull()
+  }
+
+  @Test
   fun dismissing_an_incognito_bubble_removes_its_shortcut_and_its_delete_intent_holds_no_address() {
     post(first, incognito = true)
 
