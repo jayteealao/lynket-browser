@@ -148,6 +148,8 @@ dependencies {
     testImplementation(libs.hilt.android.testing)
     kspTest(libs.hilt.compiler)
     androidTestImplementation(libs.hilt.android.testing)
+    // HiltTestRunner extends AndroidJUnitRunner, which comes from androidx.test:runner
+    androidTestImplementation(libs.androidx.test.runner)
     kspAndroidTest(libs.hilt.compiler)
 
     // Coroutines
@@ -193,10 +195,6 @@ dependencies {
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
 
     // Pull to refresh around the web view, and website and app colours
     implementation(libs.androidx.swiperefreshlayout)
