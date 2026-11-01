@@ -11,6 +11,7 @@
 
 package arun.com.chromer.bubbles.webheads
 
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.net.Uri
@@ -301,6 +302,70 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
     assertThat(result).isEqualTo(Service.START_STICKY)
     assertThat(service.controller!!.size).isEqualTo(1)
     assertThat(startedActivities()).isEmpty()
+  }
+
+  /** The web heads notification that is posted now, or null when none is. */
+  private fun webHeadNotification(service: WebHeadService) =
+    shadowOf(service.getSystemService(NotificationManager::class.java)).getNotification(1)
+
+  @Test
+  fun a_restart_with_no_head_stops_and_removes_the_notification() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val service = Robolectric.buildService(WebHeadService::class.java).create().get()
+    assertThat(webHeadNotification(service)).isNotNull()
+    assertThat(service.controller!!.size).isEqualTo(0)
+
+    // Android restarts a killed sticky service with a null intent.
+    val result = service.onStartCommand(null, Service.START_FLAG_RETRY, 1)
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(webHeadNotification(service)).isNull()
+    assertThat(shadowOf(service).isForegroundStopped).isTrue()
+    assertThat(shadowOf(service).notificationShouldRemoved).isTrue()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+    assertThat(startedActivities()).isEmpty()
+    assertThat(ShadowToast.shownToastCount()).isEqualTo(0)
+  }
+
+  @Test
+  fun a_start_without_a_link_and_no_head_stops() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val service = Robolectric.buildService(WebHeadService::class.java).create().get()
+
+    val result = service.onStartCommand(Intent(application, WebHeadService::class.java), 0, 1)
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(webHeadNotification(service)).isNull()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+  }
+
+  @Test
+  fun a_start_without_a_link_keeps_the_heads_that_show() {
+    val controller = serviceWith("https://a.example")
+    val service = controller.get()
+
+    val result = service.onStartCommand(null, 0, 2)
+
+    assertThat(result).isEqualTo(Service.START_STICKY)
+    assertThat(service.controller!!.size).isEqualTo(1)
+    assertThat(webHeadNotification(service)).isNotNull()
+    assertThat(shadowOf(service).isStoppedBySelf).isFalse()
+  }
+
+  @Test
+  fun an_empty_link_with_no_head_stops() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val service = Robolectric.buildService(WebHeadService::class.java).create().get()
+
+    val result = service.onStartCommand(
+      Intent(application, WebHeadService::class.java).setData(Uri.parse("")),
+      0,
+      1,
+    )
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(webHeadNotification(service)).isNull()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
   }
 
   @Test
