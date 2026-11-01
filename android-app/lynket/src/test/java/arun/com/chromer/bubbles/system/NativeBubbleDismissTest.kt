@@ -86,7 +86,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     assertThat(deleteIntent!!.isImmutable).isTrue()
     val saved = shadowOf(deleteIntent).savedIntent
     assertThat(saved.component?.className).isEqualTo(BubbleDismissReceiver::class.java.name)
-    assertThat(saved.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)).isEqualTo(first.hashCode())
+    assertThat(saved.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)).isEqualTo(bubbleNotificationId(first))
   }
 
   @Test

@@ -55,11 +55,17 @@ data class BubbleState(
   val conversationCanBubble: Boolean?,
 )
 
+/**
+ * The id the notification of a bubble of [url] posts as. Every other id of the bubble (its
+ * conversation, shortcut, locus, intents and dismissal) derives from this one.
+ */
+fun bubbleNotificationId(url: String): Int = url.hashCode()
+
 /** The id of the conversation (and its long-lived shortcut) a bubble of [url] belongs to. */
-fun bubbleConversationId(url: String): String = bubbleConversationId(url.hashCode())
+fun bubbleConversationId(url: String): String = conversationIdOfNotification(bubbleNotificationId(url))
 
 /** The id of the conversation (and its long-lived shortcut) of the bubble posted as [notificationId]. */
-fun bubbleConversationId(notificationId: Int): String = "bubble_$notificationId"
+fun conversationIdOfNotification(notificationId: Int): String = "bubble_$notificationId"
 
 /**
  * Reads the notification and bubble settings before a bubble posts, names the cause when Android

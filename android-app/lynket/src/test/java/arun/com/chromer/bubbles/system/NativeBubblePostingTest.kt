@@ -238,7 +238,7 @@ class NativeBubblePostingTest {
 
     runBlocking {
       manager.showBubbles(first)
-      manager.dismissed(URL.hashCode())
+      manager.dismissed(bubbleNotificationId(URL))
       manager.showBubbles(first.copy(icon = icon, color = Color.BLUE), withSummary = false)
     }
 

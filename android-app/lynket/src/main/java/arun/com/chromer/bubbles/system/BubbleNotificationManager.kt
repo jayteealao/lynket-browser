@@ -126,9 +126,10 @@ constructor(
 
   private fun post(bubbleData: BubbleLoadData, withSummary: Boolean): BubbleLoadData {
     val website = bubbleData.website
+    val notificationId = bubbleNotificationId(website.url)
     // A bubble the person dismissed while its icon loaded stays dismissed: an update of it would
     // post it, and its shortcut, again.
-    if (!withSummary && !isPosted(website.url.hashCode())) return bubbleData
+    if (!withSummary && !isPosted(notificationId)) return bubbleData
     createNotificationChannel()
     val context = bubbleData.contextRef.get() ?: application
 
@@ -140,7 +141,7 @@ constructor(
     }
     val bubbleIntent = PendingIntent.getActivity(
       context,
-      website.url.hashCode(),
+      notificationId,
       Intent(context, EmbeddableWebViewActivity::class.java).apply {
         data = Uri.parse(website.url)
         putExtra(Constants.EXTRA_KEY_INCOGNITO, bubbleData.incognito)
@@ -150,9 +151,9 @@ constructor(
     // Holds only the notification id, so an incognito bubble leaves no address in it.
     val dismissIntent = PendingIntent.getBroadcast(
       application,
-      website.url.hashCode(),
+      notificationId,
       Intent(application, BubbleDismissReceiver::class.java)
-        .putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, website.url.hashCode()),
+        .putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, notificationId),
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
@@ -207,7 +208,7 @@ constructor(
 
     if (withSummary) updateGroupSummaryNotification(bubbleData.color)
 
-    notificationManager.notify(website.url.hashCode(), bubbleNotification)
+    notificationManager.notify(notificationId, bubbleNotification)
     return bubbleData
   }
 
@@ -229,7 +230,7 @@ constructor(
    */
   fun isShownAsBubble(url: String): Boolean = try {
     notificationManager.activeNotifications.any {
-      it.id == url.hashCode() && it.notification.flags and Notification.FLAG_BUBBLE != 0
+      it.id == bubbleNotificationId(url) && it.notification.flags and Notification.FLAG_BUBBLE != 0
     }
   } catch (e: RuntimeException) {
     Timber.e(e, "Could not read the active notifications")
@@ -249,7 +250,7 @@ constructor(
    * Removes the bubble of [url] that Android did not show: its notification, the group summary
    * when no other bubble is left, and its shortcut, the same as a dismissal.
    */
-  fun cancel(url: String) = dismissed(url.hashCode())
+  fun cancel(url: String) = dismissed(bubbleNotificationId(url))
 
   /**
    * Called when the person dismisses the bubble posted as [notificationId]: its notification, the
@@ -258,7 +259,7 @@ constructor(
   fun dismissed(notificationId: Int) = synchronized(postLock) {
     cancel(notificationId)
     try {
-      ShortcutManagerCompat.removeLongLivedShortcuts(application, listOf(bubbleConversationId(notificationId)))
+      ShortcutManagerCompat.removeLongLivedShortcuts(application, listOf(conversationIdOfNotification(notificationId)))
     } catch (e: Exception) {
       Timber.e(e, "Could not remove the bubble shortcut")
     }
