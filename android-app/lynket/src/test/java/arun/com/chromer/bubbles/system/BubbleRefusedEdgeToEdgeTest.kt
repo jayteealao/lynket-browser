@@ -167,4 +167,23 @@ class BubbleRefusedEdgeToEdgeTest {
     assertThat(action.bottom).isAtMost(rootHeight - inset + 0.5f)
     close(controller)
   }
+
+  private fun assertOpenSettingsTarget() {
+    for (refusal in BubbleRefusal.entries) {
+      val controller = launch(refusal, ThemeMode.Light)
+      val target = composeRule.onNodeWithText(application.getString(R.string.open_settings))
+        .fetchSemanticsNode().touchBoundsInRoot
+      assertThat(target.height).isAtLeast(px(48) - 0.5f)
+      assertThat(target.width).isAtLeast(px(48) - 0.5f)
+      close(controller)
+    }
+  }
+
+  @Test
+  fun open_settings_keeps_a_48dp_target() {
+    assertOpenSettingsTarget()
+    // The largest system text size: the sentence wraps and the action keeps its size.
+    RuntimeEnvironment.setFontScale(2f)
+    assertOpenSettingsTarget()
+  }
 }
