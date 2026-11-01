@@ -16,6 +16,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.ui.about.AboutContent
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -36,6 +37,9 @@ class SampleGoldenTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   @Test
   fun aboutScreen_light() {

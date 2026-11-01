@@ -69,6 +69,7 @@ import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.WEB_VIEW
 import arun.com.chromer.tabs.ui.TabsUiState
 import arun.com.chromer.ui.about.AboutContent
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.browsing.AmpResolverDialog
 import arun.com.chromer.ui.browsing.NewTabCard
 import arun.com.chromer.ui.browsing.OptionsSheetContent
@@ -178,6 +179,9 @@ class ThemeMatrixGoldenTest(
 
   @get:Rule(order = 2)
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   @Test
   fun capture() {

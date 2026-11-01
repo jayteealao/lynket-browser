@@ -36,6 +36,7 @@ import arun.com.chromer.bubbles.webheads.ui.context.ShareAllFormat
 import arun.com.chromer.bubbles.webheads.ui.context.WebHeadContextActions
 import arun.com.chromer.bubbles.webheads.ui.context.WebHeadContextContent
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.permission.PermissionExplainerDialog
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
@@ -54,6 +55,9 @@ class WebHeadsGoldenTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private fun head(url: String, count: Int = 1, badgeOnLeft: Boolean = true, colour: Color? = null) =
     WebHeadState(url).apply {

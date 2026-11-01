@@ -27,6 +27,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.browsing.BubbleRefusedMessage
 import arun.com.chromer.ui.settings.BrowsingModeContent
 import arun.com.chromer.ui.settings.SettingsDialog
@@ -55,6 +56,9 @@ class BubbleGuidanceGoldenTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val context: Application get() = ApplicationProvider.getApplicationContext()
 

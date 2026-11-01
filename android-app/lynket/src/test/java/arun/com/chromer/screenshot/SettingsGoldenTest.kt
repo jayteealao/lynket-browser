@@ -28,6 +28,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.browsing.providerselection.ModernProviderSelectionViewModel.ProviderSelectionUiState
 import arun.com.chromer.data.apps.model.Provider
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.perapp.PerAppContent
 import arun.com.chromer.ui.perapp.PerAppRow
 import arun.com.chromer.ui.perapp.PerAppState
@@ -64,6 +65,9 @@ class SettingsGoldenTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val context: Application get() = ApplicationProvider.getApplicationContext()
 

@@ -19,6 +19,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ThemeMode
 import com.github.takahirom.roborazzi.captureRoboImage
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -50,6 +51,9 @@ class BubbleRefusedWindowGoldenTest {
 
   @get:Rule(order = 1)
   val composeRule = createEmptyComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   @Inject
   lateinit var preferences: Preferences

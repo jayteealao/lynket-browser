@@ -33,6 +33,7 @@ import arun.com.chromer.browsing.menu.ActionButton
 import arun.com.chromer.browsing.menu.BrowsingScreen
 import arun.com.chromer.browsing.menu.browsingBottomBarItems
 import arun.com.chromer.browsing.menu.browsingMenuItems
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.reader.ImageViewerScreen
 import arun.com.chromer.ui.reader.ReaderScreen
 import arun.com.chromer.ui.reader.readerMenu
@@ -60,6 +61,9 @@ class ReaderWebViewGoldenTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val context = ApplicationProvider.getApplicationContext<Application>()
   private val text = { id: Int -> context.getString(id) }
