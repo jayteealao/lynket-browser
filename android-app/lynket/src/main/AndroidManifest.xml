@@ -115,6 +115,9 @@
     <receiver android:name=".browsing.customtabs.callbacks.OpenInChromeReceiver" />
     <receiver android:name=".browsing.customtabs.callbacks.MinimizeBroadcastReceiver" />
     <receiver android:name=".browsing.customtabs.bottombar.BottomBarReceiver" />
+    <receiver
+      android:name=".bubbles.system.BubbleDismissReceiver"
+      android:exported="false" />
 
     <!-- Modern Compose-based main activity (Phase 3) -->
     <activity
