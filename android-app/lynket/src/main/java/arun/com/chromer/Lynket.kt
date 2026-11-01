@@ -80,5 +80,8 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
 
   companion object {
     private const val OLD_APP_DETECTION_CHANNEL = "App detection service"
+
+    /** Share of the memory cache kept while no Lynket screen is visible. */
+    internal const val BACKGROUND_MEMORY_CACHE_PERCENT = 0.5
   }
 }
