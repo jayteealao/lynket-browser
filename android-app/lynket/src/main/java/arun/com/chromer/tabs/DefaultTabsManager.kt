@@ -477,7 +477,7 @@ constructor(
 
     if (bubbles && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       // Android would not show the bubble: open the page in a tab now and say why.
-      val refusal = bubbleGate.refusal(bubbleConversationId(website.url))
+      val refusal = bubbleGate.refusal(bubbleConversationId(website.url, isIncognito))
       if (refusal != null) {
         Timber.w("Bubble refused (%s); opening %s in a tab", refusal, website.url)
         openRefusedBubble(context, website, refusal, isIncognito, linkSource)

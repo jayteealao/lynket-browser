@@ -85,8 +85,8 @@ class NativeBubblePostingTest {
       posts += Post(data.website.url, clock.currentTime, data.icon != null, secondArg(), data.color)
       data
     }
-    every { isShownAsBubble(any()) } answers { shown }
-    every { cancel(any<String>()) } just Runs
+    every { isShownAsBubble(any(), any()) } answers { shown }
+    every { cancel(any<String>(), any()) } just Runs
   }
 
   private val gate = mockk<BubbleGate> {
@@ -164,7 +164,7 @@ class NativeBubblePostingTest {
     advanceUntilIdle()
 
     assertThat(posts.map { it.at }).containsExactly(300L)
-    verify(exactly = 1) { notifications.cancel(URL) }
+    verify(exactly = 1) { notifications.cancel(URL, false) }
     verify(exactly = 1) { tabsManager.openRefusedBubble(application, any(), BubbleRefusal.NOT_SHOWN, false) }
     // The flag is read for up to 1.5 s after the post before the page goes to a tab.
     assertThat(refusedAt).isEqualTo(300L + 1_500L)

@@ -60,7 +60,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
   }
 
   private fun notificationOf(url: String): Notification? =
-    shadowOf(notificationManager).allNotifications.singleOrNull { it.shortcutId == bubbleConversationId(url) }
+    shadowOf(notificationManager).allNotifications.singleOrNull { it.shortcutId in bubbleIdsOf(url) }
 
   private fun summary(): Notification? =
     shadowOf(notificationManager).allNotifications.singleOrNull { it.flags and Notification.FLAG_GROUP_SUMMARY != 0 }
@@ -106,13 +106,13 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
   @Test
   fun removing_a_bubble_android_did_not_show_also_removes_its_shortcut() {
     post(first, incognito = true)
-    assertThat(shortcutIds()).contains(bubbleConversationId(first))
+    assertThat(shortcutIds()).contains(bubbleConversationId(first, incognito = true))
 
-    manager.cancel(first)
+    manager.cancel(first, incognito = true)
 
     assertThat(notificationOf(first)).isNull()
-    assertThat(shortcutIds()).doesNotContain(bubbleConversationId(first))
-    assertThat(RecordingShortcutManagerShadow.removedLongLived).containsExactly(bubbleConversationId(first))
+    assertThat(shortcutIds()).doesNotContain(bubbleConversationId(first, incognito = true))
+    assertThat(RecordingShortcutManagerShadow.removedLongLived).containsExactly(bubbleConversationId(first, incognito = true))
     assertThat(summary()).isNull()
   }
 
@@ -127,7 +127,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     dismiss(first)
 
     assertThat(notificationOf(first)).isNull()
-    assertThat(shortcutIds()).doesNotContain(bubbleConversationId(first))
+    assertThat(shortcutIds()).doesNotContain(bubbleConversationId(first, incognito = true))
   }
 
   @Test
@@ -140,7 +140,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     assertThat(notificationOf(first)).isNull()
     assertThat(shortcutIds()).doesNotContain(bubbleConversationId(first))
     assertThat(notificationOf(second)).isNotNull()
-    assertThat(shortcutIds()).contains(bubbleConversationId(second))
+    assertThat(shortcutIds()).contains(bubbleConversationId(second, incognito = true))
     assertThat(summary()).isNotNull()
 
     dismiss(second)

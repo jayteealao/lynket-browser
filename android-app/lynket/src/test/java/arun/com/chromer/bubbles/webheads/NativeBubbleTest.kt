@@ -25,6 +25,7 @@ import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.bubbles.system.NativeFloatingBubble
 import arun.com.chromer.bubbles.system.bubbleConversationId
+import arun.com.chromer.bubbles.system.bubbleIdsOf
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import com.google.common.truth.Truth.assertThat
@@ -60,7 +61,7 @@ class NativeBubbleTest : LynketRobolectricSuite() {
   private val url = "https://a.example"
 
   private fun bubbleNotification(): Notification? =
-    shadowOf(notificationManager).allNotifications.singleOrNull { it.shortcutId == bubbleConversationId(url) }
+    shadowOf(notificationManager).allNotifications.singleOrNull { it.shortcutId in bubbleIdsOf(url) }
 
   @Test
   fun a_refused_bubble_posts_nothing_and_shows_no_toast() {
@@ -140,8 +141,8 @@ class NativeBubbleTest : LynketRobolectricSuite() {
 
   /** The incognito extra of the bubble's page intent and of its conversation shortcut's intent. */
   private fun incognitoFlagsOf(pageUrl: String): Pair<Boolean, Boolean> {
-    val id = bubbleConversationId(pageUrl)
-    val notification = shadowOf(notificationManager).allNotifications.single { it.shortcutId == id }
+    val notification = shadowOf(notificationManager).allNotifications.single { it.shortcutId in bubbleIdsOf(pageUrl) }
+    val id = notification.shortcutId
     val bubbleIntent = shadowOf(notification.bubbleMetadata!!.intent).savedIntent
     val shortcut = application.getSystemService(ShortcutManager::class.java).dynamicShortcuts.single { it.id == id }
     return bubbleIntent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false) to

@@ -129,7 +129,7 @@ constructor(
 
   private fun post(bubbleData: BubbleLoadData, withSummary: Boolean): BubbleLoadData {
     val website = bubbleData.website
-    val notificationId = bubbleNotificationId(website.url)
+    val notificationId = bubbleNotificationId(website.url, bubbleData.incognito)
     // A bubble the person dismissed while its icon loaded stays dismissed: an update of it would
     // post it, and its shortcut, again.
     if (!withSummary && !isPosted(notificationId)) return bubbleData
@@ -233,9 +233,9 @@ constructor(
    * Whether Android shows the posted notification of [url] as a bubble: the system sets
    * [Notification.FLAG_BUBBLE] on it when it honours the bubble request.
    */
-  fun isShownAsBubble(url: String): Boolean = try {
+  fun isShownAsBubble(url: String, incognito: Boolean): Boolean = try {
     notificationManager.activeNotifications.any {
-      it.id == bubbleNotificationId(url) && it.notification.flags and Notification.FLAG_BUBBLE != 0
+      it.id == bubbleNotificationId(url, incognito) && it.notification.flags and Notification.FLAG_BUBBLE != 0
     }
   } catch (e: RuntimeException) {
     Timber.e(e, "Could not read the active notifications")
@@ -255,7 +255,7 @@ constructor(
    * Removes the bubble of [url] that Android did not show: its notification, the group summary
    * when no other bubble is left, and its shortcut, the same as a dismissal.
    */
-  fun cancel(url: String) = dismissed(bubbleNotificationId(url))
+  fun cancel(url: String, incognito: Boolean) = dismissed(bubbleNotificationId(url, incognito))
 
   /**
    * Called when the person dismisses the bubble posted as [notificationId]: its notification, the
@@ -290,7 +290,7 @@ constructor(
     identity: BubbleIdentity,
     incognito: Boolean,
   ): String? = try {
-    val id = bubbleConversationId(url)
+    val id = bubbleConversationId(url, incognito)
     val iconCompat = IconCompat.createFromIcon(application, identity.icon)
     val label = if (incognito) identity.label else identity.label.ifBlank { url }
     val person = Person.Builder()

@@ -65,10 +65,10 @@ class NativeBubbleConversationTest {
   }
 
   private fun notificationOf(url: String): Notification =
-    shadowOf(notificationManager).allNotifications.single { it.shortcutId == bubbleConversationId(url) }
+    shadowOf(notificationManager).allNotifications.single { it.shortcutId in bubbleIdsOf(url) }
 
   private fun shortcutOf(url: String): ShortcutInfo =
-    application.getSystemService(ShortcutManager::class.java).dynamicShortcuts.single { it.id == bubbleConversationId(url) }
+    application.getSystemService(ShortcutManager::class.java).dynamicShortcuts.single { it.id in bubbleIdsOf(url) }
 
   /** A posting context whose window is [heightPx] tall and 1080 px wide, as in split screen. */
   private fun windowContext(heightPx: Int): Context {
@@ -84,7 +84,7 @@ class NativeBubbleConversationTest {
   private fun assertMessageWithLocusOfShortcut(url: String) {
     val notification = notificationOf(url)
     assertThat(notification.category).isEqualTo(Notification.CATEGORY_MESSAGE)
-    assertThat(notification.locusId).isEqualTo(LocusId(bubbleConversationId(url)))
+    assertThat(notification.locusId).isEqualTo(LocusId(notification.shortcutId))
     assertThat(shortcutOf(url).locusId).isEqualTo(notification.locusId)
   }
 

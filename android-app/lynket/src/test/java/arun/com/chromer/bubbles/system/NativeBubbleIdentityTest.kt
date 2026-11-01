@@ -51,10 +51,10 @@ class NativeBubbleIdentityTest {
   }
 
   private fun notificationOf(url: String): Notification =
-    shadowOf(notificationManager).allNotifications.single { it.shortcutId == bubbleConversationId(url) }
+    shadowOf(notificationManager).allNotifications.single { it.shortcutId in bubbleIdsOf(url) }
 
   private fun shortcutOf(url: String): ShortcutInfo =
-    application.getSystemService(ShortcutManager::class.java).dynamicShortcuts.single { it.id == bubbleConversationId(url) }
+    application.getSystemService(ShortcutManager::class.java).dynamicShortcuts.single { it.id in bubbleIdsOf(url) }
 
   private fun ShortcutInfo.persons(): Array<android.app.Person> =
     ReflectionHelpers.callInstanceMethod(this, "getPersons")
@@ -109,6 +109,17 @@ class NativeBubbleIdentityTest {
     assertThat(intent.component!!.className).isEqualTo(MainActivity::class.java.name)
     assertThat(intent.toUri(0)).doesNotContain(TITLE)
     assertThat(intent.toUri(0)).doesNotContain(HOST)
+  }
+
+  @Test
+  fun an_incognito_bubble_id_cannot_be_matched_against_its_address() {
+    post(URL, incognito = true)
+
+    val notification = notificationOf(URL)
+    assertThat(notification.shortcutId).isNotEqualTo(bubbleConversationId(URL))
+    assertThat(shadowOf(notificationManager).allNotifications.none { it.shortcutId == bubbleConversationId(URL) }).isTrue()
+    // The same link keeps one id for as long as Lynket runs, so a resend updates the same bubble.
+    assertThat(bubbleConversationId(URL, incognito = true)).isEqualTo(notification.shortcutId)
   }
 
   @Test

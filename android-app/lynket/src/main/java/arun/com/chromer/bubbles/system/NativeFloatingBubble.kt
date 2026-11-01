@@ -105,7 +105,7 @@ constructor(
     context: Context?,
     color: Int
   ): Boolean {
-    val refusal = bubbleGate.refusal(bubbleConversationId(website.url))
+    val refusal = bubbleGate.refusal(bubbleConversationId(website.url, incognito))
     if (refusal != null) {
       Timber.w("Bubble refused (%s); opening %s in a tab", refusal, website.url)
       return false
@@ -140,10 +140,10 @@ constructor(
 
     // Android can still post the notification without showing it as a bubble. Then the page opens
     // in a tab with a message instead of being lost in the notification shade.
-    if (!shownAsBubble(url)) {
+    if (!shownAsBubble(url, initial.incognito)) {
       details?.cancel()
       Timber.w("Android did not show %s as a bubble; opening it in a tab", url)
-      bubbleNotificationManager.cancel(url)
+      bubbleNotificationManager.cancel(url, initial.incognito)
       tabsManager.get().openRefusedBubble(application, initial.website, BubbleRefusal.NOT_SHOWN, initial.incognito)
       return@coroutineScope
     }
@@ -175,9 +175,9 @@ constructor(
    * The bubble flag can follow the post by a moment, so it is read every 250 ms for up to 1.5 s,
    * stopping as soon as it shows.
    */
-  private suspend fun shownAsBubble(url: String): Boolean {
+  private suspend fun shownAsBubble(url: String, incognito: Boolean): Boolean {
     repeat(FLAG_READS) { read ->
-      if (bubbleNotificationManager.isShownAsBubble(url)) return true
+      if (bubbleNotificationManager.isShownAsBubble(url, incognito)) return true
       if (read < FLAG_READS - 1) delay(FLAG_READ_INTERVAL_MS)
     }
     return false

@@ -48,7 +48,7 @@ class NativeBubbleIncognitoReadTest {
 
   private val notifications = mockk<BubbleNotificationManager> {
     coEvery { showBubbles(capture(posts), any()) } answers { firstArg() }
-    every { isShownAsBubble(any()) } returns true
+    every { isShownAsBubble(any(), any()) } returns true
   }
 
   private val icons = mockk<WebsiteIconsProvider> {

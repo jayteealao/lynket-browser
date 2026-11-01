@@ -51,7 +51,7 @@ class NativeBubbleLockScreenTest {
   }
 
   private fun notificationOf(url: String): Notification =
-    shadowOf(notificationManager).allNotifications.single { it.shortcutId == bubbleConversationId(url) }
+    shadowOf(notificationManager).allNotifications.single { it.shortcutId in bubbleIdsOf(url) }
 
   private fun summary(): Notification =
     shadowOf(notificationManager).allNotifications.single { it.flags and Notification.FLAG_GROUP_SUMMARY != 0 }
