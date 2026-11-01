@@ -150,7 +150,6 @@ dependencies {
     androidTestImplementation(libs.hilt.android.testing)
     // HiltTestRunner extends AndroidJUnitRunner, which comes from androidx.test:runner
     androidTestImplementation(libs.androidx.test.runner)
-    kspAndroidTest(libs.hilt.compiler)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
