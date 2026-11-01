@@ -7,6 +7,7 @@
   },
   "areas": [
     "bubbles",
+    "web-heads",
     "shared"
   ],
   "screens": {
@@ -18,9 +19,13 @@
       "workflows": [
         "native-bubble-privacy-lifecycle"
       ],
-      "slices": [],
+      "slices": [
+        "bubble-dismiss-cleanup",
+        "bubble-parallel-fast-posting",
+        "bubble-conversation-features"
+      ],
       "created-at": "2026-10-31T20:41:39Z",
-      "updated-at": "2026-10-31T20:41:39Z",
+      "updated-at": "2026-10-31T22:24:58Z",
       "approvals": [
         {
           "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
@@ -37,9 +42,12 @@
       "workflows": [
         "native-bubble-privacy-lifecycle"
       ],
-      "slices": [],
+      "slices": [
+        "incognito-bubble-neutral-identity",
+        "incognito-screen-share-guard"
+      ],
       "created-at": "2026-10-31T20:41:39Z",
-      "updated-at": "2026-10-31T20:41:39Z",
+      "updated-at": "2026-10-31T22:24:58Z",
       "approvals": [
         {
           "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
@@ -56,9 +64,11 @@
       "workflows": [
         "native-bubble-privacy-lifecycle"
       ],
-      "slices": [],
+      "slices": [
+        "bubble-lock-screen-privacy"
+      ],
       "created-at": "2026-10-31T20:41:40Z",
-      "updated-at": "2026-10-31T20:41:40Z",
+      "updated-at": "2026-10-31T22:24:58Z",
       "approvals": [
         {
           "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
@@ -75,9 +85,11 @@
       "workflows": [
         "native-bubble-privacy-lifecycle"
       ],
-      "slices": [],
+      "slices": [
+        "bubble-refused-edge-to-edge"
+      ],
       "created-at": "2026-10-31T20:41:41Z",
-      "updated-at": "2026-10-31T20:41:41Z",
+      "updated-at": "2026-10-31T22:24:59Z",
       "approvals": [
         {
           "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
@@ -85,6 +97,58 @@
           "workflow": "native-bubble-privacy-lifecycle"
         }
       ]
+    },
+    "web-heads-refused-message": {
+      "title": "Web heads refused message",
+      "area": "web-heads",
+      "flow": "open-link",
+      "order": 10,
+      "workflows": [
+        "web-heads-reliability"
+      ],
+      "slices": [],
+      "created-at": "2026-11-01T20:27:52Z",
+      "updated-at": "2026-11-01T20:27:52Z",
+      "approvals": []
+    },
+    "web-heads-rotation": {
+      "title": "Web heads after a rotation",
+      "area": "web-heads",
+      "flow": "rearrange",
+      "order": 20,
+      "workflows": [
+        "web-heads-reliability"
+      ],
+      "slices": [],
+      "created-at": "2026-11-01T20:27:52Z",
+      "updated-at": "2026-11-01T20:27:52Z",
+      "approvals": []
+    },
+    "web-heads-wide-fling": {
+      "title": "Web head fling on a wide window",
+      "area": "web-heads",
+      "flow": "rearrange",
+      "order": 30,
+      "workflows": [
+        "web-heads-reliability"
+      ],
+      "slices": [],
+      "created-at": "2026-11-01T20:27:53Z",
+      "updated-at": "2026-11-01T20:27:53Z",
+      "approvals": []
+    },
+    "web-heads-trash": {
+      "title": "Web head trash lock",
+      "area": "web-heads",
+      "flow": "close",
+      "order": 40,
+      "workflows": [
+        "web-heads-reliability"
+      ],
+      "slices": [],
+      "created-at": "2026-11-01T20:27:53Z",
+      "updated-at": "2026-11-01T20:27:53Z",
+      "approvals": []
     }
   },
   "explore": {}

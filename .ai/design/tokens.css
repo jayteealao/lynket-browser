@@ -24,4 +24,10 @@
   --inverse-surface-dark: #E4E1E9;
   --inverse-on-surface-dark: #303036;
   --inverse-primary-dark: #515B92;
+  --surface-container-highest: #E4E1E9;
+  --error: #BA1A1A;
+  --on-error: #FFFBFF;
+  --surface-container-highest-dark: #34343A;
+  --error-dark: #FFB4AB;
+  --on-error-dark: #690005;
 }
