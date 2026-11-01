@@ -1,4 +1,4 @@
-# App rules for R8. AGP adds proguard-android-optimize.txt and each library's consumer rules.
+# App rules for R8 (AGP picks up *.keep files in src/<source set>/keepRules). AGP adds proguard-android-optimize.txt (optimization.keepRules.includeDefault) and each library's consumer rules.
 
 -dontwarn sun.misc.Unsafe
 -assumenosideeffects class kotlin.jvm.internal.Intrinsics {
