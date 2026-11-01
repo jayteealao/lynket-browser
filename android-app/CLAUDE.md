@@ -26,7 +26,7 @@ Lynket is an Android browser application that provides custom tabs functionality
 - **KSP**: 2.3.12. Hilt 2.60.1 and Room 3 (`androidx.room3` 3.0.3, Gradle plugin `androidx.room3`) run on KSP. There is no kapt; `scripts/check-compose-only.sh` fails if kapt, the Kotlin Android plugin or an AGP opt-out flag comes back.
 - **gradle.properties**: AGP 9 defaults (non-transitive and final R class, optimized resource shrinking, Hilt's install-in check). Jetifier is off; no dependency needs it.
 - **SDK levels**: compileSdk 37 (Compose BOM 2026.09.00 / Compose UI 1.12 needs it), targetSdk 36, minSdk 24. Do not raise targetSdk to 37.
-- **Libraries**: Compose BOM 2026.09.00, Coil 3.6.3, Robolectric 4.17 (tests pin `sdk = [34]`), Roborazzi 1.76.0, Baseline Profile plugin and Macrobenchmark 1.5.0, ProfileInstaller 1.4.1.
+- **Libraries**: Compose BOM 2026.09.00, Coil 3.6.3, Robolectric 4.17 (tests pin `sdk = [34]`), Roborazzi 1.77.0, Baseline Profile plugin and Macrobenchmark 1.5.0, ProfileInstaller 1.4.1.
 - **Back handling**: targetSdk 36 turns on predictive back, and the system no longer calls `onBackPressed`. Use `OnBackPressedDispatcher` callbacks.
 
 ### Gradle Commands
