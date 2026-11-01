@@ -16,8 +16,6 @@ import android.net.Uri
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,7 +53,7 @@ class BaselineProfileGenerator {
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       }
     )
-    device.wait(Until.hasObject(By.pkg(PROVIDER_PACKAGE).depth(0)), WAIT_MS)
+    waitForAppToBeVisible(PROVIDER_PACKAGE, WAIT_MS)
 
     // 2. Launcher start to home, drawer open and closed
     pressHome()
@@ -64,8 +62,8 @@ class BaselineProfileGenerator {
         .setClassName(TARGET_PACKAGE, MAIN_ACTIVITY)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     )
-    device.wait(Until.findObject(By.res("intro-skip")), SHORT_WAIT_MS)?.click()
-    device.wait(Until.findObject(By.res("home-menu")), WAIT_MS)?.let { menu ->
+    onElementOrNull(SHORT_WAIT_MS) { viewIdResourceName == "intro-skip" }?.click()
+    onElementOrNull(WAIT_MS) { viewIdResourceName == "home-menu" }?.let { menu ->
       menu.click()
       device.waitForIdle()
       device.pressBack()
