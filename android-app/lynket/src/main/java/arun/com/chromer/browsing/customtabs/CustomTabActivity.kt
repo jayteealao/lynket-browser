@@ -22,6 +22,7 @@ package arun.com.chromer.browsing.customtabs
 
 import android.os.Bundle
 import arun.com.chromer.browsing.BrowsingActivity
+import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import arun.com.chromer.util.WebUrl
@@ -65,6 +66,24 @@ class CustomTabActivity : BrowsingActivity() {
     super.onResume()
     if (isLoaded) {
       finish()
+    }
+  }
+
+  /**
+   * The provider opens its tab through a trampoline that lands on top of anything started now, so
+   * the message waits until the tab covers this activity.
+   */
+  private var refusalPending = false
+
+  override fun showRefusalMessage() {
+    refusalPending = true
+  }
+
+  override fun onStop() {
+    super.onStop()
+    if (refusalPending) {
+      refusalPending = false
+      BubbleRefusedActivity.showIfRefused(this)
     }
   }
 

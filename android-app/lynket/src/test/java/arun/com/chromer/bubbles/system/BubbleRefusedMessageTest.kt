@@ -33,6 +33,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import arun.com.chromer.R
+import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
 import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
@@ -262,6 +263,27 @@ class BubbleRefusedMessageTest {
 
     controller.recreate()
     assertThat(shadowOf(controller.get()).nextStartedActivity).isNull()
+  }
+
+  @Test
+  fun aCustomTabHostStartsTheMessageOnlyOnceTheTabCoversIt() {
+    val intent = Intent(application, CustomTabActivity::class.java)
+      .setData(Uri.parse("https://example.com/"))
+      .putExtra(EXTRA_KEY_BUBBLE_REFUSAL, BubbleRefusal.OVERLAY_OFF.name)
+    val controller = Robolectric.buildActivity(CustomTabActivity::class.java, intent).setup()
+    fun messages() = generateSequence { shadowOf(controller.get()).nextStartedActivity }
+      .filter { it.component?.className == BubbleRefusedActivity::class.java.name }.toList()
+
+    // The provider's tab opens on top through a trampoline: a message started now would land under it.
+    assertThat(messages()).isEmpty()
+
+    controller.pause().stop()
+    val started = messages()
+    assertThat(started).hasSize(1)
+    assertThat(BubbleRefusedActivity.refusalOf(started.single())).isEqualTo(BubbleRefusal.OVERLAY_OFF)
+
+    controller.restart().start().resume().pause().stop()
+    assertThat(messages()).isEmpty()
   }
 
   @Test
