@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -109,6 +110,31 @@ class AccessibilityChecksTest {
     assertThat(error).hasMessageThat().contains("TouchTarget: tag=small")
     assertThat(error).hasMessageThat().doesNotContain("SpeakableLabel")
     hide()
+  }
+
+  @Test
+  fun aSliderWithNoLabelFails() {
+    show { Slider(value = 0.5f, onValueChange = {}, modifier = Modifier.testTag("slider")) }
+
+    val error = assertThrows(AssertionError::class.java) {
+      composeRule.onRoot().tryPerformAccessibilityChecks()
+    }
+
+    assertThat(error).hasMessageThat().contains("SpeakableLabel: tag=slider")
+    hide()
+  }
+
+  @Test
+  fun aLabelledSliderPasses() {
+    show {
+      Slider(
+        value = 0.5f,
+        onValueChange = {},
+        modifier = Modifier.testTag("slider").semantics { contentDescription = "Text size" },
+      )
+    }
+
+    composeRule.onRoot().tryPerformAccessibilityChecks()
   }
 
   @Test

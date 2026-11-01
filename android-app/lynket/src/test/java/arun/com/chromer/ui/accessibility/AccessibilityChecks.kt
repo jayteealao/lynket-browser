@@ -33,13 +33,15 @@ import org.junit.runners.model.Statement
  * Accessibility checks for Compose content in the JVM screen tests.
  *
  * It reads the merged semantics tree of every Compose root in the view it is given, and fails on
- * each element a person can click or long-press that
- * - has nothing a screen reader can speak (no content description, text or editable text), or
- * - has a touch target under 48 x 48 dp.
+ * each element a person can click, long-press or set a value on (a slider) that has nothing a
+ * screen reader can speak (no content description, text or editable text), and on each element a
+ * person can click or long-press that has a touch target under 48 x 48 dp. A slider is dragged
+ * along its length and set with a screen reader's adjust gestures, so its height is not judged.
  *
- * An element with an empty size (scrolled out of view) or cut by its container is not judged, as
- * the Accessibility Test Framework does on a device. Colour contrast is not checked: it needs
- * pixels, and these checks read semantics only.
+ * Elements with only other actions (scrolling, dragging, custom actions) are not judged. An
+ * element with an empty size (scrolled out of view) or cut by its container is not judged, as the
+ * Accessibility Test Framework does on a device. Colour contrast is not checked: it needs pixels,
+ * and these checks read semantics only.
  *
  * The Compose library's own `enableAccessibilityChecks()` is not used: under Robolectric the
  * Accessibility Test Framework reports "Composable content is not evaluated in this environment"
@@ -60,7 +62,8 @@ class LynketAccessibilityValidator : ComposeAccessibilityValidator {
 
   private fun check(node: SemanticsNode, density: Float): List<String> {
     val config = node.config
-    val actionable = SemanticsActions.OnClick in config || SemanticsActions.OnLongClick in config
+    val pressable = SemanticsActions.OnClick in config || SemanticsActions.OnLongClick in config
+    val actionable = pressable || SemanticsActions.SetProgress in config
     if (!actionable || isHidden(config) || isExempt(node)) return emptyList()
     val bounds = node.boundsInRoot
     if (bounds.width <= 0f || bounds.height <= 0f) return emptyList()
@@ -71,7 +74,7 @@ class LynketAccessibilityValidator : ComposeAccessibilityValidator {
 
     val clipped = bounds.width + 0.5f < node.size.width || bounds.height + 0.5f < node.size.height
     val touch = node.touchBoundsInRoot
-    if (!clipped && (touch.width / density < MIN_TOUCH_DP || touch.height / density < MIN_TOUCH_DP)) {
+    if (pressable && !clipped && (touch.width / density < MIN_TOUCH_DP || touch.height / density < MIN_TOUCH_DP)) {
       failures += describe("TouchTarget", node, label, density)
     }
     return failures
