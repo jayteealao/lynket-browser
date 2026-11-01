@@ -29,6 +29,7 @@ import arun.com.chromer.util.image.ApplicationIconFetcher
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.memoryCacheMaxSizePercentWhileInBackground
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -72,10 +73,13 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
   /**
    * The one image loader for Compose images, favicons and app icons. Network loading comes from
    * the OkHttp fetcher Coil registers on its own when coil-network-okhttp is on the classpath.
+   * The memory cache shrinks to half while no Lynket screen is visible and returns to full size
+   * when one starts.
    */
   override fun newImageLoader(context: PlatformContext): ImageLoader =
     ImageLoader.Builder(context)
       .components { add(ApplicationIconFetcher.Factory()) }
+      .memoryCacheMaxSizePercentWhileInBackground(BACKGROUND_MEMORY_CACHE_PERCENT)
       .build()
 
   companion object {
