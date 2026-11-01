@@ -12,6 +12,8 @@
 #             (maestro/reader/fixtures) opens in the reader with its headline (the article extractor and jsoup
 #             through R8); the tile off again
 #   webhead   the Web heads tile on, a link shows at least one overlay window; the heads closed
+#   history   History, opened from the home menu, lists a row for example.com (the Paging and
+#             Flow-backed History list through R8)
 #   crash     the crash buffer holds no entry for arun.com.chromer
 #
 # Each step writes PASS or FAIL to <evidence-dir>/release.txt; the exit code is 1 when any failed.
@@ -200,6 +202,39 @@ shot webhead
 if [ "$heads" -ge 1 ]; then pass webhead "$heads overlay window(s)"; else failed webhead "no overlay window"; fi
 close_all_heads
 click_tile "$WEB_HEAD_TILE"
+
+# ---------------------------------------------------------------------------------------------
+# History: the home menu, then History lists the links opened above
+
+a shell am start -W -n "$PKG/$MAIN" -f 0x24000000 >/dev/null
+sleep 3
+dismiss_anr
+tap_text "OK" >/dev/null 2>&1 && sleep 1 || true  # a leftover app dialog
+history_ok=0
+menu_xy="$(ui_dump | tr '>' '\n' | grep -F 'resource-id="home-menu"' | head -1 |
+  sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
+  awk 'NF == 4 { print int(($1 + $3) / 2), int(($2 + $4) / 2) }')"
+if [ -n "$menu_xy" ]; then
+  # shellcheck disable=SC2086
+  a shell input tap $menu_xy
+  sleep 2
+  if tap_text "History"; then
+    for _ in $(seq 1 20); do
+      ui_dump > "$OUT/history.xml"
+      grep -qF 'resource-id="history-list"' "$OUT/history.xml" && grep -qF 'example.com' "$OUT/history.xml" && { history_ok=1; break; }
+      sleep 2
+    done
+  fi
+fi
+shot history
+if [ "$history_ok" = 1 ]; then
+  pass history "History lists example.com"
+elif [ -z "$menu_xy" ]; then
+  failed history "no home-menu node on the home screen"
+else
+  failed history "no history-list with example.com (see history.xml)"
+fi
+a shell input keyevent KEYCODE_HOME
 
 # ---------------------------------------------------------------------------------------------
 # Crashes
