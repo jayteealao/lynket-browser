@@ -14,6 +14,9 @@
 #                  the message stays past 15 s and Back closes it
 #   overlay        web heads chosen and the overlay permission denied: a link opens in a tab with
 #                  "Web heads need Display over other apps"; Open Settings opens "Display over other apps"
+#   service        the same, with the link sent straight to the web heads service after the permission
+#                  is denied, as when Android takes the permission away between the bubble check and
+#                  the service start; no head shows and the service stops
 #
 # In every refused mode no settings page may open before the tap on Open Settings.
 #
@@ -22,7 +25,7 @@
 #   maestro/webheads/bubble-guidance-check.sh <serial> <evidence-dir> <mode>
 set -euo pipefail
 
-USAGE="usage: bubble-guidance-check.sh <serial> <evidence-dir> <selected|none|device|notifications|all|setup|talkback|overlay>"
+USAGE="usage: bubble-guidance-check.sh <serial> <evidence-dir> <selected|none|device|notifications|all|setup|talkback|overlay|service>"
 SERIAL="${1:?$USAGE}"
 OUT_ROOT="${2:?$USAGE}"
 WHICH="${3:?$USAGE}"
@@ -110,6 +113,15 @@ settings_records() {  # $1 = output name
   grep -c "com.android.settings/" "$OUT/$1.txt" || true
 }
 
+# The link sent straight to the web heads service (the debug build exports it to the shell). The
+# app's main activity comes to the front first, so Android lets the service start in the
+# foreground and start the tab, as it does when the link comes from the app in front.
+start_service_link() {  # $1 = link
+  a shell am start -W -n "$PKG/$MAIN" >/dev/null
+  sleep 2
+  log "am start-foreground-service: $(a shell am start-foreground-service -n "$PKG/$WEB_HEAD_SERVICE" -d "$1" 2>&1 | tr -d '\r' | tr '\n' ' ')"
+}
+
 # A refused link: the message over the tab, the tab under it, no bubble left, a tap above the
 # message reaches the page, Open Settings opens $2 and Back returns to the page.
 check_refused() {  # $1 = expected message, $2 = expected settings text
@@ -120,7 +132,7 @@ check_refused() {  # $1 = expected message, $2 = expected settings text
   a logcat -c
   local settings_before
   settings_before="$(settings_records before-link-activities)"
-  open_link "https://example.com/?refused=$WHICH"
+  "${FIRST_LINK:-open_link}" "https://example.com/?refused=$WHICH"
   wait_top "$MESSAGE" || { shot no-message; top_activity | tee -a "$OUT/$WHICH.txt"; fail "no message window on top"; }
   # The message times out after 10 s on screen: dump, capture on the device and tap first, and
   # copy the capture and read the stacks afterwards.
@@ -131,6 +143,14 @@ check_refused() {  # $1 = expected message, $2 = expected settings text
   done
   grep -qF "$1" "$OUT/message.xml" || fail "the message does not say \"$1\""
   grep -qF 'text="Open Settings"' "$OUT/message.xml" || fail "no Open Settings action"
+  if [ "$WHICH" = service ]; then
+    a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/service-after.txt"
+    if grep -qF "ServiceRecord" "$OUT/service-after.txt" && grep -qF "$PKG/" "$OUT/service-after.txt"; then
+      fail "the web heads service is still running (see service-after.txt)"
+    fi
+    [ "$(overlay_count)" = 0 ] || fail "a head showed"
+    log "no web heads service and no head after the refused link"
+  fi
   a shell screencap -p /sdcard/bubble-message.png >/dev/null 2>&1 || true
   # No cause opens a settings page by itself: only the tap below may.
   local settings_before_tap
@@ -318,5 +338,6 @@ case "$WHICH" in
   setup) check_setup ;;
   talkback) native_bubbles_mode; check_talkback ;;
   overlay) web_heads_denied; check_refused "Web heads need Display over other apps" "Display over other apps" ;;
+  service) web_heads_denied; FIRST_LINK=start_service_link; check_refused "Web heads need Display over other apps" "Display over other apps" ;;
   *) echo "$USAGE" >&2; exit 2 ;;
 esac
