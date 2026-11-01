@@ -165,10 +165,17 @@ interface TabsManager {
   )
 
   /**
-   * Opens [website] in a browsing tab after Android refused its native bubble, and shows the
-   * message that names [refusal] above the tab.
+   * Opens [website] in a browsing tab after Android refused its native bubble or web head, and shows
+   * the message that names [refusal] above the tab. [linkSource] is the app the link came from, for
+   * the toolbar colour.
    */
-  fun openRefusedBubble(context: Context, website: Website, refusal: BubbleRefusal, incognito: Boolean = false)
+  fun openRefusedBubble(
+    context: Context,
+    website: Website,
+    refusal: BubbleRefusal,
+    incognito: Boolean = false,
+    linkSource: LinkSource = LinkSource.NONE,
+  )
 
   /**
    * Opens new tab activity.

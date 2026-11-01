@@ -17,6 +17,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
+import arun.com.chromer.appdetect.LinkSource
 import arun.com.chromer.browsing.icons.WebsiteIconData
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.data.website.WebsiteRepository
@@ -94,7 +95,7 @@ class NativeBubblePostingTest {
   }
 
   private val tabsManager = mockk<TabsManager>(relaxed = true) {
-    every { openRefusedBubble(any(), any(), any(), any()) } answers { refusedAt = clock.currentTime }
+    every { openRefusedBubble(any(), any(), any(), any(), any()) } answers { refusedAt = clock.currentTime }
   }
 
   /** Runs [block] on virtual time with a bubble on the same clock, then runs every job to the end. */
@@ -165,7 +166,7 @@ class NativeBubblePostingTest {
 
     assertThat(posts.map { it.at }).containsExactly(300L)
     verify(exactly = 1) { notifications.cancel(URL, false) }
-    verify(exactly = 1) { tabsManager.openRefusedBubble(application, any(), BubbleRefusal.NOT_SHOWN, false) }
+    verify(exactly = 1) { tabsManager.openRefusedBubble(application, any(), BubbleRefusal.NOT_SHOWN, false, LinkSource.NONE) }
     // The flag is read for up to 1.5 s after the post before the page goes to a tab.
     assertThat(refusedAt).isEqualTo(300L + 1_500L)
   }

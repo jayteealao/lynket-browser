@@ -417,14 +417,11 @@ constructor(
     return !reordered
   }
 
-  override fun openRefusedBubble(context: Context, website: Website, refusal: BubbleRefusal, incognito: Boolean) =
-    openRefusedBubble(context, website, refusal, incognito, LinkSource.NONE)
-
   /**
    * The page opens in a tab, which then shows the message (see BrowsingActivity). When the tab of
    * this page already exists and only comes to the front, the message starts in a task of its own.
    */
-  private fun openRefusedBubble(
+  override fun openRefusedBubble(
     context: Context,
     website: Website,
     refusal: BubbleRefusal,
