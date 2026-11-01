@@ -33,7 +33,7 @@ Lynket is an Android browser application that provides custom tabs functionality
 
 Run from `android-app/`:
 - `./gradlew :lynket:assembleDebug` - Build the debug APK
-- `./gradlew :lynket:testDebugUnitTest` - Run the JVM unit tests
+- `./gradlew :lynket:testDebugUnitTest` - Run the JVM unit tests; every Compose UI test class declares `@get:Rule(order = 99) val accessibilityChecks = AccessibilityChecksRule(composeRule)` (`ui/accessibility/AccessibilityChecks.kt`), which fails a test on a clickable element with no spoken label or a touch target under 48 dp, on each action and after the test. The Compose library's own `enableAccessibilityChecks()` evaluates nothing under Robolectric; contrast is not checked
 - `./gradlew :lynket:verifyRoborazziDebug` - Compare the screenshot goldens (`lynket/src/test/screenshots`); `recordRoborazziDebug` records them again. `ThemeMatrixGoldenTest` draws every screen in the light, dark and black themes at a phone and a fold size
 - `bash scripts/check-compose-only.sh` - Fails on an XML layout other than the Custom Tab bottom bar's RemoteViews layout, a menu or preference XML, a View, Fragment or Adapter subclass, `setContentView` with a layout, kapt, or an AGP opt-out flag
 - `./gradlew :disk-cache:testDebugUnitTest` - Run the disk cache journal tests
