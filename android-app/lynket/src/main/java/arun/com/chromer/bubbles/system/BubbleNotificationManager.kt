@@ -177,6 +177,7 @@ constructor(
           setDeleteIntent(dismissIntent)
           setAutoExpandBubble(false)
           setSuppressNotification(true)
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setSuppressableBubble(true)
           setDesiredHeight(Utils.pxToDp((displayHeight * 0.8).toInt()))
         }
 
