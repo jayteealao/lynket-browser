@@ -44,7 +44,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30])
+@Config(sdk = [36])
 class ModernHistoryRepositoryTest {
 
     private lateinit var context: Context

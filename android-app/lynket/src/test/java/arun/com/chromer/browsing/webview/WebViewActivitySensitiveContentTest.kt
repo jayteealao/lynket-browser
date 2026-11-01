@@ -98,7 +98,7 @@ class WebViewActivitySensitiveContentTest {
   }
 
   @Test
-  @Config(sdk = [35])
+  @Config(sdk = [36])
   fun aNormalBubbleIsNotSensitiveContent() {
     val activity = open(EmbeddableWebViewActivity::class.java, "https://example.com/normal-bubble", incognito = false)
 
@@ -107,13 +107,13 @@ class WebViewActivitySensitiveContentTest {
   }
 
   @Test
-  @Config(sdk = [35])
+  @Config(sdk = [36])
   fun anIncognitoTabPageIsSensitiveContent() {
     assertSensitive(open(WebViewActivity::class.java, "https://example.com/private-tab", incognito = true))
   }
 
   @Test
-  @Config(sdk = [35])
+  @Config(sdk = [36])
   fun aPageWithNoIncognitoExtraIsNotSensitiveContent() {
     val activity = open(WebViewActivity::class.java, "https://example.com/no-extra", incognito = null)
 
