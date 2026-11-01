@@ -5,8 +5,9 @@
 #
 #   build     ./gradlew :lynket:assembleRelease (skipped with SKIP_BUILD=1), then zipalign and
 #             apksigner (SDK build-tools) into <evidence-dir>/lynket-release-debugkey.apk
-#   install   stops if arun.com.chromer is already installed (it may be a store install with
-#             another key; nothing is uninstalled that this script did not install)
+#   install   stops unless the serial is an emulator; stops if arun.com.chromer is already
+#             installed (it may be a store install with another key; nothing is uninstalled that
+#             this script did not install)
 #   link      a VIEW intent through the link entry point opens a Chrome Custom Tab
 #   reader    the Article tile on, a fixed article served from this host through adb reverse
 #             (maestro/reader/fixtures) opens in the reader with its headline (the article extractor and jsoup
@@ -134,6 +135,12 @@ java -jar "$BT/lib/apksigner.jar" verify "$APK" && pass build "signed copy $APK"
 # ---------------------------------------------------------------------------------------------
 # Install
 
+# The copy is signed with the SDK's published debug key: refuse anything but an emulator.
+qemu="$(a shell 'getprop ro.boot.qemu; getprop ro.kernel.qemu' 2>/dev/null | tr -d '' | grep -x 1 || true)"
+if [ -z "$qemu" ]; then
+  failed install "$SERIAL is not an emulator; this check installs a debug-key-signed release build"
+  exit 1
+fi
 if a shell pm list packages | tr -d '\r' | grep -qx "package:$PKG"; then
   failed install "$PKG is already installed on $SERIAL; uninstall it yourself first"
   exit 1

@@ -6,7 +6,7 @@
 #
 #   build     signs a copy of lynket/build/outputs/apk/release/lynket-release-unsigned.apk with
 #             this host's SDK debug key (zipalign and apksigner, as release-check.sh); never builds
-#   root      adb root, and the shell user is root
+#   root      stops unless the serial is an emulator; adb root, and the shell user is root
 #   install   stops if arun.com.chromer is already installed (nothing is uninstalled that this
 #             script did not install)
 #   seed      the 2.1.3 book (files/APPS/*.pt, from <paper-APPS.tar>, which maestro/seed-upgrade.sh
@@ -81,6 +81,12 @@ java -jar "$BT/lib/apksigner.jar" verify "$APK" && pass build "signed copy $APK"
 # ---------------------------------------------------------------------------------------------
 # Root
 
+# The copy is signed with the SDK's published debug key: refuse anything but an emulator.
+qemu="$(a shell 'getprop ro.boot.qemu; getprop ro.kernel.qemu' 2>/dev/null | tr -d '' | grep -x 1 || true)"
+if [ -z "$qemu" ]; then
+  failed root "$SERIAL is not an emulator; this check installs a debug-key-signed release build"
+  exit 1
+fi
 a root >/dev/null 2>&1 || true
 a wait-for-device
 sleep 2
