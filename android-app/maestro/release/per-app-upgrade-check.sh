@@ -21,6 +21,12 @@
 # Each step writes PASS or FAIL to <evidence-dir>/per-app-release.txt; the exit code is 1 when any
 # failed. The script uninstalls its own install at the end.
 #
+# Known failure on today's release build: R8 makes the constructors of Paper's io.paperdb.PaperTable
+# public (-allowaccessmodification from the default optimize rules), so Kryo cannot build the table
+# and all three records read as failed; the report and crash steps fail and the exit code is 1.
+# Until that is fixed, judge a rule change by comparing report.tsv with the one the release build
+# wrote before the change: the same three failed lines and nothing new failing.
+#
 # Usage: maestro/release/per-app-upgrade-check.sh <serial> <evidence-dir> <paper-APPS.tar>
 #        (run from android-app/)
 set -euo pipefail
