@@ -13,6 +13,10 @@ package arun.com.chromer.bubbles.webheads
 
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion.ScreenBounds
+import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion.StackAnchor
+import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion.StackAnchor.Side
+import com.google.common.collect.Range
+import com.google.common.truth.IntegerSubject
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -103,4 +107,48 @@ class WebHeadMotionTest {
     assertThat(WebHeadMotion.chainOffset(1, masterOnRight = true, density = 2f)).isEqualTo(8 to 3)
     assertThat(WebHeadMotion.chainOffset(2, masterOnRight = false, density = 2f)).isEqualTo(-16 to 6)
   }
+
+  private val portrait = ScreenBounds.of(1080, 2400, 178, 2.625f)
+  private val landscape = ScreenBounds.of(2400, 1080, 178, 2.625f)
+
+  @Test
+  fun the_anchor_side_follows_the_half_of_the_screen() {
+    assertThat(StackAnchor.of(-53, 800, portrait, 1080).side).isEqualTo(Side.LEFT)
+    assertThat(StackAnchor.of(955, 800, portrait, 1080).side).isEqualTo(Side.RIGHT)
+  }
+
+  @Test
+  fun the_anchor_ratio_runs_from_the_top_to_the_bottom_rest_position() {
+    assertThat(StackAnchor.of(-53, portrait.top, portrait, 1080).ratio).isEqualTo(0f)
+    assertThat(StackAnchor.of(-53, portrait.bottom, portrait, 1080).ratio).isEqualTo(1f)
+    assertThat(StackAnchor.of(-53, portrait.top - 40, portrait, 1080).ratio).isEqualTo(0f)
+    assertThat(StackAnchor.of(-53, portrait.bottom + 300, portrait, 1080).ratio).isEqualTo(1f)
+  }
+
+  @Test
+  fun the_anchor_position_is_on_its_edge_at_its_share_of_the_height() {
+    assertThat(StackAnchor(Side.LEFT, 0.5f).position(portrait)).isEqualTo(portrait.left to 66 + 987)
+    assertThat(StackAnchor(Side.RIGHT, 0f).position(portrait)).isEqualTo(portrait.right to portrait.top)
+    assertThat(StackAnchor(Side.RIGHT, 1f).position(landscape)).isEqualTo(landscape.right to landscape.bottom)
+  }
+
+  @Test
+  fun a_portrait_seventy_percent_maps_into_the_landscape_range() {
+    val y = portrait.top + (0.7f * (portrait.bottom - portrait.top)).toInt()
+    val (lx, ly) = StackAnchor.of(-53, y, portrait, 1080).position(landscape)
+    assertThat(lx).isEqualTo(landscape.left)
+    assertThat(ly).isIn(Range.closed(landscape.top, landscape.bottom))
+    assertThat(ly).isWithin1Of(66 + Math.round(0.7f * (landscape.bottom - landscape.top)))
+  }
+
+  @Test
+  fun a_window_too_short_for_a_range_rests_at_the_top() {
+    val short = ScreenBounds(left = -53, right = 300, top = 66, bottom = 50)
+    val anchor = StackAnchor.of(-53, 60, short, 400)
+    assertThat(anchor.ratio).isEqualTo(0f)
+    assertThat(anchor.position(short)).isEqualTo(-53 to 66)
+    assertThat(StackAnchor(Side.LEFT, 1f).position(short)).isEqualTo(-53 to 66)
+  }
+
+  private fun IntegerSubject.isWithin1Of(expected: Int) = isIn(Range.closed(expected - 1, expected + 1))
 }
