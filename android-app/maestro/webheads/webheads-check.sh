@@ -30,7 +30,8 @@
 #         the shown trash as "Close target", "Release to close" while the head is on it, nothing after
 #         it leaves, and again after it returns; the trash window takes touches only while it shows;
 #         with TalkBack installed, a probe of whether a held drag still moves the head with TalkBack
-#         on (restores the accessibility services and the navigation mode)
+#         on (restores the accessibility services and the navigation mode); it also records what the
+#         vibrator service saw of the lock and leave ticks
 #
 # Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>   (from android-app/)
 set -euo pipefail
@@ -858,6 +859,7 @@ check_trash() {
   # uiautomator dump writes nothing, so the capture gets its own drag in part 8.
   # 3. A held drag to the middle shows the trash, named and touchable.
   local mx=$((w / 2)) my=$((h / 2)) ax=$((w / 2)) ay=$((h / 3))
+  a shell dumpsys vibrator_manager | tr -d '\r' > "$OUT/trash-vibrator-before.txt" || true
   a shell input motionevent DOWN "$hx" "$hy"
   move_in_steps "$hx" "$hy" "$mx" "$my" 4
   sleep 1
@@ -903,6 +905,18 @@ check_trash() {
   overlay_windows > "$OUT/trash-windows-after.txt"
   [ "$(touchable_windows "$OUT/trash-windows-after.txt")" -eq 1 ] || fail "the trash window still takes touches after the release"
   log "released: the trash window takes no touches"
+  # The haptic ticks: what the vibrator service saw of the lock and leave ticks. It never fails the
+  # check; the felt ticks are a person's sign-off on a real phone (feel-checklist.md).
+  a shell dumpsys vibrator_manager | tr -d '\r' > "$OUT/trash-vibrator-after.txt" || true
+  local vib vib_before vib_after
+  vib="$(grep -m1 -iE "hasVibrator|vibratorIds|Vibrator IDs" "$OUT/trash-vibrator-after.txt" || true)"
+  log "vibrator: ${vib:-none}"
+  vib_before="$(grep -c "$PKG" "$OUT/trash-vibrator-before.txt" || true)"
+  vib_after="$(grep -c "$PKG" "$OUT/trash-vibrator-after.txt" || true)"
+  log "vibrator: app entries before ${vib_before:-0}, after ${vib_after:-0}"
+  if [ -z "$vib" ] || echo "$vib" | grep -qiE "hasVibrator[=: ]*false|vibratorIds[=: ]*\[\]|Vibrator IDs[=: ]*\[\]"; then
+    log "vibrator: none on this device; the felt ticks are the person's sign-off"
+  fi
   # 8. The same drag again with an accessibility events capture: shown, locked with eight more moves
   # on the trash, left, locked again, released.
   sleep 3
