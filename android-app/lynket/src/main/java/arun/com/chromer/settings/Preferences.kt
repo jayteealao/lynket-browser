@@ -32,6 +32,7 @@ import arun.com.chromer.data.preferences.readInt
 import arun.com.chromer.data.preferences.readString
 import arun.com.chromer.di.hilt.ApplicationScope
 import arun.com.chromer.shared.Constants.CHROME_PACKAGE
+import arun.com.chromer.ui.settings.BrowsingMode
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.blockingWait
 import dagger.hilt.EntryPoint
@@ -71,8 +72,9 @@ class Preferences @Inject constructor(
 ) {
   private val context: Context = context.applicationContext
 
-  private fun bool(name: String): Boolean =
-    repository.current().readBoolean(name, SettingsSchema.require(name).default(context) as Boolean)
+  private fun bool(name: String): Boolean = repository.current().readBoolean(name, default(name))
+
+  private fun default(name: String): Boolean = SettingsSchema.require(name).default(context) as Boolean
 
   private fun int(name: String): Int =
     repository.current().readInt(name, SettingsSchema.require(name).default(context) as Int)
@@ -89,6 +91,15 @@ class Preferences @Inject constructor(
       blockingWait("Preferences.put($name)", Dispatchers.IO) { repository.setValue(name, value) }
     } catch (e: IOException) {
       Timber.e(e, "Setting %s could not be saved", name)
+    }
+  }
+
+  /** Writes every entry of [values] in one store edit and waits, logging a failure as [put] does. */
+  private fun putAll(values: Map<String, Any?>) {
+    try {
+      blockingWait("Preferences.putAll(${values.keys})", Dispatchers.IO) { repository.setValues(values) }
+    } catch (e: IOException) {
+      Timber.e(e, "Settings %s could not be saved", values.keys)
     }
   }
 
@@ -348,8 +359,41 @@ class Preferences @Inject constructor(
 
   fun themeMode(mode: Int) = put(SettingsSchema.THEME_MODE, mode)
 
-  /** Native bubbles instead of web heads (Android 11 and later). */
-  fun nativeBubbles(): Boolean = bool(NATIVE_BUBBLES_PREFERENCE)
+  /**
+   * The one browsing mode of the stored settings. When both web heads and native bubbles are on
+   * (the Web heads tile could leave them so), it is web heads, as the settings screens show it,
+   * and native bubbles are turned off in the background so the next read and the settings screen
+   * agree; the caller does not wait for that write.
+   */
+  fun browsingMode(): BrowsingMode {
+    val webHeads = bool(WEB_HEAD_ENABLED)
+    val nativeBubbles = bool(NATIVE_BUBBLES_PREFERENCE)
+    if (webHeads && nativeBubbles) {
+      appScope.launch {
+        runCatching {
+          repository.setValuesIf(mapOf(NATIVE_BUBBLES_PREFERENCE to false)) { stored ->
+            stored.readBoolean(WEB_HEAD_ENABLED, default(WEB_HEAD_ENABLED)) &&
+              stored.readBoolean(NATIVE_BUBBLES_PREFERENCE, default(NATIVE_BUBBLES_PREFERENCE))
+          }
+        }.onFailure { Timber.e(it, "Native bubbles could not be turned off beside web heads") }
+      }
+    }
+    return BrowsingMode.resolve(webHeads = webHeads, nativeBubbles = nativeBubbles)
+  }
+
+  /**
+   * Stores [mode] as the only browsing mode, in one edit. It does not ask for the overlay or
+   * notification permission; the settings screen does that before it chooses a mode.
+   */
+  fun browsingMode(mode: BrowsingMode) = putAll(
+    mapOf(
+      WEB_HEAD_ENABLED to (mode == BrowsingMode.WebHeads),
+      NATIVE_BUBBLES_PREFERENCE to (mode == BrowsingMode.NativeBubbles),
+    ),
+  )
+
+  /** Native bubbles instead of web heads (Android 11 and later); false while web heads are on. */
+  fun nativeBubbles(): Boolean = browsingMode() == BrowsingMode.NativeBubbles
 
   fun nativeBubbles(preference: Boolean) = put(NATIVE_BUBBLES_PREFERENCE, preference)
 
