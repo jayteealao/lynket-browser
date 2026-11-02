@@ -16,6 +16,7 @@ import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.exponentialDecay
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
@@ -114,6 +115,32 @@ object WebHeadMotion {
           top = (TOP_BOUND_DP * density + 0.5f).toInt(),
           bottom = (dispHeight * 0.85).toInt(),
         )
+      }
+    }
+  }
+
+  /**
+   * The place of the stack as a screen edge and a share of the height a head can rest in, so it
+   * means the same place after a rotation, a fold or a resize.
+   */
+  data class StackAnchor(val side: Side, val ratio: Float) {
+    enum class Side { LEFT, RIGHT }
+
+    /** The rest position on the anchor's edge, inside [bounds]. */
+    fun position(bounds: ScreenBounds): Pair<Int, Int> {
+      val x = if (side == Side.RIGHT) bounds.right else bounds.left
+      val range = max(0, bounds.bottom - bounds.top)
+      val y = bounds.top + (ratio * range).roundToInt()
+      return x to y.coerceIn(bounds.top, bounds.top + range)
+    }
+
+    companion object {
+      /** The anchor of a head window at ([x], [y]) on a display [dispWidth] wide. */
+      fun of(x: Int, y: Int, bounds: ScreenBounds, dispWidth: Int): StackAnchor {
+        val side = if (x > dispWidth / 2) Side.RIGHT else Side.LEFT
+        val range = bounds.bottom - bounds.top
+        val ratio = if (range <= 0) 0f else ((y - bounds.top).toFloat() / range).coerceIn(0f, 1f)
+        return StackAnchor(side, ratio)
       }
     }
   }
