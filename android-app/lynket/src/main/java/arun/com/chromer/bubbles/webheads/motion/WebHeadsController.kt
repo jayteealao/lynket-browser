@@ -304,10 +304,10 @@ class WebHeadsController(
     val y = (initialDownY + offsetY).toInt()
     if (isNearTrash(head, x, y)) {
       trash.scale = 1f
-      setTrashLocked(true)
+      if (setTrashLocked(true)) host.performHaptic(head, WebHeadMotion.trashLockHaptic())
       springTo(head, trashLockX.toFloat(), trashLockY.toFloat(), WebHeadMotion.Snap)
     } else {
-      setTrashLocked(false)
+      if (setTrashLocked(false)) host.performHaptic(head, WebHeadMotion.TRASH_LEAVE_HAPTIC)
       if (trash.scale > 0f) trash.scale = 0.9f
       snapTo(head, x.toFloat(), y.toFloat())
     }
@@ -572,11 +572,15 @@ class WebHeadsController(
     updateTrashShown()
   }
 
-  /** Writes the lock only when it changes, so each lock counts once and a held head never repeats it. */
-  private fun setTrashLocked(locked: Boolean) {
-    if (trash.locked == locked) return
+  /**
+   * Writes the lock only when it changes, so each lock counts once and a held head never repeats it.
+   * Returns whether it changed.
+   */
+  private fun setTrashLocked(locked: Boolean): Boolean {
+    if (trash.locked == locked) return false
     trash.locked = locked
     if (locked) trash.lockCount++
+    return true
   }
 
   /** Tells the host when the trash starts or stops showing, once per change. */
