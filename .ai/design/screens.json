@@ -201,7 +201,13 @@
       "slices": [],
       "created-at": "2026-11-02T19:45:13Z",
       "updated-at": "2026-11-02T19:45:13Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
+          "at": "2026-11-02T20:26:31Z",
+          "workflow": "one-browsing-mode"
+        }
+      ]
     },
     "look-and-feel-settings": {
       "title": "Look and feel settings",
@@ -214,7 +220,13 @@
       "slices": [],
       "created-at": "2026-11-02T19:45:13Z",
       "updated-at": "2026-11-02T19:45:13Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
+          "at": "2026-11-02T20:26:31Z",
+          "workflow": "one-browsing-mode"
+        }
+      ]
     },
     "browsing-options-settings": {
       "title": "Browsing options settings",
@@ -227,7 +239,13 @@
       "slices": [],
       "created-at": "2026-11-02T19:45:13Z",
       "updated-at": "2026-11-02T19:45:13Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
+          "at": "2026-11-02T20:26:31Z",
+          "workflow": "one-browsing-mode"
+        }
+      ]
     }
   },
   "explore": {}
