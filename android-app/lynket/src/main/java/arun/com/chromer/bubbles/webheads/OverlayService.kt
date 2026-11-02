@@ -46,8 +46,10 @@ import javax.inject.Inject
  * A foreground service that draws over other apps. It owns the lifecycle, saved state and view
  * model store of its Compose overlay windows, and stops when the overlay permission goes away.
  *
- * A subclass asks [checkForOverlayPermission] first in `onStartCommand`, with the start's intent,
- * so a link that arrives after the permission went away still opens in a tab.
+ * Every start checks the overlay permission first, with the start's intent, so a link that arrives
+ * after the permission went away still opens in a tab; only a start that passes reaches
+ * [onStartOverlay]. The foreground start itself runs earlier, in `onCreate`, because Android needs it
+ * soon after the service is started; with the permission off its notification goes again at once.
  */
 abstract class OverlayService : BaseService() {
   @IntRange(from = 1)
@@ -146,12 +148,20 @@ abstract class OverlayService : BaseService() {
     nm.notify(getNotificationId(), notification)
   }
 
+  final override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    if (!checkForOverlayPermission(intent)) return START_NOT_STICKY
+    return onStartOverlay(intent, flags, startId)
+  }
+
+  /** A start of this service while the overlay permission is on; returns what `onStartCommand` returns. */
+  protected abstract fun onStartOverlay(intent: Intent?, flags: Int, startId: Int): Int
+
   /**
    * True when the overlay permission is on and the start may go on. Otherwise the link of [intent],
    * if it has one, opens in a tab with a message that names the setting, the service stops, and
    * this returns false. It never opens the overlay settings page: only a tap on Open Settings does.
    */
-  protected fun checkForOverlayPermission(intent: Intent?): Boolean {
+  private fun checkForOverlayPermission(intent: Intent?): Boolean {
     if (Utils.isOverlayGranted(this)) return true
     intent?.dataString?.let { url ->
       tabsManager.openOverlayRefused(this, Website(url), intent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false))

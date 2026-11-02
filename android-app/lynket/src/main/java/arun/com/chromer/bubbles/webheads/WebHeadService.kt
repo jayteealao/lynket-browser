@@ -286,10 +286,9 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
    * Android restarts the service with no link after its process was killed, stops the service,
    * removes the notification and asks Android not to restart it.
    */
-  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    // The overlay check comes first: with the permission off, its message names the cause that
-    // Open Settings fixes, and no head is added over a refused overlay.
-    if (!checkForOverlayPermission(intent)) return START_NOT_STICKY
+  override fun onStartOverlay(intent: Intent?, flags: Int, startId: Int): Int {
+    // The base service already ran the overlay check: with the permission off, its message names
+    // the cause that Open Settings fixes, and no head is added over a refused overlay.
     if (!foregroundStarted) {
       openInTabInstead(intent)
       stopSelf()
