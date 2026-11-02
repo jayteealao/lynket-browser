@@ -28,7 +28,8 @@ import arun.com.chromer.bubbles.webheads.motion.TrashTick
  * The platform haptic of each trash moment: the lock is CONFIRM where the platform has it
  * (Android 11+) and VIRTUAL_KEY before; leaving is the lighter CLOCK_TICK.
  */
-fun TrashTick.feedbackConstant(sdkInt: Int = Build.VERSION.SDK_INT): Int = when (this) {
-  TrashTick.LOCK -> if (sdkInt >= Build.VERSION_CODES.R) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
+fun TrashTick.feedbackConstant(): Int = when (this) {
+  // The version check reads SDK_INT itself, so lint can see that CONFIRM is guarded.
+  TrashTick.LOCK -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
   TrashTick.LEAVE -> HapticFeedbackConstants.CLOCK_TICK
 }
