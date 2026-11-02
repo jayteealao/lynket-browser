@@ -27,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -143,6 +144,9 @@ class WebHeadsController(
   private var coasting = false
   private var coastingJob: Job? = null
 
+  /** The move of the heads after a display change, while it runs. */
+  private var resnapJob: Job? = null
+
   val all: List<WebHeadState> get() = heads.values.toList()
   val master: WebHeadState? get() = heads.values.lastOrNull()
   val size: Int get() = heads.size
@@ -160,16 +164,61 @@ class WebHeadsController(
   private val trashLockX: Int get() = trashCentreX - headWindowPx / 2
   private val trashLockY: Int get() = trashCentreY - headWindowPx / 2
 
+  /**
+   * The display changed: a rotation, a fold, a resize, or another configuration change. When the
+   * size changed, the open heads move to the stack's place in the new bounds.
+   */
   fun updateDisplay(width: Int, height: Int, screenWidthDp: Int) {
+    minHorizontalFlingVelocity = WebHeadMotion.minHorizontalFlingVelocity(screenWidthDp, density)
+    // A theme, locale or font change keeps the size: the heads stay where they are.
+    if (width == dispWidth && height == dispHeight) return
     dispWidth = width
     dispHeight = height
-    minHorizontalFlingVelocity = WebHeadMotion.minHorizontalFlingVelocity(screenWidthDp, density)
     bounds = ScreenBounds.of(width, height, headWindowPx, density)
-    if (anchor != null) anchorHeld = true
+    val anchor = anchor ?: return
+    anchorHeld = true
+    resnap(anchor)
   }
+
+  /**
+   * Moves every open head to [target] in the current bounds with a spring that does not bounce:
+   * the front head to the stack's edge and height, each follower behind it, and each queued head
+   * (hidden) straight there. With animations off the spring ends at once. A touch, a new head or a
+   * close stops it.
+   */
+  private fun resnap(target: StackAnchor) {
+    cancelCoasting()
+    resnapJob?.cancel()
+    val visible = heads.values.filter { !it.destroyed && !it.queued }
+    val leader = visible.lastOrNull() ?: return
+    anchor = target
+    anchorHeld = true
+    val (mx, my) = target.position(bounds)
+    val onRight = target.side == StackAnchor.Side.RIGHT
+    heads.values.filter { !it.destroyed && it.queued }.forEach { snapTo(it, mx.toFloat(), my.toFloat()) }
+    visible.dropLast(1).asReversed().forEachIndexed { i, follower ->
+      val (x, y) = followerTarget(i, mx, my, onRight)
+      springTo(follower, x.toFloat(), y.toFloat(), WebHeadMotion.Resnap)
+    }
+    leader.xTarget = mx.toFloat()
+    leader.yTarget = my.toFloat()
+    resnapJob = scope.launch {
+      val moveX = launch { leader.x.animateTo(mx.toFloat(), WebHeadMotion.Resnap) { onFrame(leader) } }
+      val moveY = launch { leader.y.animateTo(my.toFloat(), WebHeadMotion.Resnap) { onFrame(leader) } }
+      joinAll(moveX, moveY)
+      // A drag, a fling or a correction that took over an axis ends the re-snap without this.
+      if (moveX.isCancelled || moveY.isCancelled || !leader.isMaster || leader.destroyed) return@launch
+      // The front head has the new display's pixels again, so its frames may move the anchor.
+      anchorHeld = false
+      scheduleCoasting()
+    }
+  }
+
+  private val resnapping: Boolean get() = resnapJob?.isActive == true
 
   /** Adds a head for [url] as the new master. */
   fun add(url: String, fromAmp: Boolean = false, incognito: Boolean = false): WebHeadState {
+    resnapJob?.cancel()
     heads.values.forEach { it.isMaster = false }
     val head = WebHeadState(url, fromAmp, incognito)
     val spawnX: Int
@@ -337,7 +386,7 @@ class WebHeadsController(
 
   /** Pulls a released master back inside the screen, as the earlier physics did. */
   private fun checkBounds(head: WebHeadState) {
-    if (dragging || !head.isMaster || head.queued || coasting) return
+    if (dragging || !head.isMaster || head.queued || coasting || resnapping) return
     val x = head.windowX
     val y = head.windowY
     val width = headWindowPx
@@ -473,7 +522,10 @@ class WebHeadsController(
    */
   fun destroy(head: WebHeadState, receiveCallback: Boolean) {
     if (head.destroyed) return
-    if (head.isMaster) cancelCoasting()
+    if (head.isMaster) {
+      cancelCoasting()
+      resnapJob?.cancel()
+    }
     head.destroyed = true
     head.xTarget = null
     head.yTarget = null
@@ -535,6 +587,7 @@ class WebHeadsController(
   /** Removes every head without callbacks (service stop). */
   fun removeAll() {
     cancelCoasting()
+    resnapJob?.cancel()
     heads.values.forEach { head ->
       head.destroyed = true
       host.removeHeadWindow(head)
