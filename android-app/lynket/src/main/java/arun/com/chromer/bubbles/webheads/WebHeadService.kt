@@ -420,6 +420,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   override fun performHaptic(head: WebHeadState, feedbackConstant: Int) {
+    headWindows[head.url]?.view?.performHapticFeedback(feedbackConstant)
   }
 
   override fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean) {
