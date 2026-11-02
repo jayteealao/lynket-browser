@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion.ScreenBounds
+import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion.StackAnchor
 import arun.com.chromer.data.website.model.Website
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -113,8 +114,18 @@ class WebHeadsController(
   var bounds: ScreenBounds = ScreenBounds.of(dispWidth, dispHeight, headWindowPx, density)
     private set
 
-  private var lastMasterX = 0
-  private var lastMasterY = 0
+  /**
+   * Where the stack rests, as a screen edge and a share of the height, so a new head spawns there
+   * after a rotation, a fold or a resize. Null until the first head and after every head is gone.
+   */
+  var anchor: StackAnchor? = null
+    private set
+
+  /**
+   * True after a display change until a touch or a new head moves the master: its window still
+   * has the pixels of the old display, so its frames must not move the anchor.
+   */
+  private var anchorHeld = false
   private var masterDownX = 0
   private var masterDownY = 0
 
@@ -154,8 +165,7 @@ class WebHeadsController(
     dispHeight = height
     minHorizontalFlingVelocity = WebHeadMotion.minHorizontalFlingVelocity(screenWidthDp, density)
     bounds = ScreenBounds.of(width, height, headWindowPx, density)
-    lastMasterX = 0
-    lastMasterY = 0
+    if (anchor != null) anchorHeld = true
   }
 
   /** Adds a head for [url] as the new master. */
@@ -164,13 +174,16 @@ class WebHeadsController(
     val head = WebHeadState(url, fromAmp, incognito)
     val spawnX: Int
     val spawnY: Int
-    if (lastMasterX != 0 || lastMasterY != 0) {
-      spawnX = lastMasterX
-      spawnY = lastMasterY
+    val anchored = anchor?.position(bounds)
+    if (anchored != null) {
+      spawnX = anchored.first
+      spawnY = anchored.second
     } else {
       spawnX = if (spawnOnRight) bounds.right else bounds.left
       spawnY = dispHeight / 3
     }
+    anchor = StackAnchor.of(spawnX, spawnY, bounds, dispWidth)
+    anchorHeld = false
     head.x = Animatable(spawnX.toFloat())
     head.y = Animatable(spawnY.toFloat())
     heads[url] = head
@@ -189,6 +202,7 @@ class WebHeadsController(
 
   fun onTouchDown(head: WebHeadState, rawX: Float, rawY: Float) {
     if (!acceptsTouch(head)) return
+    anchorHeld = false
     dragging = false
     recentMoves.clear()
     initialDownX = head.windowX
@@ -230,6 +244,7 @@ class WebHeadsController(
    */
   fun onTouchUp(head: WebHeadState, velocityX: Float, velocityY: Float, upRawX: Float, upRawY: Float) {
     if (!acceptsTouch(head)) return
+    anchorHeld = false
     var flung = false
     if (dragging && (abs(velocityX) > minFlingVelocity || abs(velocityY) > minFlingVelocity)) {
       val (fromX, fromY) = if (recentMoves.size >= 2) recentMoves[recentMoves.size - 2] else downRawX to downRawY
@@ -313,8 +328,7 @@ class WebHeadsController(
     val y = head.windowY
     host.moveHeadWindow(head, x, y)
     if (head.isMaster) {
-      lastMasterX = x
-      lastMasterY = y
+      if (!anchorHeld) anchor = StackAnchor.of(x, y, bounds, dispWidth)
       onMasterMoved(head)
       checkBounds(head)
       head.badgeOnLeft = x > dispWidth / 2
@@ -521,8 +535,8 @@ class WebHeadsController(
     }
     heads.clear()
     chain = emptyList()
-    lastMasterX = 0
-    lastMasterY = 0
+    anchor = null
+    anchorHeld = false
   }
 
   // endregion
