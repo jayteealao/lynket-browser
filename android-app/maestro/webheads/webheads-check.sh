@@ -908,12 +908,19 @@ check_trash() {
   # The haptic ticks: what the vibrator service saw of the lock and leave ticks. It never fails the
   # check; the felt ticks are a person's sign-off on a real phone (feel-checklist.md).
   a shell dumpsys vibrator_manager | tr -d '\r' > "$OUT/trash-vibrator-after.txt" || true
-  local vib vib_before vib_after
-  vib="$(grep -m1 -iE "hasVibrator|vibratorIds|Vibrator IDs" "$OUT/trash-vibrator-after.txt" || true)"
-  log "vibrator: ${vib:-none}"
+  local vib vib_before vib_after vib_played
+  # Android 12+ lists each vibrator as "Vibrator (id=N):"; older dumps print hasVibrator or vibratorIds.
+  vib="$(grep -m1 -iE "Vibrator \(id=|hasVibrator|vibratorIds|Vibrator IDs" "$OUT/trash-vibrator-after.txt" | sed 's/^ *//' || true)"
+  log "vibrator: ${vib:-none listed}"
   vib_before="$(grep -c "$PKG" "$OUT/trash-vibrator-before.txt" || true)"
   vib_after="$(grep -c "$PKG" "$OUT/trash-vibrator-after.txt" || true)"
   log "vibrator: app entries before ${vib_before:-0}, after ${vib_after:-0}"
+  # The constants of the app's haptics the service played during this drag, oldest first
+  # (16 CONFIRM, 1 VIRTUAL_KEY, 4 CLOCK_TICK); the service keeps earlier ones in its history too.
+  local vib_new=$(( ${vib_after:-0} - ${vib_before:-0} ))
+  [ "$vib_new" -ge 0 ] || vib_new=0
+  vib_played="$(grep "$PKG" "$OUT/trash-vibrator-after.txt" | tail -n "$vib_new" | grep -oE "performHapticFeedback\(constant=[0-9]+\)" | grep -oE "[0-9]+" | tr '\n' ' ' || true)"
+  log "vibrator: app haptics played in this drag: ${vib_played:-none}"
   if [ -z "$vib" ] || echo "$vib" | grep -qiE "hasVibrator[=: ]*false|vibratorIds[=: ]*\[\]|Vibrator IDs[=: ]*\[\]"; then
     log "vibrator: none on this device; the felt ticks are the person's sign-off"
   fi
