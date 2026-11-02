@@ -88,6 +88,24 @@ class OverlayWindow(
     }
   }
 
+  /**
+   * Whether the window takes touches. A window that takes none is also left out of the windows that
+   * screen readers see.
+   */
+  var touchable: Boolean = touchable
+    set(value) {
+      if (field == value) return
+      field = value
+      val notTouchable = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+      params.flags = if (value) params.flags and notTouchable.inv() else params.flags or notTouchable
+      if (!isAdded) return
+      try {
+        windowManager.updateViewLayout(view, params)
+      } catch (e: IllegalArgumentException) {
+        Timber.e("Overlay window changed after it was removed")
+      }
+    }
+
   var visible: Boolean
     get() = view.visibility == View.VISIBLE
     set(value) {

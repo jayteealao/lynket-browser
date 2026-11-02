@@ -416,6 +416,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   override fun onTrashShown(shown: Boolean) {
+    trashWindow?.touchable = shown
   }
 
   override fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean) {

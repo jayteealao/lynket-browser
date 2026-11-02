@@ -398,6 +398,7 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
     heads.onTouchMove(head, downX - 300f, downY + 300f)
     shadowOf(Looper.getMainLooper()).idle()
     assertThat(trash.params.flags and notTouchable).isEqualTo(0)
+    assertThat(trash.touchable).isTrue()
 
     heads.onTouchUp(head, 0f, 0f, downX - 300f, downY + 300f)
     shadowOf(Looper.getMainLooper()).idle()

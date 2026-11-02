@@ -346,6 +346,8 @@
   <string name="web_head_content_description">Web head: %1$s, %2$d of %3$d</string>
   <string name="web_head_action_open">Open page</string>
   <string name="web_head_action_list">Show all web heads</string>
+  <string name="web_head_trash_description">Close target</string>
+  <string name="web_head_trash_locked">Release to close</string>
   <string name="web_head_action_close">Close web head</string>
   <string name="web_heads_start_failed">Web heads could not start. Opening in a tab instead.</string>
   <string name="not_now">Not now</string>
