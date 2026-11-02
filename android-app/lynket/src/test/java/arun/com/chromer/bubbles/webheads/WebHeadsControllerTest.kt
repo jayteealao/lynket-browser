@@ -13,8 +13,11 @@ package arun.com.chromer.bubbles.webheads
 
 import android.app.Application
 import androidx.compose.runtime.MonotonicFrameClock
+import androidx.compose.ui.MotionDurationScale
 import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
+import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion.StackAnchor
+import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion.StackAnchor.Side
 import arun.com.chromer.bubbles.webheads.motion.WebHeadState
 import arun.com.chromer.bubbles.webheads.motion.WebHeadsController
 import com.google.common.collect.Range
@@ -30,6 +33,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -46,6 +50,9 @@ private class TestFrameClock : MonotonicFrameClock {
 
 private class RecordingHost : WebHeadHost {
   val windows = LinkedHashMap<String, Pair<Int, Int>>()
+
+  /** Every window move of each head, in order. */
+  val moves = HashMap<String, MutableList<Pair<Int, Int>>>()
   val hidden = HashSet<String>()
   val clicked = ArrayList<String>()
   val destroyed = ArrayList<Pair<String, Boolean>>()
@@ -57,6 +64,7 @@ private class RecordingHost : WebHeadHost {
 
   override fun moveHeadWindow(head: WebHeadState, x: Int, y: Int) {
     windows[head.url] = x to y
+    moves.getOrPut(head.url) { ArrayList() }.add(x to y)
   }
 
   override fun setHeadWindowVisible(head: WebHeadState, visible: Boolean) {
@@ -93,9 +101,11 @@ class WebHeadsControllerTest {
   private val host = RecordingHost()
   private var closeOnOpen = false
 
-  private fun TestScope.controller() = WebHeadsController(
+  /** [motionScale] is the system's animator duration scale; 0 is "Remove animations". */
+  private fun TestScope.controller(motionScale: Float? = null) = WebHeadsController(
     host = host,
-    scope = backgroundScope + TestFrameClock(),
+    scope = backgroundScope + TestFrameClock() +
+      (motionScale?.let { scale -> object : MotionDurationScale { override val scaleFactor = scale } } ?: EmptyCoroutineContext),
     dispWidth = width,
     dispHeight = height,
     density = density,
@@ -411,5 +421,183 @@ class WebHeadsControllerTest {
     assertThat(host.windows.getValue(a.url)).isEqualTo(c.bounds.right to c.yAt(0.3f))
     c.add("https://b.example")
     assertNear(host.windows["https://b.example"], c.bounds.right to c.yAt(0.3f))
+  }
+  /** Leaves [head] resting on the right edge at [ratio] of the height range. */
+  private fun TestScope.restOnRightAt(c: WebHeadsController, head: WebHeadState, ratio: Float) {
+    dragAndRelease(c, head, 900, c.yAt(ratio))
+    assertThat(host.windows.getValue(head.url)).isEqualTo(c.bounds.right to c.yAt(ratio))
+  }
+
+  private fun threeHeads(c: WebHeadsController): WebHeadState {
+    c.add("https://a.example")
+    c.add("https://b.example")
+    return c.add("https://c.example")
+  }
+
+  /**
+   * The master rests on the [side] edge at [ratio] of the height range of the current bounds, each
+   * follower trails it by its chain offset, and every visible head is on that half of the screen
+   * with its top inside the rest range (plus the chain offsets).
+   */
+  private fun assertStackAt(c: WebHeadsController, side: Side, ratio: Float) {
+    val master = c.master!!
+    val (mx, my) = StackAnchor(side, ratio).position(c.bounds)
+    assertNear(host.windows[master.url], mx to my)
+    val m = host.windows.getValue(master.url)
+    val visible = c.all.filter { !it.queued }
+    visible.dropLast(1).asReversed().forEachIndexed { i, follower ->
+      val (dx, dy) = WebHeadMotion.chainOffset(i + 1, side == Side.RIGHT, density)
+      assertThat(host.windows[follower.url]).isEqualTo(m.first + dx to m.second + dy)
+    }
+    visible.forEach { head ->
+      val (x, y) = host.windows.getValue(head.url)
+      val centre = x + headPx / 2
+      if (side == Side.RIGHT) {
+        assertThat(centre).isGreaterThan(c.dispWidth / 2)
+      } else {
+        assertThat(centre).isLessThan(c.dispWidth / 2)
+      }
+      assertThat(y).isIn(Range.closed(c.bounds.top, c.bounds.bottom + 5 * 4))
+    }
+  }
+
+  @Test
+  fun open_heads_move_to_the_stack_edge_after_a_rotation() = runTest {
+    val c = controller()
+    val master = threeHeads(c)
+    restOnRightAt(c, master, 0.5f)
+    val before = c.anchor!!
+    rotate(c)
+    settle()
+    assertStackAt(c, Side.RIGHT, 0.5f)
+    assertThat(c.anchor!!.side).isEqualTo(Side.RIGHT)
+    assertThat(c.anchor!!.ratio).isWithin(0.001f).of(before.ratio)
+  }
+
+  @Test
+  fun six_heads_low_on_the_left_stay_inside_after_a_rotation() = runTest {
+    val c = controller()
+    (1..6).forEach { c.add("https://$it.example") }
+    val master = c.master!!
+    restOnLeftAt(c, master, 0.9f)
+    rotate(c)
+    settle()
+    assertStackAt(c, Side.LEFT, 0.9f)
+    assertThat(c["https://1.example"]!!.queued).isTrue()
+    assertThat(host.windows["https://1.example"]).isEqualTo(host.windows[master.url])
+  }
+
+  @Test
+  fun the_resnap_does_not_bounce() = runTest {
+    val c = controller()
+    val master = threeHeads(c)
+    restOnRightAt(c, master, 0.5f)
+    val from = host.moves[master.url]?.size ?: 0
+    rotate(c)
+    val (tx, ty) = StackAnchor(Side.RIGHT, c.anchor!!.ratio).position(c.bounds)
+    settle()
+    val after = host.moves[master.url].orEmpty().drop(from)
+    assertThat(after).isNotEmpty()
+    after.zipWithNext().forEach { (a, b) ->
+      assertThat(b.first).isAtLeast(a.first)
+      assertThat(b.second).isAtMost(a.second)
+    }
+    after.forEach { (x, y) ->
+      assertThat(x).isAtMost(tx)
+      assertThat(y).isAtLeast(ty)
+    }
+    assertThat(after.last()).isEqualTo(tx to ty)
+  }
+
+  @Test
+  fun a_head_under_the_finger_stays_there_during_a_rotation() = runTest {
+    val c = controller()
+    val master = threeHeads(c)
+    c.onTouchDown(master, 1000f, 800f)
+    val initial = host.windows.getValue(master.url)
+    c.onTouchMove(master, 700f, 900f)
+    runCurrent()
+    val held = host.windows.getValue(master.url)
+    rotate(c)
+    settle(1_000)
+    assertThat(host.windows[master.url]).isEqualTo(held)
+    c.onTouchMove(master, 800f, 600f)
+    assertThat(host.windows[master.url]).isEqualTo(initial.first - 200 to initial.second - 200)
+    val release = StackAnchor.of(initial.first - 200, initial.second - 200, c.bounds, c.dispWidth)
+    c.onTouchUp(master, 0f, 0f, 800f, 600f)
+    settle()
+    assertStackAt(c, release.side, release.ratio)
+  }
+
+  @Test
+  fun a_tap_during_a_rotation_resnaps_after_the_release() = runTest {
+    val c = controller()
+    val master = threeHeads(c)
+    restOnRightAt(c, master, 0.5f)
+    val rest = host.windows.getValue(master.url)
+    c.onTouchDown(master, 1000f, 800f)
+    rotate(c)
+    settle(1_000)
+    assertThat(host.windows[master.url]).isEqualTo(rest)
+    c.onTouchUp(master, 0f, 0f, 1000f, 800f)
+    settle()
+    assertStackAt(c, Side.RIGHT, 0.5f)
+  }
+
+  @Test
+  fun a_drag_interrupts_the_resnap() = runTest {
+    val c = controller()
+    val master = threeHeads(c)
+    restOnRightAt(c, master, 0.5f)
+    rotate(c)
+    advanceTimeBy(48)
+    runCurrent()
+    c.onTouchDown(master, 1000f, 800f)
+    val atTouch = host.windows.getValue(master.url)
+    c.onTouchMove(master, 700f, 900f)
+    runCurrent()
+    settle(1_000)
+    assertThat(host.windows[master.url]).isEqualTo(atTouch.first - 300 to atTouch.second + 100)
+  }
+
+  @Test
+  fun with_animations_off_heads_jump_after_a_rotation() = runTest {
+    val c = controller(motionScale = 0f)
+    val master = threeHeads(c)
+    restOnRightAt(c, master, 0.5f)
+    val (x0, y0) = host.windows.getValue(master.url)
+    host.moves.clear()
+    rotate(c)
+    advanceTimeBy(16)
+    runCurrent()
+    assertStackAt(c, Side.RIGHT, 0.5f)
+    val (tx, ty) = host.windows.getValue(master.url)
+    // Each axis jumps from where it was to its end, with no position in between.
+    host.moves.getValue(master.url).forEach { (x, y) ->
+      assertThat(x).isAnyOf(x0, tx)
+      assertThat(y).isAnyOf(y0, ty)
+    }
+  }
+
+  @Test
+  fun a_configuration_change_with_the_same_size_leaves_the_heads() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    settle(WebHeadMotion.COASTING_DELAY_MS + 3_000)
+    val coasted = host.windows.getValue(head.url)
+    assertThat(coasted.first).isEqualTo(c.bounds.right + headPx / 4)
+    c.updateDisplay(width, height, 411)
+    settle()
+    assertThat(host.windows[head.url]).isEqualTo(coasted)
+  }
+
+  @Test
+  fun a_resize_without_a_turn_resnaps_too() = runTest {
+    val c = controller()
+    val master = threeHeads(c)
+    restOnRightAt(c, master, 0.5f)
+    c.updateDisplay(1840, 2208, 701)
+    settle()
+    assertStackAt(c, Side.RIGHT, 0.5f)
   }
 }
