@@ -37,9 +37,6 @@ import javax.inject.Inject
 @HiltAndroidTest
 class OverlayRefusalTest : LynketRobolectricSuite() {
   @Inject
-  lateinit var webHeads: WebHeadsFloatingBubble
-
-  @Inject
   lateinit var tabs: TabsManager
 
   @Inject
@@ -65,12 +62,11 @@ class OverlayRefusalTest : LynketRobolectricSuite() {
     filter { it.action == Settings.ACTION_MANAGE_OVERLAY_PERMISSION }
 
   @Test
-  fun open_bubble_without_the_permission_opens_a_tab_and_no_settings_page() {
+  fun web_heads_without_the_permission_open_a_tab_and_no_settings_page() {
     overlayOff()
 
-    val handled = webHeads.openBubble(Website(url), false, false, false, application, 0)
+    tabs.openWebHeads(application, Website(url))
 
-    assertThat(handled).isTrue()
     val started = startedActivities()
     assertThat(started.settingsPages()).isEmpty()
     assertThat(shadowOf(application).nextStartedService).isNull()

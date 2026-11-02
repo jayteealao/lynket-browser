@@ -34,7 +34,6 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_AMP
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_MINIMIZE
-import arun.com.chromer.util.Utils
 import arun.com.chromer.util.debug.DebugHooks
 import timber.log.Timber
 import java.util.Optional
@@ -48,7 +47,6 @@ class WebHeadsFloatingBubble
 constructor(
   private val application: Application,
   debugHooks: Optional<DebugHooks>,
-  private val overlayRefusal: OverlayRefusal,
 ) : FloatingBubble {
 
   private val debugHooks = DebugHooks.of(debugHooks)
@@ -63,12 +61,9 @@ constructor(
     context: Context?,
     color: Int
   ): Boolean {
+    // The tabs manager checks the overlay permission before it gets here, and the service checks
+    // it again on start, so this only starts the service.
     val ctx = context ?: application
-    if (!Utils.isOverlayGranted(ctx)) {
-      // The link is handled: it opens in a tab, so the caller must not open a second one.
-      overlayRefusal.refuse(ctx, website, incognito)
-      return true
-    }
     val webHeadLauncher = Intent(ctx, WebHeadService::class.java).apply {
       data = website.preferredUri()
       addFlags(FLAG_ACTIVITY_NEW_TASK)
