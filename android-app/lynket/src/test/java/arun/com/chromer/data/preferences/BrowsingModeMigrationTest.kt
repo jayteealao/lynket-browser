@@ -14,16 +14,22 @@ package arun.com.chromer.data.preferences
 import android.app.Application
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
+import arun.com.chromer.di.hilt.DataStoreModule
 import arun.com.chromer.ui.settings.BrowsingMode
 import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_ENABLED
+import arun.com.chromer.ui.settings.SettingsRules
+import arun.com.chromer.ui.settings.SettingsValues
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /** A stored set with both web heads and native bubbles on is repaired to one mode; any other set is left alone. */
@@ -71,5 +77,47 @@ class BrowsingModeMigrationTest {
   fun aMistypedSwitchReadsAsOffAndNeedsNoRepair() = runBlocking {
     val mistyped = mutablePreferencesOf(webHeadsKey to true, stringPreferencesKey(NATIVE_BUBBLES) to "yes")
     assertThat(BrowsingModeMigration.shouldMigrate(mistyped)).isFalse()
+  }
+
+  /**
+   * Writes [webHeads] and [nativeBubbles] (and one unrelated value) into a settings file with no
+   * repair, as a file copied in from elsewhere arrives, then opens that file with the app's own
+   * settings store builder and returns what it reads.
+   */
+  private fun restoreThenOpen(webHeads: Boolean, nativeBubbles: Boolean): Preferences = runBlocking {
+    val restored = TestStore()
+    restored.dataStore.edit {
+      it[webHeadsKey] = webHeads
+      it[nativeBubblesKey] = nativeBubbles
+      it[unrelatedKey] = "com.android.chrome"
+    }
+    restored.close()
+    DataStoreModule.settingsDataStore(context) { restored.file }.data.first()
+  }
+
+  private val context: Application get() = RuntimeEnvironment.getApplication()
+
+  @Test
+  fun aRestoredSetWithBothSwitchesOnIsStoredAsWebHeadsAndTheSettingsScreenAgrees() {
+    val stored = restoreThenOpen(webHeads = true, nativeBubbles = true)
+
+    assertThat(stored[webHeadsKey]).isTrue()
+    assertThat(stored[nativeBubblesKey]).isFalse()
+    assertThat(stored[unrelatedKey]).isEqualTo("com.android.chrome")
+    assertThat(BrowsingMode.resolve(stored[webHeadsKey]!!, stored[nativeBubblesKey]!!)).isEqualTo(BrowsingMode.WebHeads)
+    assertThat(SettingsRules.selectedMode(SettingsValues.from(stored, context))).isEqualTo(BrowsingMode.WebHeads)
+  }
+
+  @Test
+  fun aRestoredSetWithOneModeKeepsThePersonsChosenMode() {
+    validStates.forEach { (mode, switches) ->
+      val (webHeads, nativeBubbles) = switches
+      val stored = restoreThenOpen(webHeads, nativeBubbles)
+
+      assertThat(stored[webHeadsKey]).isEqualTo(webHeads)
+      assertThat(stored[nativeBubblesKey]).isEqualTo(nativeBubbles)
+      assertThat(stored[unrelatedKey]).isEqualTo("com.android.chrome")
+      assertThat(SettingsRules.selectedMode(SettingsValues.from(stored, context))).isEqualTo(mode)
+    }
   }
 }
