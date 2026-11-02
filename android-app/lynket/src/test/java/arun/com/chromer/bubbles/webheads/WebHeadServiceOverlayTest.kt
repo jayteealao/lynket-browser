@@ -17,6 +17,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Looper
 import android.provider.Settings
+import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.compose.ui.graphics.Color
 import arun.com.chromer.LynketRobolectricSuite
@@ -403,5 +404,31 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
     heads.onTouchUp(head, 0f, 0f, downX - 300f, downY + 300f)
     shadowOf(Looper.getMainLooper()).idle()
     assertThat(trash.params.flags and notTouchable).isEqualTo(notTouchable)
+  }
+
+  @Test
+  fun locking_and_leaving_the_trash_ticks_on_the_head_window() {
+    val service = serviceWith("https://a.example").get()
+    val headWindow = service.overlayWindows.first()
+    val heads = service.controller!!
+    val head = heads["https://a.example"]!!
+    val downX = head.windowX + heads.headWindowPx / 2f
+    val downY = head.windowY + heads.headWindowPx / 2f
+    heads.onTouchDown(head, downX, downY)
+    heads.onTouchMove(head, downX - 150f, downY + 150f)
+    shadowOf(Looper.getMainLooper()).idle()
+    heads.onTouchMove(head, heads.trashX + heads.trashWindowPx / 2f, heads.trashY + heads.trashWindowPx / 2f)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(shadowOf(headWindow.view).lastHapticFeedbackPerformed()).isEqualTo(HapticFeedbackConstants.CONFIRM)
+
+    val middleX = heads.dispWidth / 2f
+    val middleY = heads.dispHeight / 2f
+    heads.onTouchMove(head, middleX, middleY)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(shadowOf(headWindow.view).lastHapticFeedbackPerformed()).isEqualTo(HapticFeedbackConstants.CLOCK_TICK)
+
+    heads.onTouchUp(head, 0f, 0f, middleX, middleY)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(shadowOf(headWindow.view).lastHapticFeedbackPerformed()).isEqualTo(HapticFeedbackConstants.CLOCK_TICK)
   }
 }
