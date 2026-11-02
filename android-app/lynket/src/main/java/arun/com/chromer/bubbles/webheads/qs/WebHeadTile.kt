@@ -25,6 +25,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import arun.com.chromer.R
 import arun.com.chromer.shared.base.PreferenceQuickSettingsTile
+import arun.com.chromer.ui.settings.BrowsingMode
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -34,7 +35,9 @@ import dagger.hilt.android.AndroidEntryPoint
 @RequiresApi(api = Build.VERSION_CODES.N)
 @AndroidEntryPoint
 class WebHeadTile : PreferenceQuickSettingsTile() {
-  override fun togglePreference() = preferences.webHeads(!preferences.webHeads())
+  /** Turns web heads on as the only browsing mode, or back to slide-over. */
+  override fun togglePreference() =
+    preferences.browsingMode(if (preference()) BrowsingMode.SlideOver else BrowsingMode.WebHeads)
 
   override fun activeLabel(): String = label()
 
@@ -44,7 +47,7 @@ class WebHeadTile : PreferenceQuickSettingsTile() {
 
   override fun inActiveLabel(): String = label()
 
-  override fun preference(): Boolean = preferences.webHeads()
+  override fun preference(): Boolean = preferences.browsingMode() == BrowsingMode.WebHeads
 
   private fun label() = getString(R.string.web_heads)
   private fun icon() = Icon.createWithResource(this, R.drawable.ic_bubble_chart_white_24dp)
