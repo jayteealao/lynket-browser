@@ -265,8 +265,9 @@ class WebHeadsController(
   }
 
   /**
-   * Moves every open head to [target] in the current bounds with a spring that does not bounce:
-   * the front head to the stack's edge and height, each follower behind it, and each queued head
+   * Moves every open head to [target] in the current bounds: the front head to the stack's edge and
+   * height with a spring that does not bounce, each follower behind it on its chain spring (the
+   * front head's frames keep retargeting it, as in any move of the stack), and each queued head
    * (hidden) straight there. With animations off the spring ends at once. A touch, a new head or a
    * close stops it.
    */
@@ -282,7 +283,7 @@ class WebHeadsController(
     heads.values.filter { !it.destroyed && it.queued }.forEach { snapTo(it, mx.toFloat(), my.toFloat()) }
     visible.dropLast(1).asReversed().forEachIndexed { i, follower ->
       val (x, y) = followerTarget(i, mx, my, onRight)
-      springTo(follower, x.toFloat(), y.toFloat(), WebHeadMotion.Resnap)
+      springTo(follower, x.toFloat(), y.toFloat(), WebHeadMotion.followerSpring(follower.chainIndex))
     }
     leader.xTarget = mx.toFloat()
     leader.yTarget = my.toFloat()
