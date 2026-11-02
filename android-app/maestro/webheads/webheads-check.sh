@@ -20,13 +20,17 @@
 #         turn to landscape every head rests on the right edge inside the screen at the same share of
 #         the height; then six heads at 90 % on the left, and after a turn every head rests on the
 #         left edge inside the screen (restores the rotation settings and the navigation mode)
+#   fling  web heads chosen: one head; at the phone's own width and then on a 1280 dp window (wm size and
+#         density), the same flick in dp per second from the middle snaps the head to the edge it
+#         points to, both ways (restores the size, the density, the rotation settings and the
+#         navigation mode)
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling>   (from android-app/)
 set -euo pipefail
 
-SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap>}"
-OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap>}"
-WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap>}"
+SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling>}"
+OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling>}"
+WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling>}"
 source "$(dirname "$0")/lib.sh"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
@@ -619,6 +623,113 @@ check_resnap() {
   log "resnap passed"
 }
 
+# The size and density overrides the device had before the fling check ("" when none was set).
+FLING_SIZE_BEFORE=""
+FLING_DENSITY_BEFORE=""
+fling_restore() {
+  if [ -n "$FLING_SIZE_BEFORE" ]; then a shell wm size "$FLING_SIZE_BEFORE" >/dev/null 2>&1 || true
+  else a shell wm size reset >/dev/null 2>&1 || true; fi
+  if [ -n "$FLING_DENSITY_BEFORE" ]; then a shell wm density "$FLING_DENSITY_BEFORE" >/dev/null 2>&1 || true
+  else a shell wm density reset >/dev/null 2>&1 || true; fi
+  sleep 2
+  rotation_restore
+}
+
+# Swipe duration in ms that moves $1 px at $2 dp per second on a display of density $3; at least
+# 50 ms, because the velocity tracker reads the last 100 ms of a gesture.
+flick_ms() {
+  awk -v d="$1" -v v="$2" -v s="$3" 'BEGIN { ms = int(d / (v * s) * 1000 + 0.5); print (ms < 50 ? 50 : ms) }'
+}
+
+# Flicks the master horizontally from its centre to share $1 of the width APP_W at $2 dp per second
+# (density FL_D); `input swipe` moves at a constant speed, so the release speed is the distance over
+# the duration. Logs the distance, the duration and the speed.
+flick_to() {
+  local cx cy tx dist ms
+  read -r cx cy < <(head_centre) || fail "no master head to flick"
+  tx="$(awk -v s="$1" -v w="$APP_W" 'BEGIN { print int(s * w + 0.5) }')"
+  dist=$((cx > tx ? cx - tx : tx - cx))
+  ms="$(flick_ms "$dist" "$2" "$FL_D")"
+  a shell input swipe "$cx" "$cy" "$tx" "$cy" "$ms"
+  log "flick from x $cx to $tx (share $1 of $APP_W): $dist px in $ms ms, $(awk -v d="$dist" -v m="$ms" -v s="$FL_D" 'BEGIN { printf "%.0f", d / s / m * 1000 }') dp/s"
+}
+
+# The edge the master rests on, from its frame's x only (frame y sits below the layout position by
+# the status bar): left, right or middle.
+edge_of_master() {
+  local fl ft fr fb
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  log "master frame $fl $ft $fr $fb (width $APP_W)" >&2
+  if [ "$fl" -le 0 ]; then echo left
+  elif [ "$fr" -ge "$APP_W" ]; then echo right
+  else echo middle; fi
+}
+
+# Two flicks from a head resting on the right edge at 1000 dp/s: to the left, let go right of the
+# middle (so the nearer edge is the right one), then back to the right, let go left of the middle.
+# $1 names the phase in the screenshots.
+flick_both_ways() {
+  local edge
+  flick_to 0.55 1000
+  sleep 3
+  shot "fling-$1-left"
+  edge="$(edge_of_master)"
+  log "$1: flung left, rests on the $edge"
+  [ "$edge" = left ] || fail "the head did not snap to the edge it was flung towards ($1, left, found $edge)"
+  flick_to 0.45 1000
+  sleep 3
+  shot "fling-$1-right"
+  edge="$(edge_of_master)"
+  log "$1: flung right, rests on the $edge"
+  [ "$edge" = right ] || fail "the head did not snap to the edge it was flung towards ($1, right, found $edge)"
+}
+
+check_fling() {
+  # 1. Save the overrides and the rotation settings; portrait, fixed, with three-button navigation.
+  FLING_SIZE_BEFORE="$(a shell wm size | tr -d '\r' | awk -F': ' '/Override size/ { print $2 }')"
+  FLING_DENSITY_BEFORE="$(a shell wm density | tr -d '\r' | awk -F': ' '/Override density/ { print $2 }')"
+  ROT_ACCEL_BEFORE="$(a shell settings get system accelerometer_rotation | tr -d '\r')"
+  ROT_USER_BEFORE="$(a shell settings get system user_rotation | tr -d '\r')"
+  trap fling_restore EXIT
+  web_heads_mode
+  nav_three_button
+  a shell settings put system accelerometer_rotation 0
+  a shell settings put system user_rotation 0
+  sleep 2
+
+  # 2. The phone's own width: one head on the right edge, flung both ways.
+  local n
+  open_link "https://example.com/?fling=1"
+  n="$(wait_for_overlays 60 2)"
+  [ "$n" -ge 2 ] || fail "expected a head and the trash window, found $n overlay windows"
+  sleep 3
+  app_size
+  FL_D="$(density)"
+  log "phone ${APP_W}x${APP_H} (size from $APP_SIZE_SOURCE), density $FL_D, $(awk -v w="$APP_W" -v d="$FL_D" 'BEGIN { printf "%.0f", w / d }') dp wide"
+  flick_both_ways phone
+
+  # 3. A 1280 dp window: the service gets the configuration change and the head finds the stack's place.
+  a shell wm size 2560x1600
+  a shell wm density 320
+  sleep 4
+  app_size
+  FL_D="$(density)"
+  local wide_dp
+  wide_dp="$(awk -v w="$APP_W" -v d="$FL_D" 'BEGIN { printf "%.0f", w / d }')"
+  log "wide ${APP_W}x${APP_H} (size from $APP_SIZE_SOURCE), density $FL_D, $wide_dp dp wide"
+  awk -v w="$wide_dp" 'BEGIN { exit !(w - 1280 <= 16 && 1280 - w <= 16) }' || fail "the window is not 1280 dp wide ($wide_dp dp)"
+  [ "$(edge_of_master)" = right ] || fail "the head did not rest on the right edge of the wide window"
+  flick_both_ways wide
+  overlay_windows > "$OUT/fling-wide-windows.txt"
+  a shell dumpsys window windows | tr -d '\r' > "$OUT/fling-wide-window-dump.txt"
+
+  # 4. The same flick speed in dp per second in both phases (logged per flick); no crash.
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  app_logcat fling
+  [ ! -s "$OUT/fling.crash.txt" ] || fail "crash during the flings (see fling.crash.txt)"
+  log "fling passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
@@ -627,5 +738,6 @@ case "$WHICH" in
   restart) check_restart ;;
   rotation) check_rotation ;;
   resnap) check_resnap ;;
+  fling) check_fling ;;
   *) echo "unknown check: $WHICH" >&2; exit 2 ;;
 esac
