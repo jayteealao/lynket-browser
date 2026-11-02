@@ -560,6 +560,35 @@ class WebHeadsControllerTest {
   }
 
   @Test
+  fun a_new_head_under_a_held_finger_does_not_stall_the_next_rotation() = runTest {
+    val c = controller()
+    val held = threeHeads(c)
+    c.onTouchDown(held, 1000f, 800f)
+    // A link opens while the finger is down: the held head is a follower now, so its release is dropped.
+    c.add("https://d.example")
+    c.onTouchUp(held, 0f, 0f, 1000f, 800f)
+    settle()
+    val before = c.anchor!!
+    rotate(c)
+    settle()
+    assertStackAt(c, before.side, before.ratio)
+  }
+
+  @Test
+  fun closing_the_held_master_does_not_stall_the_next_rotation() = runTest {
+    val c = controller()
+    threeHeads(c)
+    val held = c.master!!
+    c.onTouchDown(held, 1000f, 800f)
+    c.close(held.url)
+    settle()
+    val before = c.anchor!!
+    rotate(c)
+    settle()
+    assertStackAt(c, before.side, before.ratio)
+  }
+
+  @Test
   fun a_drag_interrupts_the_resnap() = runTest {
     val c = controller()
     val master = threeHeads(c)

@@ -178,6 +178,13 @@ class WebHeadsController(
     return true
   }
 
+  /** The master the finger held stopped leading or closed, so its release will not reach this controller. */
+  private fun forgetFinger() {
+    releaseFinger()
+    dragging = false
+    recentMoves.clear()
+  }
+
   /** The finger is gone; returns whether a re-snap waited for it. */
   private fun releaseFinger(): Boolean {
     val resnapAfter = fingerHold == FingerHold.HELD_RESNAP_AFTER
@@ -269,6 +276,8 @@ class WebHeadsController(
   /** Adds a head for [url] as the new master. */
   fun add(url: String, fromAmp: Boolean = false, incognito: Boolean = false): WebHeadState {
     resnapJob?.cancel()
+    // A finger on the old master no longer holds the stack: its release goes to a follower.
+    forgetFinger()
     heads.values.forEach { it.isMaster = false }
     val head = WebHeadState(url, fromAmp, incognito)
     val spawnX: Int
@@ -635,6 +644,8 @@ class WebHeadsController(
     if (head.isMaster) {
       cancelCoasting()
       resnapJob?.cancel()
+      // The held master is gone, so its release never comes.
+      forgetFinger()
     }
     head.destroyed = true
     head.xTarget = null
