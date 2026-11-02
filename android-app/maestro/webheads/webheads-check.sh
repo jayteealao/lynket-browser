@@ -30,7 +30,7 @@
 #         the shown trash as "Close target", "Release to close" while the head is on it, nothing after
 #         it leaves, and again after it returns; the trash window takes touches only while it shows;
 #         with TalkBack installed, a probe of whether a held drag still moves the head with TalkBack
-#         on (restores the accessibility services)
+#         on (restores the accessibility services and the navigation mode)
 #
 # Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>   (from android-app/)
 set -euo pipefail
@@ -825,6 +825,7 @@ move_in_steps() {
 
 TRASH_TALKBACK_BEFORE=""
 trash_restore() {
+  nav_restore
   if [ "$TRASH_TALKBACK_BEFORE" = "none" ]; then
     a shell settings delete secure enabled_accessibility_services >/dev/null 2>&1 || true
     a shell settings put secure accessibility_enabled 0 >/dev/null 2>&1 || true
@@ -836,8 +837,10 @@ trash_restore() {
 
 check_trash() {
   trap trash_restore EXIT
-  # 1. Web heads mode, one head; the hidden trash takes no touches.
+  # 1. Web heads mode, one head; the hidden trash takes no touches. Three-button navigation, so the
+  # gesture Back zone at the right edge does not take the drag of the head resting there.
   web_heads_mode
+  nav_three_button
   a logcat -c
   open_link "https://example.com/?trash=1"
   local windows
@@ -851,10 +854,8 @@ check_trash() {
   log "head centre: $hx $hy, screen: $w x $h"
   overlay_windows > "$OUT/trash-windows-idle.txt"
   [ "$(touchable_windows "$OUT/trash-windows-idle.txt")" -eq 1 ] || fail "the hidden trash window takes touches"
-  # 2. Accessibility events while the trash shows, locks, is left and locks again.
-  a shell "timeout 45 uiautomator events" > "$OUT/trash-events.txt" 2>&1 &
-  local events=$!
-  sleep 2
+  # 2. The dumps come first: while an events capture holds the UI automation connection,
+  # uiautomator dump writes nothing, so the capture gets its own drag in part 8.
   # 3. A held drag to the middle shows the trash, named and touchable.
   local mx=$((w / 2)) my=$((h / 2)) ax=$((w / 2)) ay=$((h / 3))
   a shell input motionevent DOWN "$hx" "$hy"
@@ -902,7 +903,29 @@ check_trash() {
   overlay_windows > "$OUT/trash-windows-after.txt"
   [ "$(touchable_windows "$OUT/trash-windows-after.txt")" -eq 1 ] || fail "the trash window still takes touches after the release"
   log "released: the trash window takes no touches"
-  # 8. What the event capture saw.
+  # 8. The same drag again with an accessibility events capture: shown, locked with eight more moves
+  # on the trash, left, locked again, released.
+  sleep 3
+  read -r hx hy < <(head_centre)
+  a shell "timeout 30 uiautomator events" > "$OUT/trash-events.txt" 2>&1 &
+  local events=$!
+  sleep 2
+  a shell input motionevent DOWN "$hx" "$hy"
+  move_in_steps "$hx" "$hy" "$mx" "$my" 4
+  sleep 1
+  a shell input motionevent MOVE "$tx" "$ty"
+  sleep 1
+  for i in $(seq 1 8); do
+    a shell input motionevent MOVE $((tx + (i % 3) * 5 - 5)) $((ty + (i % 2) * 10 - 5))
+    sleep 0.1
+  done
+  sleep 1
+  a shell input motionevent MOVE "$ax" "$ay"
+  sleep 1
+  a shell input motionevent MOVE "$tx" "$ty"
+  sleep 1
+  a shell input motionevent MOVE "$ax" "$ay"
+  a shell input motionevent UP "$ax" "$ay"
   wait "$events" || true
   tr -d '\r' < "$OUT/trash-events.txt" > "$OUT/trash-events.clean.txt"
   local changes spoken
