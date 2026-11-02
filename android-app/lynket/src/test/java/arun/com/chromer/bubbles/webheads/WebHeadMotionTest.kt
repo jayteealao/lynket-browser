@@ -109,6 +109,29 @@ class WebHeadMotionTest {
   }
 
   @Test
+  fun the_fling_floor_stops_growing_past_a_600_dp_window() {
+    assertThat(WebHeadMotion.minHorizontalFlingVelocity(360, 2f)).isEqualTo(7_200f)
+    assertThat(WebHeadMotion.minHorizontalFlingVelocity(600, 2f)).isEqualTo(12_000f)
+    assertThat(WebHeadMotion.minHorizontalFlingVelocity(768, 2f)).isEqualTo(12_000f)
+    assertThat(WebHeadMotion.minHorizontalFlingVelocity(1_280, 2f)).isEqualTo(12_000f)
+  }
+
+  @Test
+  fun the_edge_spring_is_the_fling_stiffness_with_no_bounce() {
+    assertThat(WebHeadMotion.FlingToEdge.dampingRatio).isEqualTo(1f)
+    assertThat(WebHeadMotion.FlingToEdge.stiffness).isEqualTo(WebHeadMotion.Fling.stiffness)
+  }
+
+  @Test
+  fun a_fling_reaches_its_edge_when_the_decay_projects_past_it() {
+    assertThat(WebHeadMotion.flingReachesEdge(x = 1_212f, velocityX = 6_000f, headWidth = 136, dispWidth = 2_560)).isFalse()
+    assertThat(WebHeadMotion.flingReachesEdge(x = 1_212f, velocityX = 12_800f, headWidth = 136, dispWidth = 2_560)).isTrue()
+    assertThat(WebHeadMotion.flingReachesEdge(x = 1_340f, velocityX = -6_600f, headWidth = 136, dispWidth = 2_560)).isFalse()
+    assertThat(WebHeadMotion.flingReachesEdge(x = 1_340f, velocityX = -12_000f, headWidth = 136, dispWidth = 2_560)).isTrue()
+    assertThat(WebHeadMotion.flingReachesEdge(x = 471f, velocityX = 5_394f, headWidth = 178, dispWidth = 1_080)).isTrue()
+  }
+
+  @Test
   fun followers_step_away_from_the_master_on_its_side() {
     assertThat(WebHeadMotion.chainOffset(1, masterOnRight = true, density = 2f)).isEqualTo(8 to 3)
     assertThat(WebHeadMotion.chainOffset(2, masterOnRight = false, density = 2f)).isEqualTo(-16 to 6)

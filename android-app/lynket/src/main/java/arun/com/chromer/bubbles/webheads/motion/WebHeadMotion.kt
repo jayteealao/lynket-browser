@@ -13,9 +13,11 @@ package arun.com.chromer.bubbles.webheads.motion
 
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.calculateTargetValue
 import androidx.compose.animation.core.exponentialDecay
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -51,6 +53,12 @@ object WebHeadMotion {
 
   /** Release towards an edge, the return of a new master, and every bound correction. */
   val Fling: SpringSpec<Float> = spring(50.0, 5.0)
+
+  /**
+   * Carries a fling that would stop short of its edge on a wide window there: the fling spring's
+   * stiffness with no bounce.
+   */
+  val FlingToEdge: SpringSpec<Float> = SpringSpec(dampingRatio = 1f, stiffness = Fling.stiffness, visibilityThreshold = 0.5f)
 
   /** Lock onto the trash. */
   val Snap: SpringSpec<Float> = spring(100.0, 7.0)
@@ -180,8 +188,28 @@ object WebHeadMotion {
     }
   }
 
-  /** Minimum horizontal fling velocity: ten times the screen width in dp, as pixels per second. */
-  fun minHorizontalFlingVelocity(screenWidthDp: Int, density: Float): Float = screenWidthDp * 10 * density
+  /**
+   * True when a head window at [x], flung at [velocityX] px per second, slows down past the point
+   * where the bound correction takes it to the edge it points to: the right edge when the window
+   * reaches the display's right side, the left edge when it reaches the left side.
+   */
+  fun flingReachesEdge(x: Float, velocityX: Float, headWidth: Int, dispWidth: Int): Boolean {
+    val end = FlingDecay.calculateTargetValue(x, velocityX)
+    return if (velocityX > 0) end + headWidth >= dispWidth else end - headWidth <= 0
+  }
+
+  /**
+   * The fling floor stops growing at a 600 dp window, so a wider window moves a flung head no
+   * faster than a tablet does, in dp per second.
+   */
+  const val MAX_MIN_FLING_DP_PER_S = 6_000f
+
+  /**
+   * Minimum horizontal fling velocity: ten times the window width in dp per second, at most
+   * [MAX_MIN_FLING_DP_PER_S], as px per second.
+   */
+  fun minHorizontalFlingVelocity(screenWidthDp: Int, density: Float): Float =
+    min(screenWidthDp * 10f, MAX_MIN_FLING_DP_PER_S) * density
 
   /** Offset of follower [n] (1 = right behind the master) from the master, in px. */
   fun chainOffset(n: Int, masterOnRight: Boolean, density: Float): Pair<Int, Int> {
