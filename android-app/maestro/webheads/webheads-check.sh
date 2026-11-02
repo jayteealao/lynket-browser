@@ -7,7 +7,7 @@
 #         a process kill a link starts a special-use foreground service; with the start forced to
 #         fail (debug marker file) the link opens in a Custom Tab with a message
 #   bubble  native bubbles mode: the app's notification request, bubbles allowed for the app, then a
-#         link shows a system bubble that opens the page
+#         link shows a system bubble that opens the page, and no web head service runs
 #   refused  web heads chosen, then the overlay permission denied: a link opens in a tab, no settings
 #         page opens and no head shows
 #   restart  web heads chosen: a start of the service with no link stops it with no notification; then
@@ -32,11 +32,16 @@
 #         with TalkBack installed, a probe of whether a held drag still moves the head with TalkBack
 #         on (restores the accessibility services and the navigation mode); it also records what the
 #         vibrator service saw of the lock and leave ticks
+#   aggressive  web heads chosen and "Aggressive background loading" turned on in Browsing options: a
+#         link shows a head and the trash, and a browsing tab of the same link loads behind them
+#         (Custom Tab or Web View), with no crash (turns the setting off and closes the heads on exit)
+#   bubble-minimize  native bubbles mode: with bubbles off for the app a link opens in a tab; bubbles
+#         on again, Minimize in the tab's bottom bar posts a bubble and starts no web head service
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize>   (from android-app/)
 set -euo pipefail
 
-USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>"
+USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 WHICH="${3:?$USAGE}"
@@ -175,6 +180,11 @@ check_bubble() {
   done
   grep -E "pkg=$PKG.*flags=[A-Z_|]*BUBBLE" "$OUT/bubble-notifications.txt" | tee -a "$OUT/bubble.txt" ||
     fail "no notification of the app carries the bubble flag (see bubble-notifications.txt)"
+  # Native bubble mode never starts the web head service.
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/bubble-webhead-service.txt"
+  if grep -q "ServiceRecord" "$OUT/bubble-webhead-service.txt"; then
+    fail "the web head service runs in native bubble mode (see bubble-webhead-service.txt)"
+  fi
   sleep 2
   shot bubble-bubble
   # The bubble is drawn by the system shell and is missing from UI dumps; its stack position is
@@ -1025,6 +1035,102 @@ check_trash() {
   log "trash passed"
 }
 
+# Taps a row by its title, scrolling the screen up until it shows (at most five swipes).
+tap_scrolled() {
+  local w h
+  read -r w h < <(screen_size)
+  for _ in 1 2 3 4 5 6; do
+    tap_text "$1" && return 0
+    a shell input swipe $((w / 2)) $((h * 3 / 4)) $((w / 2)) $((h / 4)) 300
+    sleep 1
+  done
+  return 1
+}
+
+# Opens Browsing options and flips "Aggressive background loading"; turning it on also turns on
+# Merge tabs and shows an info dialog, which Back closes.
+toggle_aggressive_loading() {
+  a shell am start -W -n "$PKG/$MAIN" -f 0x24000000 --es "$DESTINATION" BrowsingOptions >/dev/null
+  sleep 2
+  tap_scrolled "Aggressive background loading" || fail "no \"Aggressive background loading\" row in Browsing options"
+  sleep 2
+  shot "aggressive-setting-$1"
+  a shell input keyevent BACK
+  sleep 1
+  a shell input keyevent HOME
+  sleep 1
+}
+
+check_aggressive() {
+  web_heads_mode
+  toggle_aggressive_loading on
+  trap 'toggle_aggressive_loading off; close_all_heads' EXIT
+  local link="https://example.com/?aggressive=1"
+  a logcat -c
+  open_link "$link"
+  sleep 6
+  shot aggressive-head
+  overlay_windows > "$OUT/aggressive-windows.txt"
+  local running
+  running="$(overlay_count)"
+  log "overlay windows: $running"
+  [ "$running" -ge 2 ] || fail "expected a head window and the trash window, found $running"
+  a shell dumpsys activity activities | tr -d '\r' > "$OUT/aggressive-activities.txt"
+  # Android shortens the link in this dump (dat=https://example.com/...), so the host is matched.
+  grep -E "(CustomTabActivity|WebViewActivity)" "$OUT/aggressive-activities.txt" | grep -F "example.com" | head -3 | tee -a "$OUT/aggressive.txt" ||
+    fail "no browsing tab of $link loads behind the head (see aggressive-activities.txt)"
+  app_logcat aggressive
+  [ ! -s "$OUT/aggressive.crash.txt" ] || fail "crash with aggressive loading (see aggressive.crash.txt)"
+  log "aggressive passed"
+}
+
+bubble_flag_count() {
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/$1"
+  grep -cE "pkg=$PKG.*flags=[A-Z_|]*BUBBLE" "$OUT/$1" || true
+}
+
+check_bubble_minimize() {
+  a shell am force-stop "$PKG"
+  choose_mode "Native Bubbles (Beta)"
+  # The legacy guide dialog first; dismissing it brings the notification explainer.
+  a shell input keyevent BACK
+  sleep 2
+  if tap_text "Grant"; then
+    sleep 2
+    tap_text "Allow" || fail "no system notification request"
+    sleep 1
+  fi
+  a shell input keyevent HOME
+  # Bubbles off for the app: the link opens in a tab with the refusal message instead of a bubble.
+  a shell cmd notification set_bubbles "$PKG" 0
+  trap 'a shell cmd notification set_bubbles "$PKG" 1' EXIT
+  a logcat -c
+  open_link "https://example.com/?minimize=1"
+  sleep 6
+  shot bubble-minimize-tab
+  a shell cmd notification set_bubbles "$PKG" 1
+  local before after
+  before="$(bubble_flag_count bubble-minimize-before.txt)"
+  tap_text "Minimize" || fail "no Minimize action in the tab's bottom bar (see bubble-minimize-tab.png)"
+  for _ in $(seq 1 10); do
+    sleep 2
+    after="$(bubble_flag_count bubble-minimize-notifications.txt)"
+    [ "$after" -gt "$before" ] && break
+  done
+  log "bubble notifications before Minimize: $before, after: $after"
+  [ "$after" -gt "$before" ] || fail "Minimize posted no bubble (see bubble-minimize-notifications.txt)"
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/bubble-minimize-webhead-service.txt"
+  if grep -q "ServiceRecord" "$OUT/bubble-minimize-webhead-service.txt"; then
+    fail "Minimize started the web head service in native bubble mode (see bubble-minimize-webhead-service.txt)"
+  fi
+  sleep 2
+  shot bubble-minimize
+  app_logcat bubble-minimize
+  [ ! -s "$OUT/bubble-minimize.crash.txt" ] || fail "crash on Minimize (see bubble-minimize.crash.txt)"
+  a shell input keyevent HOME
+  log "bubble-minimize passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
@@ -1036,5 +1142,7 @@ case "$WHICH" in
   fling) check_fling ;;
   speech) check_speech ;;
   trash) check_trash ;;
+  aggressive) check_aggressive ;;
+  bubble-minimize) check_bubble_minimize ;;
   *) echo "unknown check: $WHICH; $USAGE" >&2; exit 2 ;;
 esac
