@@ -16,13 +16,17 @@
 #   rotation  web heads chosen: two heads resting on the left at 70 % of the height in portrait; after a
 #         turn to landscape a new link spawns its head on the left edge at the same share of the
 #         height, not at the default point (restores the rotation settings and the navigation mode)
+#   resnap  web heads chosen: three heads resting on the right at half the height in portrait; after a
+#         turn to landscape every head rests on the right edge inside the screen at the same share of
+#         the height; then six heads at 90 % on the left, and after a turn every head rests on the
+#         left edge inside the screen (restores the rotation settings and the navigation mode)
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap>   (from android-app/)
 set -euo pipefail
 
-SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation>}"
-OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation>}"
-WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation>}"
+SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap>}"
+OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap>}"
+WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap>}"
 source "$(dirname "$0")/lib.sh"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
@@ -447,6 +451,174 @@ check_rotation() {
   log "rotation passed"
 }
 
+# Size the app measures, into APP_W and APP_H: `app=WxH` of the display dump (the logical size
+# without the system bars the app does not draw under), else the logical size. APP_SIZE_SOURCE
+# names which one it used.
+APP_W=0
+APP_H=0
+APP_SIZE_SOURCE=""
+app_size() {
+  local s
+  s="$(a shell dumpsys window displays | tr -d '\r' | grep -o -m1 'app=[0-9]*x[0-9]*' | sed 's/app=//' | tr 'x' ' ' || true)"
+  if [ -n "$s" ]; then
+    APP_SIZE_SOURCE="app"
+  else
+    APP_SIZE_SOURCE="cur"
+    s="$(display_size)"
+  fi
+  read -r APP_W APP_H <<< "$s" || fail "no display size"
+}
+
+# Frame of every touchable overlay window (the heads; the trash is not touchable), one
+# "left top right bottom" per line, front first.
+head_frames() {
+  overlay_windows | awk '$1 == 1 { print $2, $3, $4, $5 }'
+}
+
+# Waits up to $1 s for at least $2 overlay windows; prints the count it saw last.
+wait_for_overlays() {
+  local n=0
+  for _ in $(seq 1 "$1"); do
+    n="$(overlay_count)"
+    [ "$n" -ge "$2" ] && break
+    sleep 1
+  done
+  echo "$n"
+}
+
+# Turns the display to $1 (0 portrait, 1 landscape) and waits up to 10 s for it.
+turn_to() {
+  local w=0 h=0
+  a shell settings put system user_rotation "$1"
+  for _ in $(seq 1 10); do
+    read -r w h < <(display_size)
+    if [ "$1" = 1 ] && [ "$w" -gt "$h" ]; then return 0; fi
+    if [ "$1" = 0 ] && [ "$h" -gt "$w" ]; then return 0; fi
+    sleep 1
+  done
+  fail "the display did not turn (user_rotation $1, ${w}x${h})"
+}
+
+# Drags the master slowly so its window rests at share $2 of the rest range, the finger let go at
+# x = $1; sets RATIO_P to the share of the height it rests at. Needs APP_H and RS_D (portrait).
+RATIO_P=""
+rest_master_at() {
+  local top bottom fl ft fr fb cx cy ty
+  read -r top bottom < <(rest_range "$APP_H" "$RS_D")
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  read -r cx cy < <(head_centre) || fail "no master head to drag"
+  ty="$(awk -v t="$top" -v b="$bottom" -v s="$2" -v fh="$((fb - ft))" 'BEGIN { print int(t + s * (b - t) + fh / 2) }')"
+  a shell input swipe "$cx" "$cy" "$1" "$ty" 1500
+  sleep 3
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  RATIO_P="$(share_of_range "$ft" "$top" "$bottom")"
+}
+
+# After a turn to landscape: every head rests on the $1 edge (left or right) inside the screen, and
+# the master at the share $2 of the height (within 0.03). Sets RATIO_L to the landscape share.
+RATIO_L=""
+check_stack_on() {
+  local w h top bottom fl ft fr fb
+  app_size
+  w="$APP_W"
+  h="$APP_H"
+  read -r top bottom < <(rest_range "$h" "$RS_D")
+  [ -n "$(head_frames)" ] || fail "no head window after the turn"
+  while read -r fl ft fr fb; do
+    if [ "$1" = right ]; then
+      [ $(((fl + fr) / 2)) -gt $((w / 2)) ] || fail "a head left the stack's side (frame $fl $ft $fr $fb, width $w)"
+      [ "$fr" -ge "$w" ] || fail "a head is not on the edge (frame $fl $ft $fr $fb, width $w)"
+      [ "$fl" -lt "$w" ] || fail "a head is off screen (frame $fl $ft $fr $fb, width $w)"
+    else
+      [ $(((fl + fr) / 2)) -lt $((w / 2)) ] || fail "a head left the stack's side (frame $fl $ft $fr $fb, width $w)"
+      [ "$fl" -le 0 ] || fail "a head is not on the edge (frame $fl $ft $fr $fb)"
+      [ "$fr" -gt 0 ] || fail "a head is off screen (frame $fl $ft $fr $fb)"
+    fi
+    [ "$ft" -ge $((top - 2)) ] && [ "$ft" -le $((bottom + 30)) ] || fail "a head is outside the bounds (top $ft, range $top..$bottom)"
+  done < <(head_frames)
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  RATIO_L="$(share_of_range "$ft" "$top" "$bottom")"
+  log "landscape ${w}x${h} (size from $APP_SIZE_SOURCE), rest range $top..$bottom, master frame $fl $ft $fr $fb, share $RATIO_L"
+  awk -v a="$RATIO_L" -v b="$2" 'BEGIN { exit !(a - b <= 0.03 && b - a <= 0.03) }' || fail "the stack lost its height ($RATIO_L against $2)"
+}
+
+check_resnap() {
+  # 1. Portrait, fixed, with three-button navigation (the gesture Back zone takes edge swipes).
+  ROT_ACCEL_BEFORE="$(a shell settings get system accelerometer_rotation | tr -d '\r')"
+  ROT_USER_BEFORE="$(a shell settings get system user_rotation | tr -d '\r')"
+  trap rotation_restore EXIT
+  web_heads_mode
+  nav_three_button
+  a shell settings put system accelerometer_rotation 0
+  a shell settings put system user_rotation 0
+  sleep 2
+
+  # 2. Three heads (and the trash window).
+  local i n
+  for i in 1 2 3; do
+    open_link "https://example.com/?resnap=$i"
+    sleep 3
+  done
+  n="$(wait_for_overlays 60 4)"
+  [ "$n" -ge 4 ] || fail "expected three heads and the trash window, found $n overlay windows"
+  sleep 3
+
+  # 3. The stack dragged slowly to the right edge at half the rest range.
+  app_size
+  RS_D="$(density)"
+  log "portrait ${APP_W}x${APP_H} (size from $APP_SIZE_SOURCE), density $RS_D"
+  local ratio_p fl ft fr fb
+  rest_master_at $((APP_W - 150)) 0.5
+  ratio_p="$RATIO_P"
+  shot resnap-portrait
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  log "portrait master frame $fl $ft $fr $fb, share of the height $ratio_p"
+  [ $(((fl + fr) / 2)) -gt $((APP_W / 2)) ] || fail "the stack did not rest on the right at half the height (frame $fl $ft $fr $fb)"
+  awk -v r="$ratio_p" 'BEGIN { exit !(r - 0.50 <= 0.05 && 0.50 - r <= 0.05) }' || fail "the stack did not rest on the right at half the height (share $ratio_p)"
+
+  # 4. A turn to landscape; the spring settles in under a second, the coasting (after 6 s) moves only x.
+  turn_to 1
+  sleep 3
+  shot resnap-landscape
+  overlay_windows > "$OUT/resnap-windows.txt"
+  a shell dumpsys window windows | tr -d '\r' > "$OUT/resnap-window-dump.txt"
+
+  # 5. Every head on the right edge inside the screen, at the same share of the height.
+  check_stack_on right "$ratio_p"
+  log "three heads on the right: ratio_p $ratio_p, ratio_l $RATIO_L"
+
+  # 6. The worst state: six heads low on the left, then a turn.
+  turn_to 0
+  sleep 2
+  for i in 4 5 6; do
+    open_link "https://example.com/?resnap=$i"
+    sleep 3
+  done
+  n="$(wait_for_overlays 60 7)"
+  [ "$n" -ge 7 ] || fail "expected six heads and the trash window, found $n overlay windows"
+  sleep 3
+  app_size
+  rest_master_at 150 0.9
+  ratio_p="$RATIO_P"
+  shot resnap-worst-portrait
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  log "worst portrait ${APP_W}x${APP_H}, master frame $fl $ft $fr $fb, share of the height $ratio_p"
+  [ $(((fl + fr) / 2)) -lt $((APP_W / 2)) ] || fail "the stack did not rest on the left at 90 % (frame $fl $ft $fr $fb)"
+  awk -v r="$ratio_p" 'BEGIN { exit !(r - 0.90 <= 0.05 && 0.90 - r <= 0.05) }' || fail "the stack did not rest on the left at 90 % (share $ratio_p)"
+  turn_to 1
+  sleep 3
+  shot resnap-worst-landscape
+  overlay_windows > "$OUT/resnap-worst-windows.txt"
+  check_stack_on left "$ratio_p"
+  log "six heads on the left: ratio_p $ratio_p, ratio_l $RATIO_L"
+
+  # 7. No crash.
+  app_logcat resnap
+  [ ! -s "$OUT/resnap.crash.txt" ] || fail "crash during the rotation (see resnap.crash.txt)"
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "resnap passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
@@ -454,5 +626,6 @@ case "$WHICH" in
   refused) check_refused ;;
   restart) check_restart ;;
   rotation) check_rotation ;;
+  resnap) check_resnap ;;
   *) echo "unknown check: $WHICH" >&2; exit 2 ;;
 esac
