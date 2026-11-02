@@ -365,9 +365,15 @@ class WebHeadsController(
   private fun onMasterMoved(master: WebHeadState) {
     val onRight = master.windowX > dispWidth / 2
     chain.asReversed().forEachIndexed { i, follower ->
-      val (dx, dy) = if (displacementEnabled) WebHeadMotion.chainOffset(i + 1, onRight, density) else 0 to 0
-      springTo(follower, (master.windowX + dx).toFloat(), (master.windowY + dy).toFloat(), WebHeadMotion.followerSpring(follower.chainIndex))
+      val (x, y) = followerTarget(i, master.windowX, master.windowY, onRight)
+      springTo(follower, x.toFloat(), y.toFloat(), WebHeadMotion.followerSpring(follower.chainIndex))
     }
+  }
+
+  /** Where follower [i] (0 is right behind the master) rests behind a master at ([masterX], [masterY]). */
+  private fun followerTarget(i: Int, masterX: Int, masterY: Int, onRight: Boolean): Pair<Int, Int> {
+    val (dx, dy) = if (displacementEnabled) WebHeadMotion.chainOffset(i + 1, onRight, density) else 0 to 0
+    return masterX + dx to masterY + dy
   }
 
   /** Followers and queue, as the earlier spring chain: oldest heads beyond five are hidden. */
