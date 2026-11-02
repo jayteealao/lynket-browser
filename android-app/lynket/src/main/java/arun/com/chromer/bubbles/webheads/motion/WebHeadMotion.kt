@@ -55,6 +55,12 @@ object WebHeadMotion {
   /** Lock onto the trash. */
   val Snap: SpringSpec<Float> = spring(100.0, 7.0)
 
+  /**
+   * Moves the heads to their place after a rotation, a fold or a resize: the lock spring's
+   * stiffness with no bounce.
+   */
+  val Resnap: SpringSpec<Float> = SpringSpec(dampingRatio = 1f, stiffness = tension(100.0).toFloat(), visibilityThreshold = 0.5f)
+
   /** Trash target scale. */
   val TrashScale: SpringSpec<Float> = spring(100.0, 9.0)
 

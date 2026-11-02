@@ -38,6 +38,12 @@ class WebHeadMotionTest {
   }
 
   @Test
+  fun the_resnap_spring_is_the_snap_stiffness_with_no_bounce() {
+    assertThat(WebHeadMotion.Resnap.dampingRatio).isEqualTo(1f)
+    assertThat(WebHeadMotion.Resnap.stiffness).isEqualTo(WebHeadMotion.Snap.stiffness)
+  }
+
+  @Test
   fun followers_further_back_are_more_damped() {
     val second = WebHeadMotion.followerSpring(2)
     val third = WebHeadMotion.followerSpring(3)
