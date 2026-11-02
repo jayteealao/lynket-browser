@@ -36,9 +36,10 @@
 # Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>   (from android-app/)
 set -euo pipefail
 
-SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>}"
-OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>}"
-WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>}"
+USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>"
+SERIAL="${1:?$USAGE}"
+OUT="${2:?$USAGE}"
+WHICH="${3:?$USAGE}"
 source "$(dirname "$0")/lib.sh"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
@@ -1022,5 +1023,5 @@ case "$WHICH" in
   fling) check_fling ;;
   speech) check_speech ;;
   trash) check_trash ;;
-  *) echo "unknown check: $WHICH" >&2; exit 2 ;;
+  *) echo "unknown check: $WHICH; $USAGE" >&2; exit 2 ;;
 esac
