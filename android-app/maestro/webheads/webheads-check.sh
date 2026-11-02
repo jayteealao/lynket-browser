@@ -24,13 +24,15 @@
 #         density), the same flick in dp per second from the middle snaps the head to the edge it
 #         points to, both ways (restores the size, the density, the rotation settings and the
 #         navigation mode)
+#   speech  web heads chosen: three links open three heads; a dump of every window shows the front
+#         head described as "Web head: <title>, 1 of 3" and the other two as 2 of 3 and 3 of 3
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech>   (from android-app/)
 set -euo pipefail
 
-SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling>}"
-OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling>}"
-WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling>}"
+SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech>}"
+OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech>}"
+WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech>}"
 source "$(dirname "$0")/lib.sh"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
@@ -730,6 +732,67 @@ check_fling() {
   log "fling passed"
 }
 
+# Prints every web head description that a UI dump shows, one per line. Dumps every window first
+# (a head is an overlay, never the active window), then the active window, then the maestro
+# hierarchy; keeps the dump it used in the evidence and logs which source answered.
+head_descriptions() {
+  local dump=/sdcard/webheads-speech.xml
+  a shell uiautomator dump --windows "$dump" >/dev/null 2>&1 || true
+  a shell cat "$dump" 2>/dev/null | tr -d '\r' > "$OUT/speech-ui.xml" || true
+  if grep -q 'content-desc="Web head: ' "$OUT/speech-ui.xml"; then
+    log "dump source: uiautomator dump --windows" >&2
+  else
+    a shell uiautomator dump "$dump" >/dev/null 2>&1 || true
+    a shell cat "$dump" 2>/dev/null | tr -d '\r' > "$OUT/speech-ui.xml" || true
+    if grep -q 'content-desc="Web head: ' "$OUT/speech-ui.xml"; then
+      log "dump source: uiautomator dump (active window)" >&2
+    elif command -v maestro >/dev/null; then
+      maestro --device "$SERIAL" hierarchy > "$OUT/speech-hierarchy.json" 2>/dev/null || true
+      log "dump source: maestro hierarchy" >&2
+      grep -o 'Web head: [^"]*' "$OUT/speech-hierarchy.json" || true
+      return 0
+    else
+      log "dump source: none had a web head node" >&2
+    fi
+  fi
+  grep -o 'Web head: [^"]*' "$OUT/speech-ui.xml" || true
+}
+
+check_speech() {
+  # 1. Web heads mode with a clean log.
+  web_heads_mode
+  a logcat -c
+  # 2. Three links, three heads; the newest is at the front.
+  open_link "https://example.com/?speech=1"
+  sleep 3
+  open_link "https://example.com/?speech=2"
+  sleep 3
+  open_link "https://example.com/?speech=3"
+  local windows
+  windows="$(wait_for_overlays 60 4)"
+  log "overlay windows: $windows"
+  [ "$windows" -ge 4 ] || fail "expected three head windows and the trash, found $windows"
+  sleep 8  # the page titles
+  # 3. What a screen reader is given for each head.
+  shot speech-heads
+  head_descriptions > "$OUT/speech-descriptions.txt"
+  log "descriptions:"
+  sed 's/^/  /' "$OUT/speech-descriptions.txt" | tee -a "$OUT/speech.txt"
+  [ -s "$OUT/speech-descriptions.txt" ] || fail "no head description in any UI dump"
+  local front
+  front="$(grep -cE '^Web head: .+, 1 of 3$' "$OUT/speech-descriptions.txt" || true)"
+  [ "$front" -eq 1 ] || fail "the front head does not say 1 of 3"
+  grep -qE ', 2 of 3$' "$OUT/speech-descriptions.txt" || fail "no head says 2 of 3"
+  grep -qE ', 3 of 3$' "$OUT/speech-descriptions.txt" || fail "no head says 3 of 3"
+  log "front title: $(grep -E ', 1 of 3$' "$OUT/speech-descriptions.txt" | sed -E 's/^Web head: (.*), 1 of 3$/\1/') (\"Example Domain\" online, else the address)"
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  # 4. No crash; close the heads.
+  app_logcat speech
+  [ ! -s "$OUT/speech.crash.txt" ] || fail "crash with three heads open (see speech.crash.txt)"
+  close_all_heads
+  log "speech passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
@@ -739,5 +802,6 @@ case "$WHICH" in
   rotation) check_rotation ;;
   resnap) check_resnap ;;
   fling) check_fling ;;
+  speech) check_speech ;;
   *) echo "unknown check: $WHICH" >&2; exit 2 ;;
 esac
