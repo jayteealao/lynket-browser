@@ -319,7 +319,11 @@ class WebHeadsController(
       val flingX = WebHeadMotion.interpolateXVelocity(vx, upRawX, dispWidth, minHorizontalFlingVelocity)
       flung = true
       dragging = false
-      decay(head, flingX, vy)
+      if (WebHeadMotion.flingReachesEdge(head.x.value, flingX, headWindowPx, dispWidth)) {
+        decay(head, flingX, vy)
+      } else {
+        flingToEdge(head, flingX, vy)
+      }
     }
     if (head.lockedToTrash) {
       destroy(head, receiveCallback = true)
@@ -394,6 +398,20 @@ class WebHeadsController(
     head.xTarget = null
     head.yTarget = null
     scope.launch { head.x.animateDecay(velocityX, WebHeadMotion.FlingDecay) { onFrame(head) } }
+    scope.launch { head.y.animateDecay(velocityY, WebHeadMotion.FlingDecay) { onFrame(head) } }
+  }
+
+  /**
+   * Carries a fling that would slow to a stop before its edge, as on a wide window, to the edge it
+   * points to: the release speed hands over to a spring that does not bounce, and the height
+   * decays as in any fling.
+   */
+  private fun flingToEdge(head: WebHeadState, velocityX: Float, velocityY: Float) {
+    val edge = (if (velocityX > 0) bounds.right else bounds.left).toFloat()
+    // A bound correction to the same edge then leaves this spring running.
+    head.xTarget = edge
+    head.yTarget = null
+    scope.launch { head.x.animateTo(edge, WebHeadMotion.FlingToEdge, initialVelocity = velocityX) { onFrame(head) } }
     scope.launch { head.y.animateDecay(velocityY, WebHeadMotion.FlingDecay) { onFrame(head) } }
   }
 
