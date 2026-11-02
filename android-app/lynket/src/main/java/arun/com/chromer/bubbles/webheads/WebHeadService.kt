@@ -52,6 +52,7 @@ import arun.com.chromer.R
 import arun.com.chromer.browsing.article.ArticlePreloader
 import arun.com.chromer.browsing.customtabs.CustomTabManager
 import arun.com.chromer.browsing.newtab.NewTabDialogActivity
+import arun.com.chromer.bubbles.webheads.motion.TrashTick
 import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadState
@@ -414,8 +415,8 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     trashWindow?.touchable = shown
   }
 
-  override fun performHaptic(head: WebHeadState, feedbackConstant: Int) {
-    headWindows[head.url]?.view?.performHapticFeedback(feedbackConstant)
+  override fun onTrashTick(head: WebHeadState, tick: TrashTick) {
+    headWindows[head.url]?.view?.performHapticFeedback(tick.feedbackConstant())
   }
 
   override fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean) {

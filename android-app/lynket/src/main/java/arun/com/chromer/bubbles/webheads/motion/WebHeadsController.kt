@@ -89,8 +89,17 @@ interface WebHeadHost {
   /** The trash appeared under a drag or went away; screen readers see it only while it shows. */
   fun onTrashShown(shown: Boolean)
 
-  /** A haptic tick on [head]'s window; [feedbackConstant] is one of `android.view.HapticFeedbackConstants`. */
-  fun performHaptic(head: WebHeadState, feedbackConstant: Int)
+  /** [head] locked onto the trash or left it: the host plays the matching haptic tick on its window. */
+  fun onTrashTick(head: WebHeadState, tick: TrashTick)
+}
+
+/** The moments of a drag over the trash that the person feels. */
+enum class TrashTick {
+  /** A head locked onto the trash. */
+  LOCK,
+
+  /** A head left the locked trash; lighter than [LOCK]. */
+  LEAVE,
 }
 
 /**
@@ -341,10 +350,10 @@ class WebHeadsController(
     val y = (initialDownY + offsetY).toInt()
     if (isNearTrash(head, x, y)) {
       trash.scale = 1f
-      if (setTrashLocked(true)) host.performHaptic(head, WebHeadMotion.trashLockHaptic())
+      if (setTrashLocked(true)) host.onTrashTick(head, TrashTick.LOCK)
       springTo(head, trashLockX.toFloat(), trashLockY.toFloat(), WebHeadMotion.Snap)
     } else {
-      if (setTrashLocked(false)) host.performHaptic(head, WebHeadMotion.TRASH_LEAVE_HAPTIC)
+      if (setTrashLocked(false)) host.onTrashTick(head, TrashTick.LEAVE)
       if (trash.scale > 0f) trash.scale = 0.9f
       snapTo(head, x.toFloat(), y.toFloat())
     }

@@ -11,8 +11,6 @@
 
 package arun.com.chromer.bubbles.webheads.motion
 
-import android.os.Build
-import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.calculateTargetValue
@@ -106,13 +104,6 @@ object WebHeadMotion {
 
   /** Red close animation of a head released on the trash, before it is removed. */
   const val TRASH_CLOSE_MS = 700L
-
-  /** The tick when a head locks onto the trash: CONFIRM where the platform has it (Android 11+), VIRTUAL_KEY before. */
-  fun trashLockHaptic(): Int =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
-
-  /** The lighter tick when a head leaves the locked trash. */
-  const val TRASH_LEAVE_HAPTIC = HapticFeedbackConstants.CLOCK_TICK
 
   /** Trash scale-out after the last head closes. */
   const val TRASH_EXIT_MS = 300L

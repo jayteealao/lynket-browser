@@ -15,6 +15,7 @@ import android.app.Application
 import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.MonotonicFrameClock
 import androidx.compose.ui.MotionDurationScale
+import arun.com.chromer.bubbles.webheads.motion.TrashTick
 import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion.StackAnchor
@@ -98,8 +99,8 @@ private class RecordingHost : WebHeadHost {
   /** Every haptic tick, as the head's url to the feedback constant, in order. */
   val haptics = mutableListOf<Pair<String, Int>>()
 
-  override fun performHaptic(head: WebHeadState, feedbackConstant: Int) {
-    haptics.add(head.url to feedbackConstant)
+  override fun onTrashTick(head: WebHeadState, tick: TrashTick) {
+    haptics.add(head.url to tick.feedbackConstant())
   }
 }
 
@@ -990,7 +991,7 @@ class WebHeadsControllerTest {
     c.onTouchUp(head, 0f, 0f, trashCentreX, trashCentreY)
     settle(WebHeadMotion.TRASH_CLOSE_MS + 50)
     assertThat(host.destroyed).containsExactly(head.url to true)
-    assertThat(host.haptics).containsExactly(head.url to WebHeadMotion.trashLockHaptic())
+    assertThat(host.haptics).containsExactly(head.url to TrashTick.LOCK.feedbackConstant())
   }
 
   @Test
