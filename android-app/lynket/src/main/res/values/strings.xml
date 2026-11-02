@@ -343,7 +343,7 @@
   <string name="bubble_lock_screen_text">A page is open in a bubble</string>
   <string name="discuss_on_reddit">Discuss on Reddit</string>
   <!-- Web heads in Compose -->
-  <string name="web_head_content_description">Web head: %1$s</string>
+  <string name="web_head_content_description">Web head: %1$s, %2$d of %3$d</string>
   <string name="web_head_action_open">Open page</string>
   <string name="web_head_action_list">Show all web heads</string>
   <string name="web_head_action_close">Close web head</string>
