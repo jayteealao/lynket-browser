@@ -330,9 +330,10 @@ class Preferences @Inject constructor(
     put(DYNAMIC_COLOR_WEB, preference)
   }
 
+  /** Pages load in the background as a link opens; on only in web heads mode. */
   fun aggressiveLoading(): Boolean {
     return Utils.ANDROID_LOLLIPOP &&
-      webHeads() &&
+      browsingMode() == BrowsingMode.WebHeads &&
       bool(AGGRESSIVE_LOADING)
   }
 
@@ -392,11 +393,6 @@ class Preferences @Inject constructor(
     ),
   )
 
-  /** Native bubbles instead of web heads (Android 11 and later); false while web heads are on. */
-  fun nativeBubbles(): Boolean = browsingMode() == BrowsingMode.NativeBubbles
-
-  fun nativeBubbles(preference: Boolean) = put(NATIVE_BUBBLES_PREFERENCE, preference)
-
   /** The search engine's name now and after each change. */
   fun searchEngineChanges(): Flow<String> = repository.snapshot
     .filterNotNull()
@@ -404,14 +400,6 @@ class Preferences @Inject constructor(
     .distinctUntilChanged()
 
   fun searchEngine(name: String) = put(SEARCH_ENGINE_PREFERENCE, name)
-
-  fun webHeads(): Boolean {
-    return bool(WEB_HEAD_ENABLED)
-  }
-
-  fun webHeads(preference: Boolean) {
-    put(WEB_HEAD_ENABLED, preference)
-  }
 
   fun favicons(): Boolean {
     return bool(WEB_HEAD_FAVICON)
