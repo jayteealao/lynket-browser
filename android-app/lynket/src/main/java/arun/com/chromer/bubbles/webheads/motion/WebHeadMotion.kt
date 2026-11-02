@@ -48,8 +48,15 @@ object WebHeadMotion {
   private fun spring(origamiTension: Double, origamiFriction: Double): SpringSpec<Float> {
     val k = tension(origamiTension)
     val c = friction(origamiFriction)
-    return SpringSpec(dampingRatio = dampingRatio(k, c), stiffness = k.toFloat(), visibilityThreshold = 0.5f)
+    return SpringSpec(dampingRatio = dampingRatio(k, c), stiffness = k.toFloat(), visibilityThreshold = VISIBILITY_THRESHOLD_PX)
   }
+
+  /** A spring of [stiffness] that settles without a bounce. */
+  private fun criticallyDamped(stiffness: Float): SpringSpec<Float> =
+    SpringSpec(dampingRatio = 1f, stiffness = stiffness, visibilityThreshold = VISIBILITY_THRESHOLD_PX)
+
+  /** A window position within half a pixel of its target has arrived. */
+  private const val VISIBILITY_THRESHOLD_PX = 0.5f
 
   /** Release towards an edge, the return of a new master, and every bound correction. */
   val Fling: SpringSpec<Float> = spring(50.0, 5.0)
@@ -58,7 +65,7 @@ object WebHeadMotion {
    * Carries a fling that would stop short of its edge on a wide window there: the fling spring's
    * stiffness with no bounce.
    */
-  val FlingToEdge: SpringSpec<Float> = SpringSpec(dampingRatio = 1f, stiffness = Fling.stiffness, visibilityThreshold = 0.5f)
+  val FlingToEdge: SpringSpec<Float> = criticallyDamped(Fling.stiffness)
 
   /** Lock onto the trash. */
   val Snap: SpringSpec<Float> = spring(100.0, 7.0)
@@ -67,7 +74,7 @@ object WebHeadMotion {
    * Moves the heads to their place after a rotation, a fold or a resize: the lock spring's
    * stiffness with no bounce.
    */
-  val Resnap: SpringSpec<Float> = SpringSpec(dampingRatio = 1f, stiffness = tension(100.0).toFloat(), visibilityThreshold = 0.5f)
+  val Resnap: SpringSpec<Float> = criticallyDamped(tension(100.0).toFloat())
 
   /** Trash target scale. */
   val TrashScale: SpringSpec<Float> = spring(100.0, 9.0)
