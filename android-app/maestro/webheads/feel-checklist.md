@@ -5,6 +5,8 @@ line with the web heads of release 2.1.3 and write "same as today", or what diff
 
 Device: ____________________  Build: ____________________  Date: __________
 
+Rows 11-13 are new: write what you feel. Turn on Touch feedback first (Settings, Sound & vibration, Vibration & haptics); with it off, no tick is expected.
+
 | # | Behaviour | Result |
 |---|-----------|--------|
 | 1 | The head follows the finger while dragged, without lag or jumps | |
@@ -17,5 +19,10 @@ Device: ____________________  Build: ____________________  Date: __________
 | 8 | Left alone, the master drifts further off the edge after a few seconds | |
 | 9 | A long press opens the list of websites | |
 | 10 | A tap opens the page | |
+| 11 | Dragged onto the trash, the phone ticks once, firmly, the moment the head locks on; holding it there ticks no more | |
+| 12 | Dragged off the locked trash, the phone gives one lighter tick | |
+| 13 | Released on the trash, the head closes with no tick beyond the lock's | |
+
+Touch feedback setting: ______
 
 Signed: ____________________
