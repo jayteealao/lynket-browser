@@ -37,6 +37,7 @@ import arun.com.chromer.bubbles.webheads.overlay.OverlayLifecycleOwner
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.base.service.BaseService
+import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.util.Utils
 import timber.log.Timber
 import javax.inject.Inject
@@ -57,7 +58,7 @@ abstract class OverlayService : BaseService() {
   abstract override fun onBind(intent: Intent): IBinder?
 
   @Inject
-  lateinit var overlayRefusal: OverlayRefusal
+  lateinit var tabsManager: TabsManager
 
   /** Owner of every Compose view this service puts in a window. */
   protected val overlayOwner = OverlayLifecycleOwner()
@@ -153,7 +154,7 @@ abstract class OverlayService : BaseService() {
   protected fun checkForOverlayPermission(intent: Intent?): Boolean {
     if (Utils.isOverlayGranted(this)) return true
     intent?.dataString?.let { url ->
-      overlayRefusal.refuse(this, Website(url), intent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false))
+      tabsManager.openOverlayRefused(this, Website(url), intent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false))
     }
     Timber.d("Overlay permission is off; stopping the overlay service")
     stopService()

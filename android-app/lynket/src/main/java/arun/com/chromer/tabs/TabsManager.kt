@@ -178,6 +178,19 @@ interface TabsManager {
   )
 
   /**
+   * Opens [website] in a browsing tab because the overlay permission ("Display over other apps") is
+   * off, keeping its incognito flag; the tab then shows the message that names the setting, with
+   * Open Settings. Every web heads entry that finds the permission off hands its link here. This
+   * never opens the overlay settings page: that page opens only when a person taps Open Settings.
+   */
+  fun openOverlayRefused(
+    context: Context,
+    website: Website,
+    incognito: Boolean = false,
+    linkSource: LinkSource = LinkSource.NONE,
+  )
+
+  /**
    * Opens new tab activity.
    */
   fun openNewTab(context: Context, url: String)

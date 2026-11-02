@@ -56,7 +56,6 @@ import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.bubbles.system.bubbleConversationId
-import arun.com.chromer.bubbles.webheads.OverlayRefusal
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
@@ -97,7 +96,6 @@ constructor(
   private val eventBus: EventBus,
   private val floatingBubbleFactory: FloatingBubbleFactory,
   private val bubbleGate: BubbleGate,
-  private val overlayRefusal: OverlayRefusal,
 ) : TabsManager {
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -417,6 +415,17 @@ constructor(
     return !reordered
   }
 
+  override fun openOverlayRefused(
+    context: Context,
+    website: Website,
+    incognito: Boolean,
+    linkSource: LinkSource,
+  ) {
+    // No address in the log: the event is enough to see the refusal on a device.
+    Timber.w("Overlay permission is off; the link opens in a tab")
+    openRefusedBubble(context, website, BubbleRefusal.OVERLAY_OFF, incognito, linkSource)
+  }
+
   /**
    * The page opens in a tab, which then shows the message (see BrowsingActivity). When the tab of
    * this page already exists and only comes to the front, the message starts in a task of its own.
@@ -486,7 +495,7 @@ constructor(
 
     if (!bubbles && !Utils.isOverlayGranted(context)) {
       // Web heads cannot draw: the page opens in one tab, and aggressive loading adds no second.
-      overlayRefusal.refuse(context, website, isIncognito, linkSource)
+      openOverlayRefused(context, website, isIncognito, linkSource)
       return
     }
 

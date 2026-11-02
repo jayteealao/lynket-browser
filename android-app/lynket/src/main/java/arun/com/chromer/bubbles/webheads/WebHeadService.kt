@@ -73,7 +73,6 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_MINIMIZE
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
-import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.events.Event
@@ -105,9 +104,6 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   @Inject
   lateinit var websiteRepository: WebsiteRepository
-
-  @Inject
-  lateinit var tabsManager: TabsManager
 
   @Inject
   lateinit var articlePreloader: ArticlePreloader

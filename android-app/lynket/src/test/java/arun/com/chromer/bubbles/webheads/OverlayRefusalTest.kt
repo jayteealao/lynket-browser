@@ -39,9 +39,6 @@ class OverlayRefusalTest : LynketRobolectricSuite() {
   @Inject
   lateinit var tabs: TabsManager
 
-  @Inject
-  lateinit var overlayRefusal: OverlayRefusal
-
   private val url = "https://example.com/refused"
 
   private fun overlayOff() {
@@ -90,7 +87,7 @@ class OverlayRefusalTest : LynketRobolectricSuite() {
   fun refusal_keeps_the_incognito_flag() {
     overlayOff()
 
-    overlayRefusal.refuse(application, Website(url), incognito = true)
+    tabs.openOverlayRefused(application, Website(url), incognito = true)
 
     val started = startedActivities()
     assertThat(started).hasSize(1)
@@ -103,7 +100,7 @@ class OverlayRefusalTest : LynketRobolectricSuite() {
   fun refusal_of_a_normal_link_opens_a_normal_tab() {
     overlayOff()
 
-    overlayRefusal.refuse(application, Website(url), incognito = false)
+    tabs.openOverlayRefused(application, Website(url), incognito = false)
 
     val started = startedActivities()
     assertThat(started).hasSize(1)
@@ -118,7 +115,7 @@ class OverlayRefusalTest : LynketRobolectricSuite() {
     // Web View mode, so the tab is a Lynket activity that Robolectric can start.
     preferences.useWebView(true)
 
-    overlayRefusal.refuse(application, Website(url), incognito = false)
+    tabs.openOverlayRefused(application, Website(url), incognito = false)
     val tab = startedActivities().single()
     val controller = Robolectric.buildActivity(WebViewActivity::class.java, Intent(tab).setClass(application, WebViewActivity::class.java)).setup()
     val fromTab = generateSequence { shadowOf(controller.get()).nextStartedActivity }.toList() + startedActivities()
