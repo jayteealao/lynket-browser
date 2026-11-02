@@ -17,6 +17,7 @@ import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadState
 import arun.com.chromer.bubbles.webheads.motion.WebHeadsController
+import com.google.common.collect.Range
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -29,6 +30,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** A frame every 16 ms of virtual time. */
 private class TestFrameClock : MonotonicFrameClock {
@@ -295,5 +298,118 @@ class WebHeadsControllerTest {
     assertThat(host.windows).isEmpty()
     assertThat(host.destroyed).isEmpty()
     assertThat(c.isEmpty).isTrue()
+  }
+
+  /** The y a head rests at, at [ratio] of the height range the controller's bounds allow. */
+  private fun WebHeadsController.yAt(ratio: Float): Int = bounds.top + (ratio * (bounds.bottom - bounds.top)).roundToInt()
+
+  /** Drags [head] so its window sits at ([x], [y]) and releases it there, then lets it rest. */
+  private fun TestScope.dragAndRelease(c: WebHeadsController, head: WebHeadState, x: Int, y: Int) {
+    val (x0, y0) = host.windows.getValue(head.url)
+    val downX = 1000f
+    val downY = 800f
+    val upX = downX + (x - x0)
+    val upY = downY + (y - y0)
+    c.onTouchDown(head, downX, downY)
+    c.onTouchMove(head, upX, upY)
+    runCurrent()
+    c.onTouchUp(head, 0f, 0f, upX, upY)
+    settle()
+  }
+
+  /** Leaves [head] resting on the left edge at [ratio] of the height range. */
+  private fun TestScope.restOnLeftAt(c: WebHeadsController, head: WebHeadState, ratio: Float) {
+    dragAndRelease(c, head, 100, c.yAt(ratio))
+    assertThat(host.windows.getValue(head.url)).isEqualTo(c.bounds.left to c.yAt(ratio))
+  }
+
+  /** Turns the test phone to landscape. */
+  private fun rotate(c: WebHeadsController) = c.updateDisplay(2400, 1080, 914)
+
+  private fun assertNear(actual: Pair<Int, Int>?, expected: Pair<Int, Int>) {
+    assertThat(actual).isNotNull()
+    assertThat(actual!!.first).isEqualTo(expected.first)
+    assertThat(abs(actual.second - expected.second)).isAtMost(1)
+  }
+
+  @Test
+  fun a_new_head_after_a_rotation_spawns_on_the_stack_side_at_its_height_ratio() = runTest {
+    val c = controller()
+    val a = c.add("https://a.example")
+    restOnLeftAt(c, a, 0.7f)
+    rotate(c)
+    c.add("https://b.example")
+    val b = host.windows["https://b.example"]
+    val expectedY = c.yAt(0.7f)
+    assertNear(b, c.bounds.left to expectedY)
+    assertThat(b!!.second).isIn(Range.closed(c.bounds.top, c.bounds.bottom))
+    assertThat(b).isNotEqualTo(c.bounds.right to 1080 / 3)
+  }
+
+  @Test
+  fun frames_after_a_rotation_do_not_move_the_stack() = runTest {
+    val c = controller()
+    val a = c.add("https://a.example")
+    restOnLeftAt(c, a, 0.7f)
+    rotate(c)
+    settle(WebHeadMotion.COASTING_DELAY_MS + 3_000)
+    c.add("https://b.example")
+    assertNear(host.windows["https://b.example"], c.bounds.left to c.yAt(0.7f))
+  }
+
+  @Test
+  fun a_stack_low_on_the_left_stays_inside_the_landscape_bounds() = runTest {
+    val c = controller()
+    val a = c.add("https://a.example")
+    restOnLeftAt(c, a, 0.9f)
+    rotate(c)
+    c.add("https://b.example")
+    val b = host.windows.getValue("https://b.example")
+    assertThat(b.first).isEqualTo(c.bounds.left)
+    assertThat(b.second).isIn(Range.closed(c.bounds.top, c.bounds.bottom))
+  }
+
+  @Test
+  fun a_stack_on_the_right_keeps_its_side_after_a_rotation() = runTest {
+    val c = controller()
+    c.add("https://a.example")
+    settle(1_000)
+    val portraitRatio = (height / 3 - c.bounds.top).toFloat() / (c.bounds.bottom - c.bounds.top)
+    rotate(c)
+    c.add("https://b.example")
+    assertNear(host.windows["https://b.example"], c.bounds.right to c.yAt(portraitRatio))
+  }
+
+  @Test
+  fun a_rotation_there_and_back_keeps_the_stack() = runTest {
+    val c = controller()
+    val a = c.add("https://a.example")
+    restOnLeftAt(c, a, 0.7f)
+    rotate(c)
+    c.updateDisplay(width, height, 411)
+    c.add("https://b.example")
+    assertNear(host.windows["https://b.example"], c.bounds.left to c.yAt(0.7f))
+  }
+
+  @Test
+  fun remove_all_forgets_the_stack() = runTest {
+    val c = controller()
+    val a = c.add("https://a.example")
+    restOnLeftAt(c, a, 0.7f)
+    c.removeAll()
+    c.add("https://b.example")
+    assertThat(host.windows["https://b.example"]).isEqualTo(c.bounds.right to height / 3)
+  }
+
+  @Test
+  fun a_touch_after_a_rotation_moves_the_stack_again() = runTest {
+    val c = controller()
+    val a = c.add("https://a.example")
+    restOnLeftAt(c, a, 0.7f)
+    rotate(c)
+    dragAndRelease(c, a, 2100, c.yAt(0.3f))
+    assertThat(host.windows.getValue(a.url)).isEqualTo(c.bounds.right to c.yAt(0.3f))
+    c.add("https://b.example")
+    assertNear(host.windows["https://b.example"], c.bounds.right to c.yAt(0.3f))
   }
 }
