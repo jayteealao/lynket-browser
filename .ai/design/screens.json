@@ -8,6 +8,7 @@
   "areas": [
     "bubbles",
     "web-heads",
+    "settings",
     "shared"
   ],
   "screens": {
@@ -188,6 +189,45 @@
           "workflow": "web-heads-reliability"
         }
       ]
+    },
+    "browsing-mode-settings": {
+      "title": "Browsing mode settings",
+      "area": "settings",
+      "flow": "choose-mode",
+      "order": 10,
+      "workflows": [
+        "one-browsing-mode"
+      ],
+      "slices": [],
+      "created-at": "2026-11-02T19:45:13Z",
+      "updated-at": "2026-11-02T19:45:13Z",
+      "approvals": []
+    },
+    "look-and-feel-settings": {
+      "title": "Look and feel settings",
+      "area": "settings",
+      "flow": "choose-mode",
+      "order": 20,
+      "workflows": [
+        "one-browsing-mode"
+      ],
+      "slices": [],
+      "created-at": "2026-11-02T19:45:13Z",
+      "updated-at": "2026-11-02T19:45:13Z",
+      "approvals": []
+    },
+    "browsing-options-settings": {
+      "title": "Browsing options settings",
+      "area": "settings",
+      "flow": "choose-mode",
+      "order": 30,
+      "workflows": [
+        "one-browsing-mode"
+      ],
+      "slices": [],
+      "created-at": "2026-11-02T19:45:13Z",
+      "updated-at": "2026-11-02T19:45:13Z",
+      "approvals": []
     }
   },
   "explore": {}
