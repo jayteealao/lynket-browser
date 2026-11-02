@@ -24,6 +24,7 @@ import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.history.HistoryRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.ui.browsing.isShowingSecondaryBrowserError
+import arun.com.chromer.ui.settings.BrowsingMode
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -113,14 +114,14 @@ class IncomingLinkSchemeTest : LynketRobolectricSuite() {
   @Test
   fun otherSchemesOpenNothingWithWebHeadsOn() {
     clearPreferences()
-    preferences.webHeads(true)
+    preferences.browsingMode(BrowsingMode.WebHeads)
     assertRefusedOpensNothing("web heads")
   }
 
   @Test
   fun otherSchemesOpenNothingWithNativeBubblesOn() {
     clearPreferences()
-    preferences.nativeBubbles(true)
+    preferences.browsingMode(BrowsingMode.NativeBubbles)
     assertRefusedOpensNothing("native bubbles")
   }
 

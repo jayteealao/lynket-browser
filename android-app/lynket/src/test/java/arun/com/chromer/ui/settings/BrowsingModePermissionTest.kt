@@ -127,7 +127,7 @@ class BrowsingModePermissionTest {
     error("The settings store did not reach the expected value")
   }
 
-  private fun awaitWebHeads(on: Boolean) = awaitStore { preferences.webHeads() == on }
+  private fun awaitWebHeads(on: Boolean) = awaitStore { (preferences.browsingMode() == BrowsingMode.WebHeads) == on }
 
   @Test
   fun withoutThePermissionTheExplainerShowsAndWebHeadsStayOff() {
@@ -136,7 +136,7 @@ class BrowsingModePermissionTest {
 
     composeRule.onNodeWithText(string(R.string.overlay_explainer_title)).assertExists()
     composeRule.waitForIdle()
-    assertThat(preferences.webHeads()).isFalse()
+    assertThat(preferences.browsingMode()).isNotEqualTo(BrowsingMode.WebHeads)
   }
 
   @Test
@@ -147,7 +147,7 @@ class BrowsingModePermissionTest {
 
     composeRule.onNodeWithText(string(R.string.overlay_explainer_title)).assertDoesNotExist()
     assertThat(shadowOf(composeRule.activity).nextStartedActivity).isNull()
-    assertThat(preferences.webHeads()).isFalse()
+    assertThat(preferences.browsingMode()).isNotEqualTo(BrowsingMode.WebHeads)
   }
 
   @Test

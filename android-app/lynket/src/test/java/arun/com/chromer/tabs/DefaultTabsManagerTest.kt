@@ -28,6 +28,7 @@ import arun.com.chromer.bubbles.webheads.WebHeadService
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.MainActivity
 import arun.com.chromer.shared.Constants
+import arun.com.chromer.ui.settings.BrowsingMode
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Ignore
 import org.junit.Test
@@ -57,7 +58,7 @@ class DefaultTabsManagerTest : LynketRobolectricSuite() {
   fun testHomeActivityClearedOnExternalIntent() {
     clearPreferences()
     preferences.mergeTabs(false)
-    preferences.webHeads(false)
+    preferences.browsingMode(BrowsingMode.SlideOver)
 
     val homeActivity = Robolectric.buildActivity(MainActivity::class.java).create().get()
 
@@ -69,7 +70,7 @@ class DefaultTabsManagerTest : LynketRobolectricSuite() {
   @Test
   fun testFromWebheadsDoesNotLaunchNewWebHead() {
     clearPreferences()
-    preferences.webHeads(true)
+    preferences.browsingMode(BrowsingMode.WebHeads)
     val shadowApp = shadowOf(application)
 
     assertWebHeadServiceLaunched(shadowApp)

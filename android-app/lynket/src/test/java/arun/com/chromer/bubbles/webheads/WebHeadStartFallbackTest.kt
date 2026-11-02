@@ -16,6 +16,7 @@ import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.ui.settings.BrowsingMode
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After
@@ -44,7 +45,7 @@ class WebHeadStartFallbackTest : LynketRobolectricSuite() {
 
   private fun webHeadsOn() {
     ShadowSettings.setCanDrawOverlays(true)
-    preferences.webHeads(true)
+    preferences.browsingMode(BrowsingMode.WebHeads)
     preferences.aggressiveLoading(false)
   }
 

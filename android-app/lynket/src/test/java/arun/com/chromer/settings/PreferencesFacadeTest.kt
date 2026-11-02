@@ -35,17 +35,17 @@ class PreferencesFacadeTest : LynketRobolectricSuite() {
 
   @Test
   fun aFacadeWriteIsReadBackAtOnce() {
-    preferences.webHeads(true)
-    assertThat(preferences.webHeads()).isTrue()
+    preferences.browsingMode(BrowsingMode.WebHeads)
+    assertThat(preferences.browsingMode()).isEqualTo(BrowsingMode.WebHeads)
 
-    preferences.webHeads(false)
-    assertThat(preferences.webHeads()).isFalse()
+    preferences.browsingMode(BrowsingMode.SlideOver)
+    assertThat(preferences.browsingMode()).isEqualTo(BrowsingMode.SlideOver)
   }
 
   @Test
   fun aWriteFromTheComposeSettingsScreenReachesTheFacade() {
     runBlocking { userPreferencesRepository.setValue(Preferences.WEB_HEAD_ENABLED, true) }
-    assertThat(preferences.webHeads()).isTrue()
+    assertThat(preferences.browsingMode()).isEqualTo(BrowsingMode.WebHeads)
 
     runBlocking { userPreferencesRepository.setValue(Preferences.ANIMATION_TYPE, 2) }
     assertThat(preferences.animationType()).isEqualTo(2)
@@ -102,8 +102,6 @@ class PreferencesFacadeTest : LynketRobolectricSuite() {
     ShadowLog.clear()
 
     assertThat(preferences.browsingMode()).isEqualTo(BrowsingMode.WebHeads)
-    assertThat(preferences.nativeBubbles()).isFalse()
-    assertThat(preferences.webHeads()).isTrue()
     assertThat(ShadowLog.getLogsForTag(MAIN_THREAD_WAIT_TAG)).isEmpty()
 
     val stored = runBlocking {
@@ -128,7 +126,6 @@ class PreferencesFacadeTest : LynketRobolectricSuite() {
       store(webHeads, nativeBubbles)
 
       assertThat(preferences.browsingMode()).isEqualTo(mode)
-      assertThat(preferences.nativeBubbles()).isEqualTo(mode == BrowsingMode.NativeBubbles)
       val stored = runBlocking { userPreferencesRepository.fresh() }
       assertThat(stored[webHeadsKey]).isEqualTo(webHeads)
       assertThat(stored[nativeBubblesKey]).isEqualTo(nativeBubbles)

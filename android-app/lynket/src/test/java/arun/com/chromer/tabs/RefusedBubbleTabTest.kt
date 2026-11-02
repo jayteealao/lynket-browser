@@ -25,6 +25,7 @@ import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.bubbles.system.bubbleConversationId
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
+import arun.com.chromer.ui.settings.BrowsingMode
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -60,7 +61,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @Test
   fun eachCauseOpensATabThatCarriesIt() {
-    settings.nativeBubbles(true)
+    settings.browsingMode(BrowsingMode.NativeBubbles)
     for (refusal in listOf(BubbleRefusal.NOTIFICATIONS_OFF, BubbleRefusal.BUBBLES_OFF)) {
       every { bubbleGate.refusal(bubbleConversationId(url)) } returns refusal
 
@@ -76,7 +77,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @Test
   fun noCauseShowsTheBubble() {
-    settings.nativeBubbles(true)
+    settings.browsingMode(BrowsingMode.NativeBubbles)
     every { bubbleGate.refusal(any()) } returns null
 
     tabsManager.openWebHeads(application, Website(url))
@@ -87,7 +88,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @Test
   fun webHeadsModeDoesNotAsk() {
-    settings.nativeBubbles(false)
+    settings.browsingMode(BrowsingMode.WebHeads)
 
     tabsManager.openWebHeads(application, Website(url))
 
