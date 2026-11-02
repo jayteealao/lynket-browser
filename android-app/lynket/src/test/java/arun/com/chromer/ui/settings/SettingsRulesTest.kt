@@ -194,4 +194,20 @@ class SettingsRulesTest {
     assertThat(SettingsRules.selectedMode(values(NATIVE_BUBBLES to true))).isEqualTo(BrowsingMode.NativeBubbles)
     assertThat(SettingsRules.selectedMode(values(WEB_HEAD_ENABLED to true, NATIVE_BUBBLES to true))).isEqualTo(BrowsingMode.WebHeads)
   }
+
+  @Test
+  fun everyPairOfStoredSwitchesResolvesToExactlyOneMode() {
+    val table = mapOf(
+      (false to false) to BrowsingMode.SlideOver,
+      (true to false) to BrowsingMode.WebHeads,
+      (false to true) to BrowsingMode.NativeBubbles,
+      (true to true) to BrowsingMode.WebHeads,
+    )
+    table.forEach { (switches, mode) ->
+      val (webHeads, nativeBubbles) = switches
+      assertThat(BrowsingMode.resolve(webHeads = webHeads, nativeBubbles = nativeBubbles)).isEqualTo(mode)
+      assertThat(SettingsRules.selectedMode(values(WEB_HEAD_ENABLED to webHeads, NATIVE_BUBBLES to nativeBubbles)))
+        .isEqualTo(mode)
+    }
+  }
 }

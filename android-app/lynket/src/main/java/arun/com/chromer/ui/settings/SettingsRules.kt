@@ -60,7 +60,24 @@ data class SettingsValues(val values: Map<String, Any?>) {
 }
 
 /** The browsing mode choices; slide over is "web heads off and native bubbles off". */
-enum class BrowsingMode { SlideOver, WebHeads, NativeBubbles }
+enum class BrowsingMode {
+  SlideOver,
+  WebHeads,
+  NativeBubbles,
+  ;
+
+  companion object {
+    /**
+     * The one mode of the two stored switches. Web heads win when both are on, as the settings
+     * screens have always shown it; neither on is slide over.
+     */
+    fun resolve(webHeads: Boolean, nativeBubbles: Boolean): BrowsingMode = when {
+      webHeads -> WebHeads
+      nativeBubbles -> NativeBubbles
+      else -> SlideOver
+    }
+  }
+}
 
 /** A dialog a settings change asks for, in the order the old screens showed them. */
 sealed interface SettingsDialog {
@@ -168,11 +185,8 @@ object SettingsRules {
 
   private val BUBBLE_SETTINGS_TO_EXPLAIN = setOf(BubbleSetting.SELECTED, BubbleSetting.NONE, BubbleSetting.DEVICE_OFF)
 
-  fun selectedMode(values: SettingsValues): BrowsingMode = when {
-    values.bool(WEB_HEAD_ENABLED) -> BrowsingMode.WebHeads
-    values.bool(NATIVE_BUBBLES) -> BrowsingMode.NativeBubbles
-    else -> BrowsingMode.SlideOver
-  }
+  fun selectedMode(values: SettingsValues): BrowsingMode =
+    BrowsingMode.resolve(webHeads = values.bool(WEB_HEAD_ENABLED), nativeBubbles = values.bool(NATIVE_BUBBLES))
 
   /** Whether the row of [key] takes input, as the old screens enabled and disabled it. */
   fun isEnabled(key: String, values: SettingsValues): Boolean = when (key) {
