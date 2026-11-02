@@ -135,6 +135,12 @@ class WebHeadsController(
 
   // Gesture state of the master.
   private var dragging = false
+
+  /** True from a touch down on the master until its release. */
+  private var fingerDown = false
+
+  /** True when the display changed under a finger: the heads move after the release. */
+  private var resnapPending = false
   private var userMovedHead = false
   private var initialDownX = 0
   private var initialDownY = 0
@@ -177,7 +183,8 @@ class WebHeadsController(
     bounds = ScreenBounds.of(width, height, headWindowPx, density)
     val anchor = anchor ?: return
     anchorHeld = true
-    resnap(anchor)
+    // A held head stays under the finger; the heads move when it lifts.
+    if (fingerDown) resnapPending = true else resnap(anchor)
   }
 
   /**
@@ -252,6 +259,12 @@ class WebHeadsController(
   fun onTouchDown(head: WebHeadState, rawX: Float, rawY: Float) {
     if (!acceptsTouch(head)) return
     anchorHeld = false
+    fingerDown = true
+    if (resnapping) {
+      // The touch takes the head where it is; the stack finds its place again after the release.
+      resnapJob?.cancel()
+      resnapPending = true
+    }
     dragging = false
     recentMoves.clear()
     initialDownX = head.windowX
@@ -293,6 +306,10 @@ class WebHeadsController(
    */
   fun onTouchUp(head: WebHeadState, velocityX: Float, velocityY: Float, upRawX: Float, upRawY: Float) {
     if (!acceptsTouch(head)) return
+    val resnapAfterRelease = resnapPending
+    val dragged = dragging
+    fingerDown = false
+    resnapPending = false
     anchorHeld = false
     var flung = false
     if (dragging && (abs(velocityX) > minFlingVelocity || abs(velocityY) > minFlingVelocity)) {
@@ -310,7 +327,16 @@ class WebHeadsController(
     }
     dragging = false
     recentMoves.clear()
-    if (!flung && userMovedHead) stickToWall(head)
+    if (resnapAfterRelease) {
+      // The display changed during this touch. A fling ends at an edge of the new bounds by itself;
+      // a drag leaves the stack on the edge where the head was let go; a tap returns it to its place.
+      if (!flung) {
+        val here = StackAnchor.of(head.windowX, head.windowY, bounds, dispWidth)
+        resnap(if (dragged) here else anchor ?: here)
+      }
+    } else if (!flung && userMovedHead) {
+      stickToWall(head)
+    }
     hideTrash()
     scheduleCoasting()
   }
@@ -594,6 +620,8 @@ class WebHeadsController(
     }
     heads.clear()
     chain = emptyList()
+    fingerDown = false
+    resnapPending = false
     anchor = null
     anchorHeld = false
   }
