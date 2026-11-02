@@ -19,6 +19,7 @@ import arun.com.chromer.ui.settings.SettingsRules
 import arun.com.chromer.ui.settings.SettingsValues
 import arun.com.chromer.util.MAIN_THREAD_WAIT_TAG
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -129,6 +130,23 @@ class PreferencesFacadeTest : LynketRobolectricSuite() {
       val stored = runBlocking { userPreferencesRepository.fresh() }
       assertThat(stored[webHeadsKey]).isEqualTo(webHeads)
       assertThat(stored[nativeBubblesKey]).isEqualTo(nativeBubbles)
+    }
+  }
+
+  @Test
+  fun aggressiveLoadingIsOnOnlyInWebHeadsModeWithItsSettingOn() {
+    val bothOn = true to true
+    (validStates.values + bothOn).forEach { (webHeads, nativeBubbles) ->
+      listOf(true, false).forEach { flag ->
+        store(webHeads, nativeBubbles)
+        preferences.aggressiveLoading(flag)
+
+        // Both on reads as web heads, so it loads in the background like web heads mode.
+        val expected = flag && webHeads
+        assertWithMessage("webHeads=$webHeads nativeBubbles=$nativeBubbles flag=$flag")
+          .that(preferences.aggressiveLoading())
+          .isEqualTo(expected)
+      }
     }
   }
 
