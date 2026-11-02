@@ -141,8 +141,23 @@ class WebHeadsController(
    * Where the stack rests, as a screen edge and a share of the height, so a new head spawns there
    * after a rotation, a fold or a resize. Null until the first head and after every head is gone.
    */
-  var anchor: StackAnchor? = null
-    private set
+  var anchor: StackAnchor?
+    get() {
+      // The master's frames only note its position; the anchor is made from the last one when read.
+      if (anchorFromFrame) {
+        storedAnchor = StackAnchor.of(anchorFrameX, anchorFrameY, bounds, dispWidth)
+        anchorFromFrame = false
+      }
+      return storedAnchor
+    }
+    private set(value) {
+      storedAnchor = value
+      anchorFromFrame = false
+    }
+  private var storedAnchor: StackAnchor? = null
+  private var anchorFromFrame = false
+  private var anchorFrameX = 0
+  private var anchorFrameY = 0
 
   /**
    * True after a display change until a touch or a new head moves the master: its window still
@@ -237,10 +252,13 @@ class WebHeadsController(
     minHorizontalFlingVelocity = WebHeadMotion.minHorizontalFlingVelocity(screenWidthDp, density)
     // A theme, locale or font change keeps the size: the heads stay where they are.
     if (width == dispWidth && height == dispHeight) return
+    // Read against the old display: a position noted by a frame belongs to the old bounds.
+    val anchor = anchor
     dispWidth = width
     dispHeight = height
     bounds = ScreenBounds.of(width, height, headWindowPx, density)
-    val anchor = anchor ?: return
+    if (anchor == null) return
+    this.anchor = anchor
     anchorHeld = true
     // A held head stays under the finger; the heads move when it lifts.
     if (!holdResnapForFinger()) resnap(anchor)
@@ -480,7 +498,11 @@ class WebHeadsController(
     val y = head.windowY
     host.moveHeadWindow(head, x, y)
     if (head.isMaster) {
-      if (!anchorHeld) anchor = StackAnchor.of(x, y, bounds, dispWidth)
+      if (!anchorHeld) {
+        anchorFrameX = x
+        anchorFrameY = y
+        anchorFromFrame = true
+      }
       onMasterMoved(head)
       checkBounds(head)
       head.badgeOnLeft = x > dispWidth / 2
