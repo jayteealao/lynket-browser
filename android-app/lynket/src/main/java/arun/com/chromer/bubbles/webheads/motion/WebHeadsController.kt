@@ -41,6 +41,9 @@ class WebHeadState(val url: String, val fromAmp: Boolean = false, val incognito:
   var colour by mutableStateOf<Color?>(null)
   var isMaster by mutableStateOf(false)
   var badgeCount by mutableIntStateOf(1)
+
+  /** Place in the stack that screen readers say, counted from the front: the newest head is 1 and the oldest is [badgeCount]. */
+  var stackPosition by mutableIntStateOf(1)
   var badgeOnLeft by mutableStateOf(false)
   var lockedToTrash by mutableStateOf(false)
   var revealed by mutableStateOf(false)

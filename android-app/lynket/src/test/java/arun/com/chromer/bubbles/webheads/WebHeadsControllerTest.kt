@@ -749,6 +749,48 @@ class WebHeadsControllerTest {
     assertThat(xs.last()).isEqualTo(c.bounds.right)
   }
 
+  @Test
+  fun every_head_knows_its_place_in_the_stack_front_first() = runTest {
+    val c = controller()
+    val a = c.add("https://a.example")
+    val b = c.add("https://b.example")
+    val m = c.add("https://m.example")
+    assertThat(m.stackPosition).isEqualTo(1)
+    assertThat(b.stackPosition).isEqualTo(2)
+    assertThat(a.stackPosition).isEqualTo(3)
+    assertThat(listOf(a, b, m).map { it.badgeCount }).containsExactly(3, 3, 3)
+  }
+
+  @Test
+  fun closing_a_head_renumbers_the_stack() = runTest {
+    val c = controller()
+    val a = c.add("https://a.example")
+    val b = c.add("https://b.example")
+    val cc = c.add("https://c.example")
+    c.add("https://d.example")
+    c.close("https://d.example")
+    runCurrent()
+    assertThat(listOf(cc, b, a).map { it.stackPosition }).containsExactly(1, 2, 3).inOrder()
+    assertThat(listOf(cc, b, a).map { it.badgeCount }).containsExactly(3, 3, 3)
+    c.close("https://b.example")
+    runCurrent()
+    assertThat(listOf(cc, a).map { it.stackPosition }).containsExactly(1, 2).inOrder()
+    assertThat(listOf(cc, a).map { it.badgeCount }).containsExactly(2, 2)
+  }
+
+  @Test
+  fun a_lone_head_is_one_of_one() = runTest {
+    val c = controller()
+    val only = c.add("https://a.example")
+    assertThat(only.stackPosition).isEqualTo(1)
+    assertThat(only.badgeCount).isEqualTo(1)
+    c.add("https://b.example")
+    c.removeAll()
+    val fresh = c.add("https://c.example")
+    assertThat(fresh.stackPosition).isEqualTo(1)
+    assertThat(fresh.badgeCount).isEqualTo(1)
+  }
+
   private companion object {
     /** A normal flick of a thumb on a phone, in dp per second. */
     const val PHONE_FLICK_DP_S = 1_000f
