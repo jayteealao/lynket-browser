@@ -510,7 +510,10 @@ class WebHeadsController(
 
   private fun updateBadges() {
     val count = heads.size
-    heads.values.forEach { it.badgeCount = count }
+    heads.values.reversed().forEachIndexed { index, head ->
+      head.badgeCount = count
+      head.stackPosition = index + 1
+    }
   }
 
   private fun isNearTrash(head: WebHeadState, x: Int, y: Int): Boolean {
