@@ -419,6 +419,9 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     trashWindow?.touchable = shown
   }
 
+  override fun performHaptic(head: WebHeadState, feedbackConstant: Int) {
+  }
+
   override fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean) {
     if (isLastHead) {
       controller?.exitTrash { stopService() } ?: stopService()

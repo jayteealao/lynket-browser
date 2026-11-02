@@ -88,6 +88,9 @@ interface WebHeadHost {
 
   /** The trash appeared under a drag or went away; screen readers see it only while it shows. */
   fun onTrashShown(shown: Boolean)
+
+  /** A haptic tick on [head]'s window; [feedbackConstant] is one of `android.view.HapticFeedbackConstants`. */
+  fun performHaptic(head: WebHeadState, feedbackConstant: Int)
 }
 
 /**

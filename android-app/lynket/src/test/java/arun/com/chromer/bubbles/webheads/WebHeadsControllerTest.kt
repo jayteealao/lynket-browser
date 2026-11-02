@@ -12,6 +12,7 @@
 package arun.com.chromer.bubbles.webheads
 
 import android.app.Application
+import android.view.HapticFeedbackConstants
 import androidx.compose.runtime.MonotonicFrameClock
 import androidx.compose.ui.MotionDurationScale
 import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
@@ -92,6 +93,13 @@ private class RecordingHost : WebHeadHost {
 
   override fun onTrashShown(shown: Boolean) {
     trashShown.add(shown)
+  }
+
+  /** Every haptic tick, as the head's url to the feedback constant, in order. */
+  val haptics = mutableListOf<Pair<String, Int>>()
+
+  override fun performHaptic(head: WebHeadState, feedbackConstant: Int) {
+    haptics.add(head.url to feedbackConstant)
   }
 }
 
@@ -865,6 +873,93 @@ class WebHeadsControllerTest {
     settle(WebHeadMotion.TRASH_CLOSE_MS + 50)
     assertThat(host.destroyed).containsExactly(head.url to true)
     assertThat(host.trashShown).containsExactly(true, false, true, false).inOrder()
+  }
+
+  @Test
+  @Config(sdk = [34])
+  fun locking_onto_the_trash_ticks_once_with_confirm() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    val trashCentreX = c.trashX + trashPx / 2f
+    val trashCentreY = c.trashY + trashPx / 2f
+    c.touchDownOn(head)
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    repeat(8) { i -> c.onTouchMove(head, trashCentreX + (i % 4) * 5f, trashCentreY - (i % 3) * 5f) }
+    runCurrent()
+    assertThat(host.haptics).containsExactly(head.url to HapticFeedbackConstants.CONFIRM)
+  }
+
+  @Test
+  @Config(sdk = [29])
+  fun before_android_11_the_lock_ticks_with_virtual_key() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    val trashCentreX = c.trashX + trashPx / 2f
+    val trashCentreY = c.trashY + trashPx / 2f
+    c.touchDownOn(head)
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    repeat(8) { i -> c.onTouchMove(head, trashCentreX + (i % 4) * 5f, trashCentreY - (i % 3) * 5f) }
+    runCurrent()
+    assertThat(host.haptics).containsExactly(head.url to HapticFeedbackConstants.VIRTUAL_KEY)
+  }
+
+  @Test
+  @Config(sdk = [34])
+  fun leaving_the_trash_ticks_once_with_clock_tick() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    val trashCentreX = c.trashX + trashPx / 2f
+    val trashCentreY = c.trashY + trashPx / 2f
+    val lock = head.url to HapticFeedbackConstants.CONFIRM
+    val leave = head.url to HapticFeedbackConstants.CLOCK_TICK
+    c.touchDownOn(head)
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    runCurrent()
+    c.onTouchMove(head, width / 2f, height / 2f)
+    c.onTouchMove(head, width / 2f + 10f, height / 2f - 10f)
+    c.onTouchMove(head, width / 2f - 10f, height / 2f + 10f)
+    runCurrent()
+    assertThat(host.haptics).containsExactly(lock, leave).inOrder()
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    runCurrent()
+    assertThat(host.haptics).containsExactly(lock, leave, lock).inOrder()
+    c.onTouchMove(head, width / 2f, height / 2f)
+    c.onTouchUp(head, 0f, 0f, width / 2f, height / 2f)
+    settle()
+    assertThat(host.haptics).containsExactly(lock, leave, lock, leave).inOrder()
+  }
+
+  @Test
+  fun closing_on_the_trash_gives_no_leave_tick() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    val trashCentreX = c.trashX + trashPx / 2f
+    val trashCentreY = c.trashY + trashPx / 2f
+    c.touchDownOn(head)
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    settle(1_000)
+    c.onTouchUp(head, 0f, 0f, trashCentreX, trashCentreY)
+    settle(WebHeadMotion.TRASH_CLOSE_MS + 50)
+    assertThat(host.destroyed).containsExactly(head.url to true)
+    assertThat(host.haptics).containsExactly(head.url to WebHeadMotion.trashLockHaptic())
+  }
+
+  @Test
+  fun a_drag_or_tap_away_from_the_trash_ticks_nothing() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    c.touchDownOn(head)
+    c.onTouchMove(head, 700f, 900f)
+    c.onTouchMove(head, 650f, 1000f)
+    c.onTouchMove(head, 600f, 1100f)
+    c.onTouchUp(head, 0f, 0f, 600f, 1100f)
+    settle()
+    c.touchDownOn(head)
+    val (x0, y0) = host.windows.getValue(head.url)
+    c.onTouchUp(head, 0f, 0f, x0 + headPx / 2f, y0 + headPx / 2f)
+    c.onTap(head)
+    settle()
+    assertThat(host.haptics).isEmpty()
   }
 
   private companion object {
