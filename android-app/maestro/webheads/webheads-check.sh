@@ -345,6 +345,20 @@ master_frame() {
   overlay_windows | awk '$1 == 1 { print $2, $3, $4, $5; exit }'
 }
 
+# Layout top of the master head (the front touchable overlay window), the y the app gives its window.
+# The frame sits below it by the status bar, which differs between portrait and landscape, so the
+# share of the height is measured from this value.
+master_layout_top() {
+  a shell dumpsys window windows | tr -d '\r' | awk -v pkg="$PKG" '
+    /^  Window #/ { if (keep && t) { print y; exit } keep = 0; t = 1; y = ""; inwin = ($0 ~ ("u0 " pkg "}")); next }
+    inwin && /ty=APPLICATION_OVERLAY/ { keep = 1 }
+    inwin && /NOT_TOUCHABLE/ { t = 0 }
+    inwin && y == "" && match($0, /mAttrs=\{\(-?[0-9]+,-?[0-9]+\)/) {
+      s = substr($0, RSTART + 9, RLENGTH - 10); sub(/^-?[0-9]+,/, "", s); y = s
+    }
+    END { if (keep && t) print y }' | head -1
+}
+
 # Current logical display size as "W H"; unlike `wm size` it follows the rotation.
 display_size() {
   a shell dumpsys window displays | tr -d '\r' | grep -o -m1 'cur=[0-9]*x[0-9]*' | sed 's/cur=//' | tr 'x' ' '
@@ -523,8 +537,7 @@ rest_master_at() {
   ty="$(awk -v t="$top" -v b="$bottom" -v s="$2" -v fh="$((fb - ft))" 'BEGIN { print int(t + s * (b - t) + fh / 2) }')"
   a shell input swipe "$cx" "$cy" "$1" "$ty" 1500
   sleep 3
-  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
-  RATIO_P="$(share_of_range "$ft" "$top" "$bottom")"
+  RATIO_P="$(share_of_range "$(master_layout_top)" "$top" "$bottom")"
 }
 
 # After a turn to landscape: every head rests on the $1 edge (left or right) inside the screen, and
@@ -550,7 +563,7 @@ check_stack_on() {
     [ "$ft" -ge $((top - 2)) ] && [ "$ft" -le $((bottom + 30)) ] || fail "a head is outside the bounds (top $ft, range $top..$bottom)"
   done < <(head_frames)
   read -r fl ft fr fb < <(master_frame) || fail "no master head window"
-  RATIO_L="$(share_of_range "$ft" "$top" "$bottom")"
+  RATIO_L="$(share_of_range "$(master_layout_top)" "$top" "$bottom")"
   log "landscape ${w}x${h} (size from $APP_SIZE_SOURCE), rest range $top..$bottom, master frame $fl $ft $fr $fb, share $RATIO_L"
   awk -v a="$RATIO_L" -v b="$2" 'BEGIN { exit !(a - b <= 0.03 && b - a <= 0.03) }' || fail "the stack lost its height ($RATIO_L against $2)"
 }
