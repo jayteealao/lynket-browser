@@ -149,11 +149,41 @@ class WebHeadsController(
   // Gesture state of the master.
   private var dragging = false
 
-  /** True from a touch down on the master until its release. */
-  private var fingerDown = false
+  /**
+   * The finger on the master and a display change that waits for it, as one state. [holdFinger],
+   * [holdResnapForFinger] and [releaseFinger] are its only transitions.
+   */
+  private enum class FingerHold {
+    /** No finger on the master. */
+    NONE,
 
-  /** True when the display changed under a finger: the heads move after the release. */
-  private var resnapPending = false
+    /** A finger holds the master. */
+    HELD,
+
+    /** A finger holds the master and the display changed under it: the heads move after the release. */
+    HELD_RESNAP_AFTER,
+  }
+
+  private var fingerHold = FingerHold.NONE
+
+  /** A finger went down on the master; [interruptedResnap] when it stopped a running re-snap. */
+  private fun holdFinger(interruptedResnap: Boolean) {
+    fingerHold = if (interruptedResnap || fingerHold == FingerHold.HELD_RESNAP_AFTER) FingerHold.HELD_RESNAP_AFTER else FingerHold.HELD
+  }
+
+  /** The display changed: true when a finger holds the master and the re-snap must wait for it. */
+  private fun holdResnapForFinger(): Boolean {
+    if (fingerHold == FingerHold.NONE) return false
+    fingerHold = FingerHold.HELD_RESNAP_AFTER
+    return true
+  }
+
+  /** The finger is gone; returns whether a re-snap waited for it. */
+  private fun releaseFinger(): Boolean {
+    val resnapAfter = fingerHold == FingerHold.HELD_RESNAP_AFTER
+    fingerHold = FingerHold.NONE
+    return resnapAfter
+  }
   private var userMovedHead = false
   private var initialDownX = 0
   private var initialDownY = 0
@@ -197,7 +227,7 @@ class WebHeadsController(
     val anchor = anchor ?: return
     anchorHeld = true
     // A held head stays under the finger; the heads move when it lifts.
-    if (fingerDown) resnapPending = true else resnap(anchor)
+    if (!holdResnapForFinger()) resnap(anchor)
   }
 
   /**
@@ -272,12 +302,10 @@ class WebHeadsController(
   fun onTouchDown(head: WebHeadState, rawX: Float, rawY: Float) {
     if (!acceptsTouch(head)) return
     anchorHeld = false
-    fingerDown = true
-    if (resnapping) {
-      // The touch takes the head where it is; the stack finds its place again after the release.
-      resnapJob?.cancel()
-      resnapPending = true
-    }
+    // The touch takes the head where it is; the stack finds its place again after the release.
+    val interruptedResnap = resnapping
+    if (interruptedResnap) resnapJob?.cancel()
+    holdFinger(interruptedResnap)
     dragging = false
     recentMoves.clear()
     initialDownX = head.windowX
@@ -319,10 +347,8 @@ class WebHeadsController(
    */
   fun onTouchUp(head: WebHeadState, velocityX: Float, velocityY: Float, upRawX: Float, upRawY: Float) {
     if (!acceptsTouch(head)) return
-    val resnapAfterRelease = resnapPending
+    val resnapAfterRelease = releaseFinger()
     val dragged = dragging
-    fingerDown = false
-    resnapPending = false
     anchorHeld = false
     var flung = false
     if (dragging && (abs(velocityX) > minFlingVelocity || abs(velocityY) > minFlingVelocity)) {
@@ -679,8 +705,7 @@ class WebHeadsController(
     }
     heads.clear()
     chain = emptyList()
-    fingerDown = false
-    resnapPending = false
+    releaseFinger()
     anchor = null
     anchorHeld = false
   }
