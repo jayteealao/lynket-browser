@@ -600,4 +600,157 @@ class WebHeadsControllerTest {
     settle()
     assertStackAt(c, Side.RIGHT, 0.5f)
   }
+
+  /**
+   * A controller on a window [widthDp] wide at density 2 (a 56 dp head in a 68 dp window), with
+   * its own [wideHost], so one test can try several widths.
+   */
+  private fun TestScope.wideController(widthDp: Int, wideHost: RecordingHost) = WebHeadsController(
+    host = wideHost,
+    scope = backgroundScope + TestFrameClock(),
+    dispWidth = widthDp * 2,
+    dispHeight = 1600,
+    density = 2f,
+    screenWidthDp = widthDp,
+    headWindowPx = 136,
+    trashWindowPx = 184,
+    touchSlop = 16f,
+    minFlingVelocity = 100f,
+    spawnOnRight = true,
+    closeOnOpen = { false },
+  )
+
+  /**
+   * Drags [head] from its window's centre to [releaseShare] of the window width in 100 px steps, the
+   * last step pointing the way of the fling, then lets go at [dpPerSecond] towards the right or the
+   * left; the release velocity is [dpPerSecond] times [density], in px per second.
+   */
+  private fun TestScope.flick(
+    c: WebHeadsController,
+    on: RecordingHost,
+    head: WebHeadState,
+    releaseShare: Float,
+    towardsRight: Boolean,
+    dpPerSecond: Float,
+    density: Float = 2f,
+    clearMovesBeforeRelease: Boolean = false,
+  ) {
+    val (x0, y0) = on.windows.getValue(head.url)
+    val downX = x0 + c.headWindowPx / 2f
+    val y = y0 + c.headWindowPx / 2f
+    val releaseX = releaseShare * c.dispWidth
+    val dir = if (towardsRight) 1f else -1f
+    val approachX = releaseX - dir * 100f
+    c.onTouchDown(head, downX, y)
+    var x = downX
+    val step = if (approachX > x) 100f else -100f
+    while (abs(approachX - x) > 100f) {
+      x += step
+      c.onTouchMove(head, x, y)
+    }
+    c.onTouchMove(head, approachX, y)
+    c.onTouchMove(head, releaseX, y)
+    runCurrent()
+    if (clearMovesBeforeRelease) on.moves.clear()
+    c.onTouchUp(head, dir * dpPerSecond * density, 0f, releaseX, y)
+  }
+
+  @Test
+  fun a_normal_flick_snaps_to_the_edge_it_points_to_on_every_width() = runTest {
+    listOf(360, 768, 1_280).forEach { widthDp ->
+      val toRight = RecordingHost()
+      val r = wideController(widthDp, toRight)
+      val a = r.add("https://a.example")
+      flick(r, toRight, a, 0.45f, towardsRight = true, dpPerSecond = PHONE_FLICK_DP_S)
+      settle()
+      assertThat(toRight.windows.getValue(a.url).first).isEqualTo(r.bounds.right)
+
+      val toLeft = RecordingHost()
+      val l = wideController(widthDp, toLeft)
+      val b = l.add("https://b.example")
+      flick(l, toLeft, b, 0.55f, towardsRight = false, dpPerSecond = PHONE_FLICK_DP_S)
+      settle()
+      assertThat(toLeft.windows.getValue(b.url).first).isEqualTo(l.bounds.left)
+    }
+  }
+
+  @Test
+  fun a_gentle_flick_on_a_wide_window_still_reaches_its_edge() = runTest {
+    val toRight = RecordingHost()
+    val r = wideController(1_280, toRight)
+    val a = r.add("https://a.example")
+    flick(r, toRight, a, 0.45f, towardsRight = true, dpPerSecond = 300f)
+    settle()
+    assertThat(toRight.windows.getValue(a.url).first).isEqualTo(r.bounds.right)
+
+    val toLeft = RecordingHost()
+    val l = wideController(1_280, toLeft)
+    val b = l.add("https://b.example")
+    flick(l, toLeft, b, 0.55f, towardsRight = false, dpPerSecond = 300f)
+    settle()
+    assertThat(toLeft.windows.getValue(b.url).first).isEqualTo(l.bounds.left)
+  }
+
+  @Test
+  fun a_wide_window_fling_does_not_bounce_past_the_edge() = runTest {
+    val toRight = RecordingHost()
+    val r = wideController(1_280, toRight)
+    val a = r.add("https://a.example")
+    flick(r, toRight, a, 0.5f, towardsRight = true, dpPerSecond = PHONE_FLICK_DP_S, clearMovesBeforeRelease = true)
+    settle()
+    val right = toRight.moves.getValue(a.url).map { it.first }
+    assertThat(right).isNotEmpty()
+    right.forEach { assertThat(it).isAtMost(r.bounds.right) }
+    assertThat(right.last()).isEqualTo(r.bounds.right)
+
+    val toLeft = RecordingHost()
+    val l = wideController(1_280, toLeft)
+    val b = l.add("https://b.example")
+    flick(l, toLeft, b, 0.5f, towardsRight = false, dpPerSecond = PHONE_FLICK_DP_S, clearMovesBeforeRelease = true)
+    settle()
+    val left = toLeft.moves.getValue(b.url).map { it.first }
+    assertThat(left).isNotEmpty()
+    left.forEach { assertThat(it).isAtLeast(l.bounds.left) }
+    assertThat(left.last()).isEqualTo(l.bounds.left)
+  }
+
+  @Test
+  fun a_slow_release_on_a_wide_window_snaps_to_the_nearer_edge() = runTest {
+    // Let go with no speed left of the middle, then just under the fling speed towards the right.
+    listOf(0f, 40f).forEach { dpPerSecond ->
+      val on = RecordingHost()
+      val c = wideController(1_280, on)
+      val head = c.add("https://a.example")
+      flick(c, on, head, 0.45f, towardsRight = true, dpPerSecond = dpPerSecond)
+      settle()
+      assertThat(on.windows.getValue(head.url).first).isEqualTo(c.bounds.left)
+    }
+    val on = RecordingHost()
+    val c = wideController(1_280, on)
+    val head = c.add("https://a.example")
+    flick(c, on, head, 0.55f, towardsRight = true, dpPerSecond = 0f)
+    settle()
+    assertThat(on.windows.getValue(head.url).first).isEqualTo(c.bounds.right)
+  }
+
+  @Test
+  fun the_cap_follows_a_resize_to_a_wide_window() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    settle()
+    // 1 280 dp at the phone's density of 2.625.
+    c.updateDisplay(3360, 2100, 1_280)
+    settle()
+    flick(c, host, head, 0.5f, towardsRight = true, dpPerSecond = PHONE_FLICK_DP_S, density = density, clearMovesBeforeRelease = true)
+    settle()
+    val xs = host.moves.getValue(head.url).map { it.first }
+    assertThat(xs).isNotEmpty()
+    xs.forEach { assertThat(it).isAtMost(c.bounds.right) }
+    assertThat(xs.last()).isEqualTo(c.bounds.right)
+  }
+
+  private companion object {
+    /** A normal flick of a thumb on a phone, in dp per second. */
+    const val PHONE_FLICK_DP_S = 1_000f
+  }
 }
