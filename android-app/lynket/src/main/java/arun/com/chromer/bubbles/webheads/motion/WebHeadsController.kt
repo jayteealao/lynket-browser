@@ -374,6 +374,8 @@ class WebHeadsController(
       }
     }
     if (head.lockedToTrash) {
+      // The trash plays its close but no longer takes touches: nothing is held over it now.
+      stopTrashTouches()
       destroy(head, receiveCallback = true)
       return
     }
@@ -616,6 +618,13 @@ class WebHeadsController(
     trash.locked = locked
     if (locked) trash.lockCount++
     return true
+  }
+
+  /** Tells the host the trash is done with touches while it still draws, as when a head closes on it. */
+  private fun stopTrashTouches() {
+    if (!trashShown) return
+    trashShown = false
+    host.onTrashShown(false)
   }
 
   /** Tells the host when the trash starts or stops showing, once per change. */

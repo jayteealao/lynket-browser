@@ -905,6 +905,26 @@ class WebHeadsControllerTest {
   }
 
   @Test
+  fun a_release_on_the_trash_stops_its_touches_before_the_close_ends() = runTest {
+    val c = controller()
+    c.add("https://a.example")
+    val head = c.add("https://b.example")
+    val trashCentreX = c.trashX + trashPx / 2f
+    val trashCentreY = c.trashY + trashPx / 2f
+    c.touchDownOn(head)
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    settle(1_000)
+    c.onTouchUp(head, 0f, 0f, trashCentreX, trashCentreY)
+    runCurrent()
+    // The close still plays on the trash, but the trash window takes no touch meanwhile.
+    assertThat(host.destroyed).isEmpty()
+    assertThat(host.trashShown).containsExactly(true, false).inOrder()
+    settle(WebHeadMotion.TRASH_CLOSE_MS + 50)
+    assertThat(host.destroyed).containsExactly(head.url to false)
+    assertThat(host.trashShown).containsExactly(true, false).inOrder()
+  }
+
+  @Test
   @Config(sdk = [34])
   fun locking_onto_the_trash_ticks_once_with_confirm() = runTest {
     val c = controller()
