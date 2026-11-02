@@ -301,10 +301,10 @@ class WebHeadsController(
     val y = (initialDownY + offsetY).toInt()
     if (isNearTrash(head, x, y)) {
       trash.scale = 1f
-      trash.locked = true
+      setTrashLocked(true)
       springTo(head, trashLockX.toFloat(), trashLockY.toFloat(), WebHeadMotion.Snap)
     } else {
-      trash.locked = false
+      setTrashLocked(false)
       if (trash.scale > 0f) trash.scale = 0.9f
       snapTo(head, x.toFloat(), y.toFloat())
     }
@@ -554,14 +554,34 @@ class WebHeadsController(
 
   // region Trash
 
+  /** Whether the host last heard that the trash shows. */
+  private var trashShown = false
+
   private fun revealTrash() {
     trash.exiting = false
     if (trash.scale == 0f) trash.scale = 0.9f
+    updateTrashShown()
   }
 
   fun hideTrash() {
-    trash.locked = false
+    setTrashLocked(false)
     trash.scale = 0f
+    updateTrashShown()
+  }
+
+  /** Writes the lock only when it changes, so each lock counts once and a held head never repeats it. */
+  private fun setTrashLocked(locked: Boolean) {
+    if (trash.locked == locked) return
+    trash.locked = locked
+    if (locked) trash.lockCount++
+  }
+
+  /** Tells the host when the trash starts or stops showing, once per change. */
+  private fun updateTrashShown() {
+    val shown = trash.scale > 0f
+    if (shown == trashShown) return
+    trashShown = shown
+    host.onTrashShown(shown)
   }
 
   // endregion
@@ -635,6 +655,7 @@ class WebHeadsController(
   fun exitTrash(onEnd: () -> Unit) {
     trash.exiting = true
     trash.scale = 0f
+    updateTrashShown()
     scope.launch {
       delay(WebHeadMotion.TRASH_EXIT_MS)
       onEnd()
