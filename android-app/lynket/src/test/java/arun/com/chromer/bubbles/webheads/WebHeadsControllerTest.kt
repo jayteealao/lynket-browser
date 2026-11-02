@@ -58,6 +58,9 @@ private class RecordingHost : WebHeadHost {
   val destroyed = ArrayList<Pair<String, Boolean>>()
   var longPresses = 0
 
+  /** Every time the trash showed (true) or went away (false), in order. */
+  val trashShown = mutableListOf<Boolean>()
+
   override fun addHeadWindow(head: WebHeadState, x: Int, y: Int) {
     windows[head.url] = x to y
   }
@@ -85,6 +88,10 @@ private class RecordingHost : WebHeadHost {
 
   override fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean) {
     destroyed.add(head.url to isLastHead)
+  }
+
+  override fun onTrashShown(shown: Boolean) {
+    trashShown.add(shown)
   }
 }
 
@@ -789,6 +796,75 @@ class WebHeadsControllerTest {
     val fresh = c.add("https://c.example")
     assertThat(fresh.stackPosition).isEqualTo(1)
     assertThat(fresh.badgeCount).isEqualTo(1)
+  }
+
+  /** Holds [head] down at its centre, as a finger does before a drag. */
+  private fun WebHeadsController.touchDownOn(head: WebHeadState) {
+    val (x0, y0) = host.windows.getValue(head.url)
+    onTouchDown(head, x0 + headPx / 2f, y0 + headPx / 2f)
+  }
+
+  @Test
+  fun the_trash_locks_once_while_a_head_stays_on_it() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    val trashCentreX = c.trashX + trashPx / 2f
+    val trashCentreY = c.trashY + trashPx / 2f
+    c.touchDownOn(head)
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    repeat(8) { i -> c.onTouchMove(head, trashCentreX + (i % 4) * 5f, trashCentreY - (i % 3) * 5f) }
+    runCurrent()
+    assertThat(c.trash.locked).isTrue()
+    assertThat(c.trash.lockCount).isEqualTo(1)
+  }
+
+  @Test
+  fun leaving_and_returning_locks_the_trash_again() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    val trashCentreX = c.trashX + trashPx / 2f
+    val trashCentreY = c.trashY + trashPx / 2f
+    c.touchDownOn(head)
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    runCurrent()
+    assertThat(c.trash.lockCount).isEqualTo(1)
+    c.onTouchMove(head, width / 2f, height / 2f)
+    runCurrent()
+    assertThat(c.trash.locked).isFalse()
+    assertThat(c.trash.lockCount).isEqualTo(1)
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    runCurrent()
+    assertThat(c.trash.locked).isTrue()
+    assertThat(c.trash.lockCount).isEqualTo(2)
+    c.onTouchMove(head, width / 2f, height / 2f)
+    c.onTouchUp(head, 0f, 0f, width / 2f, height / 2f)
+    runCurrent()
+    assertThat(c.trash.locked).isFalse()
+    assertThat(c.trash.lockCount).isEqualTo(2)
+  }
+
+  @Test
+  fun the_host_hears_when_the_trash_shows_and_hides() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    c.touchDownOn(head)
+    c.onTouchMove(head, 700f, 900f)
+    c.onTouchMove(head, 650f, 1000f)
+    c.onTouchMove(head, 600f, 1100f)
+    runCurrent()
+    assertThat(host.trashShown).containsExactly(true)
+    c.onTouchUp(head, 0f, 0f, 600f, 1100f)
+    settle()
+    assertThat(host.trashShown).containsExactly(true, false).inOrder()
+    val trashCentreX = c.trashX + trashPx / 2f
+    val trashCentreY = c.trashY + trashPx / 2f
+    c.touchDownOn(head)
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    settle(1_000)
+    c.onTouchUp(head, 0f, 0f, trashCentreX, trashCentreY)
+    settle(WebHeadMotion.TRASH_CLOSE_MS + 50)
+    assertThat(host.destroyed).containsExactly(head.url to true)
+    assertThat(host.trashShown).containsExactly(true, false, true, false).inOrder()
   }
 
   private companion object {

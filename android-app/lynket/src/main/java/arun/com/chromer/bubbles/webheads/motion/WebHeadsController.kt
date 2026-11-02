@@ -70,6 +70,10 @@ class TrashState {
   var scale by mutableFloatStateOf(0f)
   var locked by mutableStateOf(false)
   var exiting by mutableStateOf(false)
+
+  /** How many times a head has locked onto the trash: it grows by one on each lock, never while a head stays locked. */
+  var lockCount by mutableIntStateOf(0)
+    internal set
 }
 
 /** What the controller needs from the overlay: windows and the service actions. */
@@ -81,6 +85,9 @@ interface WebHeadHost {
   fun onHeadClick(head: WebHeadState)
   fun onHeadsLongPress()
   fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean)
+
+  /** The trash appeared under a drag or went away; screen readers see it only while it shows. */
+  fun onTrashShown(shown: Boolean)
 }
 
 /**

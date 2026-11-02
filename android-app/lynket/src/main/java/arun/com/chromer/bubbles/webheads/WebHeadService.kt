@@ -415,6 +415,9 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     openContextActivity()
   }
 
+  override fun onTrashShown(shown: Boolean) {
+  }
+
   override fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean) {
     if (isLastHead) {
       controller?.exitTrash { stopService() } ?: stopService()
