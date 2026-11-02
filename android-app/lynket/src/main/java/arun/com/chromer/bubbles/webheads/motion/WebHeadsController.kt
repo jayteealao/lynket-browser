@@ -575,7 +575,9 @@ class WebHeadsController(
   private fun isNearTrash(head: WebHeadState, x: Int, y: Int): Boolean {
     val offset = headWindowPx / 2
     val distance = hypot((trashCentreX - (x + offset)).toFloat(), (trashCentreY - (y + offset)).toFloat())
-    val near = distance < WebHeadMotion.MAGNETISM_DP * density
+    // Locking and letting go use two radii, so the lock does not flicker at the edge of the magnet.
+    val radius = WebHeadMotion.MAGNETISM_DP * density * (if (head.lockedToTrash) WebHeadMotion.TRASH_RELEASE_FACTOR else 1f)
+    val near = distance < radius
     head.lockedToTrash = near
     displacementEnabled = !near
     return near

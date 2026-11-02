@@ -92,6 +92,12 @@ object WebHeadMotion {
   /** Distance from the trash centre, in dp, inside which a dragged head locks to the trash. */
   const val MAGNETISM_DP = 120f
 
+  /**
+   * A locked head lets go of the trash only this many times [MAGNETISM_DP] away, so a finger
+   * resting at the edge of the magnet does not lock and unlock (and tick) over and over.
+   */
+  const val TRASH_RELEASE_FACTOR = 1.2f
+
   /** Offsets of each follower behind the master, per follower, in dp. */
   const val CHAIN_X_DP = 4f
   const val CHAIN_Y_DP = 1.7f

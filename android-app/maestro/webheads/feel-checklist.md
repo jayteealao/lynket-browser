@@ -5,7 +5,7 @@ line with the web heads of release 2.1.3 and write "same as today", or what diff
 
 Device: ____________________  Build: ____________________  Date: __________
 
-Rows 11-13 are new: write what you feel. Turn on Touch feedback first (Settings, Sound & vibration, Vibration & haptics); with it off, no tick is expected.
+Rows 11-14 are new: write what you feel. Turn on Touch feedback first (Settings, Sound & vibration, Vibration & haptics); with it off, no tick is expected.
 
 | # | Behaviour | Result |
 |---|-----------|--------|
@@ -22,6 +22,7 @@ Rows 11-13 are new: write what you feel. Turn on Touch feedback first (Settings,
 | 11 | Dragged onto the trash, the phone ticks once, firmly, the moment the head locks on; holding it there ticks no more | |
 | 12 | Dragged off the locked trash, the phone gives one lighter tick | |
 | 13 | Released on the trash, the head closes with no tick beyond the lock's | |
+| 14 | Held still at the edge of the trash's pull, the head stays locked and the phone stays quiet; it lets go a little further out | |
 
 Touch feedback setting: ______
 

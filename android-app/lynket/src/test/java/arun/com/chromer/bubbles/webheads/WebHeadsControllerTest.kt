@@ -926,6 +926,34 @@ class WebHeadsControllerTest {
   }
 
   @Test
+  fun a_finger_resting_at_the_edge_of_the_magnet_does_not_flicker_the_lock() = runTest {
+    val c = controller()
+    val head = c.add("https://a.example")
+    val trashCentreX = c.trashX + trashPx / 2f
+    val trashCentreY = c.trashY + trashPx / 2f
+    val magnet = WebHeadMotion.MAGNETISM_DP * density
+    val edge = magnet * (1f + WebHeadMotion.TRASH_RELEASE_FACTOR) / 2f
+    c.touchDownOn(head)
+    // Just outside the magnet, before any lock: no lock.
+    c.onTouchMove(head, trashCentreX, trashCentreY - edge)
+    runCurrent()
+    assertThat(c.trash.locked).isFalse()
+    c.onTouchMove(head, trashCentreX, trashCentreY)
+    runCurrent()
+    assertThat(c.trash.locked).isTrue()
+    // Back to the same spot and wobbling there: the head stays locked and nothing ticks again.
+    repeat(6) { i -> c.onTouchMove(head, trashCentreX + (i % 2) * 6f, trashCentreY - edge + (i % 3) * 6f) }
+    runCurrent()
+    assertThat(c.trash.locked).isTrue()
+    assertThat(host.haptics).hasSize(1)
+    // Past the release radius it lets go, with one leave tick.
+    c.onTouchMove(head, trashCentreX, trashCentreY - magnet * WebHeadMotion.TRASH_RELEASE_FACTOR - 10f)
+    runCurrent()
+    assertThat(c.trash.locked).isFalse()
+    assertThat(host.haptics).hasSize(2)
+  }
+
+  @Test
   @Config(sdk = [34])
   fun locking_onto_the_trash_ticks_once_with_confirm() = runTest {
     val c = controller()
