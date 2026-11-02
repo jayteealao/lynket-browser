@@ -13,13 +13,16 @@
 #   restart  web heads chosen: a start of the service with no link stops it with no notification; then
 #         one head open, the app's process killed, and after Android restarts the service no web
 #         heads notification stays and no head shows
+#   rotation  web heads chosen: two heads resting on the left at 70 % of the height in portrait; after a
+#         turn to landscape a new link spawns its head on the left edge at the same share of the
+#         height, not at the default point (restores the rotation settings and the navigation mode)
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation>   (from android-app/)
 set -euo pipefail
 
-SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart>}"
-OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart>}"
-WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart>}"
+SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation>}"
+OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation>}"
+WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation>}"
 source "$(dirname "$0")/lib.sh"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
@@ -320,11 +323,136 @@ check_restart() {
   a shell input keyevent HOME
 }
 
+# Frame of the master head (the front touchable overlay window) as "left top right bottom".
+master_frame() {
+  overlay_windows | awk '$1 == 1 { print $2, $3, $4, $5; exit }'
+}
+
+# Current logical display size as "W H"; unlike `wm size` it follows the rotation.
+display_size() {
+  a shell dumpsys window displays | tr -d '\r' | grep -o -m1 'cur=[0-9]*x[0-9]*' | sed 's/cur=//' | tr 'x' ' '
+}
+
+# Display density as a scale of 160 dpi (the override density when one is set).
+density() {
+  a shell wm density | tr -d '\r' | awk -F': ' '/Override density/ { o = $2 } /Physical density/ { p = $2 } END { print (o != "" ? o : p) / 160 }'
+}
+
+# Rest range of a head on a display of height $1 at density $2, as "top bottom": 25 dp from the top
+# to 85 % of the height, as the app computes it.
+rest_range() {
+  awk -v h="$1" -v d="$2" 'BEGIN { print int(25 * d + 0.5), int(h * 0.85) }'
+}
+
+# Share of the rest range ($2 top, $3 bottom) at which a frame top $1 sits.
+share_of_range() {
+  awk -v y="$1" -v t="$2" -v b="$3" 'BEGIN { printf "%.3f", (y - t) / (b - t) }'
+}
+
+ROT_ACCEL_BEFORE=""
+ROT_USER_BEFORE=""
+restore_rotation_setting() {  # $1 = key, $2 = saved value ("null" when the key was unset)
+  if [ -z "$2" ] || [ "$2" = "null" ]; then a shell settings delete system "$1" >/dev/null 2>&1 || true
+  else a shell settings put system "$1" "$2" >/dev/null 2>&1 || true; fi
+}
+rotation_restore() {
+  restore_rotation_setting user_rotation "$ROT_USER_BEFORE"
+  restore_rotation_setting accelerometer_rotation "$ROT_ACCEL_BEFORE"
+  nav_restore
+  close_all_heads
+}
+
+check_rotation() {
+  # 1. Portrait, fixed, with three-button navigation (the gesture Back zone takes edge swipes).
+  ROT_ACCEL_BEFORE="$(a shell settings get system accelerometer_rotation | tr -d '\r')"
+  ROT_USER_BEFORE="$(a shell settings get system user_rotation | tr -d '\r')"
+  trap rotation_restore EXIT
+  web_heads_mode
+  nav_three_button
+  a shell settings put system accelerometer_rotation 0
+  a shell settings put system user_rotation 0
+  sleep 2
+
+  # 2. Two heads (and the trash window).
+  open_link "https://example.com/?rotation=1"
+  sleep 3
+  open_link "https://example.com/?rotation=2"
+  local n=0
+  for _ in $(seq 1 60); do
+    n="$(overlay_count)"
+    [ "$n" -ge 3 ] && break
+    sleep 1
+  done
+  [ "$n" -ge 3 ] || fail "expected two heads and the trash window, found $n overlay windows"
+  sleep 3
+
+  # 3. The stack dragged slowly to the left edge at 70 % of the rest range.
+  local w h d top bottom fl ft fr fb cx cy ty
+  read -r w h < <(display_size) || fail "no display size"
+  d="$(density)"
+  read -r top bottom < <(rest_range "$h" "$d")
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  read -r cx cy < <(head_centre) || fail "no master head to drag"
+  ty="$(awk -v t="$top" -v b="$bottom" -v fh="$((fb - ft))" 'BEGIN { print int(t + 0.7 * (b - t) + fh / 2) }')"
+  log "portrait ${w}x${h}, density $d, rest range $top..$bottom, master frame $fl $ft $fr $fb"
+  a shell input swipe "$cx" "$cy" 150 "$ty" 1500
+  sleep 3
+  shot rotation-portrait
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  local ratio_p
+  ratio_p="$(share_of_range "$ft" "$top" "$bottom")"
+  log "portrait master frame $fl $ft $fr $fb, share of the height $ratio_p"
+  [ $(((fl + fr) / 2)) -lt $((w / 2)) ] || fail "the stack did not rest on the left at 70 % (frame $fl $ft $fr $fb)"
+  awk -v r="$ratio_p" 'BEGIN { exit !(r - 0.70 <= 0.05 && 0.70 - r <= 0.05) }' || fail "the stack did not rest on the left at 70 % (share $ratio_p)"
+
+  # 4. A turn to landscape.
+  a shell settings put system user_rotation 1
+  for _ in $(seq 1 10); do
+    read -r w h < <(display_size)
+    [ "$w" -gt "$h" ] && break
+    sleep 1
+  done
+  [ "$w" -gt "$h" ] || fail "the display did not turn to landscape (${w}x${h})"
+  sleep 2
+  shot rotation-landscape-before
+
+  # 5. A new link: its head must spawn at the stack, before the master coasts (6 s).
+  a logcat -c
+  open_link "https://example.com/?rotation=3"
+  for _ in $(seq 1 30); do
+    n="$(overlay_count)"
+    [ "$n" -ge 4 ] && break
+    sleep 1
+  done
+  [ "$n" -ge 4 ] || fail "the new link showed no head ($n overlay windows)"
+  sleep 3
+  shot rotation-landscape-after
+  overlay_windows > "$OUT/rotation-windows.txt"
+  a shell dumpsys window windows | tr -d '\r' > "$OUT/rotation-window-dump.txt"
+  read -r top bottom < <(rest_range "$h" "$d")
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  local ratio_l
+  ratio_l="$(share_of_range "$ft" "$top" "$bottom")"
+  log "landscape ${w}x${h}, rest range $top..$bottom, new master frame $fl $ft $fr $fb, share of the height $ratio_l"
+  [ $(((fl + fr) / 2)) -lt $((w / 2)) ] || fail "the new head is not on the stack's side (frame $fl $ft $fr $fb)"
+  [ "$fl" -le 0 ] || fail "the new head is not on the edge (left $fl)"
+  [ "$ft" -ge $((top - 2)) ] && [ "$ft" -le $((bottom + 2)) ] || fail "the new head is outside the bounds (top $ft, range $top..$bottom)"
+  awk -v a="$ratio_l" -v b="$ratio_p" 'BEGIN { exit !(a - b <= 0.05 && b - a <= 0.05) }' || fail "the new head is not at the stack's height ($ratio_l against $ratio_p)"
+  awk -v y="$ft" -v h="$h" 'BEGIN { d = y - h / 3; if (d < 0) d = -d; exit !(d >= 0.1 * h) }' || fail "the new head is at the default spawn point (top $ft)"
+
+  # 6. No crash.
+  app_logcat rotation
+  [ ! -s "$OUT/rotation.crash.txt" ] || fail "crash during the rotation (see rotation.crash.txt)"
+  log "ratio_p $ratio_p, ratio_l $ratio_l, API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "rotation passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
   bubble) check_bubble ;;
   refused) check_refused ;;
   restart) check_restart ;;
+  rotation) check_rotation ;;
   *) echo "unknown check: $WHICH" >&2; exit 2 ;;
 esac
