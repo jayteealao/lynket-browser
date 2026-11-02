@@ -17,6 +17,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Looper
 import android.provider.Settings
+import android.view.WindowManager
 import androidx.compose.ui.graphics.Color
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.data.website.model.Website
@@ -378,5 +379,28 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
 
     assertThat(job.isCompleted).isTrue()
     assertThat(job.isCancelled).isFalse()
+  }
+
+  @Test
+  fun the_trash_window_takes_touches_only_while_a_head_is_dragged() {
+    val service = serviceWith("https://a.example").get()
+    val trash = service.overlayWindows.last()
+    val notTouchable = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+    assertThat(trash.params.flags and notTouchable).isEqualTo(notTouchable)
+
+    val heads = service.controller!!
+    val head = heads["https://a.example"]!!
+    val downX = head.windowX + 50f
+    val downY = head.windowY + 50f
+    heads.onTouchDown(head, downX, downY)
+    heads.onTouchMove(head, downX - 150f, downY + 150f)
+    shadowOf(Looper.getMainLooper()).idle()
+    heads.onTouchMove(head, downX - 300f, downY + 300f)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(trash.params.flags and notTouchable).isEqualTo(0)
+
+    heads.onTouchUp(head, 0f, 0f, downX - 300f, downY + 300f)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(trash.params.flags and notTouchable).isEqualTo(notTouchable)
   }
 }
