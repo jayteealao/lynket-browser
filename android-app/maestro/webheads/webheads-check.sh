@@ -26,13 +26,18 @@
 #         navigation mode)
 #   speech  web heads chosen: three links open three heads; a dump of every window shows the front
 #         head described as "Web head: <title>, 1 of 3" and the other two as 2 of 3 and 3 of 3
+#   trash  web heads chosen: one head held in a drag (input motionevent); a dump of every window shows
+#         the shown trash as "Close target", "Release to close" while the head is on it, nothing after
+#         it leaves, and again after it returns; the trash window takes touches only while it shows;
+#         with TalkBack installed, a probe of whether a held drag still moves the head with TalkBack
+#         on (restores the accessibility services)
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>   (from android-app/)
 set -euo pipefail
 
-SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech>}"
-OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech>}"
-WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech>}"
+SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>}"
+OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>}"
+WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash>}"
 source "$(dirname "$0")/lib.sh"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
@@ -475,8 +480,8 @@ app_size() {
   read -r APP_W APP_H <<< "$s" || fail "no display size"
 }
 
-# Frame of every touchable overlay window (the heads; the trash is not touchable), one
-# "left top right bottom" per line, front first.
+# Frame of every touchable overlay window (the heads; the trash takes touches only while a head is
+# dragged), one "left top right bottom" per line, front first.
 head_frames() {
   overlay_windows | awk '$1 == 1 { print $2, $3, $4, $5 }'
 }
@@ -793,6 +798,175 @@ check_speech() {
   log "speech passed"
 }
 
+# Dumps every window to $OUT/$1.xml (a head and the trash are overlays, never the active window).
+dump_windows() {
+  local dump=/sdcard/webheads-trash.xml
+  a shell uiautomator dump --windows "$dump" >/dev/null 2>&1 || true
+  a shell cat "$dump" 2>/dev/null | tr -d '\r' > "$OUT/$1.xml" || true
+}
+
+# Centre "X Y" of the node described as "Close target" in the dump $1.
+trash_node_centre() {
+  grep -o 'content-desc="Close target"[^>]*bounds="\[[0-9]*,[0-9]*\]\[[0-9]*,[0-9]*\]"' "$1" | head -1 |
+    sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
+    awk '{ print int(($1 + $3) / 2), int(($2 + $4) / 2) }'
+}
+
+# Number of overlay windows that take touches in the list $1.
+touchable_windows() { grep -c '^1 ' "$1" || true; }
+
+# Moves the held touch from ($1, $2) to ($3, $4) in $5 steps.
+move_in_steps() {
+  local i
+  for i in $(seq 1 "$5"); do
+    a shell input motionevent MOVE $(( $1 + ($3 - $1) * i / $5 )) $(( $2 + ($4 - $2) * i / $5 ))
+  done
+}
+
+TRASH_TALKBACK_BEFORE=""
+trash_restore() {
+  if [ "$TRASH_TALKBACK_BEFORE" = "none" ]; then
+    a shell settings delete secure enabled_accessibility_services >/dev/null 2>&1 || true
+    a shell settings put secure accessibility_enabled 0 >/dev/null 2>&1 || true
+  elif [ -n "$TRASH_TALKBACK_BEFORE" ]; then
+    a shell settings put secure enabled_accessibility_services "${TRASH_TALKBACK_BEFORE#none}" >/dev/null 2>&1 || true
+  fi
+  TRASH_TALKBACK_BEFORE=""
+}
+
+check_trash() {
+  trap trash_restore EXIT
+  # 1. Web heads mode, one head; the hidden trash takes no touches.
+  web_heads_mode
+  a logcat -c
+  open_link "https://example.com/?trash=1"
+  local windows
+  windows="$(wait_for_overlays 60 2)"
+  log "overlay windows: $windows"
+  [ "$windows" -ge 2 ] || fail "expected a head window and the trash, found $windows"
+  sleep 3
+  local hx hy w h
+  read -r hx hy < <(head_centre)
+  read -r w h < <(screen_size)
+  log "head centre: $hx $hy, screen: $w x $h"
+  overlay_windows > "$OUT/trash-windows-idle.txt"
+  [ "$(touchable_windows "$OUT/trash-windows-idle.txt")" -eq 1 ] || fail "the hidden trash window takes touches"
+  # 2. Accessibility events while the trash shows, locks, is left and locks again.
+  a shell "timeout 45 uiautomator events" > "$OUT/trash-events.txt" 2>&1 &
+  local events=$!
+  sleep 2
+  # 3. A held drag to the middle shows the trash, named and touchable.
+  local mx=$((w / 2)) my=$((h / 2)) ax=$((w / 2)) ay=$((h / 3))
+  a shell input motionevent DOWN "$hx" "$hy"
+  move_in_steps "$hx" "$hy" "$mx" "$my" 4
+  sleep 1
+  overlay_windows > "$OUT/trash-windows-shown.txt"
+  [ "$(touchable_windows "$OUT/trash-windows-shown.txt")" -eq 2 ] || fail "the shown trash window does not take touches"
+  dump_windows trash-shown
+  grep -q 'content-desc="Close target"' "$OUT/trash-shown.xml" || fail "the shown trash is not called Close target in any window"
+  if grep -q 'content-desc="Release to close"' "$OUT/trash-shown.xml"; then fail "Release to close before a lock"; fi
+  log "shown: Close target, no Release to close; the trash window takes touches"
+  local tx ty
+  read -r tx ty < <(trash_node_centre "$OUT/trash-shown.xml") || true
+  [ -n "$tx" ] || fail "no bounds for the Close target node"
+  log "trash centre: $tx $ty"
+  # 4. Onto the trash, then eight more moves that stay on it: one lock.
+  a shell input motionevent MOVE "$tx" "$ty"
+  sleep 1
+  local i
+  for i in $(seq 1 8); do
+    a shell input motionevent MOVE $((tx + (i % 3) * 5 - 5)) $((ty + (i % 2) * 10 - 5))
+    sleep 0.1
+  done
+  sleep 1
+  dump_windows trash-locked
+  grep -q 'content-desc="Release to close"' "$OUT/trash-locked.xml" || fail "the locked trash does not say Release to close"
+  log "locked: Release to close"
+  # 5. Off the trash: the name stays, the announcement empties.
+  a shell input motionevent MOVE "$ax" "$ay"
+  sleep 1
+  dump_windows trash-left
+  grep -q 'content-desc="Close target"' "$OUT/trash-left.xml" || fail "the trash lost its name after the head left"
+  if grep -q 'content-desc="Release to close"' "$OUT/trash-left.xml"; then fail "Release to close after the head left"; fi
+  log "left: Close target, no Release to close"
+  # 6. Back onto the trash: it locks again.
+  a shell input motionevent MOVE "$tx" "$ty"
+  sleep 1
+  dump_windows trash-relocked
+  grep -q 'content-desc="Release to close"' "$OUT/trash-relocked.xml" || fail "the trash does not say Release to close after the second lock"
+  log "relocked: Release to close"
+  # 7. Off the trash and let go: the trash hides and takes no touches.
+  a shell input motionevent MOVE "$ax" "$ay"
+  a shell input motionevent UP "$ax" "$ay"
+  sleep 2
+  overlay_windows > "$OUT/trash-windows-after.txt"
+  [ "$(touchable_windows "$OUT/trash-windows-after.txt")" -eq 1 ] || fail "the trash window still takes touches after the release"
+  log "released: the trash window takes no touches"
+  # 8. What the event capture saw.
+  wait "$events" || true
+  tr -d '\r' < "$OUT/trash-events.txt" > "$OUT/trash-events.clean.txt"
+  local changes spoken
+  changes="$(grep -F "PackageName: $PKG" "$OUT/trash-events.clean.txt" | grep -F TYPE_WINDOW_CONTENT_CHANGED | grep -cF CONTENT_CHANGE_TYPE_CONTENT_DESCRIPTION || true)"
+  log "content-description change events from the app: $changes"
+  spoken="$(grep -cF "Release to close" "$OUT/trash-events.clean.txt" || true)"
+  if [ "$spoken" -gt 0 ]; then
+    log "event lines with Release to close: $spoken"
+    [ "$spoken" -eq 2 ] || fail "Release to close came $spoken times for two locks"
+  else
+    log "content-change events carry no text here; the dumps and the JVM tests carry the words"
+  fi
+  # 9. TalkBack probe: it records what happens and never fails the check.
+  local talkback
+  talkback="$(a shell pm list packages | tr -d '\r' | grep -x 'package:com.google.android.marvin.talkback' | sed 's/package://' | head -1 || true)"
+  if [ -z "$talkback" ]; then
+    log "talkback: not installed"
+  else
+    TRASH_TALKBACK_BEFORE="none$(a shell settings get secure enabled_accessibility_services | tr -d '\r' | sed 's/^null$//')"
+    a shell settings put secure enabled_accessibility_services "$talkback/com.google.android.marvin.talkback.TalkBackService"
+    a shell settings put secure accessibility_enabled 1
+    local bound=0
+    for _ in $(seq 1 10); do
+      a shell dumpsys accessibility | tr -d '\r' > "$OUT/trash-accessibility.txt"
+      if grep -q "Bound services:{Service\[label=TalkBack" "$OUT/trash-accessibility.txt"; then bound=1; break; fi
+      sleep 1
+    done
+    if [ "$bound" -eq 0 ]; then
+      log "talkback: installed but not bound (see trash-accessibility.txt)"
+    else
+      a logcat -c
+      local before after
+      before="$(overlay_windows | awk '$1 == 1 { print $2, $3; exit }')"
+      a shell input motionevent DOWN "$hx" "$hy"
+      a shell input motionevent MOVE "$tx" "$ty"
+      sleep 1
+      after="$(overlay_windows | awk '$1 == 1 { print $2, $3; exit }')"
+      sleep 1
+      a shell input motionevent MOVE "$ax" "$ay"
+      a shell input motionevent UP "$ax" "$ay"
+      sleep 2
+      log "talkback: head frame before $before, after the move $after"
+      if [ -n "$before" ] && [ "$before" != "$after" ]; then
+        log "talkback: a held drag moves the head"
+      else
+        log "talkback: injected touches are explored, the head does not move"
+      fi
+      a logcat -d | tr -d '\r' | grep -iE "talkback|speech|utterance" > "$OUT/trash-talkback.logcat.txt" || true
+      if grep -qF "Release to close" "$OUT/trash-talkback.logcat.txt"; then
+        log "talkback: its log has Release to close"
+      else
+        log "talkback: its log has no Release to close"
+      fi
+    fi
+    trash_restore
+  fi
+  # 10. No crash; close the head.
+  app_logcat trash
+  [ ! -s "$OUT/trash.crash.txt" ] || fail "crash during the trash drags (see trash.crash.txt)"
+  close_all_heads
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "trash passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
@@ -803,5 +977,6 @@ case "$WHICH" in
   resnap) check_resnap ;;
   fling) check_fling ;;
   speech) check_speech ;;
+  trash) check_trash ;;
   *) echo "unknown check: $WHICH" >&2; exit 2 ;;
 esac
