@@ -20,6 +20,9 @@ import android.graphics.Color
 import arun.com.chromer.appdetect.LinkSource
 import arun.com.chromer.browsing.icons.WebsiteIconData
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
+import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.tabs.TabsManager
@@ -98,16 +101,29 @@ class NativeBubblePostingTest {
     every { openRefusedBubble(any(), any(), any(), any(), any()) } answers { refusedAt = clock.currentTime }
   }
 
+  private val registry = BubbleRegistry()
+
   /** Runs [block] on virtual time with a bubble on the same clock, then runs every job to the end. */
   private fun posting(block: suspend TestScope.(NativeFloatingBubble) -> Unit) = runTest {
     clock = testScheduler
-    val bubble = NativeFloatingBubble(application, repo, notifications, icons, gate, StandardTestDispatcher(testScheduler)) { tabsManager }
+    val bubble = NativeFloatingBubble(application, repo, notifications, icons, gate, registry, StandardTestDispatcher(testScheduler)) { tabsManager }
     block(bubble)
     advanceUntilIdle()
   }
 
   private fun NativeFloatingBubble.open(url: String, incognito: Boolean = false, color: Int = 0) =
     openBubble(Website(url), false, false, incognito, null, color)
+
+  private fun listed() = registry.list(BrowsingMode.NativeBubbles)
+
+  private fun keyOf(url: String, incognito: Boolean = false) =
+    BubbleKey.of(BrowsingMode.NativeBubbles, url, incognito)
+
+  /** What the dismiss receiver does when the person closes the bubble of [url]. */
+  private fun personDismisses(url: String) {
+    registry.markClosedOnPurpose(keyOf(url))
+    registry.remove(keyOf(url))
+  }
 
   @Test
   fun an_icon_ready_in_time_posts_once_with_it_at_the_icon_time() = posting { bubble ->
@@ -245,6 +261,96 @@ class NativeBubblePostingTest {
 
     val all = shadowOf(application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).allNotifications
     assertThat(all).isEmpty()
+  }
+
+  @Test
+  fun a_shown_bubble_is_listed_as_a_native_bubble_only() = posting { bubble ->
+    assertThat(bubble.open(URL)).isTrue()
+    advanceUntilIdle()
+
+    assertThat(listed().map { it.url }).containsExactly(URL)
+    assertThat(registry.list(BrowsingMode.WebHeads)).isEmpty()
+  }
+
+  @Test
+  fun links_opened_in_turn_are_listed_in_that_order() = posting { bubble ->
+    val urls = listOf("https://one.example/", "https://two.example/", "https://three.example/")
+    urls.forEach {
+      bubble.open(it)
+      advanceUntilIdle()
+    }
+
+    assertThat(listed().map { it.url }).containsExactlyElementsIn(urls).inOrder()
+  }
+
+  @Test
+  fun a_late_icon_keeps_one_entry() = posting { bubble ->
+    iconDelayMs = 500
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    assertThat(posts).hasSize(2)
+    assertThat(listed()).hasSize(1)
+  }
+
+  @Test
+  fun two_sends_of_one_link_keep_one_entry() = posting { bubble ->
+    bubble.open(URL)
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    assertThat(posts).hasSize(2)
+    assertThat(listed()).hasSize(1)
+  }
+
+  @Test
+  fun a_normal_and_an_incognito_bubble_of_one_link_are_two_entries() = posting { bubble ->
+    bubble.open(URL)
+    bubble.open(URL, incognito = true)
+    advanceUntilIdle()
+
+    assertThat(listed().map { it.incognito }).containsExactly(false, true).inOrder()
+  }
+
+  @Test
+  fun a_link_the_gate_refuses_is_not_listed() = posting { bubble ->
+    every { gate.refusal(any()) } returns BubbleRefusal.BUBBLES_OFF
+
+    assertThat(bubble.open(URL)).isFalse()
+    advanceUntilIdle()
+
+    assertThat(listed()).isEmpty()
+  }
+
+  @Test
+  fun a_bubble_dismissed_while_its_icon_loads_stays_off_the_list() = posting { bubble ->
+    iconDelayMs = 500
+    bubble.open(URL)
+    advanceTimeBy(301)
+    assertThat(listed()).hasSize(1)
+
+    personDismisses(URL)
+    advanceUntilIdle()
+
+    assertThat(posts).hasSize(2)
+    assertThat(listed()).isEmpty()
+    assertThat(registry.isClosedOnPurpose(keyOf(URL))).isTrue()
+  }
+
+  @Test
+  fun a_link_sent_again_and_dismissed_during_that_send_is_listed_after_it_posts() = posting { bubble ->
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    iconDelayMs = 200
+    bubble.open(URL)
+    advanceTimeBy(100)
+    personDismisses(URL)
+    advanceUntilIdle()
+
+    // The send is the newer act, and it posted the bubble again.
+    assertThat(listed().map { it.url }).containsExactly(URL)
+    assertThat(registry.isClosedOnPurpose(keyOf(URL))).isFalse()
   }
 
   private companion object {

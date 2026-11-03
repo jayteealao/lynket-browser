@@ -4,6 +4,8 @@ import android.app.Application
 import android.graphics.Bitmap
 import arun.com.chromer.browsing.icons.WebsiteIconData
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
+import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.tabs.TabsManager
@@ -63,7 +65,9 @@ class NativeBubbleIncognitoReadTest {
 
   private val tabsManager = mockk<TabsManager>(relaxed = true)
 
-  private fun bubble() = NativeFloatingBubble(application, repo, notifications, icons, gate, dispatcher) { tabsManager }
+  private val registry = BubbleRegistry()
+
+  private fun bubble() = NativeFloatingBubble(application, repo, notifications, icons, gate, registry, dispatcher) { tabsManager }
 
   @Test
   fun an_incognito_bubble_reads_nothing_about_its_site() {
@@ -102,6 +106,16 @@ class NativeBubbleIncognitoReadTest {
     dispatcher.scheduler.advanceUntilIdle()
 
     coVerify { icons.getBubbleIconAndColor(any()) }
+  }
+
+  @Test
+  fun the_list_entry_of_an_incognito_bubble_prints_no_address() {
+    bubble().openBubble(Website(url), false, false, true, null, 0)
+    dispatcher.scheduler.advanceUntilIdle()
+
+    val entry = registry.list(BrowsingMode.NativeBubbles).single()
+    assertThat(entry.incognito).isTrue()
+    assertThat(entry.toString()).doesNotContain("example.com")
   }
 
 }

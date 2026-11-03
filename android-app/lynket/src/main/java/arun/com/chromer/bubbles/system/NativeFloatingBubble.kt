@@ -26,7 +26,9 @@ import android.graphics.Bitmap
 import android.os.Build
 import androidx.annotation.RequiresApi
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
+import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.FloatingBubble
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.di.hilt.IoDispatcher
@@ -70,6 +72,7 @@ constructor(
   private val bubbleNotificationManager: BubbleNotificationManager,
   private val websiteIconsProvider: WebsiteIconsProvider,
   private val bubbleGate: BubbleGate,
+  private val bubbleRegistry: BubbleRegistry,
   @IoDispatcher ioDispatcher: CoroutineDispatcher,
   // Lazy: the tabs manager reaches this class through the bubble factory.
   private val tabsManager: Lazy<TabsManager>,
@@ -137,6 +140,7 @@ constructor(
     val details = if (initial.incognito) null else async { withDetails(initial) }
     val ready = details?.let { withTimeoutOrNull(ICON_WAIT_MS) { it.await() } }
     bubbleNotificationManager.showBubbles(ready ?: initial)
+    bubbleRegistry.add(BrowsingMode.NativeBubbles, url, initial.incognito)
 
     // Android can still post the notification without showing it as a bubble. Then the page opens
     // in a tab with a message instead of being lost in the notification shade.
