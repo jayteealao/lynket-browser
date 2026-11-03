@@ -213,4 +213,25 @@ class BubbleRegistryTest {
     assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(first)
     assertThat(registry.returnCandidates(SlideOver)).isEmpty()
   }
+
+  @Test
+  fun an_entry_prints_no_address_in_either_mode() {
+    val incognito = registry.add(NativeBubbles, first, incognito = true)
+    val normal = registry.add(NativeBubbles, second, incognito = false)
+
+    assertThat(incognito.toString()).doesNotContain("example.com")
+    assertThat(normal.toString()).doesNotContain("example.com")
+  }
+
+  @Test
+  fun a_closed_incognito_bubble_answers_from_its_key_alone() {
+    val opened = registry.add(NativeBubbles, first, incognito = true)
+
+    registry.markClosedOnPurpose(opened.key)
+    registry.remove(opened.key)
+
+    val keyAlone = BubbleKey(NativeBubbles, opened.key.notificationId)
+    assertThat(registry.isClosedOnPurpose(keyAlone)).isTrue()
+    assertThat(registry.bubbles.value).isEmpty()
+  }
 }

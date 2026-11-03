@@ -43,7 +43,7 @@ data class BubbleKey(val mode: BrowsingMode, val notificationId: Int) {
   }
 }
 
-/** One open bubble. */
+/** One open bubble. It prints no address, so a log line cannot show where a person went. */
 data class OpenBubble(
   val key: BubbleKey,
   val url: String,
@@ -51,6 +51,9 @@ data class OpenBubble(
   val closedOnPurpose: Boolean = false,
 ) {
   val mode: BrowsingMode get() = key.mode
+
+  override fun toString() =
+    "OpenBubble(key=$key, incognito=$incognito, closedOnPurpose=$closedOnPurpose)"
 }
 
 /**
@@ -82,7 +85,7 @@ class BubbleRegistry @Inject constructor() {
       ?: OpenBubble(key, url, incognito).also { entries.value += it }
   }
 
-  /** Takes the entry off the list without marking it: a bubble can leave with no person involved. */
+  /** Takes the entry off the list and does not mark it: a bubble can leave on its own. */
   fun remove(key: BubbleKey) = synchronized(lock) {
     entries.value = entries.value.filterNot { it.key == key }
   }
@@ -104,6 +107,8 @@ class BubbleRegistry @Inject constructor() {
 
   private fun setMarker(key: BubbleKey, closed: Boolean) {
     if (closed) closedOnPurpose += key else closedOnPurpose -= key
-    entries.value = entries.value.map { if (it.key == key) it.copy(closedOnPurpose = closed) else it }
+    entries.value = entries.value.map {
+      if (it.key == key) it.copy(closedOnPurpose = closed) else it
+    }
   }
 }
