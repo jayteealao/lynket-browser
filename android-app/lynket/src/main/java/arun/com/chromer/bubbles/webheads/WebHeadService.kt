@@ -523,7 +523,8 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   private fun openContextActivity() {
-    val websites = ArrayList(controller?.all.orEmpty().asReversed().map { it.website })
+    val openOrder = bubbleRegistry.list(BrowsingMode.WebHeads).asReversed()
+    val websites = ArrayList(openOrder.mapNotNull { controller?.get(it.url)?.website })
     ContextActivityHelper.open(this, websites)
   }
 

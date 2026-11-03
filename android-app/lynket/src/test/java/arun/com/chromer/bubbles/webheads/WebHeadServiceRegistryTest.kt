@@ -14,11 +14,15 @@ package arun.com.chromer.bubbles.webheads
 import android.content.Intent
 import android.net.Uri
 import android.os.Looper
+import androidx.core.content.IntentCompat
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.bubbles.webheads.ui.context.WebHeadContextActivity
 import arun.com.chromer.data.preferences.BrowsingMode
+import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
+import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
@@ -76,6 +80,22 @@ class WebHeadServiceRegistryTest : LynketRobolectricSuite() {
   private fun assertClosedOnPurpose(url: String) {
     assertThat(listedUrls()).doesNotContain(url)
     assertThat(registry.isClosedOnPurpose(webHeadKey(url))).isTrue()
+  }
+
+  /** The sites that the list sheet gets when the person long presses the heads. */
+  private fun sheetSites(service: WebHeadService): List<Website> {
+    service.onHeadsLongPress()
+    idle()
+    val sheet = generateSequence { shadowOf(application).nextStartedActivity }
+      .last { it.component?.className == WebHeadContextActivity::class.java.name }
+    return IntentCompat.getParcelableArrayListExtra(sheet, EXTRA_KEY_WEBSITE, Website::class.java)!!
+  }
+
+  private fun sheetUrls(service: WebHeadService) = sheetSites(service).map { it.url }
+
+  /** The heads on screen and the open list never disagree on the order. */
+  private fun assertListMatchesTheHeads(service: WebHeadService) {
+    assertThat(listedUrls()).containsExactlyElementsIn(service.controller!!.all.map { it.url }).inOrder()
   }
 
   private fun closeFromTheList(url: String) {
@@ -304,10 +324,76 @@ class WebHeadServiceRegistryTest : LynketRobolectricSuite() {
     assertThat(listedUrls()).isEmpty()
   }
 
+  @Test
+  fun the_sheet_takes_its_order_from_the_open_list() {
+    val service = serviceWith(A, B, C).get()
+
+    registry.remove(webHeadKey(A))
+    registry.add(BrowsingMode.WebHeads, A, false)
+
+    assertThat(sheetUrls(service)).containsExactly(A, C, B).inOrder()
+  }
+
+  @Test
+  fun the_sheet_reads_the_newest_head_first() {
+    val service = serviceWith(A, B, C).get()
+
+    assertThat(sheetUrls(service)).containsExactly(C, B, A).inOrder()
+  }
+
+  @Test
+  fun the_sheet_keeps_the_title_of_a_loaded_site() {
+    val service = serviceWith(A, B).get()
+
+    service.onSiteLoaded(A, Website(A).apply { title = "Site A" })
+
+    assertThat(sheetSites(service).single { it.url == A }.title).isEqualTo("Site A")
+  }
+
+  @Test
+  fun the_sheet_leaves_out_a_closed_head() {
+    val service = serviceWith(A, B, C).get()
+
+    closeFromTheList(B)
+
+    assertThat(sheetUrls(service)).containsExactly(C, A).inOrder()
+  }
+
+  @Test
+  fun the_order_holds_when_a_head_comes_to_the_front() {
+    val controller = serviceWith(A, B, C)
+    val service = controller.get()
+    assertListMatchesTheHeads(service)
+
+    closeFromTheList(C)
+
+    assertThat(service.controller!![B]!!.isMaster).isTrue()
+    assertThat(listedUrls()).containsExactly(A, B).inOrder()
+    assertThat(sheetUrls(service)).containsExactly(B, A).inOrder()
+    assertListMatchesTheHeads(service)
+
+    controller.withIntent(intentFor(D)).startCommand(0, 4)
+    idle()
+
+    assertThat(service.controller!![D]!!.isMaster).isTrue()
+    assertThat(listedUrls()).containsExactly(A, B, D).inOrder()
+    assertListMatchesTheHeads(service)
+  }
+
+  @Test
+  fun closing_a_middle_head_keeps_the_list_and_the_heads_in_step() {
+    val service = serviceWith(A, B, C).get()
+
+    closeFromTheList(B)
+
+    assertListMatchesTheHeads(service)
+  }
+
   private companion object {
     const val A = "https://a.example"
     const val B = "https://b.example"
     const val C = "https://c.example"
+    const val D = "https://d.example"
     const val SECRET = "https://secret.example"
   }
 }
