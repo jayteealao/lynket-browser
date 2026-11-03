@@ -226,7 +226,6 @@
   <string name="amp_warning_title">AMP upozornenie</string>
   <string name="amp_warning_content"><![CDATA[V režime <b>Vysunúť cez aplikáciu</b> môže získanie AMP adresy chvíľu trvať. Uvidíte dialógové okno s informáciou.]]></string>
   <string name="title_activity_look_and_feel">Vzhľad a dojem</string>
-  <string name="not_available_in_slide_mode">Nie je dostupné v režime vysunutia cez aplikáciu</string>
   <string name="title_activity_browsing_options">Možnosti prehiadania</string>
   <string name="grabbing_amp_link">Získavanie AMP odkazu</string>
   <string name="link_found">Odkaz nájdený!</string>

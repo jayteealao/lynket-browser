@@ -223,7 +223,6 @@
   <string name="amp_warning_title">AMP警告</string>
   <string name="amp_warning_content"><![CDATA[當使用<b>滑入</b> 模式時，Lynket需要時間抓取加速行動版網頁的連結，當下會有提示方塊供用戶知悉。]]></string>
   <string name="title_activity_look_and_feel">樣式及外觀</string>
-  <string name="not_available_in_slide_mode">在滑入模式下不可用</string>
   <string name="title_activity_browsing_options">瀏覽選項</string>
   <string name="grabbing_amp_link">正在抓取加速行動版網頁的連結</string>
   <string name="link_found">已找到連結</string>

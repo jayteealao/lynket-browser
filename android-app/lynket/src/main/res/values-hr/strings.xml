@@ -230,7 +230,6 @@
   <string name="amp_warning_title">AMP Upozorenje</string>
   <string name="amp_warning_content"><![CDATA[U načinu <b>klizanja</b>, dohvaćanje AMP veze stranice može potrajati. Možda će te vidjeti dijalog kada se to dogodi.]]></string>
   <string name="title_activity_look_and_feel">Izgled i osjećaj</string>
-  <string name="not_available_in_slide_mode">Nije dostupno kod načina klizanja</string>
   <string name="title_activity_browsing_options">Postavke pregledavanja</string>
   <string name="grabbing_amp_link">Dohvaćanje AMP veze</string>
   <string name="link_found">Veza je pronađena!</string>

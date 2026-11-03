@@ -223,7 +223,6 @@
   <string name="amp_warning_title">Предупреждение AMP</string>
   <string name="amp_warning_content"><![CDATA[В режиме <b>Слайд вверх</b> может пройти некоторое время, для захвата URL-адреса используя AMP. Вы можете увидеть диалоговое окно, когда это произойдет.]]></string>
   <string name="title_activity_look_and_feel">Смотри и чувствуй</string>
-  <string name="not_available_in_slide_mode">Недоступно в режиме Слайд вверх</string>
   <string name="title_activity_browsing_options">Параметры просмотра</string>
   <string name="grabbing_amp_link">Захват AMP ссылки</string>
   <string name="link_found">Ссылка найдена!</string>

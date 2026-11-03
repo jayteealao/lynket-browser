@@ -220,7 +220,6 @@
   <string name="amp_warning_title">Waarschuwing bij AMP</string>
   <string name="amp_warning_content"><![CDATA[Indien <b>Schuiven</b> is gekozen, kan het even duren tot de AMP-link gevonden is. Er wordt dan een pop-up weergegeven.]]></string>
   <string name="title_activity_look_and_feel">Uiterlijk</string>
-  <string name="not_available_in_slide_mode">Niet beschikbaar bij de optie Schuiven</string>
   <string name="title_activity_browsing_options">Browsing</string>
   <string name="grabbing_amp_link">AMP-link openen</string>
   <string name="link_found">Link gevonden!</string>

@@ -227,7 +227,6 @@
   <string name="amp_warning_title">AMPモードの注意</string>
   <string name="amp_warning_content"><![CDATA[<b>スライドモード</b>では、ウェブサイトのAMPのURLを取得するのに少し時間が掛かる場合があります。読み込み状況はダイアログで表示されます。]]></string>
   <string name="title_activity_look_and_feel">外観とアニメーション</string>
-  <string name="not_available_in_slide_mode">スライドモードでは使用できません</string>
   <string name="title_activity_browsing_options">ブラウジングオプション</string>
   <string name="grabbing_amp_link">AMPリンクを取得中</string>
   <string name="link_found">リンクが見つかりました！</string>
