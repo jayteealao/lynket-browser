@@ -14,7 +14,7 @@ package arun.com.chromer.settings
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import arun.com.chromer.LynketRobolectricSuite
-import arun.com.chromer.ui.settings.BrowsingMode
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.ui.settings.SettingsRules
 import arun.com.chromer.ui.settings.SettingsValues
 import arun.com.chromer.util.MAIN_THREAD_WAIT_TAG

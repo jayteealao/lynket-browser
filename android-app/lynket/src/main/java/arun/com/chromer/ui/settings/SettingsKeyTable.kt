@@ -13,6 +13,7 @@ package arun.com.chromer.ui.settings
 
 import androidx.annotation.StringRes
 import arun.com.chromer.R
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.preferences.SettingsSchema
 
 /** The screen that shows a setting; [None] for a setting with no control on a settings screen. */

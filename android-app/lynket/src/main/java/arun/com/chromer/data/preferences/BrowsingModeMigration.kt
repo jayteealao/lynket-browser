@@ -14,9 +14,8 @@ package arun.com.chromer.data.preferences
 import androidx.datastore.core.DataMigration
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import arun.com.chromer.ui.settings.BrowsingMode
-import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
-import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_ENABLED
+import arun.com.chromer.data.preferences.SettingsSchema.NATIVE_BUBBLES_SWITCH
+import arun.com.chromer.data.preferences.SettingsSchema.WEB_HEADS_SWITCH
 
 /**
  * Stores one browsing mode when the settings hold both web heads and native bubbles on, as a
@@ -29,9 +28,9 @@ import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_ENABLED
  */
 object BrowsingModeMigration : DataMigration<Preferences> {
 
-  private fun webHeads(data: Preferences) = data.readBoolean(WEB_HEAD_ENABLED, false)
+  private fun webHeads(data: Preferences) = data.readBoolean(WEB_HEADS_SWITCH, false)
 
-  private fun nativeBubbles(data: Preferences) = data.readBoolean(NATIVE_BUBBLES, false)
+  private fun nativeBubbles(data: Preferences) = data.readBoolean(NATIVE_BUBBLES_SWITCH, false)
 
   override suspend fun shouldMigrate(currentData: Preferences): Boolean =
     webHeads(currentData) && nativeBubbles(currentData)
@@ -39,8 +38,8 @@ object BrowsingModeMigration : DataMigration<Preferences> {
   override suspend fun migrate(currentData: Preferences): Preferences {
     val mode = BrowsingMode.resolve(webHeads(currentData), nativeBubbles(currentData))
     return currentData.toMutablePreferences().apply {
-      this[booleanPreferencesKey(WEB_HEAD_ENABLED)] = mode == BrowsingMode.WebHeads
-      this[booleanPreferencesKey(NATIVE_BUBBLES)] = mode == BrowsingMode.NativeBubbles
+      this[booleanPreferencesKey(WEB_HEADS_SWITCH)] = mode == BrowsingMode.WebHeads
+      this[booleanPreferencesKey(NATIVE_BUBBLES_SWITCH)] = mode == BrowsingMode.NativeBubbles
     }.toPreferences()
   }
 

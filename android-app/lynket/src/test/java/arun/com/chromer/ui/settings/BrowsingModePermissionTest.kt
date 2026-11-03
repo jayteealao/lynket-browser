@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.settings.Preferences

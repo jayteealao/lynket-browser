@@ -25,7 +25,7 @@ import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.bubbles.system.bubbleConversationId
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.ui.settings.BrowsingMode
+import arun.com.chromer.data.preferences.BrowsingMode
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidTest

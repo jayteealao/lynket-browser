@@ -15,7 +15,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.settings.NATIVE_BUBBLES_PREFERENCE
 import arun.com.chromer.settings.Preferences
-import arun.com.chromer.ui.settings.BrowsingMode
+import arun.com.chromer.data.preferences.BrowsingMode
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking

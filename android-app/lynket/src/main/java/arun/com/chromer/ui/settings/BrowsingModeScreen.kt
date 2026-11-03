@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.ui.settings.SettingsKeyTable.AMP_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_MODE

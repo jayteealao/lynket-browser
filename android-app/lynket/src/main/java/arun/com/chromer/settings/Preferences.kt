@@ -32,7 +32,7 @@ import arun.com.chromer.data.preferences.readInt
 import arun.com.chromer.data.preferences.readString
 import arun.com.chromer.di.hilt.ApplicationScope
 import arun.com.chromer.shared.Constants.CHROME_PACKAGE
-import arun.com.chromer.ui.settings.BrowsingMode
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.blockingWait
 import dagger.hilt.EntryPoint

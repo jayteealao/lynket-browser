@@ -18,7 +18,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import arun.com.chromer.di.hilt.DataStoreModule
-import arun.com.chromer.ui.settings.BrowsingMode
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_ENABLED
 import arun.com.chromer.ui.settings.SettingsRules

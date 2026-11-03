@@ -72,6 +72,12 @@ class SettingKey(
 object SettingsSchema {
   const val MINIMIZE_BEHAVIOR = "minimize_behavior_preference"
 
+  /** The stored switch of web heads mode; [BrowsingMode] reads it with [NATIVE_BUBBLES_SWITCH]. */
+  const val WEB_HEADS_SWITCH = "webhead_enabled_pref"
+
+  /** The stored switch of native bubble mode. */
+  const val NATIVE_BUBBLES_SWITCH = "native_bubbles_preference"
+
   /** The search engine for typed searches until the person picks one (a search provider name). */
   const val DEFAULT_SEARCH_ENGINE = "Google"
 
@@ -119,7 +125,7 @@ object SettingsSchema {
     bool("dynamic_color_app", false),
     bool("dynamic_color_web", false),
     bool("webhead_close_onclick_pref", false),
-    bool("webhead_enabled_pref", false),
+    bool(WEB_HEADS_SWITCH, false),
     bool("warm_up_preference", false),
     bool("pre_fetch_preference", false),
     bool("wifi_preference", false),
@@ -133,7 +139,7 @@ object SettingsSchema {
     bool("use_webview_pref", false),
     SettingKey("version_code", SettingType.INT) { -1 },
     string("search_engine_preference", DEFAULT_SEARCH_ENGINE),
-    bool("native_bubbles_preference", false),
+    bool(NATIVE_BUBBLES_SWITCH, false),
     // Material You: colours from the wallpaper. New in this release, so off after an update.
     bool(USE_WALLPAPER_COLOURS, false),
     // Theme chips. New in this release; Auto is what every earlier version did.

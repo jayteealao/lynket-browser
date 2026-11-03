@@ -42,6 +42,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.R
 import arun.com.chromer.browsing.providerselection.ModernProviderSelectionViewModel.ProviderSelectionUiState
 import arun.com.chromer.data.apps.model.Provider
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.navigation.LynketKey
 import arun.com.chromer.ui.providerselection.ProviderSelectionContent

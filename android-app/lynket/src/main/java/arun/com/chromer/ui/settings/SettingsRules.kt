@@ -16,6 +16,7 @@ import androidx.annotation.StringRes
 import androidx.datastore.preferences.core.Preferences
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.preferences.SettingType
 import arun.com.chromer.data.preferences.SettingsSchema
 import arun.com.chromer.data.preferences.readBoolean
@@ -56,26 +57,6 @@ data class SettingsValues(val values: Map<String, Any?>) {
         }
       },
     )
-  }
-}
-
-/** The browsing mode choices; slide over is "web heads off and native bubbles off". */
-enum class BrowsingMode {
-  SlideOver,
-  WebHeads,
-  NativeBubbles,
-  ;
-
-  companion object {
-    /**
-     * The one mode of the two stored switches. Web heads win when both are on, as the settings
-     * screens have always shown it; neither on is slide over.
-     */
-    fun resolve(webHeads: Boolean, nativeBubbles: Boolean): BrowsingMode = when {
-      webHeads -> WebHeads
-      nativeBubbles -> NativeBubbles
-      else -> SlideOver
-    }
   }
 }
 

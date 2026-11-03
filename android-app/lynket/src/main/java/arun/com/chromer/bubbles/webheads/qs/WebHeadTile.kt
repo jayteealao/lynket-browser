@@ -25,7 +25,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import arun.com.chromer.R
 import arun.com.chromer.shared.base.PreferenceQuickSettingsTile
-import arun.com.chromer.ui.settings.BrowsingMode
+import arun.com.chromer.data.preferences.BrowsingMode
 import dagger.hilt.android.AndroidEntryPoint
 
 /**

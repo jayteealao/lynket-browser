@@ -46,6 +46,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.preferences.TestStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.di.hilt.DataStoreModule

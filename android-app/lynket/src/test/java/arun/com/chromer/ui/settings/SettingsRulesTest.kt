@@ -13,6 +13,7 @@ package arun.com.chromer.ui.settings
 
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.ui.settings.SettingsKeyTable.AGGRESSIVE_LOADING
 import arun.com.chromer.ui.settings.SettingsKeyTable.AMP_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
