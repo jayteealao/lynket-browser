@@ -145,12 +145,16 @@ wait_tap_text() {
 # The stored value of the setting $1, as the debug build's store dump reads it; the whole dump
 # is kept as $OUT/$2.
 stored_setting() {
+  local finished=""
+  # An old dump must not stand in for this one.
+  a shell run-as "$PKG" rm -f files/debug-dump/settings.tsv
   a logcat -c
   a shell am broadcast -n "$PKG/arun.com.chromer.debug.StoreDumpReceiver" >/dev/null
   for _ in $(seq 1 40); do
-    a logcat -d -s StoreDump:I | grep "done" >/dev/null && break
+    if a logcat -d -s StoreDump:I | grep "done" >/dev/null; then finished=1; break; fi
     sleep 0.5
   done
+  [ -n "$finished" ] || fail "the debug build's store dump did not finish (is the debug build installed?)"
   a exec-out run-as "$PKG" cat files/debug-dump/settings.tsv | tr -d '\r' > "$OUT/$2"
   awk -F'\t' -v k="$1" '$1 == k { print $3 }' "$OUT/$2"
 }
