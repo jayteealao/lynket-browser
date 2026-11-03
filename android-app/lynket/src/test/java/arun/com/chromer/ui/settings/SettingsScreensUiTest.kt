@@ -27,6 +27,8 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -48,6 +50,7 @@ import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_TYPE
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_APP
+import arun.com.chromer.ui.settings.SettingsKeyTable.MINIMIZE_BEHAVIOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
 import arun.com.chromer.ui.settings.SettingsKeyTable.PREFERRED_ACTION
 import arun.com.chromer.ui.settings.SettingsKeyTable.THEME_MODE
@@ -322,6 +325,36 @@ class SettingsScreensUiTest {
     composeRule.onAllNodesWithTag("group-note").assertCountEquals(0)
     row("row-$AGGRESSIVE_LOADING").assertIsEnabled().performClick()
     assertThat(writes.single().first).isEqualTo(AGGRESSIVE_LOADING)
+  }
+
+  // The Minimize behavior row in each browsing mode
+
+  private val minimizeNormally: String get() = context.resources.getStringArray(R.array.minimizePreferenceKeys)[0]
+  private val minimizeToWebHead: String get() = context.resources.getStringArray(R.array.minimizePreferenceKeys)[1]
+
+  @Test
+  fun minimizeIsGreyAndSaysItOpensABubbleInNativeBubbleMode() {
+    browsingOptions(nativeBubbles.with(MINIMIZE_BEHAVIOR to minimizeToWebHead))
+    row("row-$MINIMIZE_BEHAVIOR").assert(!hasText(string(R.string.minimize_to_web_head)))
+    assertGreyRow(MINIMIZE_BEHAVIOR, string(R.string.minimize_always_opens_bubble))
+  }
+
+  @Test
+  fun minimizeShowsTheChosenChoiceAndOpensItInSlideOverMode() {
+    browsingOptions(slideOver.with(MINIMIZE_BEHAVIOR to minimizeNormally))
+    row("row-$MINIMIZE_BEHAVIOR").assertIsEnabled()
+      .assertTextContains(string(R.string.minimize_normally))
+      .assert(!hasText(string(R.string.minimize_always_opens_bubble)))
+      .performClick()
+    composeRule.onNodeWithTag("list-dialog").assertIsDisplayed()
+  }
+
+  @Test
+  fun minimizeShowsTheChosenChoiceInWebHeadsMode() {
+    browsingOptions(webHeads.with(MINIMIZE_BEHAVIOR to minimizeToWebHead))
+    row("row-$MINIMIZE_BEHAVIOR").assertIsEnabled()
+      .assertTextContains(string(R.string.minimize_to_web_head))
+      .assert(!hasText(string(R.string.minimize_always_opens_bubble)))
   }
 
   @Test
