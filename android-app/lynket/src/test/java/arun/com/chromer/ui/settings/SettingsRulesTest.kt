@@ -22,6 +22,7 @@ import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_APP
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_WEB
 import arun.com.chromer.ui.settings.SettingsKeyTable.MERGE_TABS
+import arun.com.chromer.ui.settings.SettingsKeyTable.MINIMIZE_BEHAVIOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR_PREF
@@ -31,6 +32,7 @@ import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_ENABLED
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_SIZE
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_SPAWN
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 /** The dependent rows and the dialogs of the old preference screens, one rule at a time. */
@@ -100,13 +102,29 @@ class SettingsRulesTest {
   }
 
   @Test
-  fun webHeadRowsTakeInputOnlyWithWebHeadsOn() {
-    listOf(WEB_HEADS_COLOR, WEB_HEAD_SPAWN, WEB_HEAD_SIZE, AGGRESSIVE_LOADING, WEB_HEAD_CLOSE_ON_OPEN).forEach { key ->
-      assertThat(SettingsRules.isEnabled(key, values(WEB_HEAD_ENABLED to false))).isFalse()
-      assertThat(SettingsRules.isEnabled(key, values(WEB_HEAD_ENABLED to true))).isTrue()
+  fun webHeadRowsMinimizeAndTheNoteFollowTheBrowsingMode() {
+    // Each stored set, named for the mode it reads as; with both switches on, web heads win.
+    val stored = listOf(
+      "slide over" to values(WEB_HEAD_ENABLED to false, NATIVE_BUBBLES to false),
+      "web heads" to values(WEB_HEAD_ENABLED to true, NATIVE_BUBBLES to false),
+      "native bubbles" to values(WEB_HEAD_ENABLED to false, NATIVE_BUBBLES to true),
+      "both on, read as web heads" to values(WEB_HEAD_ENABLED to true, NATIVE_BUBBLES to true),
+    )
+    val expectedMode = listOf(BrowsingMode.SlideOver, BrowsingMode.WebHeads, BrowsingMode.NativeBubbles, BrowsingMode.WebHeads)
+    val webHeadRows = listOf(WEB_HEADS_COLOR, WEB_HEAD_SPAWN, WEB_HEAD_SIZE, AGGRESSIVE_LOADING, WEB_HEAD_CLOSE_ON_OPEN)
+
+    stored.zip(expectedMode).forEach { (named, mode) ->
+      val (name, set) = named
+      assertWithMessage("mode of $name").that(SettingsRules.selectedMode(set)).isEqualTo(mode)
+      webHeadRows.forEach { key ->
+        assertWithMessage("$key enabled in $name").that(SettingsRules.isEnabled(key, set))
+          .isEqualTo(mode == BrowsingMode.WebHeads)
+      }
+      assertWithMessage("Minimize behavior enabled in $name").that(SettingsRules.isEnabled(MINIMIZE_BEHAVIOR, set))
+        .isEqualTo(mode != BrowsingMode.NativeBubbles)
+      assertWithMessage("web heads note in $name").that(SettingsRules.showsOutsideWebHeadsNotice(set))
+        .isEqualTo(mode != BrowsingMode.WebHeads)
     }
-    assertThat(SettingsRules.showsSlideOverNotice(values(WEB_HEAD_ENABLED to false))).isTrue()
-    assertThat(SettingsRules.showsSlideOverNotice(values(WEB_HEAD_ENABLED to true))).isFalse()
   }
 
   @Test
