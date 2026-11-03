@@ -314,4 +314,6 @@
   <string name="tips_article_mode">Dodirom na ključne riječi u načinu za članke će ih automatski pretražiti</string>
   <string name="quick_settings">Brze postavke</string>
   <string name="quick_settings_tip">Možete koristiti Lynketove brze postavke na statusnoj traci kako bi brzinski promjenili vaše postavke pregledavanja.</string>
+  <string name="only_used_in_web_heads_mode">Koristi se samo u načinu Web krugovi</string>
+  <string name="minimize_always_opens_bubble">Minimiziranje uvijek otvara mjehurić</string>
 </resources>

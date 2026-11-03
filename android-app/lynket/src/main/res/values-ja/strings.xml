@@ -297,4 +297,6 @@
   <string name="minimize_normally">普通に最小化する</string>
   <string name="minimize_to_web_head">最小化して Web Head を表示</string>
   <string name="minimize_behavior">最小化の動作</string>
+  <string name="only_used_in_web_heads_mode">ウェブヘッドモードでのみ使用されます</string>
+  <string name="minimize_always_opens_bubble">最小化すると常にバブルで開きます</string>
 </resources>

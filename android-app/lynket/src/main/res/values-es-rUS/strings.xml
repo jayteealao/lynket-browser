@@ -204,4 +204,6 @@
   <string name="more_menu">Mas</string>
   <string name="open_article_view">Ver artículo</string>
   <string name="browse_seamlessly">Navegar sin problemas</string>
+  <string name="only_used_in_web_heads_mode">Solo se usa en el modo Web Heads</string>
+  <string name="minimize_always_opens_bubble">Minimizar siempre abre una burbuja</string>
 </resources>

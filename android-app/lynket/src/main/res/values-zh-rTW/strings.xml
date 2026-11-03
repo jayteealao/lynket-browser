@@ -250,4 +250,6 @@
   <string name="enable_history">瀏覽記錄已開啟</string>
   <string name="enable_history_subtitle">關閉「記錄」將停止保存瀏覽記錄。</string>
   <string name="enable_history_subtitle_custom_tab"><![CDATA[關閉關閉「記錄」將會停止保存瀏覽記錄。但自定標籤頁的瀏覽器，<b>%1$s</b> 仍可能保存瀏覽記錄。]]></string>
+  <string name="only_used_in_web_heads_mode">僅用於浮動氣泡模式</string>
+  <string name="minimize_always_opens_bubble">最小化時一律以泡泡開啟</string>
 </resources>

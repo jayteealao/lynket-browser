@@ -273,4 +273,6 @@
   <string name="minimize_normally">Минимизировать</string>
   <string name="minimize_to_web_head">Минимизировать и открывать заголовок всегда</string>
   <string name="minimize_behavior">Минимизировать поведение</string>
+  <string name="only_used_in_web_heads_mode">Используется только в режиме «Плавающие кнопки»</string>
+  <string name="minimize_always_opens_bubble">Сворачивание всегда открывает пузырёк</string>
 </resources>

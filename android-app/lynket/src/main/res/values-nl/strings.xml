@@ -240,4 +240,6 @@
   <string name="open_article_view">Artikelweergave openen</string>
   <string name="browse_seamlessly">Naadloos bladeren</string>
   <string name="slide_over_explanation">Webpagina\'s schuiven over de de app die u op dat moment gebruikt en snel gesloten worden met een tik op de X.</string>
+  <string name="only_used_in_web_heads_mode">Alleen gebruikt in de modus Webheads</string>
+  <string name="minimize_always_opens_bubble">Minimaliseren opent altijd een bubbel</string>
 </resources>

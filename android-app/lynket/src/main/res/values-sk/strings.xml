@@ -281,4 +281,6 @@
   <string name="see_demo">Zobraziť demo</string>
   <string name="tips">Tipy</string>
   <string name="quick_settings">Rýchle nastavenia</string>
+  <string name="only_used_in_web_heads_mode">Používa sa len v režime Webové hlavičky</string>
+  <string name="minimize_always_opens_bubble">Minimalizácia vždy otvorí bublinu</string>
 </resources>

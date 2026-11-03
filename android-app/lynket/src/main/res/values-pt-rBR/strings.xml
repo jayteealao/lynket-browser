@@ -318,4 +318,6 @@
   <string name="minimize_normally">Minimizar normalmente</string>
   <string name="minimize_to_web_head">Minimizar e abrir web head sempre</string>
   <string name="minimize_behavior">Comportamento ao minimizar</string>
+  <string name="only_used_in_web_heads_mode">Usado apenas no modo Ícones flutuantes</string>
+  <string name="minimize_always_opens_bubble">Minimizar sempre abre uma bolha</string>
 </resources>
