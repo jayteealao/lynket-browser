@@ -188,7 +188,10 @@ object SettingsRules {
   fun selectedMode(values: SettingsValues): BrowsingMode =
     BrowsingMode.resolve(webHeads = values.bool(WEB_HEAD_ENABLED), nativeBubbles = values.bool(NATIVE_BUBBLES))
 
-  /** Whether the row of [key] takes input, as the old screens enabled and disabled it. */
+  /**
+   * Whether the row of [key] takes input. The web head rows take input only in web heads mode.
+   * Minimize behavior takes none in native bubble mode, where Minimize always opens a bubble.
+   */
   fun isEnabled(key: String, values: SettingsValues): Boolean = when (key) {
     SettingsKeyTable.TOOLBAR_COLOR, DYNAMIC_COLOR -> values.bool(TOOLBAR_COLOR_PREF)
     ANIMATION_SPEED -> values.int(ANIMATION_TYPE) != 0
@@ -196,7 +199,8 @@ object SettingsRules {
     SettingsKeyTable.WEB_HEAD_SPAWN,
     SettingsKeyTable.WEB_HEAD_SIZE,
     AGGRESSIVE_LOADING,
-    SettingsKeyTable.WEB_HEAD_CLOSE_ON_OPEN -> values.bool(WEB_HEAD_ENABLED)
+    SettingsKeyTable.WEB_HEAD_CLOSE_ON_OPEN -> selectedMode(values) == BrowsingMode.WebHeads
+    SettingsKeyTable.MINIMIZE_BEHAVIOR -> selectedMode(values) != BrowsingMode.NativeBubbles
     else -> true
   }
 
