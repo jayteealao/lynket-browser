@@ -26,6 +26,7 @@ import android.graphics.Bitmap
 import android.os.Build
 import androidx.annotation.RequiresApi
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
+import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.data.preferences.BrowsingMode
@@ -147,6 +148,7 @@ constructor(
     if (!shownAsBubble(url, initial.incognito)) {
       details?.cancel()
       Timber.w("Android did not show %s as a bubble; opening it in a tab", url)
+      bubbleRegistry.remove(BubbleKey.of(BrowsingMode.NativeBubbles, url, initial.incognito))
       bubbleNotificationManager.cancel(url, initial.incognito)
       tabsManager.get().openRefusedBubble(application, initial.website, BubbleRefusal.NOT_SHOWN, initial.incognito)
       return@coroutineScope

@@ -22,6 +22,7 @@ import arun.com.chromer.browsing.icons.WebsiteIconData
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.bubbles.OpenBubble
 import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
@@ -69,7 +70,9 @@ class NativeBubblePostingTest {
   private val posts = mutableListOf<Post>()
   private var iconDelayMs = 0L
   private var shown = true
+  private val notShown = mutableSetOf<String>()
   private var refusedAt = -1L
+  private var listedAtRefusal: List<OpenBubble>? = null
 
   private val repo = mockk<WebsiteRepository> {
     every { getWebsite(any()) } answers { flowOf(Website(firstArg<String>())) }
@@ -89,7 +92,7 @@ class NativeBubblePostingTest {
       posts += Post(data.website.url, clock.currentTime, data.icon != null, secondArg(), data.color)
       data
     }
-    every { isShownAsBubble(any(), any()) } answers { shown }
+    every { isShownAsBubble(any(), any()) } answers { shown && firstArg<String>() !in notShown }
     every { cancel(any<String>(), any()) } just Runs
   }
 
@@ -98,7 +101,10 @@ class NativeBubblePostingTest {
   }
 
   private val tabsManager = mockk<TabsManager>(relaxed = true) {
-    every { openRefusedBubble(any(), any(), any(), any(), any()) } answers { refusedAt = clock.currentTime }
+    every { openRefusedBubble(any(), any(), any(), any(), any()) } answers {
+      refusedAt = clock.currentTime
+      listedAtRefusal = listed()
+    }
   }
 
   private val registry = BubbleRegistry()
@@ -351,6 +357,54 @@ class NativeBubblePostingTest {
     // The send is the newer act, and it posted the bubble again.
     assertThat(listed().map { it.url }).containsExactly(URL)
     assertThat(registry.isClosedOnPurpose(keyOf(URL))).isFalse()
+  }
+
+  @Test
+  fun a_link_android_refuses_is_off_the_list_before_the_tab_opens() = posting { bubble ->
+    shown = false
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    verify(exactly = 1) { tabsManager.openRefusedBubble(application, any(), BubbleRefusal.NOT_SHOWN, false, LinkSource.NONE) }
+    assertThat(listedAtRefusal).isEmpty()
+    assertThat(listed()).isEmpty()
+    assertThat(registry.isClosedOnPurpose(keyOf(URL))).isFalse()
+  }
+
+  @Test
+  fun a_second_send_android_refuses_takes_the_entry_off_the_list() = posting { bubble ->
+    bubble.open(URL)
+    advanceUntilIdle()
+    assertThat(listed()).hasSize(1)
+
+    shown = false
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    verify(exactly = 1) { notifications.cancel(URL, false) }
+    assertThat(listed()).isEmpty()
+  }
+
+  @Test
+  fun a_refused_link_leaves_the_others_in_order() = posting { bubble ->
+    val refused = "https://refused.example/"
+    notShown += refused
+    bubble.open("https://one.example/")
+    bubble.open(refused)
+    bubble.open("https://two.example/")
+    advanceUntilIdle()
+
+    assertThat(listed().map { it.url }).containsExactly("https://one.example/", "https://two.example/").inOrder()
+  }
+
+  @Test
+  fun a_refused_incognito_link_leaves_the_list_too() = posting { bubble ->
+    shown = false
+    bubble.open(URL, incognito = true)
+    advanceUntilIdle()
+
+    assertThat(listed()).isEmpty()
+    assertThat(registry.isClosedOnPurpose(keyOf(URL, incognito = true))).isFalse()
   }
 
   private companion object {
