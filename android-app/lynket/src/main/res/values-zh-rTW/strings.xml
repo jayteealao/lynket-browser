@@ -221,7 +221,7 @@
   <string name="article_theme">閱讀模式的顏色主題</string>
   <string name="article_mode_summary">載入文章閱讀模式的版面能夠移除像是網頁裡的按鈕、廣告等干擾物，讓您更容易閱讀顯示在螢幕上的文字。</string>
   <string name="amp_warning_title">AMP警告</string>
-  <string name="amp_warning_content"><![CDATA[當使用<b>滑入</b> 模式時，Lynket需要時間抓取加速行動版網頁的連結，當下會有提示方塊供用戶知悉。]]></string>
+  <string name="amp_warning_content"><![CDATA[在<b>浮動氣泡</b>以外的模式下，Lynket需要時間抓取加速行動版網頁的連結，當下會有提示方塊供用戶知悉。]]></string>
   <string name="title_activity_look_and_feel">樣式及外觀</string>
   <string name="title_activity_browsing_options">瀏覽選項</string>
   <string name="grabbing_amp_link">正在抓取加速行動版網頁的連結</string>

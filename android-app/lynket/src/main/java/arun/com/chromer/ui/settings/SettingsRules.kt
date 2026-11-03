@@ -66,7 +66,7 @@ sealed interface SettingsDialog {
   data object UsageAccessForAppColour : SettingsDialog
   data object MergeTabsOff : SettingsDialog
   data object AggressiveLoadingNeedsMergeTabs : SettingsDialog
-  data object AmpInSlideOver : SettingsDialog
+  data object AmpOutsideWebHeads : SettingsDialog
   data object AmpAndArticle : SettingsDialog
   data object OverlayPermission : SettingsDialog
   data class NotificationPermission(val forBubbles: Boolean) : SettingsDialog
@@ -120,7 +120,7 @@ object SettingsRules {
       }
       AMP_MODE -> if (value == true) {
         // AMP warns in every mode but web heads.
-        if (selectedMode(current) != BrowsingMode.WebHeads) dialogs += SettingsDialog.AmpInSlideOver
+        if (selectedMode(current) != BrowsingMode.WebHeads) dialogs += SettingsDialog.AmpOutsideWebHeads
         if (current.bool(ARTICLE_MODE)) dialogs += SettingsDialog.AmpAndArticle
       }
       ARTICLE_MODE -> if (value == true && current.bool(AMP_MODE)) {

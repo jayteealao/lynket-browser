@@ -160,13 +160,15 @@ class SettingsRulesTest {
   }
 
   @Test
-  fun ampInSlideOverWarnsAndAmpWithArticleExplains() {
+  fun ampOutsideWebHeadsWarnsAndAmpWithArticleExplains() {
     assertThat(SettingsRules.change(AMP_MODE, true, values(WEB_HEAD_ENABLED to false), true).dialogs)
-      .containsExactly(SettingsDialog.AmpInSlideOver)
+      .containsExactly(SettingsDialog.AmpOutsideWebHeads)
+    assertThat(SettingsRules.change(AMP_MODE, true, values(NATIVE_BUBBLES to true), true).dialogs)
+      .containsExactly(SettingsDialog.AmpOutsideWebHeads)
     assertThat(SettingsRules.change(AMP_MODE, true, values(WEB_HEAD_ENABLED to true, ARTICLE_MODE to true), true).dialogs)
       .containsExactly(SettingsDialog.AmpAndArticle)
     assertThat(SettingsRules.change(AMP_MODE, true, values(WEB_HEAD_ENABLED to false, ARTICLE_MODE to true), true).dialogs)
-      .containsExactly(SettingsDialog.AmpInSlideOver, SettingsDialog.AmpAndArticle).inOrder()
+      .containsExactly(SettingsDialog.AmpOutsideWebHeads, SettingsDialog.AmpAndArticle).inOrder()
     assertThat(SettingsRules.change(ARTICLE_MODE, true, values(AMP_MODE to true), true).dialogs)
       .containsExactly(SettingsDialog.AmpAndArticle)
     assertThat(SettingsRules.change(ARTICLE_MODE, true, values(AMP_MODE to false), true).dialogs).isEmpty()

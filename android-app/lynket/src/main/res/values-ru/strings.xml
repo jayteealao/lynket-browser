@@ -221,7 +221,7 @@
   <string name="article_theme">Тема статьи</string>
   <string name="article_mode_summary">Загружает лаконичный и удобный Режим чтения без лишнего мусора, сфокусировавшись исключительно на содержании.</string>
   <string name="amp_warning_title">Предупреждение AMP</string>
-  <string name="amp_warning_content"><![CDATA[В режиме <b>Слайд вверх</b> может пройти некоторое время, для захвата URL-адреса используя AMP. Вы можете увидеть диалоговое окно, когда это произойдет.]]></string>
+  <string name="amp_warning_content"><![CDATA[Вне режима <b>Плавающие кнопки</b> может пройти некоторое время, чтобы получить AMP-адрес сайта. Вы можете увидеть диалоговое окно, когда это произойдет.]]></string>
   <string name="title_activity_look_and_feel">Смотри и чувствуй</string>
   <string name="title_activity_browsing_options">Параметры просмотра</string>
   <string name="grabbing_amp_link">Захват AMP ссылки</string>

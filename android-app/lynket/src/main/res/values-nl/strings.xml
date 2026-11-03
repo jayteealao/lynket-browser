@@ -218,7 +218,7 @@
   <string name="article_mode">Artikelweergave</string>
   <string name="article_theme">Thema van artikelen</string>
   <string name="amp_warning_title">Waarschuwing bij AMP</string>
-  <string name="amp_warning_content"><![CDATA[Indien <b>Schuiven</b> is gekozen, kan het even duren tot de AMP-link gevonden is. Er wordt dan een pop-up weergegeven.]]></string>
+  <string name="amp_warning_content"><![CDATA[Buiten de modus <b>Webheads</b> kan het even duren tot de AMP-link gevonden is. Er wordt dan een pop-up weergegeven.]]></string>
   <string name="title_activity_look_and_feel">Uiterlijk</string>
   <string name="title_activity_browsing_options">Browsing</string>
   <string name="grabbing_amp_link">AMP-link openen</string>

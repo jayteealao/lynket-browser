@@ -224,7 +224,7 @@
   <string name="article_theme">Téma článku</string>
   <string name="article_mode_summary">Načíta elegatne vyzerajúci článok zameraný na obsah bez zbytočností okolo.</string>
   <string name="amp_warning_title">AMP upozornenie</string>
-  <string name="amp_warning_content"><![CDATA[V režime <b>Vysunúť cez aplikáciu</b> môže získanie AMP adresy chvíľu trvať. Uvidíte dialógové okno s informáciou.]]></string>
+  <string name="amp_warning_content"><![CDATA[Mimo režimu <b>Webové hlavičky</b> môže získanie AMP adresy chvíľu trvať. Uvidíte dialógové okno s informáciou.]]></string>
   <string name="title_activity_look_and_feel">Vzhľad a dojem</string>
   <string name="title_activity_browsing_options">Možnosti prehiadania</string>
   <string name="grabbing_amp_link">Získavanie AMP odkazu</string>

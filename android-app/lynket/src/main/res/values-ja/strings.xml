@@ -225,7 +225,7 @@
   <string name="article_theme">記事モードのテーマ</string>
   <string name="article_mode_summary">コンテンツのみの読み込みに特化したシンプルなリーダーモードで読み込みます。</string>
   <string name="amp_warning_title">AMPモードの注意</string>
-  <string name="amp_warning_content"><![CDATA[<b>スライドモード</b>では、ウェブサイトのAMPのURLを取得するのに少し時間が掛かる場合があります。読み込み状況はダイアログで表示されます。]]></string>
+  <string name="amp_warning_content"><![CDATA[<b>ウェブヘッド</b>以外のモードでは、ウェブサイトのAMPのURLを取得するのに少し時間が掛かる場合があります。読み込み状況はダイアログで表示されます。]]></string>
   <string name="title_activity_look_and_feel">外観とアニメーション</string>
   <string name="title_activity_browsing_options">ブラウジングオプション</string>
   <string name="grabbing_amp_link">AMPリンクを取得中</string>
