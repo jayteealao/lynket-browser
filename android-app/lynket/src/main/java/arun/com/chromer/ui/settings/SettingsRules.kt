@@ -204,6 +204,17 @@ object SettingsRules {
     else -> true
   }
 
+  /**
+   * The summary a row shows in place of its chosen value: Minimize behavior in native bubble mode,
+   * where Minimize always opens a bubble.
+   */
+  @StringRes
+  fun summaryOverride(key: String, values: SettingsValues): Int? = when {
+    key == SettingsKeyTable.MINIMIZE_BEHAVIOR && selectedMode(values) == BrowsingMode.NativeBubbles ->
+      R.string.minimize_always_opens_bubble
+    else -> null
+  }
+
   /** Whether the row of [key] shows at all: the dynamic colour boxes only while dynamic colour is on. */
   fun isVisible(key: String, values: SettingsValues): Boolean = when (key) {
     DYNAMIC_COLOR_APP, DYNAMIC_COLOR_WEB -> values.bool(DYNAMIC_COLOR)
