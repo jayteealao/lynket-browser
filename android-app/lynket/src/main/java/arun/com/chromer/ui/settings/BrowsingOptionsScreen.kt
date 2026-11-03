@@ -152,7 +152,7 @@ fun BrowsingOptionsContent(
 ) {
   var minimizeDialog by rememberSaveable { mutableStateOf(openList) }
   val minimizeChoices = listChoices(MINIMIZE_BEHAVIOR, R.array.minimizePreferenceValues, R.array.minimizePreferenceKeys)
-  val webHeadsNotice = if (SettingsRules.showsOutsideWebHeadsNotice(values)) stringResource(R.string.not_available_in_slide_mode) else null
+  val webHeadsNotice = if (SettingsRules.showsOutsideWebHeadsNotice(values)) stringResource(R.string.only_used_in_web_heads_mode) else null
   SettingsScaffold(
     title = stringResource(R.string.settings_browsing_options),
     onBack = onBack,
