@@ -33,6 +33,11 @@
           "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
           "at": "2026-10-31T21:05:44Z",
           "workflow": "native-bubble-privacy-lifecycle"
+        },
+        {
+          "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
+          "at": "2026-11-03T21:07:40Z",
+          "workflow": "bubble-registry-overflow"
         }
       ]
     },
@@ -268,7 +273,13 @@
       "slices": [],
       "created-at": "2026-11-03T21:03:23Z",
       "updated-at": "2026-11-03T21:03:23Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
+          "at": "2026-11-03T21:07:40Z",
+          "workflow": "bubble-registry-overflow"
+        }
+      ]
     },
     "bubble-overflow-return": {
       "title": "Overflow bubble returns to the stack",
@@ -281,7 +292,13 @@
       "slices": [],
       "created-at": "2026-11-03T21:03:23Z",
       "updated-at": "2026-11-03T21:03:23Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
+          "at": "2026-11-03T21:07:40Z",
+          "workflow": "bubble-registry-overflow"
+        }
+      ]
     }
   },
   "explore": {}
