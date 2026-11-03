@@ -267,6 +267,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   private fun removeOverlay() {
     controller?.removeAll()
+    bubbleRegistry.list(BrowsingMode.WebHeads).forEach { bubbleRegistry.remove(it.key) }
     headWindows.values.forEach { it.remove() }
     headWindows.clear()
     trashWindow?.remove()

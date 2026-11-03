@@ -249,6 +249,61 @@ class WebHeadServiceRegistryTest : LynketRobolectricSuite() {
     assertThat(listedAtClosed).containsExactly(listOf(B))
   }
 
+  @Test
+  fun a_stopped_service_leaves_no_web_head_entry() {
+    serviceWith(A, B, C).destroy()
+
+    assertThat(listedUrls()).isEmpty()
+  }
+
+  @Test
+  fun a_stop_marks_none_of_the_heads_as_closed_on_purpose() {
+    serviceWith(A, B, C).destroy()
+
+    listOf(A, B, C).forEach { assertThat(registry.isClosedOnPurpose(webHeadKey(it))).isFalse() }
+  }
+
+  @Test
+  fun a_stop_leaves_the_native_bubbles_listed() {
+    val controller = serviceWith(A)
+    val native = registry.add(BrowsingMode.NativeBubbles, A, false)
+
+    controller.destroy()
+
+    assertThat(registry.list(BrowsingMode.NativeBubbles)).containsExactly(native)
+  }
+
+  @Test
+  fun a_head_closed_before_the_stop_keeps_its_marker() {
+    val controller = serviceWith(A, B)
+    closeFromTheList(A)
+
+    controller.destroy()
+
+    assertThat(registry.isClosedOnPurpose(webHeadKey(A))).isTrue()
+  }
+
+  @Test
+  fun a_link_sent_to_a_new_service_after_the_stop_is_listed_again() {
+    serviceWith(A, B).destroy()
+
+    serviceWith(A)
+
+    assertThat(listedUrls()).containsExactly(A)
+  }
+
+  @Test
+  fun a_permission_lost_with_heads_open_leaves_the_list_empty_after_the_refused_start_and_the_stop() {
+    val controller = serviceWith(A, B)
+
+    ShadowSettings.setCanDrawOverlays(false)
+    controller.get().onStartCommand(intentFor(C), 0, 3)
+    idle()
+    controller.destroy()
+
+    assertThat(listedUrls()).isEmpty()
+  }
+
   private companion object {
     const val A = "https://a.example"
     const val B = "https://b.example"
