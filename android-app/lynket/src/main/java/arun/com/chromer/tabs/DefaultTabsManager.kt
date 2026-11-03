@@ -480,7 +480,8 @@ constructor(
     // App-wide incognito makes every bubble incognito, the same as a tab.
     val isIncognito = preferences.fullIncognitoMode() || incognito
     val url = website.preferredUrl()
-    // A minimize from slide-over mode opens a web head.
+    // Native bubble mode opens a bubble; every other mode opens a web head, a minimize from
+    // slide-over mode too.
     val nativeBubble = preferences.browsingMode() == BrowsingMode.NativeBubbles
 
     if (nativeBubble && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
