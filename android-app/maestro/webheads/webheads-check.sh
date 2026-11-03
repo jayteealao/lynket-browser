@@ -178,7 +178,12 @@ check_bubble() {
     a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/bubble-notifications.txt"
     [ -n "$(bubble_flag_lines "$OUT/bubble-notifications.txt")" ] && break
   done
-  bubble_flag_lines "$OUT/bubble-notifications.txt" | tee -a "$OUT/bubble.txt" | grep -q . ||
+  # Read every flagged line first: a reader that stops at the first line would break the pipe.
+  local flagged
+  flagged="$(bubble_flag_lines "$OUT/bubble-notifications.txt")"
+  [ -z "$flagged" ] || printf '%s
+' "$flagged" >> "$OUT/bubble.txt"
+  [ -n "$flagged" ] ||
     fail "no notification of the app carries the bubble flag (see bubble-notifications.txt)"
   # Native bubble mode never starts the web head service.
   a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/bubble-webhead-service.txt"
