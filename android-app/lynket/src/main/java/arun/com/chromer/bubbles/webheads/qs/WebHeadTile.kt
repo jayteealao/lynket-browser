@@ -20,6 +20,7 @@
 
 package arun.com.chromer.bubbles.webheads.qs
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.drawable.Icon
@@ -55,6 +56,7 @@ class WebHeadTile : PreferenceQuickSettingsTile() {
     }
   }
 
+  @SuppressLint("StartActivityAndCollapseDeprecated") // the Intent form runs only below Android 14
   private fun openBrowsingModeSettings() {
     val intent = Intent(this, MainActivity::class.java)
       .putExtra(Destination.EXTRA, "BrowsingMode")
@@ -66,6 +68,7 @@ class WebHeadTile : PreferenceQuickSettingsTile() {
             PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT),
           )
         } else {
+          // Below Android 14 the Intent form is the only one there is.
           @Suppress("DEPRECATION")
           startActivityAndCollapse(intent)
         }
