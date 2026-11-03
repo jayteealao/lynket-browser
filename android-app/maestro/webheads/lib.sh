@@ -115,3 +115,54 @@ nav_three_button() {
 nav_restore() {
   [ -n "$NAV_BEFORE" ] && a shell cmd overlay enable-exclusive --category "$NAV_BEFORE" >/dev/null || true
 }
+
+# The lines of the app's notifications that Android posted as bubbles, from a saved
+# `dumpsys notification --noredact` output ($1). Newer Android names the flags
+# (flags=...BUBBLE); older releases print them as hex (flags=0x1100), where the bubble flag is
+# the bit 0x1000.
+bubble_flag_lines() {
+  local line flags
+  grep -F "pkg=$PKG" "$1" | while IFS= read -r line; do
+    if [[ "$line" =~ flags=([^[:space:]]*BUBBLE) ]]; then
+      echo "$line"
+    elif [[ "$line" =~ flags=(0x[0-9a-fA-F]+) ]]; then
+      flags="${BASH_REMATCH[1]}"
+      if (( flags & 0x1000 )); then echo "$line"; fi
+    fi
+  done
+}
+
+# Taps the node with text $1 as soon as it shows: tries every 2 s, $2 times (15 by default).
+wait_tap_text() {
+  local _
+  for _ in $(seq 1 "${2:-15}"); do
+    tap_text "$1" && return 0
+    sleep 2
+  done
+  return 1
+}
+
+# The stored value of the setting $1, as the debug build's store dump reads it; the whole dump
+# is kept as $OUT/$2.
+stored_setting() {
+  a logcat -c
+  a shell am broadcast -n "$PKG/arun.com.chromer.debug.StoreDumpReceiver" >/dev/null
+  for _ in $(seq 1 40); do
+    a logcat -d -s StoreDump:I | grep "done" >/dev/null && break
+    sleep 0.5
+  done
+  a exec-out run-as "$PKG" cat files/debug-dump/settings.tsv | tr -d '\r' > "$OUT/$2"
+  awk -F'\t' -v k="$1" '$1 == k { print $3 }' "$OUT/$2"
+}
+
+# Starts the app from the settings file $1, as a settings file restored from a backup of an
+# older release arrives: clears the app's data, writes the file while the app is stopped (the
+# next start imports it into the settings store), then allows notifications again.
+seed_settings() {
+  local prefs="shared_prefs/${PKG}_preferences.xml"
+  a shell am force-stop "$PKG"
+  a shell pm clear "$PKG" >/dev/null
+  a shell run-as "$PKG" mkdir -p shared_prefs
+  a exec-in run-as "$PKG" sh -c "cat > $prefs" < "$1"
+  a shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
+}
