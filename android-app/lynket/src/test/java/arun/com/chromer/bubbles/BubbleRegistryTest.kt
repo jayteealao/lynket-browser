@@ -12,13 +12,19 @@
 package arun.com.chromer.bubbles
 
 import app.cash.turbine.test
+import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.data.preferences.BrowsingMode.NativeBubbles
 import arun.com.chromer.data.preferences.BrowsingMode.SlideOver
 import arun.com.chromer.data.preferences.BrowsingMode.WebHeads
 import com.google.common.truth.Truth.assertThat
+import dagger.hilt.android.testing.HiltAndroidTest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertThrows
 import org.junit.Test
+import javax.inject.Inject
 
 /** The one list of open bubbles: its order, its identity and how it is read. */
 class BubbleRegistryTest {
@@ -233,5 +239,30 @@ class BubbleRegistryTest {
     val keyAlone = BubbleKey(NativeBubbles, opened.key.notificationId)
     assertThat(registry.isClosedOnPurpose(keyAlone)).isTrue()
     assertThat(registry.bubbles.value).isEmpty()
+  }
+
+  @Test
+  fun adds_from_several_threads_lose_nothing() = runTest {
+    withContext(Dispatchers.Default) {
+      repeat(200) { launch { registry.add(NativeBubbles, "https://example.com/$it", false) } }
+    }
+
+    assertThat(registry.list(NativeBubbles)).hasSize(200)
+  }
+}
+
+/** Every part of the app must read the same list, so the app holds one registry. */
+@HiltAndroidTest
+class BubbleRegistryInjectionTest : LynketRobolectricSuite() {
+
+  @Inject
+  lateinit var first: BubbleRegistry
+
+  @Inject
+  lateinit var second: BubbleRegistry
+
+  @Test
+  fun the_app_holds_one_registry() {
+    assertThat(first).isSameInstanceAs(second)
   }
 }
