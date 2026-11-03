@@ -15,12 +15,20 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Looper
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
+import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import org.junit.After
 import org.junit.Test
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
@@ -37,6 +45,11 @@ class WebHeadServiceRegistryTest : LynketRobolectricSuite() {
 
   @Inject
   lateinit var eventBus: EventBus
+
+  private val collectorScope = CoroutineScope(Dispatchers.Unconfined)
+
+  @After
+  fun cancelCollectors() = collectorScope.cancel()
 
   private fun intentFor(url: String) = Intent(application, WebHeadService::class.java).setData(Uri.parse(url))
 
@@ -56,6 +69,19 @@ class WebHeadServiceRegistryTest : LynketRobolectricSuite() {
   private fun idle() = shadowOf(Looper.getMainLooper()).idle()
 
   private fun listedUrls() = registry.list(BrowsingMode.WebHeads).map { it.url }
+
+  private fun webHeadKey(url: String, incognito: Boolean = false) =
+    BubbleKey.of(BrowsingMode.WebHeads, url, incognito)
+
+  private fun assertClosedOnPurpose(url: String) {
+    assertThat(listedUrls()).doesNotContain(url)
+    assertThat(registry.isClosedOnPurpose(webHeadKey(url))).isTrue()
+  }
+
+  private fun closeFromTheList(url: String) {
+    eventBus.tryEmit(Event.WebHeadEvent.CloseRequested(url))
+    idle()
+  }
 
   @Test
   fun three_links_opened_in_turn_are_listed_in_open_order_as_web_heads_only() {
@@ -118,6 +144,109 @@ class WebHeadServiceRegistryTest : LynketRobolectricSuite() {
     idle()
 
     assertThat(listedUrls()).isEmpty()
+  }
+
+  @Test
+  fun a_close_from_the_list_takes_the_link_off_and_marks_it() {
+    serviceWith(A, B)
+
+    closeFromTheList(A)
+
+    assertClosedOnPurpose(A)
+  }
+
+  @Test
+  fun the_spoken_close_takes_the_link_off_and_marks_it() {
+    val service = serviceWith(A, B).get()
+
+    service.onClose(service.controller!![A]!!)
+    idle()
+
+    assertClosedOnPurpose(A)
+  }
+
+  @Test
+  fun a_tap_with_close_on_open_takes_the_link_off_and_marks_it() {
+    val service = serviceWith(A, B).get()
+    preferences.webHeadsCloseOnOpen(true)
+
+    service.onHeadClick(service.controller!![A]!!)
+    idle()
+
+    assertClosedOnPurpose(A)
+    preferences.webHeadsCloseOnOpen(false)
+  }
+
+  @Test
+  fun a_close_keeps_the_other_heads_in_their_order() {
+    serviceWith(A, B, C)
+
+    closeFromTheList(B)
+
+    assertThat(listedUrls()).containsExactly(A, C).inOrder()
+    assertThat(registry.isClosedOnPurpose(webHeadKey(A))).isFalse()
+    assertThat(registry.isClosedOnPurpose(webHeadKey(C))).isFalse()
+  }
+
+  @Test
+  fun the_last_head_closed_leaves_the_list_empty_and_its_marker_set() {
+    serviceWith(A)
+
+    closeFromTheList(A)
+
+    assertThat(listedUrls()).isEmpty()
+    assertThat(registry.isClosedOnPurpose(webHeadKey(A))).isTrue()
+  }
+
+  @Test
+  fun a_closed_incognito_head_reaches_its_own_entry() {
+    val controller = serviceWith(A)
+    controller.withIntent(incognitoIntentFor(SECRET)).startCommand(0, 2)
+    idle()
+
+    closeFromTheList(SECRET)
+
+    assertThat(registry.find(BrowsingMode.WebHeads, SECRET, true)).isNull()
+    assertThat(registry.isClosedOnPurpose(webHeadKey(SECRET, incognito = true))).isTrue()
+    assertThat(registry.isClosedOnPurpose(webHeadKey(SECRET))).isFalse()
+  }
+
+  @Test
+  fun a_link_opened_again_after_its_close_goes_last_and_is_not_marked() {
+    val controller = serviceWith(A, B)
+    closeFromTheList(A)
+
+    controller.withIntent(intentFor(A)).startCommand(0, 3)
+    idle()
+
+    assertThat(listedUrls()).containsExactly(B, A).inOrder()
+    assertThat(registry.isClosedOnPurpose(webHeadKey(A))).isFalse()
+  }
+
+  @Test
+  fun closing_a_head_leaves_a_native_bubble_of_the_same_link_alone() {
+    serviceWith(A, B)
+    val native = registry.add(BrowsingMode.NativeBubbles, A, false)
+
+    closeFromTheList(A)
+
+    assertThat(registry.list(BrowsingMode.NativeBubbles)).containsExactly(native)
+    assertThat(registry.isClosedOnPurpose(native.key)).isFalse()
+  }
+
+  @Test
+  fun the_entry_is_gone_by_the_time_closed_is_sent() {
+    serviceWith(A, B)
+    val listedAtClosed = mutableListOf<List<String>>()
+    collectorScope.launch(start = CoroutineStart.UNDISPATCHED) {
+      eventBus.observe<Event.WebHeadEvent>().collect { event ->
+        if (event is Event.WebHeadEvent.Closed) listedAtClosed += listedUrls()
+      }
+    }
+
+    closeFromTheList(A)
+
+    assertThat(listedAtClosed).containsExactly(listOf(B))
   }
 
   private companion object {

@@ -52,6 +52,7 @@ import arun.com.chromer.R
 import arun.com.chromer.browsing.article.ArticlePreloader
 import arun.com.chromer.browsing.customtabs.CustomTabManager
 import arun.com.chromer.browsing.newtab.NewTabDialogActivity
+import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.webheads.motion.TrashTick
 import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
@@ -425,7 +426,11 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     headWindows[head.url]?.view?.performHapticFeedback(tick.feedbackConstant())
   }
 
+  /** Only a close by the person gets here: a service stop removes its heads with no callback. */
   override fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean) {
+    val key = BubbleKey.of(BrowsingMode.WebHeads, head.url, head.incognito)
+    bubbleRegistry.markClosedOnPurpose(key)
+    bubbleRegistry.remove(key)
     if (isLastHead) {
       controller?.exitTrash { stopService() } ?: stopService()
     } else if (!Preferences.get(this).articleMode()) {
