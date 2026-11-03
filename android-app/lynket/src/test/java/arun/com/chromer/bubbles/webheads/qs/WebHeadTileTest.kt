@@ -22,6 +22,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
 import org.robolectric.Robolectric
+import org.robolectric.shadows.ShadowSettings
 
 /** The Web heads tile turns web heads on as the only browsing mode, or goes back to slide-over. */
 @HiltAndroidTest
@@ -32,6 +33,7 @@ class WebHeadTileTest : LynketRobolectricSuite() {
   @Before
   fun buildTile() {
     clearPreferences()
+    ShadowSettings.setCanDrawOverlays(true)
     tile = Robolectric.buildService(WebHeadTile::class.java).create().get()
   }
 
@@ -62,5 +64,26 @@ class WebHeadTileTest : LynketRobolectricSuite() {
     assertThat(values[booleanPreferencesKey(Preferences.WEB_HEAD_ENABLED)]).isTrue()
     assertThat(values[booleanPreferencesKey(NATIVE_BUBBLES_PREFERENCE)]).isFalse()
     assertThat(tile.preference()).isTrue()
+  }
+
+  @Test
+  fun withoutTheOverlayPermissionTheTileKeepsNativeBubbleMode() {
+    ShadowSettings.setCanDrawOverlays(false)
+    preferences.browsingMode(BrowsingMode.NativeBubbles)
+
+    tile.togglePreference()
+
+    assertThat(preferences.browsingMode()).isEqualTo(BrowsingMode.NativeBubbles)
+    assertThat(tile.preference()).isFalse()
+  }
+
+  @Test
+  fun withoutTheOverlayPermissionTheTileStillTurnsWebHeadsOff() {
+    preferences.browsingMode(BrowsingMode.WebHeads)
+    ShadowSettings.setCanDrawOverlays(false)
+
+    tile.togglePreference()
+
+    assertThat(preferences.browsingMode()).isEqualTo(BrowsingMode.SlideOver)
   }
 }
