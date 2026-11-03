@@ -39,6 +39,8 @@ class BubbleDismissReceiver : BroadcastReceiver() {
       Timber.w("A bubble dismiss without a notification id")
       return
     }
-    bubbleNotificationManager.dismissed(intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0))
+    val id = intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)
+    Timber.d("Bubble dismissed: %d", id)
+    bubbleNotificationManager.dismissed(id)
   }
 }
