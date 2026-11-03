@@ -16,6 +16,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
+import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.data.preferences.BrowsingMode
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -25,7 +28,10 @@ internal const val EXTRA_BUBBLE_NOTIFICATION_ID = "arun.com.chromer.extra.BUBBLE
 
 /**
  * Android sends this when the person dismisses a bubble; it removes the bubble's notification, the
- * summary when no bubble is left, and its shortcut.
+ * summary when no bubble is left, and its shortcut. The bubble leaves the list of open bubbles
+ * marked as closed on purpose, so it never comes back on its own. The mark lives here and not in
+ * the manager: a refused bubble goes through the manager too, and only a person dismissal arrives
+ * here.
  */
 @AndroidEntryPoint
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -34,6 +40,9 @@ class BubbleDismissReceiver : BroadcastReceiver() {
   @Inject
   lateinit var bubbleNotificationManager: BubbleNotificationManager
 
+  @Inject
+  lateinit var bubbleRegistry: BubbleRegistry
+
   override fun onReceive(context: Context, intent: Intent) {
     if (!intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)) {
       Timber.w("A bubble dismiss without a notification id")
@@ -41,6 +50,9 @@ class BubbleDismissReceiver : BroadcastReceiver() {
     }
     val id = intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)
     Timber.d("Bubble dismissed: %d", id)
+    val key = BubbleKey(BrowsingMode.NativeBubbles, id)
+    bubbleRegistry.markClosedOnPurpose(key)
+    bubbleRegistry.remove(key)
     bubbleNotificationManager.dismissed(id)
   }
 }

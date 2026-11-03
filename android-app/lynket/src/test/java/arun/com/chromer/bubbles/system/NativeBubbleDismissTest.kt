@@ -18,6 +18,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ShortcutManager
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.model.Website
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -42,6 +45,9 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
   @Inject
   lateinit var manager: BubbleNotificationManager
 
+  @Inject
+  lateinit var registry: BubbleRegistry
+
   private val notificationManager: NotificationManager
     get() = application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -57,10 +63,19 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
 
   private fun post(url: String, incognito: Boolean = false) {
     runBlocking { manager.showBubbles(BubbleLoadData(website(url), false, false, incognito)) }
+    registry.add(BrowsingMode.NativeBubbles, url, incognito)
   }
+
+  private fun listed() = registry.list(BrowsingMode.NativeBubbles).map { it.url }
+
+  private fun keyOf(url: String, incognito: Boolean = false) =
+    BubbleKey.of(BrowsingMode.NativeBubbles, url, incognito)
 
   private fun notificationOf(url: String): Notification? =
     shadowOf(notificationManager).allNotifications.singleOrNull { it.shortcutId in bubbleIdsOf(url) }
+
+  private fun notificationOfIncognito(url: String): Notification =
+    shadowOf(notificationManager).allNotifications.single { it.shortcutId == bubbleConversationId(url, incognito = true) }
 
   private fun summary(): Notification? =
     shadowOf(notificationManager).allNotifications.singleOrNull { it.flags and Notification.FLAG_GROUP_SUMMARY != 0 }
@@ -69,11 +84,12 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     application.getSystemService(ShortcutManager::class.java).dynamicShortcuts.map { it.id }
 
   /** Sends the bubble's delete intent and hands the broadcast to the receiver, as Android does. */
-  private fun dismiss(url: String) {
+  private fun dismiss(url: String): Intent {
     notificationOf(url)!!.bubbleMetadata!!.deleteIntent!!.send()
     val sent = shadowOf(application).broadcastIntents.last()
     assertThat(sent.component?.className).isEqualTo(BubbleDismissReceiver::class.java.name)
     BubbleDismissReceiver().onReceive(application, sent)
+    return sent
   }
 
   @Test
@@ -157,6 +173,82 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     assertThat(notificationOf(first)).isNotNull()
     assertThat(summary()).isNotNull()
     assertThat(shortcutIds()).contains(bubbleConversationId(first))
+  }
+
+  @Test
+  fun a_dismissal_takes_the_bubble_off_the_list_and_marks_it_closed_on_purpose() {
+    post(first)
+
+    dismiss(first)
+
+    assertThat(listed()).isEmpty()
+    assertThat(registry.isClosedOnPurpose(keyOf(first))).isTrue()
+  }
+
+  @Test
+  fun a_delete_intent_that_arrives_twice_changes_nothing_more() {
+    post(first)
+    post(second)
+
+    val sent = dismiss(first)
+    BubbleDismissReceiver().onReceive(application, sent)
+
+    assertThat(listed()).containsExactly(second)
+    assertThat(registry.isClosedOnPurpose(keyOf(first))).isTrue()
+    assertThat(notificationOf(second)).isNotNull()
+  }
+
+  @Test
+  fun a_dismissal_leaves_the_other_bubbles_in_order() {
+    val third = "https://secret.example/three"
+    listOf(first, second, third).forEach { post(it) }
+
+    dismiss(second)
+
+    assertThat(listed()).containsExactly(first, third).inOrder()
+  }
+
+  @Test
+  fun an_incognito_dismissal_reaches_its_entry_from_the_id_alone() {
+    post(first)
+    post(first, incognito = true)
+
+    notificationOfIncognito(first).bubbleMetadata!!.deleteIntent!!.send()
+    BubbleDismissReceiver().onReceive(application, shadowOf(application).broadcastIntents.last())
+
+    assertThat(registry.list(BrowsingMode.NativeBubbles).map { it.incognito }).containsExactly(false)
+    assertThat(registry.isClosedOnPurpose(keyOf(first, incognito = true))).isTrue()
+    assertThat(registry.isClosedOnPurpose(keyOf(first))).isFalse()
+  }
+
+  @Test
+  fun a_dismissal_leaves_a_web_head_of_the_same_link_alone() {
+    post(first)
+    registry.add(BrowsingMode.WebHeads, first, false)
+
+    dismiss(first)
+
+    assertThat(registry.list(BrowsingMode.WebHeads).map { it.url }).containsExactly(first)
+    assertThat(registry.isClosedOnPurpose(BubbleKey.of(BrowsingMode.WebHeads, first, false))).isFalse()
+  }
+
+  @Test
+  fun a_dismiss_without_an_id_leaves_the_list_as_it_was() {
+    post(first)
+
+    BubbleDismissReceiver().onReceive(application, Intent())
+
+    assertThat(listed()).containsExactly(first)
+    assertThat(registry.isClosedOnPurpose(keyOf(first))).isFalse()
+  }
+
+  @Test
+  fun a_bubble_android_did_not_show_is_not_marked_closed_on_purpose() {
+    post(first)
+
+    manager.cancel(first, incognito = false)
+
+    assertThat(registry.isClosedOnPurpose(keyOf(first))).isFalse()
   }
 
   @Test
