@@ -18,7 +18,8 @@
       "flow": "open-link",
       "order": 10,
       "workflows": [
-        "native-bubble-privacy-lifecycle"
+        "native-bubble-privacy-lifecycle",
+        "bubble-registry-overflow"
       ],
       "slices": [
         "bubble-dismiss-cleanup",
@@ -26,7 +27,7 @@
         "bubble-conversation-features"
       ],
       "created-at": "2026-10-31T20:41:39Z",
-      "updated-at": "2026-10-31T22:24:58Z",
+      "updated-at": "2026-11-03T21:03:23Z",
       "approvals": [
         {
           "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
@@ -198,9 +199,11 @@
       "workflows": [
         "one-browsing-mode"
       ],
-      "slices": [],
+      "slices": [
+        "mode-switch-flow"
+      ],
       "created-at": "2026-11-02T19:45:13Z",
-      "updated-at": "2026-11-02T19:45:13Z",
+      "updated-at": "2026-11-02T22:35:33Z",
       "approvals": [
         {
           "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
@@ -217,9 +220,12 @@
       "workflows": [
         "one-browsing-mode"
       ],
-      "slices": [],
+      "slices": [
+        "web-head-groups-note",
+        "mode-switch-flow"
+      ],
       "created-at": "2026-11-02T19:45:13Z",
-      "updated-at": "2026-11-02T19:45:13Z",
+      "updated-at": "2026-11-02T22:35:33Z",
       "approvals": [
         {
           "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
@@ -236,9 +242,13 @@
       "workflows": [
         "one-browsing-mode"
       ],
-      "slices": [],
+      "slices": [
+        "web-head-groups-note",
+        "minimize-row-native-summary",
+        "mode-switch-flow"
+      ],
       "created-at": "2026-11-02T19:45:13Z",
-      "updated-at": "2026-11-02T19:45:13Z",
+      "updated-at": "2026-11-02T22:35:33Z",
       "approvals": [
         {
           "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
@@ -246,6 +256,32 @@
           "workflow": "one-browsing-mode"
         }
       ]
+    },
+    "bubble-page-count": {
+      "title": "Bubble page with its count",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 15,
+      "workflows": [
+        "bubble-registry-overflow"
+      ],
+      "slices": [],
+      "created-at": "2026-11-03T21:03:23Z",
+      "updated-at": "2026-11-03T21:03:23Z",
+      "approvals": []
+    },
+    "bubble-overflow-return": {
+      "title": "Overflow bubble returns to the stack",
+      "area": "bubbles",
+      "flow": "close",
+      "order": 50,
+      "workflows": [
+        "bubble-registry-overflow"
+      ],
+      "slices": [],
+      "created-at": "2026-11-03T21:03:23Z",
+      "updated-at": "2026-11-03T21:03:23Z",
+      "approvals": []
     }
   },
   "explore": {}
