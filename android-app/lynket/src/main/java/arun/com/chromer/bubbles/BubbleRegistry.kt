@@ -44,28 +44,45 @@ data class BubbleKey(val mode: BrowsingMode, val notificationId: Int) {
 }
 
 /** One open bubble. */
-data class OpenBubble(val key: BubbleKey, val url: String, val incognito: Boolean) {
+data class OpenBubble(
+  val key: BubbleKey,
+  val url: String,
+  val incognito: Boolean,
+  val closedOnPurpose: Boolean = false,
+) {
   val mode: BrowsingMode get() = key.mode
 }
 
 /**
  * The open bubbles of both modes in the order they opened, oldest first. A bubble of each mode can
  * be open at once after the person changes mode, so a read names the mode it wants.
+ *
+ * An entry marked closed on purpose is one the person dismissed: it never comes back on its own.
+ * Only a dismissal by the person sets the marker, never a bubble that ages out of Android's
+ * overflow. The marker outlasts the entry, because a dismissal can arrive twice and a closed web
+ * head is gone from the list at once. It lives by key, so no incognito address stays behind, and
+ * it clears when the person opens that link again.
  */
 @Singleton
 class BubbleRegistry @Inject constructor() {
   private val lock = Any()
   private val entries = MutableStateFlow<List<OpenBubble>>(emptyList())
+  private val closedOnPurpose = mutableSetOf<BubbleKey>()
 
   val bubbles: StateFlow<List<OpenBubble>> = entries.asStateFlow()
 
-  /** Opens an entry at the end of the list. A link that is already open keeps its entry and place. */
+  /**
+   * Opens an entry at the end of the list. A link that is already open keeps its entry and place.
+   * Either way the person opened it, so it is no longer closed on purpose.
+   */
   fun add(mode: BrowsingMode, url: String, incognito: Boolean): OpenBubble = synchronized(lock) {
     val key = BubbleKey.of(mode, url, incognito)
+    setMarker(key, closed = false)
     entries.value.find { it.key == key }
       ?: OpenBubble(key, url, incognito).also { entries.value += it }
   }
 
+  /** Takes the entry off the list without marking it: a bubble can leave with no person involved. */
   fun remove(key: BubbleKey) = synchronized(lock) {
     entries.value = entries.value.filterNot { it.key == key }
   }
@@ -76,4 +93,17 @@ class BubbleRegistry @Inject constructor() {
   }
 
   fun list(mode: BrowsingMode): List<OpenBubble> = entries.value.filter { it.mode == mode }
+
+  fun markClosedOnPurpose(key: BubbleKey) = synchronized(lock) { setMarker(key, closed = true) }
+
+  fun isClosedOnPurpose(key: BubbleKey): Boolean = synchronized(lock) { key in closedOnPurpose }
+
+  /** The entries that may come back to the stack, oldest first, so the last one is the newest. */
+  fun returnCandidates(mode: BrowsingMode): List<OpenBubble> =
+    list(mode).filterNot { it.closedOnPurpose }
+
+  private fun setMarker(key: BubbleKey, closed: Boolean) {
+    if (closed) closedOnPurpose += key else closedOnPurpose -= key
+    entries.value = entries.value.map { if (it.key == key) it.copy(closedOnPurpose = closed) else it }
+  }
 }

@@ -120,4 +120,97 @@ class BubbleRegistryTest {
       assertThat(awaitItem()).isEmpty()
     }
   }
+
+  @Test
+  fun a_marked_entry_stays_listed_and_is_never_offered_for_a_return() {
+    registry.add(NativeBubbles, first, incognito = false)
+    val marked = registry.add(NativeBubbles, second, incognito = false)
+    registry.add(NativeBubbles, third, incognito = false)
+
+    registry.markClosedOnPurpose(marked.key)
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first, second, third).inOrder()
+    assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(first, third).inOrder()
+  }
+
+  @Test
+  fun the_entry_shows_its_marker() {
+    val opened = registry.add(NativeBubbles, first, incognito = false)
+    assertThat(opened.closedOnPurpose).isFalse()
+
+    registry.markClosedOnPurpose(opened.key)
+
+    assertThat(registry.find(NativeBubbles, first, incognito = false)?.closedOnPurpose).isTrue()
+    assertThat(registry.isClosedOnPurpose(opened.key)).isTrue()
+  }
+
+  @Test
+  fun a_marked_entry_stays_marked_after_it_is_removed() {
+    val marked = registry.add(NativeBubbles, first, incognito = false)
+    registry.add(NativeBubbles, second, incognito = false)
+
+    registry.markClosedOnPurpose(marked.key)
+    registry.remove(marked.key)
+
+    assertThat(registry.isClosedOnPurpose(marked.key)).isTrue()
+    assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(second)
+  }
+
+  @Test
+  fun remove_alone_never_marks() {
+    val opened = registry.add(NativeBubbles, first, incognito = false)
+
+    registry.remove(opened.key)
+
+    assertThat(registry.isClosedOnPurpose(opened.key)).isFalse()
+  }
+
+  @Test
+  fun marking_twice_or_marking_a_key_that_is_not_open_breaks_nothing() {
+    val opened = registry.add(NativeBubbles, first, incognito = false)
+    val notOpen = BubbleKey.of(NativeBubbles, second, incognito = false)
+
+    registry.markClosedOnPurpose(opened.key)
+    registry.markClosedOnPurpose(opened.key)
+    registry.markClosedOnPurpose(notOpen)
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first)
+    assertThat(registry.isClosedOnPurpose(opened.key)).isTrue()
+    assertThat(registry.isClosedOnPurpose(notOpen)).isTrue()
+  }
+
+  @Test
+  fun opening_a_marked_link_that_is_still_open_clears_the_marker_and_keeps_its_place() {
+    val marked = registry.add(NativeBubbles, first, incognito = false)
+    registry.add(NativeBubbles, second, incognito = false)
+    registry.markClosedOnPurpose(marked.key)
+
+    val again = registry.add(NativeBubbles, first, incognito = false)
+
+    assertThat(again.closedOnPurpose).isFalse()
+    assertThat(registry.isClosedOnPurpose(marked.key)).isFalse()
+    assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(first, second).inOrder()
+  }
+
+  @Test
+  fun opening_a_marked_link_after_it_was_removed_clears_the_marker() {
+    val marked = registry.add(NativeBubbles, first, incognito = false)
+    registry.markClosedOnPurpose(marked.key)
+    registry.remove(marked.key)
+
+    val again = registry.add(NativeBubbles, first, incognito = false)
+
+    assertThat(again.closedOnPurpose).isFalse()
+    assertThat(registry.isClosedOnPurpose(marked.key)).isFalse()
+    assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(first)
+  }
+
+  @Test
+  fun a_return_read_leaves_out_the_other_mode() {
+    registry.add(NativeBubbles, first, incognito = false)
+    registry.add(WebHeads, second, incognito = false)
+
+    assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(first)
+    assertThat(registry.returnCandidates(SlideOver)).isEmpty()
+  }
 }
