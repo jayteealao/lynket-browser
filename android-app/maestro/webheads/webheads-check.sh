@@ -1052,9 +1052,17 @@ tap_scrolled() {
   return 1
 }
 
-# Opens Browsing options and flips "Aggressive background loading"; turning it on also turns on
-# Merge tabs and shows an info dialog, which Back closes.
+# Sets "Aggressive background loading" to $1 (on or off): when the stored value differs, opens
+# Browsing options and taps the row; turning it on also turns on Merge tabs and shows an info
+# dialog, which Back closes.
 toggle_aggressive_loading() {
+  local want=false current
+  [ "$1" = on ] && want=true
+  current="$(stored_setting aggressive_loading "aggressive-setting-before-$1.tsv")"
+  if [ "${current:-false}" = "$want" ]; then
+    log "aggressive background loading is already $1"
+    return 0
+  fi
   a shell am start -W -n "$PKG/$MAIN" -f 0x24000000 --es "$DESTINATION" BrowsingOptions >/dev/null
   sleep 2
   tap_scrolled "Aggressive background loading" || fail "no \"Aggressive background loading\" row in Browsing options"
