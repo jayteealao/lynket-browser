@@ -1,0 +1,128 @@
+# Native bubble mode chosen from the Browsing mode screen: the beta warning shows and closes
+# with no other dialog after it; then the Web heads rows of Look & feel and Browsing options are
+# grey under the note "Only used in web heads mode", and Minimize behavior is grey and says that
+# Minimize always opens a bubble. The settings screen is in front (mode-switch-check.sh opens it),
+# notifications are allowed and every conversation can bubble.
+appId: arun.com.chromer.debug
+# A busy emulator can show an "isn't responding" dialog; Wait keeps the app running.
+---
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "row-browsing-mode"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    id: "row-browsing-mode"
+- extendedWaitUntil:
+    visible:
+      id: "mode-native-bubbles"
+    timeout: 10000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    id: "mode-native-bubbles"
+- extendedWaitUntil:
+    visible: "Native bubbles integration is in beta.*"
+    timeout: 10000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    text: "OK"
+- assertNotVisible: "Bubbles are notifications"
+- assertNotVisible: "Choose .All conversations can bubble."
+- assertVisible:
+    id: "mode-native-bubbles"
+    selected: true
+- takeScreenshot: ${OUT}/native-browsing-mode
+- back
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    id: "row-look-and-feel"
+- extendedWaitUntil:
+    visible:
+      id: "settings-list"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "row-webhead_size_preference"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: "group-note"
+    text: "Only used in web heads mode"
+- assertVisible:
+    id: "row-webhead_color"
+    enabled: false
+- assertVisible:
+    id: "row-webhead_spawn_preference"
+    enabled: false
+- assertVisible:
+    id: "row-webhead_size_preference"
+    enabled: false
+- takeScreenshot: ${OUT}/native-look-and-feel
+- back
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    id: "row-browsing-options"
+- extendedWaitUntil:
+    visible:
+      id: "settings-list"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "row-webhead_close_onclick_pref"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: "group-note"
+    text: "Only used in web heads mode"
+- assertVisible:
+    id: "row-aggressive_loading"
+    enabled: false
+- assertVisible:
+    id: "row-webhead_close_onclick_pref"
+    enabled: false
+- takeScreenshot: ${OUT}/native-browsing-options
+- scrollUntilVisible:
+    element:
+      id: "row-minimize_behavior_preference"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: "row-minimize_behavior_preference"
+    enabled: false
+- assertVisible: "Minimize always opens a bubble"
+- assertNotVisible: "Minimize and open Web Head always"
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    id: "row-minimize_behavior_preference"
+- assertNotVisible: "Minimize normally"
+- takeScreenshot: ${OUT}/native-browsing-options-minimize
+- back
