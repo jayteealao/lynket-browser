@@ -61,7 +61,7 @@ import org.robolectric.annotation.GraphicsMode
  * Goldens of the settings root, browsing mode, look and feel, browsing options, per app settings
  * and provider selection: a phone (w411dp) and a fold (w841dp, list in a 680 dp column), light and
  * black. The Look and feel and Browsing options goldens of each browsing mode are scrolled to the
- * Web heads group. Record with `./gradlew :lynket:recordRoborazziDebug`.
+ * Web heads group, and the Browsing options goldens of the Minimize behavior row to that row. Record with `./gradlew :lynket:recordRoborazziDebug`.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -229,6 +229,40 @@ class SettingsGoldenTest {
   }
 
   @Test fun browsing_options_web_heads_group_phone() = browsingOptionsWebHeads(values)
+
+  /** The stored Minimize choices: "Minimize normally" and "Minimize and open Web Head always". */
+  private val minimizeNormally = "1"
+  private val minimizeToWebHead = "2"
+
+  /** Native bubble mode with the web head choice stored, which the row's bubble summary takes the place of. */
+  private val nativeBubblesMinimizingToWebHead: SettingsValues
+    get() = nativeBubbles.with(SettingsKeyTable.MINIMIZE_BEHAVIOR to minimizeToWebHead)
+
+  private fun browsingOptionsMinimize(values: SettingsValues, theme: ThemeMode = ThemeMode.Light) =
+    capture(theme, scrollToTag = "row-${SettingsKeyTable.MINIMIZE_BEHAVIOR}") {
+      BrowsingOptionsContent(values, labels, onBack = {}, onSet = { _, _ -> }, onOpen = {}, onPickApp = {})
+    }
+
+  @Test fun browsing_options_minimize_native_bubbles_phone() = browsingOptionsMinimize(nativeBubblesMinimizingToWebHead)
+
+  @Test fun browsing_options_minimize_native_bubbles_dark_phone() =
+    browsingOptionsMinimize(nativeBubblesMinimizingToWebHead, ThemeMode.Dark)
+
+  @Test fun browsing_options_minimize_native_bubbles_font_200_phone() {
+    RuntimeEnvironment.setFontScale(2f)
+    browsingOptionsMinimize(nativeBubblesMinimizingToWebHead)
+  }
+
+  @Test fun browsing_options_minimize_native_bubbles_font_200_dark_phone() {
+    RuntimeEnvironment.setFontScale(2f)
+    browsingOptionsMinimize(nativeBubblesMinimizingToWebHead, ThemeMode.Dark)
+  }
+
+  @Test fun browsing_options_minimize_slide_over_phone() =
+    browsingOptionsMinimize(slideOver.with(SettingsKeyTable.MINIMIZE_BEHAVIOR to minimizeNormally))
+
+  @Test fun browsing_options_minimize_web_heads_phone() =
+    browsingOptionsMinimize(values.with(SettingsKeyTable.MINIMIZE_BEHAVIOR to minimizeToWebHead))
 
   @Test fun per_app_default_phone() = capture { perApp(PerAppState(apps = apps)) }
 
