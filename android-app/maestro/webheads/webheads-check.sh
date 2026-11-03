@@ -1040,7 +1040,7 @@ check_trash() {
   log "trash passed"
 }
 
-# Taps a row by its title, scrolling the screen up until it shows (at most five swipes).
+# Taps a row by its title, scrolling the screen up until it shows (six tries, a swipe after each miss).
 tap_scrolled() {
   local w h
   read -r w h < <(screen_size)
