@@ -85,6 +85,9 @@ follower chain and the queue beyond five heads. `motion/WebHeadMotion.kt` holds 
 converted from the earlier spring values so the heads feel the same. When the system refuses the
 foreground start, the link opens in a browsing tab with a message.
 
+The service keeps each open head in `bubbles/BubbleRegistry.kt`, the one list of open bubbles, and
+the web head list takes its order from it; the controller keeps the on-screen state of each head.
+
 The service, the web head list (`WebHeadContextActivity`) and settings talk through the app's
 event bus (`util/events/EventBus`, `Event.WebHeadEvent`): the list sends `CloseRequested`, settings
 send `ColourChanged`, and the service sends `Closed` and `WebsiteUpdated`. The bus keeps no replay,
