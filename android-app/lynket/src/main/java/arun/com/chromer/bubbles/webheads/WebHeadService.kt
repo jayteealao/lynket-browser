@@ -52,6 +52,7 @@ import arun.com.chromer.R
 import arun.com.chromer.browsing.article.ArticlePreloader
 import arun.com.chromer.browsing.customtabs.CustomTabManager
 import arun.com.chromer.browsing.newtab.NewTabDialogActivity
+import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.webheads.motion.TrashTick
 import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
@@ -62,6 +63,7 @@ import arun.com.chromer.bubbles.webheads.ui.TrashTarget
 import arun.com.chromer.bubbles.webheads.ui.WebHeadBubble
 import arun.com.chromer.bubbles.webheads.ui.WebHeadGestures
 import arun.com.chromer.bubbles.webheads.ui.context.WebHeadContextActivity
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
@@ -111,6 +113,9 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   @Inject
   lateinit var eventBus: EventBus
+
+  @Inject
+  lateinit var bubbleRegistry: BubbleRegistry
 
   private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
   private var motionScope: CoroutineScope? = null
@@ -340,6 +345,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   private fun addWebHead(controller: WebHeadsController, url: String, isFromAmp: Boolean, isIncognito: Boolean) {
     val head = controller.add(url, isFromAmp, isIncognito)
+    bubbleRegistry.add(BrowsingMode.WebHeads, url, isIncognito)
     val userColour = Preferences.get(this).webHeadColor()
     if (userColour != ContextCompat.getColor(this, R.color.web_head_color)) {
       head.colour = Color(userColour)
