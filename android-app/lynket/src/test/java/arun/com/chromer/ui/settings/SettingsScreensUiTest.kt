@@ -23,6 +23,9 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -40,15 +43,22 @@ import arun.com.chromer.data.apps.model.Provider
 import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.navigation.LynketKey
 import arun.com.chromer.ui.providerselection.ProviderSelectionContent
+import arun.com.chromer.ui.settings.SettingsKeyTable.AGGRESSIVE_LOADING
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_TYPE
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_APP
+import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
 import arun.com.chromer.ui.settings.SettingsKeyTable.PREFERRED_ACTION
 import arun.com.chromer.ui.settings.SettingsKeyTable.THEME_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR_PREF
+import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEADS_COLOR
+import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_CLOSE_ON_OPEN
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_ENABLED
+import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_SIZE
+import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_SPAWN
+import arun.com.chromer.ui.settings.components.hexOf
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import com.google.common.truth.Truth.assertThat
@@ -188,11 +198,72 @@ class SettingsScreensUiTest {
     row("row-$ANIMATION_SPEED").assertIsNotEnabled()
   }
 
+  // The web head rows in each browsing mode
+
+  private val nativeBubbles: SettingsValues get() = defaults.with(WEB_HEAD_ENABLED to false, NATIVE_BUBBLES to true)
+  private val slideOver: SettingsValues get() = defaults.with(WEB_HEAD_ENABLED to false, NATIVE_BUBBLES to false)
+  private val webHeads: SettingsValues get() = defaults.with(WEB_HEAD_ENABLED to true, NATIVE_BUBBLES to false)
+
+  /** The label of the stored choice of a list setting, as its row shows it. */
+  private fun choiceLabel(values: SettingsValues, key: String, labels: Int, keys: Int): String {
+    val index = context.resources.getStringArray(keys).indexOf(values.values[key].toString())
+    return context.resources.getStringArray(labels)[index]
+  }
+
+  /** The whole note shows under the Web heads label, so a cut-off note fails. */
+  private fun assertTheWebHeadsNoteShows() {
+    composeRule.onNodeWithTag("group-note").assertTextEquals(string(R.string.only_used_in_web_heads_mode))
+  }
+
+  /** The row is grey, reads as disabled with [summary], and a tap writes nothing and opens nothing. */
+  private fun assertGreyRow(key: String, summary: String) {
+    row("row-$key").assertIsNotEnabled().assertTextContains(summary).performClick()
+    composeRule.waitForIdle()
+    assertThat(writes).isEmpty()
+    composeRule.onNodeWithTag("list-dialog").assertDoesNotExist()
+    composeRule.onNodeWithTag("colour-hex").assertDoesNotExist()
+  }
+
+  private fun assertLookAndFeelWebHeadRowsAreGreyUnderTheNote(values: SettingsValues) {
+    lookAndFeel(values)
+    assertGreyRow(WEB_HEADS_COLOR, hexOf(values.int(WEB_HEADS_COLOR)))
+    assertGreyRow(WEB_HEAD_SPAWN, choiceLabel(values, WEB_HEAD_SPAWN, R.array.webHeadsSpawnValues, R.array.webHeadsSpawnKeys))
+    assertGreyRow(WEB_HEAD_SIZE, choiceLabel(values, WEB_HEAD_SIZE, R.array.webHeadsSizeValues, R.array.webHeadsSizeKeys))
+    assertTheWebHeadsNoteShows()
+  }
+
+  private fun assertBrowsingOptionsWebHeadRowsAreGreyUnderTheNote(values: SettingsValues) {
+    browsingOptions(values)
+    assertGreyRow(AGGRESSIVE_LOADING, string(R.string.aggressive_background_loading_desc))
+    assertGreyRow(WEB_HEAD_CLOSE_ON_OPEN, string(R.string.web_close_on_open_desc))
+    assertTheWebHeadsNoteShows()
+  }
+
   @Test
-  fun webHeadRowsCarryTheSlideOverNoticeAndAreDisabled() {
-    lookAndFeel(defaults.with(WEB_HEAD_ENABLED to false))
-    row("row-${SettingsKeyTable.WEB_HEAD_SIZE}").assertIsNotEnabled()
-    composeRule.onAllNodesWithTag("slide-over-notice")[0].assertExists()
+  fun lookAndFeelWebHeadRowsAreGreyUnderTheNoteInNativeBubbleMode() =
+    assertLookAndFeelWebHeadRowsAreGreyUnderTheNote(nativeBubbles)
+
+  @Test
+  fun lookAndFeelWebHeadRowsAreGreyUnderTheNoteInSlideOverMode() =
+    assertLookAndFeelWebHeadRowsAreGreyUnderTheNote(slideOver)
+
+  @Test
+  fun browsingOptionsWebHeadRowsAreGreyUnderTheNoteInNativeBubbleMode() =
+    assertBrowsingOptionsWebHeadRowsAreGreyUnderTheNote(nativeBubbles)
+
+  @Test
+  fun browsingOptionsWebHeadRowsAreGreyUnderTheNoteInSlideOverMode() =
+    assertBrowsingOptionsWebHeadRowsAreGreyUnderTheNote(slideOver)
+
+  @Test
+  fun lookAndFeelWebHeadRowsTakeInputWithNoNoteInWebHeadsMode() {
+    lookAndFeel(webHeads)
+    row("row-$WEB_HEADS_COLOR").assertIsEnabled()
+    row("row-$WEB_HEAD_SPAWN").assertIsEnabled()
+    row("row-$WEB_HEAD_SIZE").assertIsEnabled()
+    composeRule.onAllNodesWithTag("group-note").assertCountEquals(0)
+    row("row-$WEB_HEAD_SIZE").performClick()
+    composeRule.onNodeWithTag("list-dialog").assertIsDisplayed()
   }
 
   @Test
@@ -245,17 +316,12 @@ class SettingsScreensUiTest {
   }
 
   @Test
-  fun webHeadOptionsNeedWebHeads() {
-    browsingOptions(defaults.with(WEB_HEAD_ENABLED to false))
-    row("row-${SettingsKeyTable.AGGRESSIVE_LOADING}").assertIsNotEnabled()
-    row("row-${SettingsKeyTable.WEB_HEAD_CLOSE_ON_OPEN}").assertIsNotEnabled()
-  }
-
-  @Test
   fun webHeadOptionsWriteWithWebHeadsOn() {
-    browsingOptions(defaults.with(WEB_HEAD_ENABLED to true))
-    row("row-${SettingsKeyTable.AGGRESSIVE_LOADING}").assertIsEnabled().performClick()
-    assertThat(writes.single().first).isEqualTo(SettingsKeyTable.AGGRESSIVE_LOADING)
+    browsingOptions(webHeads)
+    row("row-$WEB_HEAD_CLOSE_ON_OPEN").assertIsEnabled()
+    composeRule.onAllNodesWithTag("group-note").assertCountEquals(0)
+    row("row-$AGGRESSIVE_LOADING").assertIsEnabled().performClick()
+    assertThat(writes.single().first).isEqualTo(AGGRESSIVE_LOADING)
   }
 
   @Test
