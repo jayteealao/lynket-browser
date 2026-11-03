@@ -176,9 +176,9 @@ check_bubble() {
   for _ in $(seq 1 10); do
     sleep 2
     a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/bubble-notifications.txt"
-    grep -qE "pkg=$PKG.*flags=[A-Z_|]*BUBBLE" "$OUT/bubble-notifications.txt" && break
+    [ -n "$(bubble_flag_lines "$OUT/bubble-notifications.txt")" ] && break
   done
-  grep -E "pkg=$PKG.*flags=[A-Z_|]*BUBBLE" "$OUT/bubble-notifications.txt" | tee -a "$OUT/bubble.txt" ||
+  bubble_flag_lines "$OUT/bubble-notifications.txt" | tee -a "$OUT/bubble.txt" | grep -q . ||
     fail "no notification of the app carries the bubble flag (see bubble-notifications.txt)"
   # Native bubble mode never starts the web head service.
   a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/bubble-webhead-service.txt"
@@ -1086,7 +1086,7 @@ check_aggressive() {
 
 bubble_flag_count() {
   a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/$1"
-  grep -cE "pkg=$PKG.*flags=[A-Z_|]*BUBBLE" "$OUT/$1" || true
+  bubble_flag_lines "$OUT/$1" | grep -c . || true
 }
 
 check_bubble_minimize() {
@@ -1111,7 +1111,8 @@ check_bubble_minimize() {
   a shell cmd notification set_bubbles "$PKG" 1
   local before after
   before="$(bubble_flag_count bubble-minimize-before.txt)"
-  tap_text "Minimize" || fail "no Minimize action in the tab's bottom bar (see bubble-minimize-tab.png)"
+  # The bubbles-off message covers the bottom bar for a few seconds after the link opens.
+  wait_tap_text "Minimize" 15 || fail "no Minimize action in the tab's bottom bar (see bubble-minimize-tab.png)"
   for _ in $(seq 1 10); do
     sleep 2
     after="$(bubble_flag_count bubble-minimize-notifications.txt)"
