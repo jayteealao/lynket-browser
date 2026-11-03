@@ -247,5 +247,83 @@ mode_dismiss() {
   log "dismiss done"
 }
 
+# Moves the ids that left the stack since the last read to the end of ORDER, the newest overflow
+# bubble last.
+update_order() {
+  local id kept=() left=()
+  for id in "${ORDER[@]}"; do
+    if in_list "$id" "${PREVIOUS_STACK[@]}" && ! in_list "$id" "${STACK_IDS[@]}"; then left+=("$id"); else kept+=("$id"); fi
+  done
+  ORDER=("${kept[@]}" "${left[@]}")
+  PREVIOUS_STACK=("${STACK_IDS[@]}")
+}
+
+# Whether any shot differs from the shot before the post in the band where a heads-up row draws,
+# between the bubbles at the screen edges and clear of the status bar.
+heads_up_in_shots() {
+  python - "$OUT" "$1" <<'PY'
+import sys
+from PIL import Image, ImageChops
+out, variant = sys.argv[1:3]
+before = Image.open(f"{out}/return-{variant}-before.png").convert("RGB")
+w, h = before.size
+box = (int(w * 0.18), int(h * 0.04), int(w * 0.82), int(h * 0.2))
+base = before.crop(box)
+changed = 0.0
+for n in range(1, 5):
+    shot = Image.open(f"{out}/return-{variant}-shot-{n}.png").convert("RGB").crop(box)
+    data = ImageChops.difference(base, shot).convert("L").point(lambda v: 255 if v > 24 else 0).histogram()
+    changed = max(changed, data[255] / (base.size[0] * base.size[1]))
+print("true" if changed > 0.01 else "false")
+PY
+}
+
+mode_return() {
+  local n id variant url found keys flyout interruptive
+  ORDER=()
+  for n in 1 2 3 4 5 6 7 8; do
+    open_bubble "https://example.com/?probe=$RUN-$n"
+    ORDER+=("$OPENED")
+  done
+  sleep 2
+  shell_bubbles shell-start.txt
+  read_state state-start.txt
+  PREVIOUS_STACK=("${ORDER[@]}")
+  update_order
+  [ "${#STACK_IDS[@]}" -lt 8 ] || fail "all 8 links are in the stack, so the overflow is empty"
+  shade_capture return-shade
+  overflow_panel_capture
+  printf 'sdk\tvariant\turl\tin_stack_before\tin_stack_after\tapp_bubble_flag_after\tnotification_found\tsound_key\tflyout\theads_up_in_shots\tinterruptive\n' > "$OUT/return.tsv"
+  for variant in same text fresh; do
+    shell_bubbles "shell-$variant-before.txt"
+    read_state "state-$variant-before.txt"
+    update_order
+    id=""
+    for n in "${ORDER[@]}"; do in_list "$n" "${STACK_IDS[@]}" || id="$n"; done
+    [ -n "$id" ] || fail "no overflow bubble left for $variant"
+    url="${URL_OF[$id]}"
+    local before=false
+    in_list "$id" "${STACK_IDS[@]}" && before=true
+    shot "return-$variant-before"
+    a shell "am broadcast -n $PROBE --es action repost --es url '$url' --es variant $variant" >/dev/null
+    for n in 1 2 3 4; do shot "return-$variant-shot-$n"; sleep 0.2; done
+    a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/notification-$variant.txt"
+    shell_bubbles "shell-$variant-after.txt"
+    read_state "state-$variant-after.txt"
+    shot "return-$variant-after"
+    found="$(sed -n "s/.*repost id=$id variant=$variant found=//p" "$OUT/$MODE.logcat.txt" | tail -1)"
+    keys="$(grep -E 'mSoundNotificationKey|mVibrateNotificationKey' "$OUT/notification-$variant.txt" | sed 's/^ *//' | grep -v '=null$' | tr '\n' ' ')"
+    flyout="$(awk -v key="key: 0|$PKG|$id|" 'index($0, key) { on = 1 } on && /showFlyout:/ { print $2; exit }' "$OUT/shell-$variant-after.txt")"
+    interruptive="$(awk -v key="key=0|$PKG|$id|" 'index($0, key) { on = 1 } on && /mIsInterruptive=/ { sub(/.*=/, ""); print; exit }' "$OUT/notification-$variant.txt")"
+    local after=false
+    in_list "$id" "${STACK_IDS[@]}" && after=true
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "$variant" "$url" "$before" "$after" \
+      "$(bubble_flag "state-$variant-after.txt" "$id")" "${found:-false}" "${keys:-none}" "${flyout:-none}" \
+      "$(heads_up_in_shots "$variant")" "${interruptive:-unknown}" >> "$OUT/return.tsv"
+    log "$variant id=$id stack before=$before after=$after overflow=${OVERFLOW_COUNT:-unlisted} $(grep -m1 'expanded:' "$OUT/shell-$variant-after.txt" | sed 's/^ *//')"
+  done
+  log "return done"
+}
+
 prepare
 "mode_$MODE"
