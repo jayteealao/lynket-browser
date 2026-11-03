@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -360,23 +361,31 @@ class Preferences @Inject constructor(
 
   fun themeMode(mode: Int) = put(SettingsSchema.THEME_MODE, mode)
 
+  /** Whether the background write that turns native bubbles off beside web heads is running. */
+  private val bothModesRepair = AtomicBoolean(false)
+
   /**
    * The one browsing mode of the stored settings. When both web heads and native bubbles are on
    * (the Web heads tile could leave them so), it is web heads, as the settings screens show it,
    * and native bubbles are turned off in the background so the next read and the settings screen
-   * agree; the caller does not wait for that write.
+   * agree; the caller does not wait for that write. One such write runs at a time, however often
+   * the mode is read while it is pending.
    */
   fun browsingMode(): BrowsingMode {
     val webHeads = bool(WEB_HEAD_ENABLED)
     val nativeBubbles = bool(NATIVE_BUBBLES_PREFERENCE)
-    if (webHeads && nativeBubbles) {
+    if (webHeads && nativeBubbles && bothModesRepair.compareAndSet(false, true)) {
       appScope.launch {
-        runCatching {
-          repository.setValuesIf(mapOf(NATIVE_BUBBLES_PREFERENCE to false)) { stored ->
-            stored.readBoolean(WEB_HEAD_ENABLED, default(WEB_HEAD_ENABLED)) &&
-              stored.readBoolean(NATIVE_BUBBLES_PREFERENCE, default(NATIVE_BUBBLES_PREFERENCE))
-          }
-        }.onFailure { Timber.e(it, "Native bubbles could not be turned off beside web heads") }
+        try {
+          runCatching {
+            repository.setValuesIf(mapOf(NATIVE_BUBBLES_PREFERENCE to false)) { stored ->
+              stored.readBoolean(WEB_HEAD_ENABLED, default(WEB_HEAD_ENABLED)) &&
+                stored.readBoolean(NATIVE_BUBBLES_PREFERENCE, default(NATIVE_BUBBLES_PREFERENCE))
+            }
+          }.onFailure { Timber.e(it, "Native bubbles could not be turned off beside web heads") }
+        } finally {
+          bothModesRepair.set(false)
+        }
       }
     }
     return BrowsingMode.resolve(webHeads = webHeads, nativeBubbles = nativeBubbles)
