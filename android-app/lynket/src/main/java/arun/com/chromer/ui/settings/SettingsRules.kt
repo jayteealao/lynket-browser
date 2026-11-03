@@ -210,8 +210,8 @@ object SettingsRules {
     else -> true
   }
 
-  /** "Not available during slide-over mode" shows over the web head groups while web heads are off. */
-  fun showsSlideOverNotice(values: SettingsValues): Boolean = !values.bool(WEB_HEAD_ENABLED)
+  /** The web head groups carry a note while the browsing mode is not web heads (slide over or native bubbles). */
+  fun showsOutsideWebHeadsNotice(values: SettingsValues): Boolean = selectedMode(values) != BrowsingMode.WebHeads
 
   /** The dynamic colour summary of the old screen. */
   @StringRes
