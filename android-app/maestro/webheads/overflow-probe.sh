@@ -325,5 +325,47 @@ mode_return() {
   log "return done"
 }
 
+mode_limits() {
+  local n id total best=0 same=0 stack_limit=0 overflow_limit=0 dropped="none" ids=() opened=0 w h shortcuts dynamic
+  : > "$OUT/limits-progress.txt"
+  for n in $(seq 1 26); do
+    open_bubble "https://example.com/?probe=$RUN-limit-$n"
+    ids+=("$OPENED")
+    opened=$n
+    sleep 1
+    shell_bubbles shell-limits.txt
+    read_state state-limits.txt
+    ((${#STACK_IDS[@]} > stack_limit)) && stack_limit=${#STACK_IDS[@]}
+    # Android 11 lists no overflow: the app's notifications stand in for it.
+    total="$(state_count state-limits.txt)"
+    [ -z "$OVERFLOW_COUNT" ] || total=$((${#STACK_IDS[@]} + OVERFLOW_COUNT))
+    printf 'link=%s stack=%s overflow=%s app_notifications=%s\n' "$n" "${#STACK_IDS[@]}" "${OVERFLOW_COUNT:-unlisted}" "$(state_count state-limits.txt)" >> "$OUT/limits-progress.txt"
+    if ((total > best)); then
+      best=$total
+      same=0
+    else
+      same=$((same + 1))
+    fi
+    ((same >= 3)) && break
+  done
+  overflow_limit=$((best - stack_limit))
+  cp "$OUT/shell-limits.txt" "$OUT/shell-limits-end.txt"
+  # The oldest link that neither the stack nor the overflow holds any more.
+  for id in "${ids[@]}"; do
+    if ! in_list "$id" "${STACK_IDS[@]}" && { [ -z "$OVERFLOW_COUNT" ] || ! in_list "$id" "${OVERFLOW_IDS[@]}"; }; then
+      if [ -n "$OVERFLOW_COUNT" ] || [ "$(bubble_flag state-limits.txt "$id")" = gone ]; then dropped="$id"; break; fi
+    fi
+  done
+  a shell dumpsys shortcut | tr -d '\r' > "$OUT/shortcut.txt"
+  shortcuts="$(grep -c 'ShortcutInfo {id=bubble_' "$OUT/shortcut.txt" || true)"
+  dynamic="$(grep -c 'ShortcutInfo {id=bubble_.*\[Dyn' "$OUT/shortcut.txt" || true)"
+  read -r w h < <(screen_size)
+  printf 'sdk\tscreen\tdensity\tstack_limit\toverflow_limit\tshortcut_count\tdynamic_shortcut_count\tdropped_key\tlinks_opened\n' > "$OUT/limits.tsv"
+  printf '%s\t%sx%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "$w" "$h" "$(a shell wm density | tr -d '\r' | awk '{ print $NF }')" \
+    "$stack_limit" "$overflow_limit" "$shortcuts" "$dynamic" "$dropped" "$opened" >> "$OUT/limits.tsv"
+  log "dropped id=$dropped app_bubble_flag=$( [ "$dropped" = none ] && echo none || bubble_flag state-limits.txt "$dropped") dismiss_lines=$( [ "$dropped" = none ] && echo none || dismiss_lines "$dropped")"
+  log "limits done"
+}
+
 prepare
 "mode_$MODE"
