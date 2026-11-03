@@ -105,9 +105,9 @@ data class RuleResult(val writes: Map<String, Any?>, val dialogs: List<SettingsD
  */
 object SettingsRules {
 
-  /** Aggressive loading as the old code read it: only while web heads are on. */
+  /** Aggressive loading is in effect only in web heads mode. */
   private fun aggressiveLoading(values: SettingsValues) =
-    values.bool(WEB_HEAD_ENABLED) && values.bool(AGGRESSIVE_LOADING)
+    selectedMode(values) == BrowsingMode.WebHeads && values.bool(AGGRESSIVE_LOADING)
 
   /** The writes and dialogs for setting [key] to [value]. */
   fun change(key: String, value: Any?, current: SettingsValues, canReadUsageStats: Boolean): RuleResult {
@@ -138,8 +138,8 @@ object SettingsRules {
         dialogs += SettingsDialog.AggressiveLoadingNeedsMergeTabs
       }
       AMP_MODE -> if (value == true) {
-        // The old screen counted any mode without web heads as slide over.
-        if (!current.bool(WEB_HEAD_ENABLED)) dialogs += SettingsDialog.AmpInSlideOver
+        // AMP warns in every mode but web heads.
+        if (selectedMode(current) != BrowsingMode.WebHeads) dialogs += SettingsDialog.AmpInSlideOver
         if (current.bool(ARTICLE_MODE)) dialogs += SettingsDialog.AmpAndArticle
       }
       ARTICLE_MODE -> if (value == true && current.bool(AMP_MODE)) {
