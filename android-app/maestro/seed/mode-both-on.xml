@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  A settings file restored from a backup of an older release with both web heads and native
+  bubbles switched on, Minimize set to open a web head, and the intro already passed. The app
+  imports it at its next start and keeps one browsing mode, web heads.
+-->
+<map>
+    <boolean name="webhead_enabled_pref" value="true" />
+    <boolean name="native_bubbles_preference" value="true" />
+    <string name="minimize_behavior_preference">2</string>
+    <boolean name="firstrun_3" value="false" />
+</map>
