@@ -18,12 +18,14 @@ import arun.com.chromer.ui.settings.SettingsKeyTable.AMP_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_TYPE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_MODE
+import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_THEME
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_APP
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_WEB
 import arun.com.chromer.ui.settings.SettingsKeyTable.MERGE_TABS
 import arun.com.chromer.ui.settings.SettingsKeyTable.MINIMIZE_BEHAVIOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
+import arun.com.chromer.ui.settings.SettingsKeyTable.PREFERRED_ACTION
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR_PREF
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEADS_COLOR
@@ -124,6 +126,13 @@ class SettingsRulesTest {
         .isEqualTo(mode != BrowsingMode.NativeBubbles)
       assertWithMessage("web heads note in $name").that(SettingsRules.showsOutsideWebHeadsNotice(set))
         .isEqualTo(mode != BrowsingMode.WebHeads)
+      assertWithMessage("Minimize behavior summary in $name").that(SettingsRules.summaryOverride(MINIMIZE_BEHAVIOR, set))
+        .isEqualTo(if (mode == BrowsingMode.NativeBubbles) R.string.minimize_always_opens_bubble else null)
+    }
+
+    val nativeBubbles = stored.first { it.first == "native bubbles" }.second
+    listOf(PREFERRED_ACTION, ANIMATION_TYPE, WEB_HEAD_SPAWN, WEB_HEAD_SIZE, ARTICLE_THEME).forEach { key ->
+      assertWithMessage("$key summary in native bubbles").that(SettingsRules.summaryOverride(key, nativeBubbles)).isNull()
     }
   }
 
