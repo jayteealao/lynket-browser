@@ -162,5 +162,90 @@ shade_capture() {
   sleep 1
 }
 
+# Where the front bubble of the collapsed stack rests, from the shell's dump $1, as "X Y".
+stack_point() {
+  local x y
+  read -r x y < <(awk '/restingStackPos:/ { gsub(/[^0-9.-]+/, " "); print int($1), int($2); exit }' "$OUT/$1")
+  [ -n "${x:-}" ] || fail "no stack position in $1"
+  echo "$((x < 0 ? 70 : x + 90)) $((y + 80))"
+}
+
+# Opens the stack and its overflow panel for a screenshot: the one view of the overflow on Android 11.
+# The overflow button ends the row of 5 bubbles at the top of the screen. The system introduction of
+# the first bubble takes the first tap.
+overflow_panel_capture() {
+  local x y w h
+  read -r x y < <(stack_point shell-start.txt)
+  read -r w h < <(screen_size)
+  for _ in 1 2 3; do
+    a shell input tap "$x" "$y"
+    sleep 3
+    shell_bubbles shell-expanded.txt
+    grep -q 'expanded: true' "$OUT/shell-expanded.txt" && break
+  done
+  a shell input tap "$((w * 11 / 12))" "$((h * 23 / 300))"
+  sleep 3
+  shot return-overflow-panel
+  a shell input keyevent BACK
+  sleep 2
+  a shell input keyevent HOME
+  sleep 2
+}
+
+# A drag of the collapsed stack to the dismiss target, held there, as a person does it.
+drag_stack_to_dismiss() {
+  local x y w h target_x target_y step
+  read -r x y < <(stack_point "$1")
+  read -r w h < <(screen_size)
+  target_x=$((w / 2))
+  target_y=$((h - 240))
+  a shell input motionevent DOWN "$x" "$y"
+  for step in 1 2 3 4 5 6; do
+    a shell input motionevent MOVE "$((x + (target_x - x) * step / 6))" "$((y + (target_y - y) * step / 6))"
+  done
+  sleep 1
+  a shell input motionevent MOVE "$target_x" "$target_y"
+  sleep 1
+  a shell input motionevent UP "$target_x" "$target_y"
+  sleep 3
+}
+
+dismiss_lines() { grep -c "Bubble dismissed: $1\$" "$OUT/$MODE.logcat.txt" || true; }
+
+mode_dismiss() {
+  local id aged controls=0 attempt aged_lines
+  open_bubble "https://example.com/?probe=$RUN-dismiss"
+  id="$OPENED"
+  sleep 2
+  for attempt in 1 2 3; do
+    shell_bubbles "shell-dismiss-before-$attempt.txt"
+    shot "dismiss-before-$attempt"
+    drag_stack_to_dismiss "shell-dismiss-before-$attempt.txt"
+    shot "dismiss-after-$attempt"
+    controls="$(dismiss_lines "$id")"
+    [ "$controls" -gt 0 ] && break
+    # The system introduction of the first bubble takes the first touch.
+    a shell input keyevent BACK
+    sleep 2
+  done
+  log "sdk=$SDK control id=$id drags=$attempt dismiss_lines=$controls"
+  [ "$controls" -eq 1 ] || fail "the drag did not send one delete intent"
+
+  local ids=() n
+  for n in 1 2 3 4 5 6; do
+    open_bubble "https://example.com/?probe=$RUN-age-$n"
+    ids+=("$OPENED")
+  done
+  aged="${ids[0]}"
+  sleep 10
+  aged_lines="$(dismiss_lines "$aged")"
+  shell_bubbles shell-dismiss-aged.txt
+  read_state state-dismiss-aged.txt
+  shade_capture dismiss-aged-shade
+  in_list "$aged" "${STACK_IDS[@]}" && fail "the oldest bubble is still in the stack"
+  log "sdk=$SDK aged id=$aged dismiss_lines=$aged_lines app_bubble_flag=$(bubble_flag state-dismiss-aged.txt "$aged") stack=${#STACK_IDS[@]}"
+  log "dismiss done"
+}
+
 prepare
 "mode_$MODE"
