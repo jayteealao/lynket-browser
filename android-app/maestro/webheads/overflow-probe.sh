@@ -130,8 +130,8 @@ open_bubble() {
 }
 
 prepare() {
-  # Only an uninstall empties Android's overflow: it keeps a bubble after its notification is
-  # cancelled, after a force stop and after the app's data is cleared.
+  # A force stop leaves Android's stack and overflow in place, and an uninstall empties them, so
+  # bubbles of an earlier run cannot stay.
   a uninstall "$PKG" >/dev/null 2>&1 || true
   a install "$(hostpath "$APK")" >/dev/null || fail "could not install $APK"
   a shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
