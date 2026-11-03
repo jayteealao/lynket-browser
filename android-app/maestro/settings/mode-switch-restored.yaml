@@ -27,13 +27,13 @@ appId: arun.com.chromer.debug
     timeout: 10000
 - assertVisible:
     id: "mode-web-heads"
-    selected: true
+    checked: true
 - assertVisible:
     id: "mode-slide-over"
-    selected: false
+    checked: false
 - assertVisible:
     id: "mode-native-bubbles"
-    selected: false
+    checked: false
 - assertNotVisible:
     id: "bubble-setting"
 - takeScreenshot: ${OUT}/restored-browsing-mode

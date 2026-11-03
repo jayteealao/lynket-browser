@@ -40,7 +40,7 @@ appId: arun.com.chromer.debug
       - tapOn: "Not now"
 - assertVisible:
     id: "mode-web-heads"
-    selected: true
+    checked: true
 - takeScreenshot: ${OUT}/back-browsing-mode
 - back
 - runFlow:

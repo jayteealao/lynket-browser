@@ -47,7 +47,7 @@ appId: arun.com.chromer.debug
 - assertNotVisible: "Choose .All conversations can bubble."
 - assertVisible:
     id: "mode-native-bubbles"
-    selected: true
+    checked: true
 - takeScreenshot: ${OUT}/native-browsing-mode
 - back
 - runFlow:
