@@ -38,8 +38,7 @@ object BrowsingModeMigration : DataMigration<Preferences> {
   override suspend fun migrate(currentData: Preferences): Preferences {
     val mode = BrowsingMode.resolve(webHeads(currentData), nativeBubbles(currentData))
     return currentData.toMutablePreferences().apply {
-      this[booleanPreferencesKey(WEB_HEADS_SWITCH)] = mode == BrowsingMode.WebHeads
-      this[booleanPreferencesKey(NATIVE_BUBBLES_SWITCH)] = mode == BrowsingMode.NativeBubbles
+      mode.switches().forEach { (name, on) -> this[booleanPreferencesKey(name)] = on }
     }.toPreferences()
   }
 

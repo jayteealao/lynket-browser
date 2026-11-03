@@ -18,6 +18,15 @@ enum class BrowsingMode {
   NativeBubbles,
   ;
 
+  /**
+   * The two stored switches that name this mode, keyed by their stored names: web heads on only in
+   * web heads mode, native bubbles on only in native bubble mode. Every writer of a mode stores this.
+   */
+  fun switches(): Map<String, Boolean> = mapOf(
+    SettingsSchema.WEB_HEADS_SWITCH to (this == WebHeads),
+    SettingsSchema.NATIVE_BUBBLES_SWITCH to (this == NativeBubbles),
+  )
+
   companion object {
     /**
      * The one mode of the two stored switches. Web heads win when both are on, as the settings

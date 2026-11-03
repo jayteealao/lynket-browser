@@ -62,7 +62,7 @@ import javax.inject.Singleton
  * through [UserPreferencesRepository]'s suspend functions instead, so the main thread never waits.
  */
 const val SEARCH_ENGINE_PREFERENCE = "search_engine_preference"
-const val NATIVE_BUBBLES_PREFERENCE = "native_bubbles_preference"
+const val NATIVE_BUBBLES_PREFERENCE = SettingsSchema.NATIVE_BUBBLES_SWITCH
 
 @Singleton
 class Preferences @Inject constructor(
@@ -386,12 +386,7 @@ class Preferences @Inject constructor(
    * Stores [mode] as the only browsing mode, in one edit. It does not ask for the overlay or
    * notification permission; the settings screen does that before it chooses a mode.
    */
-  fun browsingMode(mode: BrowsingMode) = putAll(
-    mapOf(
-      WEB_HEAD_ENABLED to (mode == BrowsingMode.WebHeads),
-      NATIVE_BUBBLES_PREFERENCE to (mode == BrowsingMode.NativeBubbles),
-    ),
-  )
+  fun browsingMode(mode: BrowsingMode) = putAll(mode.switches())
 
   /** The search engine's name now and after each change. */
   fun searchEngineChanges(): Flow<String> = repository.snapshot
@@ -462,7 +457,7 @@ class Preferences @Inject constructor(
     const val DYNAMIC_COLOR = "dynamic_color"
     const val WEB_HEAD_CLOSE_ON_OPEN = "webhead_close_onclick_pref"
     const val PREFERRED_ACTION = "preferred_action_preference"
-    const val WEB_HEAD_ENABLED = "webhead_enabled_pref"
+    const val WEB_HEAD_ENABLED = SettingsSchema.WEB_HEADS_SWITCH
     const val WEB_HEAD_SPAWN_LOCATION = "webhead_spawn_preference"
     const val WEB_HEAD_SIZE = "webhead_size_preference"
     const val BOTTOM_BAR_ENABLED = "bottombar_enabled_preference"

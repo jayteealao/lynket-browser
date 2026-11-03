@@ -136,21 +136,22 @@ object SettingsRules {
    */
   fun chooseMode(mode: BrowsingMode, overlayGranted: Boolean, notificationsAllowed: Boolean): RuleResult =
     when (mode) {
-      BrowsingMode.SlideOver -> RuleResult(mapOf(NATIVE_BUBBLES to false, WEB_HEAD_ENABLED to false))
+      BrowsingMode.SlideOver -> RuleResult(BrowsingMode.SlideOver.switches())
       BrowsingMode.NativeBubbles -> RuleResult(
-        mapOf(NATIVE_BUBBLES to true, WEB_HEAD_ENABLED to false),
+        BrowsingMode.NativeBubbles.switches(),
         listOf(SettingsDialog.NativeBubblesWarning),
       )
       BrowsingMode.WebHeads -> if (overlayGranted) {
         overlayGranted(notificationsAllowed)
       } else {
-        RuleResult(mapOf(NATIVE_BUBBLES to false, WEB_HEAD_ENABLED to false), listOf(SettingsDialog.OverlayPermission))
+        // Without the permission web heads stay off: the stored mode is slide over.
+        RuleResult(BrowsingMode.SlideOver.switches(), listOf(SettingsDialog.OverlayPermission))
       }
     }
 
   /** Back from the overlay setting with the permission: web heads on, native bubbles off. */
   fun overlayGranted(notificationsAllowed: Boolean): RuleResult = RuleResult(
-    mapOf(NATIVE_BUBBLES to false, WEB_HEAD_ENABLED to true),
+    BrowsingMode.WebHeads.switches(),
     if (notificationsAllowed) emptyList() else listOf(SettingsDialog.NotificationPermission(forBubbles = false)),
   )
 
