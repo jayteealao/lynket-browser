@@ -32,6 +32,8 @@ import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.browsing.customtabs.CustomTabs
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.bubbles.system.BubbleGate
+import arun.com.chromer.bubbles.system.BubbleRefusal
+import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.bubbles.system.bubbleConversationId
 import arun.com.chromer.bubbles.webheads.WebHeadService
 import arun.com.chromer.data.website.model.Website
@@ -244,6 +246,27 @@ class DefaultTabsManagerTest : LynketRobolectricSuite() {
     awaitBubbleNotification()
     assertThat(shadowApp.nextStartedService).isNull()
     assertThat(shadowApp.nextStartedActivity).isNull()
+    verify(exactly = 0) { backgroundLoading[any()] }
+  }
+
+  @Test
+  fun nativeBubbleModeOpensATabWhenTheBubbleRefusesAfterTheFirstCheck() {
+    clearPreferences()
+    preferences.browsingMode(BrowsingMode.NativeBubbles)
+    preferences.aggressiveLoading(true)
+    preferences.useWebView(true)
+    every { bubbleGate.refusal(any()) } returnsMany listOf(null, BubbleRefusal.BUBBLES_OFF)
+    val shadowApp = shadowOf(application)
+
+    tabs.openWebHeads(application, Website(url))
+
+    val tab = shadowApp.nextStartedActivity
+    assertThat(tab.component?.className).isEqualTo(WebViewActivity::class.java.name)
+    assertThat(tab.dataString).isEqualTo(url)
+    assertThat(BubbleRefusedActivity.refusalOf(tab)).isNull()
+    assertThat(shadowApp.nextStartedActivity).isNull()
+    assertThat(shadowApp.nextStartedService).isNull()
+    assertThat(shadowOf(notificationManager).allNotifications).isEmpty()
     verify(exactly = 0) { backgroundLoading[any()] }
   }
 

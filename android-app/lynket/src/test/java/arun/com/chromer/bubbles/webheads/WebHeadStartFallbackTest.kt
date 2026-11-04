@@ -86,6 +86,24 @@ class WebHeadStartFallbackTest : LynketRobolectricSuite() {
   }
 
   @Test
+  fun a_refused_start_from_slide_over_opens_a_tab_with_a_message() {
+    ShadowSettings.setCanDrawOverlays(true)
+    preferences.browsingMode(BrowsingMode.SlideOver)
+    preferences.aggressiveLoading(false)
+    faultFile.parentFile!!.mkdirs()
+    faultFile.createNewFile()
+
+    tabs.openWebHeads(application, Website("https://a.example"))
+    shadowOf(Looper.getMainLooper()).idle()
+
+    assertThat(shadowOf(application).nextStartedService).isNull()
+    val tab = shadowOf(application).nextStartedActivity
+    assertThat(tab).isNotNull()
+    assertThat(tab.dataString).isEqualTo("https://a.example")
+    assertThat(ShadowToast.getTextOfLatestToast()).isEqualTo(application.getString(R.string.web_heads_start_failed))
+  }
+
+  @Test
   fun the_fault_switch_is_off_without_the_marker_file() {
     assertThat(FileDebugHooks().webHeadStartRefused(application)).isFalse()
   }
