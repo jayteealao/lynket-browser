@@ -98,6 +98,7 @@ class BubbleRegistry @Inject constructor() {
   private val entries = MutableStateFlow<List<OpenBubble>>(emptyList())
   private val closedOnPurpose = LinkedHashSet<BubbleKey>()
   private var changes = 0L
+  private var fullestStack = 0
 
   val bubbles: StateFlow<List<OpenBubble>> = entries.asStateFlow()
 
@@ -168,9 +169,16 @@ class BubbleRegistry @Inject constructor() {
         val place = places[entry.key.notificationId]
         if (entry.mode == mode && place != null) entry.copy(place = place) else entry
       }
+      fullestStack = maxOf(fullestStack, entries.value.count { it.mode == mode && it.place == BubblePlace.STACK })
       gone.map { it.key }
     }
   }
+
+  /**
+   * The most bubbles any read found in Android's stack, or 0 before the first read. Android does not
+   * say how many its stack holds, and an overflow bubble means the stack reached that number.
+   */
+  fun fullestStack(): Int = synchronized(lock) { fullestStack }
 
   /** Stores what the bubble of [key] posted last. A bubble that has left stays gone. */
   fun updateLoadData(key: BubbleKey, loadData: BubbleLoadData) = synchronized(lock) {

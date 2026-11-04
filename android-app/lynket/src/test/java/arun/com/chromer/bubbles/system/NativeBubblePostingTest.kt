@@ -527,6 +527,7 @@ class NativeBubblePostingTest {
 
   /** Android holds [links] in its overflow and every other open bubble in the stack. */
   private fun inOverflow(vararg links: String) {
+    registry.reconcile(BrowsingMode.NativeBubbles) { listed().associate { it.key.notificationId to BubblePlace.STACK } }
     places = listed().associate {
       it.key.notificationId to if (it.url in links) BubblePlace.OVERFLOW else BubblePlace.STACK
     }
@@ -717,6 +718,21 @@ class NativeBubblePostingTest {
     places = places!! + (keyOf(TWO).notificationId to BubblePlace.STACK)
     advanceUntilIdle()
     assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+  }
+
+  @Test
+  fun a_stack_as_full_as_it_has_been_takes_no_return() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE)
+    registry.reconcile(BrowsingMode.NativeBubbles) {
+      mapOf(keyOf(ONE).notificationId to BubblePlace.OVERFLOW, keyOf(TWO).notificationId to BubblePlace.STACK, keyOf(THREE).notificationId to BubblePlace.STACK)
+    }
+    places = mapOf(keyOf(ONE).notificationId to BubblePlace.OVERFLOW, keyOf(TWO).notificationId to BubblePlace.STACK, keyOf(THREE).notificationId to BubblePlace.STACK)
+    posts.clear()
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts).isEmpty()
   }
 
   @Test

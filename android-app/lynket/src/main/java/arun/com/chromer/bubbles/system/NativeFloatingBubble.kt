@@ -217,7 +217,12 @@ constructor(
   }
 
   private suspend fun returnNewest() {
+    val fullest = bubbleRegistry.fullestStack()
     bubbleReconciler.reconcile()
+    // A stack as full as it has been has no room: the close was in the overflow after all, and a post
+    // would push another bubble out.
+    val stack = bubbleRegistry.list(BrowsingMode.NativeBubbles).count { it.place == BubblePlace.STACK }
+    if (fullest > 0 && stack >= fullest) return
     val bubble = bubbleRegistry.returnCandidates(BrowsingMode.NativeBubbles).lastOrNull() ?: return
     val data = bubble.loadData ?: return
     bubbleNotificationManager.showBubbles(data, withSummary = false)
