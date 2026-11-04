@@ -13,6 +13,9 @@ package arun.com.chromer.bubbles
 
 import app.cash.turbine.test
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.bubbles.BubblePlace.OVERFLOW
+import arun.com.chromer.bubbles.BubblePlace.STACK
+import arun.com.chromer.bubbles.system.bubbleNotificationId
 import arun.com.chromer.data.preferences.BrowsingMode.NativeBubbles
 import arun.com.chromer.data.preferences.BrowsingMode.SlideOver
 import arun.com.chromer.data.preferences.BrowsingMode.WebHeads
@@ -25,6 +28,7 @@ import kotlinx.coroutines.withContext
 import org.junit.Assert.assertThrows
 import org.junit.Test
 import javax.inject.Inject
+import kotlin.concurrent.thread
 
 /** The one list of open bubbles: its order, its identity and how it is read. */
 class BubbleRegistryTest {
@@ -36,6 +40,15 @@ class BubbleRegistryTest {
   private val registry = BubbleRegistry()
 
   private fun urls(bubbles: List<OpenBubble>) = bubbles.map { it.url }
+
+  private fun open(vararg links: String) =
+    links.forEach { registry.add(NativeBubbles, it, incognito = false) }
+
+  /** Android's answer: each named link at [place]. */
+  private fun at(place: BubblePlace, vararg links: String) =
+    links.associate { bubbleNotificationId(it) to place }
+
+  private fun reconcileTo(places: Map<Int, BubblePlace>) = registry.reconcile(NativeBubbles) { places }
 
   @Test
   fun three_links_read_in_open_order() {
@@ -242,12 +255,186 @@ class BubbleRegistryTest {
   }
 
   @Test
+  fun eight_bubbles_with_three_in_the_overflow_read_as_eight_with_three_listed() {
+    val links = (1..8).map { "https://example.com/$it" }
+    open(*links.toTypedArray())
+
+    reconcileTo(at(OVERFLOW, *links.take(3).toTypedArray()) + at(STACK, *links.drop(3).toTypedArray()))
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactlyElementsIn(links).inOrder()
+    assertThat(urls(registry.overflow(NativeBubbles))).containsExactlyElementsIn(links.take(3)).inOrder()
+  }
+
+  @Test
+  fun a_bubble_android_no_longer_holds_leaves_unmarked_and_the_rest_keep_their_order() {
+    open(first, second, third)
+
+    reconcileTo(at(STACK, first, third))
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first, third).inOrder()
+    assertThat(registry.isClosedOnPurpose(BubbleKey.of(NativeBubbles, second, false))).isFalse()
+  }
+
+  @Test
+  fun a_reconcile_returns_the_keys_that_left() {
+    open(first, second, third)
+
+    val left = reconcileTo(at(STACK, second))
+
+    assertThat(left).containsExactly(
+      BubbleKey.of(NativeBubbles, first, false),
+      BubbleKey.of(NativeBubbles, third, false),
+    ).inOrder()
+  }
+
+  @Test
+  fun a_reconcile_that_takes_nothing_off_returns_an_empty_list() {
+    open(first)
+
+    assertThat(reconcileTo(at(STACK, first))).isEmpty()
+  }
+
+  @Test
+  fun a_failed_read_changes_nothing_and_returns_null() {
+    open(first, second)
+    reconcileTo(at(STACK, first) + at(OVERFLOW, second))
+    val before = registry.bubbles.value
+
+    val left = registry.reconcile(NativeBubbles) { null }
+
+    assertThat(left).isNull()
+    assertThat(registry.bubbles.value).isEqualTo(before)
+  }
+
+  @Test
+  fun a_notification_with_no_entry_adds_nothing() {
+    open(first)
+
+    reconcileTo(at(STACK, first, second) + (42 to OVERFLOW))
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first)
+  }
+
+  @Test
+  fun a_place_changes_both_ways_so_a_returned_bubble_reads_the_stack() {
+    open(first)
+
+    reconcileTo(at(OVERFLOW, first))
+    assertThat(registry.find(NativeBubbles, first, false)?.place).isEqualTo(OVERFLOW)
+
+    reconcileTo(at(STACK, first))
+    assertThat(registry.find(NativeBubbles, first, false)?.place).isEqualTo(STACK)
+    assertThat(registry.overflow(NativeBubbles)).isEmpty()
+  }
+
+  @Test
+  fun a_new_bubble_reads_the_stack() {
+    assertThat(registry.add(NativeBubbles, first, incognito = false).place).isEqualTo(STACK)
+  }
+
+  @Test
+  fun a_web_head_with_the_same_id_is_left_alone() {
+    val head = registry.add(WebHeads, first, incognito = false)
+    open(first)
+
+    reconcileTo(at(OVERFLOW, first))
+    assertThat(registry.list(WebHeads)).containsExactly(head)
+
+    reconcileTo(emptyMap())
+    assertThat(registry.list(WebHeads)).containsExactly(head)
+    assertThat(registry.list(NativeBubbles)).isEmpty()
+  }
+
+  @Test
+  fun a_marked_entry_stays_marked_after_a_reconcile_takes_it_off() {
+    val marked = registry.add(NativeBubbles, first, incognito = false)
+    registry.markClosedOnPurpose(marked.key)
+
+    reconcileTo(emptyMap())
+
+    assertThat(registry.list(NativeBubbles)).isEmpty()
+    assertThat(registry.isClosedOnPurpose(marked.key)).isTrue()
+  }
+
+  @Test
+  fun a_marked_entry_that_stays_keeps_its_mark_and_takes_its_place() {
+    val marked = registry.add(NativeBubbles, first, incognito = false)
+    registry.markClosedOnPurpose(marked.key)
+
+    reconcileTo(at(OVERFLOW, first))
+
+    val entry = registry.find(NativeBubbles, first, false)
+    assertThat(entry?.place).isEqualTo(OVERFLOW)
+    assertThat(entry?.closedOnPurpose).isTrue()
+  }
+
+  @Test
+  fun a_reconcile_that_changes_nothing_emits_nothing() = runTest {
+    open(first)
+    reconcileTo(at(OVERFLOW, first))
+
+    registry.bubbles.test {
+      awaitItem()
+
+      reconcileTo(at(OVERFLOW, first))
+
+      expectNoEvents()
+    }
+  }
+
+  @Test
+  fun a_link_opened_during_a_read_is_on_the_list_afterwards() {
+    open(first)
+    lateinit var opener: Thread
+
+    registry.reconcile(NativeBubbles) {
+      opener = thread { open(second) }
+      // Long enough for the open to run if the read did not hold it back.
+      opener.join(OPENER_HEAD_START_MS)
+      at(STACK, first)
+    }
+    opener.join()
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first, second).inOrder()
+  }
+
+  @Test
+  fun a_dropped_link_sent_again_during_a_read_is_listed_once() {
+    open(first, second)
+    lateinit var opener: Thread
+
+    registry.reconcile(NativeBubbles) {
+      opener = thread { open(first) }
+      opener.join(OPENER_HEAD_START_MS)
+      at(STACK, second)
+    }
+    opener.join()
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(second, first).inOrder()
+  }
+
+  @Test
+  fun an_entry_prints_its_place_and_no_address() {
+    open(first)
+    reconcileTo(at(OVERFLOW, first))
+
+    val printed = registry.find(NativeBubbles, first, false).toString()
+
+    assertThat(printed).contains("place=OVERFLOW")
+    assertThat(printed).doesNotContain("example.com")
+  }
+
+  @Test
   fun adds_from_several_threads_lose_nothing() = runTest {
     withContext(Dispatchers.Default) {
       repeat(200) { launch { registry.add(NativeBubbles, "https://example.com/$it", false) } }
     }
 
     assertThat(registry.list(NativeBubbles)).hasSize(200)
+  }
+
+  private companion object {
+    const val OPENER_HEAD_START_MS = 200L
   }
 }
 

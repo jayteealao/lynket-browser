@@ -43,17 +43,21 @@ data class BubbleKey(val mode: BrowsingMode, val notificationId: Int) {
   }
 }
 
+/** Where Android holds an open bubble. A bubble it no longer holds has no entry. */
+enum class BubblePlace { STACK, OVERFLOW }
+
 /** One open bubble. It prints no address, so a log line cannot show where a person went. */
 data class OpenBubble(
   val key: BubbleKey,
   val url: String,
   val incognito: Boolean,
   val closedOnPurpose: Boolean = false,
+  val place: BubblePlace = BubblePlace.STACK,
 ) {
   val mode: BrowsingMode get() = key.mode
 
   override fun toString() =
-    "OpenBubble(key=$key, incognito=$incognito, closedOnPurpose=$closedOnPurpose)"
+    "OpenBubble(key=$key, incognito=$incognito, closedOnPurpose=$closedOnPurpose, place=$place)"
 }
 
 /**
@@ -96,6 +100,26 @@ class BubbleRegistry @Inject constructor() {
   }
 
   fun list(mode: BrowsingMode): List<OpenBubble> = entries.value.filter { it.mode == mode }
+
+  /** The entries of [mode] that the last reconcile found in Android's overflow, oldest first. */
+  fun overflow(mode: BrowsingMode): List<OpenBubble> =
+    list(mode).filter { it.place == BubblePlace.OVERFLOW }
+
+  /**
+   * Brings the entries of [mode] in line with what Android holds. [read] gives the place of each
+   * notification id, or null when it could not tell, and then nothing changes. It runs under the
+   * lock: an entry is added after its post, so a bubble posted during the read cannot be taken off
+   * by it. An entry Android no longer holds leaves unmarked. Returns the keys that left.
+   */
+  fun reconcile(mode: BrowsingMode, read: () -> Map<Int, BubblePlace>?): List<BubbleKey>? =
+    synchronized(lock) {
+      val places = read() ?: return null
+      val (kept, gone) = entries.value.partition { it.mode != mode || it.key.notificationId in places }
+      entries.value = kept.map {
+        if (it.mode == mode) it.copy(place = places.getValue(it.key.notificationId)) else it
+      }
+      gone.map { it.key }
+    }
 
   fun markClosedOnPurpose(key: BubbleKey) = synchronized(lock) { setMarker(key, closed = true) }
 
