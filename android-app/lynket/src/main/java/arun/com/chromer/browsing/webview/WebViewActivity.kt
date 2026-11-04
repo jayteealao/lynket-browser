@@ -51,6 +51,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import arun.com.chromer.R
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.browsing.menu.MenuDelegate
+import arun.com.chromer.bubbles.BubblePageCount
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.WebUrl
@@ -232,6 +233,11 @@ open class WebViewActivity : BrowsingActivity() {
   private var stateAfterRendererGone: Bundle? = null
 
   override fun getCurrentUrl(): String = webView?.url ?: super.getCurrentUrl()
+
+  /** Shows the place of this page among the open bubbles, or nothing when [count] is null. */
+  protected fun showPageCount(count: BubblePageCount?) {
+    page = page.copy(count = count)
+  }
 
   override fun onWebsiteLoaded(website: Website) {
     page = page.copy(title = website.safeLabel(), address = website.url)
