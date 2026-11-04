@@ -164,6 +164,7 @@ constructor(
     )
 
     val identity = bubbleData.identity()
+    val height = bubbleData.desiredHeightDp ?: desiredHeightDp(context)
 
     // Android 11 and later only show a bubble for a conversation, which needs a long-lived
     // shortcut for it.
@@ -201,7 +202,7 @@ constructor(
         setAutoExpandBubble(false)
         setSuppressNotification(true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setSuppressableBubble(true)
-        setDesiredHeight(desiredHeightDp(context))
+        setDesiredHeight(height)
       }
 
       // A bubble is a conversation: the messaging style with an important person qualifies it on
@@ -219,10 +220,14 @@ constructor(
     if (withSummary) updateGroupSummaryNotification(if (bubbleData.incognito) Constants.NO_COLOR else bubbleData.color)
 
     notificationManager.notify(notificationId, bubbleNotification)
-    return bubbleData
+    return bubbleData.copy(desiredHeightDp = height)
   }
 
-  /** 80 % of the height of the window that posts the bubble, so split screen gets a bubble that fits. */
+  /**
+   * 80 % of the height of the window that posts the bubble, so split screen gets a bubble that fits.
+   * Only a first post asks: with a bubble page on screen the window is that page, so a return that
+   * asked again would open shorter each time.
+   */
   private fun desiredHeightDp(context: Context): Int {
     val windowManager = context.getSystemService(WindowManager::class.java)
     val windowHeight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

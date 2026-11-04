@@ -62,7 +62,9 @@ data class BubbleLoadData(
   val incognito: Boolean,
   val contextRef: WeakReference<Context?> = WeakReference(null),
   val icon: Bitmap? = null,
-  val color: Int = Constants.NO_COLOR
+  val color: Int = Constants.NO_COLOR,
+  /** The height the first post asked for; a later post keeps it, whatever window is on screen then. */
+  val desiredHeightDp: Int? = null,
 )
 
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -146,7 +148,7 @@ constructor(
     // site is read for it. A normal bubble's site and icon load while the first post publishes.
     val details = if (initial.incognito) null else async { withDetails(initial) }
     val ready = details?.let { withTimeoutOrNull(ICON_WAIT_MS) { it.await() } }
-    val posted = bubbleNotificationManager.showBubbles(ready ?: initial)
+    val posted = bubbleNotificationManager.showBubbles((ready ?: initial).withHeightOfOpenBubble())
     bubbleRegistry.add(BrowsingMode.NativeBubbles, url, initial.incognito, posted)
 
     // Android can still post the notification without showing it as a bubble. Then the page opens
@@ -166,10 +168,17 @@ constructor(
       val late = details.await()
       // Same url, so the same notification is updated in place; the summary is already posted.
       if (late !== initial) {
-        bubbleNotificationManager.showBubbles(late, withSummary = false)
-        bubbleRegistry.updateLoadData(BubbleKey.of(BrowsingMode.NativeBubbles, url, initial.incognito), late)
+        val update = late.copy(desiredHeightDp = posted.desiredHeightDp)
+        bubbleNotificationManager.showBubbles(update, withSummary = false)
+        bubbleRegistry.updateLoadData(BubbleKey.of(BrowsingMode.NativeBubbles, url, initial.incognito), update)
       }
     }
+  }
+
+  /** A link sent again updates its bubble, so the page keeps the height it opened with. */
+  private fun BubbleLoadData.withHeightOfOpenBubble(): BubbleLoadData {
+    val open = bubbleRegistry.find(BrowsingMode.NativeBubbles, website.url, incognito)?.loadData
+    return open?.desiredHeightDp?.let { copy(desiredHeightDp = it) } ?: this
   }
 
   /**

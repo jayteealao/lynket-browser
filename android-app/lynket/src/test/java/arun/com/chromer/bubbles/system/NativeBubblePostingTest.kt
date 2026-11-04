@@ -92,6 +92,7 @@ class NativeBubblePostingTest {
   private val backAt = mutableMapOf<Int, Long>()
   private var failUpdates = false
   private val postedData = mutableListOf<BubbleLoadData>()
+  private var heightOfAFirstPost: Int? = null
   private val logs = mutableListOf<String>()
   private val tree = object : Timber.Tree() {
     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
@@ -126,7 +127,7 @@ class NativeBubblePostingTest {
       postedData += data
       val id = bubbleNotificationId(data.website.url, data.incognito)
       if (!withSummary) returnAfterMs?.let { backAt[id] = clock.currentTime + it }
-      data
+      heightOfAFirstPost?.let { data.copy(desiredHeightDp = data.desiredHeightDp ?: it) } ?: data
     }
     every { isShownAsBubble(any(), any()) } answers {
       val id = bubbleNotificationId(firstArg(), secondArg())
@@ -588,13 +589,34 @@ class NativeBubblePostingTest {
   fun a_call_with_an_empty_overflow_posts_nothing_and_still_finishes() = posting { bubble ->
     opened(bubble, ONE, TWO)
     inOverflow(ONE)
-    var done = 0
 
-    repeat(2) { bubble.returnNewestOverflowBubble { done++ } }
+    val calls = List(2) { bubble.returnNewestOverflowBubble() }
     advanceUntilIdle()
 
     assertThat(posts.map { it.url }).containsExactly(ONE)
-    assertThat(done).isEqualTo(2)
+    assertThat(calls.all { it.isCompleted }).isTrue()
+  }
+
+  @Test
+  fun a_late_icon_a_link_sent_again_and_a_return_all_keep_the_first_height() = posting { bubble ->
+    heightOfAFirstPost = 731
+    iconDelayMs = 500
+    bubble.open(ONE)
+    advanceUntilIdle()
+    assertThat(postedData.map { it.desiredHeightDp }).containsExactly(null, 731).inOrder()
+
+    heightOfAFirstPost = 566
+    iconDelayMs = 0
+    bubble.open(ONE)
+    advanceUntilIdle()
+    assertThat(postedData.last().desiredHeightDp).isEqualTo(731)
+
+    opened(bubble, TWO)
+    backAt.clear()
+    inOverflow(ONE)
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+    assertThat(postedData.single().desiredHeightDp).isEqualTo(731)
   }
 
   @Test
@@ -651,12 +673,11 @@ class NativeBubblePostingTest {
     opened(bubble, ONE, TWO)
     inOverflow(ONE)
     failUpdates = true
-    var done = 0
 
-    bubble.returnNewestOverflowBubble { done++ }
+    val call = bubble.returnNewestOverflowBubble()
     advanceUntilIdle()
 
-    assertThat(done).isEqualTo(1)
+    assertThat(call.isCompleted).isTrue()
     assertTheReturnFailedQuietly()
   }
 
@@ -665,12 +686,11 @@ class NativeBubblePostingTest {
     opened(bubble, ONE, TWO)
     inOverflow(ONE)
     returnAfterMs = null
-    var done = 0
 
-    bubble.returnNewestOverflowBubble { done++ }
+    val call = bubble.returnNewestOverflowBubble()
     advanceUntilIdle()
 
-    assertThat(done).isEqualTo(1)
+    assertThat(call.isCompleted).isTrue()
     assertThat(posts.map { it.url }).containsExactly(ONE)
     assertTheReturnFailedQuietly()
 

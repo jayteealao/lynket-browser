@@ -101,6 +101,19 @@ class NativeBubbleConversationTest {
   }
 
   @Test
+  @Config(sdk = [36])
+  fun a_later_post_keeps_the_height_of_the_first_whatever_window_is_on_screen() {
+    val manager = BubbleNotificationManager(application)
+    val first = BubbleLoadData(website(URL), false, false, false, WeakReference(windowContext(1000)))
+    val posted = runBlocking { manager.showBubbles(first) }
+
+    val update = posted.copy(contextRef = WeakReference(windowContext(500)))
+    runBlocking { manager.showBubbles(update, withSummary = false) }
+
+    assertThat(notificationOf(URL).bubbleMetadata!!.desiredHeight).isEqualTo(Utils.pxToDp(800))
+  }
+
+  @Test
   fun a_bubble_is_a_message_with_the_locus_id_of_its_shortcut() {
     post(URL)
 
