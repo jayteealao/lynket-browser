@@ -593,6 +593,106 @@ class NativeBubblePostingTest {
   }
 
   @Test
+  fun a_single_close_of_a_full_stack_returns_at_once() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE, FOUR)
+    inOverflow(ONE, TWO)
+    registry.reconcile(BrowsingMode.NativeBubbles) { places }
+    val start = currentTime
+
+    closer.close(keyOf(FOUR).notificationId)
+    advanceUntilIdle()
+
+    assertThat(posts.single().url).isEqualTo(TWO)
+    assertThat(posts.single().at).isEqualTo(start)
+  }
+
+  @Test
+  fun a_bubble_that_aged_out_unseen_costs_the_close_the_wait_and_is_then_filed() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE, FOUR, FIVE)
+    inOverflow(ONE)
+    registry.reconcile(BrowsingMode.NativeBubbles) { places }
+    // The list still has FOUR in the stack, and Android has already aged it out.
+    places = places!! + (keyOf(FOUR).notificationId to BubblePlace.OVERFLOW)
+    val start = currentTime
+
+    closer.close(keyOf(FIVE).notificationId)
+    advanceUntilIdle()
+
+    assertThat(posts.single().url).isEqualTo(FOUR)
+    assertThat(posts.single().at).isEqualTo(start + SETTLE_MS)
+  }
+
+  @Test
+  fun two_single_closes_in_turn_each_return_a_bubble_newest_first() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE, FOUR)
+    inOverflow(ONE, TWO)
+    registry.reconcile(BrowsingMode.NativeBubbles) { places }
+
+    closer.close(keyOf(FOUR).notificationId)
+    advanceUntilIdle()
+    closer.close(keyOf(THREE).notificationId)
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(TWO, ONE).inOrder()
+  }
+
+  @Test
+  fun a_drag_of_the_whole_stack_waits_and_returns_only_overflow_bubbles() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE, FOUR)
+    inOverflow(ONE, TWO)
+    // Every bubble of the stack lost its flag before the first delete intent.
+    places = places!!.mapValues { BubblePlace.OVERFLOW }
+    val start = currentTime
+
+    closer.close(keyOf(FOUR).notificationId)
+    advanceTimeBy(50)
+    closer.close(keyOf(THREE).notificationId)
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(TWO, ONE).inOrder()
+    assertThat(posts.first().at).isEqualTo(start + SETTLE_MS)
+  }
+
+  @Test
+  fun a_drag_read_in_part_waits_and_leaves_the_closing_bubbles_in_the_stack() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE, FOUR, FIVE)
+    inOverflow(ONE, TWO)
+    // Android took the flag off FOUR and not yet off THREE, and FIVE's delete intent came first.
+    places = places!! + (keyOf(FOUR).notificationId to BubblePlace.OVERFLOW)
+    val start = currentTime
+
+    closer.close(keyOf(FIVE).notificationId)
+    advanceTimeBy(1)
+
+    assertThat(posts).isEmpty()
+    assertThat(registry.find(keyOf(FOUR))?.place).isEqualTo(BubblePlace.STACK)
+
+    closer.close(keyOf(FOUR).notificationId)
+    closer.close(keyOf(THREE).notificationId)
+    places = places!!.filterKeys { it != keyOf(FOUR).notificationId && it != keyOf(THREE).notificationId }
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(TWO, ONE).inOrder()
+    assertThat(posts.first().at).isEqualTo(start + SETTLE_MS)
+  }
+
+  @Test
+  fun a_failed_read_after_a_close_waits_as_for_a_drag() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE, FOUR)
+    inOverflow(ONE, TWO)
+    val working = places
+    places = null
+    val start = currentTime
+
+    closer.close(keyOf(FOUR).notificationId)
+    advanceTimeBy(SETTLE_MS - 1)
+    places = working
+    advanceUntilIdle()
+
+    assertThat(posts.single().at).isEqualTo(start + SETTLE_MS)
+  }
+
+  @Test
   fun a_close_in_the_stack_returns_the_newest_overflow_bubble_and_the_closed_one_stays_gone() = posting { bubble ->
     opened(bubble, ONE, TWO, THREE, FOUR)
     inOverflow(ONE, TWO)
@@ -1070,5 +1170,6 @@ class NativeBubblePostingTest {
     const val TWO = "https://two.example/"
     const val THREE = "https://three.example/"
     const val FOUR = "https://four.example/"
+    const val FIVE = "https://five.example/"
   }
 }

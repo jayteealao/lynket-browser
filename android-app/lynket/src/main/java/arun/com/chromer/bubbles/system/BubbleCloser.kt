@@ -52,9 +52,9 @@ constructor(
     val closed = bubbleRegistry.remove(key)
     bubbleNotificationManager.dismissed(notificationId)
     // A close in the overflow leaves the stack full, and a second signal finds no entry. A close in
-    // the stack reconciles in the return: during a drag a read now would file the closing bubbles
-    // under the overflow, and their closes would ask for no return. The return runs off this thread,
-    // so a delete intent does not hold back the others of a drag.
+    // the stack leaves its read to the return, which can tell a drag: during a drag a read here would
+    // file the closing bubbles under the overflow, and their closes would ask for no return. The
+    // return runs off this thread, so a delete intent does not hold back the others of a drag.
     if (closed?.place == BubblePlace.STACK) {
       nativeFloatingBubble.returnNewestOverflowBubble()
     } else {

@@ -15,6 +15,7 @@ import android.app.Activity
 import android.app.Application
 import android.os.Build
 import androidx.annotation.RequiresApi
+import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.OpenBubble
 import arun.com.chromer.data.preferences.BrowsingMode
@@ -60,6 +61,15 @@ constructor(
       dropped.joinToString(",") { it.notificationId.toString() },
     )
   }
+
+  /**
+   * The same, when [accept] takes what Android reads now; a read it refuses changes nothing. Returns
+   * whether it took the read.
+   */
+  fun reconcileIf(accept: (Map<Int, BubblePlace>) -> Boolean): Boolean =
+    bubbleRegistry.reconcile(BrowsingMode.NativeBubbles) {
+      bubbleNotificationManager.bubblePlaces()?.takeIf(accept)
+    } != null
 
   /** The same, off the calling thread: the read asks Android, so the main thread must not wait for it. */
   fun reconcileLater() {

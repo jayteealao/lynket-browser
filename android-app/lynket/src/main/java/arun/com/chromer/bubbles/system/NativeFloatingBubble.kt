@@ -184,17 +184,20 @@ constructor(
    * alert. Returns run one at a time and each waits for Android's flag, so a close that follows reads
    * where this bubble went. A return that fails says nothing: the bubble stays in the overflow.
    *
-   * A drag of the stack takes the flag off every bubble in it at once, and their delete intents
-   * follow one by one, so until they arrive a closed bubble reads like an overflow bubble. The wait
-   * lets them arrive. sdlc-debt: a fixed wait; a delete intent later than it posts its closed bubble
-   * for a moment. A read that tells a closing bubble from an aged one would replace it.
+   * A drag of the stack takes the flag off every bubble in it, and their delete intents follow one by
+   * one, so until they arrive a closed bubble reads like an overflow bubble. So a close first reads
+   * the stack: when every other bubble in it keeps its flag, this was a single close and
+   * the bubble returns at once, while the row closes its gap. Any other read may be a drag, and the
+   * wait lets its delete intents arrive. sdlc-debt: a fixed wait; a delete intent later than it posts
+   * its closed bubble for a moment. A read that tells a closing bubble from an aged one would replace it.
    */
   fun returnNewestOverflowBubble(): Job {
     waitingReturns.incrementAndGet()
     return scope.launch {
       try {
-        delay(CLOSES_SETTLE_MS)
-        returnLock.withLock { if (!returnFailed) returnNewest() }
+        val single = wasSingleClose()
+        if (!single) delay(CLOSES_SETTLE_MS)
+        returnLock.withLock { if (!returnFailed) returnNewest(reconciled = single) }
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -205,9 +208,23 @@ constructor(
     }
   }
 
-  private suspend fun returnNewest() {
+  /**
+   * Whether every bubble the list has in the stack keeps its flag. The read that says so is the one
+   * the list takes, so a later read in the middle of a drag cannot file a closing bubble under the
+   * overflow. A read that says otherwise leaves the list as it was: a close that follows must still
+   * find its bubble in the stack. A bubble that aged out unseen also says otherwise, and only costs
+   * this close the wait.
+   */
+  private fun wasSingleClose(): Boolean {
+    val stack = bubbleRegistry.list(BrowsingMode.NativeBubbles).filter { it.place == BubblePlace.STACK }
+    return stack.isNotEmpty() && bubbleReconciler.reconcileIf { places ->
+      stack.all { places[it.key.notificationId] == BubblePlace.STACK }
+    }
+  }
+
+  private suspend fun returnNewest(reconciled: Boolean) {
     val fullest = bubbleRegistry.fullestStack()
-    bubbleReconciler.reconcile()
+    if (!reconciled) bubbleReconciler.reconcile()
     // A stack as full as it has been has no room: the close was in the overflow after all, and a post
     // would push another bubble out.
     val stack = bubbleRegistry.list(BrowsingMode.NativeBubbles).count { it.place == BubblePlace.STACK }
@@ -282,7 +299,7 @@ constructor(
     const val ICON_WAIT_MS = 300L
     const val FLAG_READS = 7
     const val FLAG_READ_INTERVAL_MS = 250L
-    /** The time the delete intents of one drag take to arrive. */
+    /** The time the delete intents of one drag take to arrive. A single close does not wait. */
     const val CLOSES_SETTLE_MS = 500L
   }
 }
