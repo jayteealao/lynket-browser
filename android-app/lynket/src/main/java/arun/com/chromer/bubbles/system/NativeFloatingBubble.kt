@@ -214,6 +214,7 @@ constructor(
     if (fullest > 0 && stack >= fullest) return
     val bubble = bubbleRegistry.returnCandidates(BrowsingMode.NativeBubbles).lastOrNull() ?: return
     val data = bubble.loadData ?: return
+    Timber.d("Returning: %d", bubble.key.notificationId)
     bubbleNotificationManager.showBubbles(data, withSummary = false)
     if (shownAsBubble(bubble.url, bubble.incognito)) {
       Timber.d("Returned: %d", bubble.key.notificationId)

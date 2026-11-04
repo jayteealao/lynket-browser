@@ -137,6 +137,7 @@ class NativeBubblePostingTest {
       shown && firstArg<String>() !in notShown && (places?.get(id) != BubblePlace.OVERFLOW || isBack(id))
     }
     every { cancel(any<String>(), any()) } just Runs
+    every { dismissed(any()) } just Runs
     every { bubblePlaces() } answers {
       readsAt += clock.currentTime
       places?.mapValues { (id, place) -> if (isBack(id)) BubblePlace.STACK else place }
@@ -155,6 +156,7 @@ class NativeBubblePostingTest {
   }
 
   private val registry = BubbleRegistry()
+  private lateinit var closer: BubbleCloser
 
   @Before
   fun plant() = Timber.plant(tree)
@@ -168,6 +170,7 @@ class NativeBubblePostingTest {
     val dispatcher = StandardTestDispatcher(testScheduler)
     val reconciler = BubbleReconciler(notifications, registry, dispatcher)
     val bubble = NativeFloatingBubble(application, repo, notifications, icons, gate, registry, reconciler, dispatcher) { tabsManager }
+    closer = BubbleCloser(notifications, registry, reconciler, bubble)
     block(bubble)
     advanceUntilIdle()
   }
@@ -587,6 +590,46 @@ class NativeBubblePostingTest {
     advanceUntilIdle()
 
     assertThat(posts.map { it.url }).containsExactly(ONE)
+  }
+
+  @Test
+  fun a_close_in_the_stack_returns_the_newest_overflow_bubble_and_the_closed_one_stays_gone() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE, FOUR)
+    inOverflow(ONE, TWO)
+
+    closer.close(keyOf(FOUR).notificationId)
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(TWO)
+    assertThat(posts.single().withSummary).isFalse()
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO, THREE).inOrder()
+    assertThat(registry.isClosedOnPurpose(keyOf(FOUR))).isTrue()
+    verify { notifications.dismissed(keyOf(FOUR).notificationId) }
+  }
+
+  @Test
+  fun a_second_close_of_one_bubble_returns_no_second_bubble() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE, FOUR)
+    inOverflow(ONE, TWO)
+
+    closer.close(keyOf(FOUR).notificationId)
+    closer.close(keyOf(FOUR).notificationId)
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(TWO)
+  }
+
+  @Test
+  fun a_close_in_the_overflow_returns_nothing() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE, FOUR)
+    inOverflow(ONE, TWO)
+    registry.reconcile(BrowsingMode.NativeBubbles) { places }
+
+    closer.close(keyOf(TWO).notificationId)
+    advanceUntilIdle()
+
+    assertThat(posts).isEmpty()
+    assertThat(listed().map { it.url }).containsExactly(ONE, THREE, FOUR).inOrder()
   }
 
   @Test
@@ -1026,5 +1069,6 @@ class NativeBubblePostingTest {
     const val ONE = "https://one.example/"
     const val TWO = "https://two.example/"
     const val THREE = "https://three.example/"
+    const val FOUR = "https://four.example/"
   }
 }

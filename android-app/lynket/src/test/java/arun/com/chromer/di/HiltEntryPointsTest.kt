@@ -62,7 +62,7 @@ class HiltEntryPointsTest : LynketRobolectricSuite() {
 
     receiver.onReceive(application, Intent())
 
-    assertTrue(runCatching { receiver.bubbleNotificationManager }.isSuccess)
+    assertTrue(runCatching { receiver.bubbleCloser }.isSuccess)
   }
 
   @Test

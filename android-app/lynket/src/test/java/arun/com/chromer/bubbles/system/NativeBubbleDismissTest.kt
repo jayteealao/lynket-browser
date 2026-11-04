@@ -17,7 +17,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ShortcutManager
+import android.net.Uri
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleLoadData
 import arun.com.chromer.bubbles.BubblePlace
@@ -33,6 +35,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implementation
@@ -117,6 +120,13 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     return sent
   }
 
+  /** A page of [url], opened by its bubble or from elsewhere. */
+  private fun page(url: String, inBubble: Boolean = true): EmbeddableWebViewActivity {
+    val intent = Intent(application, EmbeddableWebViewActivity::class.java).setData(Uri.parse(url))
+    if (inBubble) intent.putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, bubbleNotificationId(url))
+    return Robolectric.buildActivity(EmbeddableWebViewActivity::class.java, intent).create().get()
+  }
+
   @Test
   fun a_bubble_carries_an_immutable_delete_intent_to_the_receiver() {
     post(first)
@@ -187,6 +197,70 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     dismiss(second)
 
     assertThat(shadowOf(notificationManager).allNotifications).isEmpty()
+  }
+
+  @Test
+  fun the_x_of_a_page_in_a_bubble_closes_the_bubble_as_a_dismissal_does() {
+    post(first)
+    post(second)
+
+    page(first).finish()
+
+    assertThat(notificationOf(first)).isNull()
+    assertThat(shortcutIds()).doesNotContain(bubbleConversationId(first))
+    assertThat(listed()).containsExactly(second)
+    assertThat(registry.isClosedOnPurpose(keyOf(first))).isTrue()
+    assertThat(notificationOf(second)).isNotNull()
+    assertThat(summary()).isNotNull()
+  }
+
+  @Test
+  fun the_x_of_the_last_bubble_takes_the_summary_too() {
+    post(first)
+
+    page(first).finish()
+
+    assertThat(shadowOf(notificationManager).allNotifications).isEmpty()
+  }
+
+  @Test
+  fun a_delete_intent_after_the_x_changes_nothing_more() {
+    post(first)
+    post(second)
+    val deleteIntent = Intent().putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, bubbleNotificationId(first))
+
+    page(first).finish()
+    BubbleDismissReceiver().onReceive(application, deleteIntent)
+
+    assertThat(listed()).containsExactly(second)
+    assertThat(notificationOf(second)).isNotNull()
+    assertThat(RecordingShortcutManagerShadow.removedLongLived.distinct()).containsExactly(bubbleConversationId(first))
+  }
+
+  @Test
+  fun a_second_finish_of_a_page_closes_nothing_more() {
+    post(first)
+    post(second)
+    val page = page(first)
+
+    page.finish()
+    post(first)
+    page.finish()
+
+    assertThat(listed()).containsExactly(second, first).inOrder()
+    assertThat(notificationOf(first)).isNotNull()
+  }
+
+  @Test
+  fun a_page_that_is_not_in_a_bubble_finishes_and_closes_nothing() {
+    post(first)
+
+    page(first, inBubble = false).finish()
+
+    assertThat(listed()).containsExactly(first)
+    assertThat(notificationOf(first)).isNotNull()
+    assertThat(shortcutIds()).contains(bubbleConversationId(first))
+    assertThat(registry.isClosedOnPurpose(keyOf(first))).isFalse()
   }
 
   @Test

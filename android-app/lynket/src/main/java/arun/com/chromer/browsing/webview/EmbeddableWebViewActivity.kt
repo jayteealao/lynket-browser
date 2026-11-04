@@ -20,13 +20,16 @@
 
 package arun.com.chromer.browsing.webview
 
+import android.os.Build
 import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.pageCount
+import arun.com.chromer.bubbles.system.BubbleCloser
 import arun.com.chromer.bubbles.system.EXTRA_BUBBLE_NOTIFICATION_ID
 import arun.com.chromer.data.preferences.BrowsingMode
+import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -37,11 +40,20 @@ import javax.inject.Inject
  * Only exists to provide embeddable activity for Android 10 bubbles. Its bubble intent names the
  * bubble, and only that intent does: a page opened from the conversation shortcut is not in a
  * bubble and shows no count.
+ *
+ * A bubble cannot outlive its page: when the page finishes, Android removes the bubble and sends no
+ * delete intent. So every finish of a page in a bubble closes the bubble, the X of the top bar and a
+ * page that gave up alike, and the newest overflow bubble can take its place. Back folds the stack
+ * and Android ends a page whose bubble has left without either of them reaching [finish].
  */
 @AndroidEntryPoint
 class EmbeddableWebViewActivity : WebViewActivity() {
   @Inject
   lateinit var bubbleRegistry: BubbleRegistry
+
+  /** Lazy: only a page in a bubble asks for it, and bubbles start at Android 10. */
+  @Inject
+  lateinit var bubbleCloser: Lazy<BubbleCloser>
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -51,5 +63,12 @@ class EmbeddableWebViewActivity : WebViewActivity() {
     lifecycleScope.launch {
       bubbleRegistry.bubbles.map { it.pageCount(key) }.distinctUntilChanged().collect(::showPageCount)
     }
+  }
+
+  override fun finish() {
+    if (!isFinishing && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)) {
+      bubbleCloser.get().close(intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0))
+    }
+    super.finish()
   }
 }

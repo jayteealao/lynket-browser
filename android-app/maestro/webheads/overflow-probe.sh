@@ -20,6 +20,11 @@
 #                                              Opens 7 links and drags the collapsed stack away; each
 #                                              of its 5 closes may return one bubble, so 2 come back,
 #                                              with no alert and no expansion. Writes close-stack.tsv.
+#   overflow-probe.sh <serial> <dir> close-x   Opens 7 links, checks that Back keeps a bubble, and closes
+#                                              3 pages with the X of their top bar; each X must close
+#                                              the page's bubble and return the newest overflow bubble,
+#                                              with no alert, no delete intent and no shade row, until
+#                                              the overflow is empty. Writes close-x.tsv.
 #   overflow-probe.sh <serial> <dir> close-icon
 #                                              Opens a link whose icon is held back (slow-icon-server.py),
 #                                              lets it age out and returns it with a close; it must show
@@ -49,6 +54,8 @@
 #                                              Opens 7 links and turns one off from its Manage menu, and
 #                                              records what the app then reads. Writes dont-bubble.tsv.
 #
+# The close modes also write <mode>-times.tsv: the milliseconds from each close to the post of its return.
+#
 # Needs adb and curl on PATH, python with Pillow, and the debug build (`assembleDebug`, or
 # APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
@@ -62,8 +69,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits | registry | close | close-stack | close-icon | count | count-long | shade | story | dont-bubble) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon|count|count-long|shade|story|dont-bubble>" >&2; exit 2 ;;
+  dismiss | return | limits | registry | close | close-stack | close-x | close-icon | count | count-long | shade | story | dont-bubble) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-x|close-icon|count|count-long|shade|story|dont-bubble>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 # Before anything is uninstalled: a missing tool would otherwise show up minutes later as a claim
@@ -200,7 +207,7 @@ prepare() {
   sleep 1
   a logcat -c
   # adb itself, so the kill in finish reaches it: a subshell would leave it holding the log file.
-  adb -s "$SERIAL" logcat -v brief BubbleProbe:V BubbleDismissReceiver:V BubbleReconciler:V NativeFloatingBubble:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
+  adb -s "$SERIAL" logcat -v time BubbleProbe:V BubbleCloser:V BubbleDismissReceiver:V BubbleReconciler:V NativeFloatingBubble:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
   LOGCAT_PID=$!
   a shell am broadcast -n "$PROBE" --es action clear >/dev/null
   sleep 2
@@ -536,9 +543,9 @@ new_ids() {
 }
 
 # What Android recorded of the bubble $1, from the shell's dump $2 and the notification dump $3.
-# Leaves SOUND_KEY, FLYOUT and INTERRUPTIVE.
+# Leaves SOUND_KEY, FLYOUT and INTERRUPTIVE; only a sound key of the app counts.
 alert_fields() {
-  SOUND_KEY="$(grep -E 'mSoundNotificationKey|mVibrateNotificationKey' "$OUT/$3" | sed 's/^ *//' | grep -v '=null$' | tr '\n' ' ')"
+  SOUND_KEY="$(grep -E 'mSoundNotificationKey|mVibrateNotificationKey' "$OUT/$3" | sed 's/^ *//' | grep -F "|$PKG|" | tr '\n' ' ')"
   FLYOUT="$(awk -v key="key: 0|$PKG|$1|" 'index($0, key) { on = 1 } on && /showFlyout:/ { print $2; exit }' "$OUT/$2")"
   INTERRUPTIVE="$(awk -v key="key=0|$PKG|$1|" 'index($0, key) { on = 1 } on && /mIsInterruptive=/ { sub(/.*=/, ""); print; exit }' "$OUT/$3")"
 }
@@ -592,6 +599,121 @@ close_row() {
   return 0
 }
 
+# Writes $MODE-times.tsv from the log: each post of a return, and the milliseconds since the last close.
+close_times() {
+  python - "$OUT/$MODE.logcat.txt" "$OUT/$MODE-times.tsv" <<'PY'
+import re, sys
+from datetime import datetime
+closed = None
+with open(sys.argv[2], "w") as out:
+    out.write("closed_id\treturned_id\tms\n")
+    for line in open(sys.argv[1], errors="replace"):
+        at = re.match(r"(\d\d-\d\d \d\d:\d\d:\d\d\.\d{3})", line)
+        said = re.search(r"(Bubble dismissed|Returning): (-?\d+)\s*$", line)
+        if not at or not said:
+            continue
+        time = datetime.strptime(at.group(1), "%m-%d %H:%M:%S.%f")
+        if said.group(1) == "Bubble dismissed":
+            closed = (said.group(2), time)
+        elif closed:
+            out.write(f"{closed[0]}\t{said.group(2)}\t{int((time - closed[1]).total_seconds() * 1000)}\n")
+PY
+  log "times $(tail -n +2 "$OUT/$MODE-times.tsv" | cut -f3 | paste -s -d, -)"
+}
+
+# How many conversation shortcuts Android holds for the app.
+bubble_shortcuts() { a shell dumpsys shortcut | tr -d '\r' | grep -c 'ShortcutInfo {id=bubble_' || true; }
+
+# Opens the page of the last bubble of the row, closes it with its X, and adds its row to close-x.tsv.
+# $1 names the close, and $2 is the newest overflow bubble, or empty when the overflow is empty.
+x_close() {
+  local name="$1" expected="$2" page lines closed returned shortcuts_before shortcuts flag="" notification overflow_ids=() returnable_ids=() id
+  shell_bubbles "shell-x-$name-before.txt"
+  expand_stack "shell-x-$name-before.txt"
+  page="${STACK_IDS[-1]}"
+  tap_row_bubble "$page"
+  page_text "x-$name-page"
+  shortcuts_before="$(bubble_shortcuts)"
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  tap_window_tag webview-close
+  sleep 3
+  shot "x-$name-after"
+  a shell input keyevent HOME
+  sleep 2
+  closed="$(new_ids 'Bubble dismissed:' "$lines")"
+  returned="$(new_ids 'Returned:' "$lines")"
+  shell_bubbles "shell-x-$name-after.txt"
+  read_state "state-x-$name.txt"
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/notification-x-$name.txt"
+  alert_fields "${returned:-none}" "shell-x-$name-after.txt" "notification-x-$name.txt"
+  notification="$(bubble_flag "state-x-$name.txt" "$page")"
+  shortcuts="$(bubble_shortcuts)"
+  [ -z "$returned" ] || flag="$(bubble_flag "state-x-$name.txt" "$returned")"
+  front_reconcile
+  IFS=, read -r -a overflow_ids <<< "$REC_OVERFLOW"
+  IFS=, read -r -a returnable_ids <<< "$REC_RETURNABLE"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "$name" "$page" "${closed:-none}" "${expected:-none}" \
+    "${returned:-none}" "$REC_TOTAL" "$REC_OVERFLOW" "$(IFS=,; echo "${STACK_IDS[*]}")" "$notification" "$shortcuts_before" "$shortcuts" \
+    "${SOUND_KEY:-none}" "${FLYOUT:-none}" "${INTERRUPTIVE:-none}" "${PAGE_TEXT:-none}" >> "$OUT/close-x.tsv"
+  log "x=$name page=$page closed=${closed:-none} expected=${expected:-none} returned=${returned:-none} total=$REC_TOTAL stack=${#STACK_IDS[@]} notification=$notification shortcuts=$shortcuts_before,$shortcuts"
+
+  [ "$closed" = "$page" ] || fail "the X of $page closed \"$closed\""
+  [ "$returned" = "$expected" ] || fail "the X of $page returned \"$returned\", and the newest overflow bubble is \"$expected\""
+  [ "$REC_TOTAL" -eq "$((TOTAL_BEFORE - 1))" ] || fail "the X of $page leaves a list of $REC_TOTAL after $TOTAL_BEFORE"
+  TOTAL_BEFORE="$REC_TOTAL"
+  [ "$notification" = gone ] || fail "$page still has a notification after its X"
+  [ "$shortcuts" -eq "$((shortcuts_before - 1))" ] || fail "the X of $page leaves $shortcuts shortcuts after $shortcuts_before"
+  CLOSED_IDS+=("$page")
+  for id in "${CLOSED_IDS[@]}"; do
+    in_list "$id" "${STACK_IDS[@]}" "${OVERFLOW_IDS[@]}" "${overflow_ids[@]}" "${returnable_ids[@]}" && fail "closed id $id is listed after the X of $page"
+    tail -n +"$((lines + 1))" "$OUT/$MODE.logcat.txt" | grep -q "Returned: $id\$" && fail "closed id $id returned after the X of $page"
+  done
+  [ -z "$returned" ] && return 0
+  in_list "$returned" "${STACK_IDS[@]}" || fail "returned id $returned is not in the stack"
+  [ "$flag" = true ] || fail "returned id $returned has no bubble flag"
+  [ -z "$SOUND_KEY" ] || fail "the return took the sound or the vibration: $SOUND_KEY"
+  [ "$FLYOUT" = false ] || fail "the return showed a flyout: $FLYOUT"
+  [ "$INTERRUPTIVE" = false ] || fail "the return was marked interruptive: $INTERRUPTIVE"
+}
+
+mode_close_x() {
+  local n returnable=() page lines
+  printf 'sdk\tclose\tpage_id\tclosed_ids\texpected_id\treturned_ids\ttotal\toverflow_ids\tstack_keys\tnotification\tshortcuts_before\tshortcuts_after\tsound_key\tflyout\tinterruptive\tpage_count\n' > "$OUT/close-x.tsv"
+  for n in 1 2 3 4 5 6 7; do
+    open_bubble "https://example.com/?probe=$RUN-x-$n"
+  done
+  sleep 2
+  front_reconcile
+  IFS=, read -r -a returnable <<< "$REC_RETURNABLE"
+  [ "$REC_TOTAL" -eq 7 ] && [ "${#returnable[@]}" -eq 2 ] || fail "with 7 links the list reads $REC_TOTAL with ${#returnable[@]} to return"
+
+  # Back on a page with no history folds the stack and keeps the bubble.
+  shell_bubbles shell-x-back-before.txt
+  expand_stack shell-x-back-before.txt
+  page="${STACK_IDS[-1]}"
+  tap_row_bubble "$page"
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  a shell input keyevent BACK
+  sleep 3
+  shell_bubbles shell-x-back-after.txt
+  in_list "$page" "${STACK_IDS[@]}" || fail "Back took the bubble $page away"
+  [ -z "$(new_ids 'Bubble dismissed:' "$lines")" ] || fail "Back closed a bubble"
+  a shell input keyevent HOME
+  sleep 2
+
+  TOTAL_BEFORE="$REC_TOTAL"
+  CLOSED_IDS=()
+  x_close 1 "${returnable[1]}"
+  x_close 2 "${returnable[0]}"
+  x_close 3 ""
+  [ -z "$REC_RETURNABLE" ] || fail "the overflow still holds $REC_RETURNABLE after three closes"
+  shade_capture x-shade
+  no_lynket_row x-shade
+  no_crash
+  close_times
+  log "close-x done"
+}
+
 mode_close() {
   local n close overflow_ids=()
   printf 'sdk\tclose\tclosed_id\texpected_id\treturned_ids\ttotal\toverflow_ids\treturnable_ids\tstack_keys\tapp_notifications\treturned_flag\tsound_key\tflyout\tinterruptive\texpanded\tselected\n' > "$OUT/close.tsv"
@@ -607,6 +729,7 @@ mode_close() {
   TOTAL_BEFORE="$REC_TOTAL"
   CLOSED_IDS=()
   for close in 1 2 3; do close_row "$close"; done
+  close_times
   log "close done"
 }
 
@@ -662,6 +785,7 @@ mode_close_stack() {
   [ "$flyouts" = "false false " ] || fail "a return showed a flyout: $flyouts"
   [ "$interrupted" = "false false " ] || fail "a return was marked interruptive: $interrupted"
   [ "$heads_up" = false ] || fail "the shots show a heads-up row"
+  close_times
   log "close-stack done"
 }
 
@@ -931,6 +1055,18 @@ tap_window_text() {
   a shell input tap $xy
 }
 
+# Taps the element tagged $1 in the windows on screen.
+tap_window_tag() {
+  local xy
+  a shell uiautomator dump --windows /sdcard/overflow-probe-ui.xml >/dev/null 2>&1 || true
+  xy="$(a exec-out cat /sdcard/overflow-probe-ui.xml | tr -d '\r' | tr '>' '\n' | grep -F "resource-id=\"$1\"" | head -1 |
+    sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
+    awk 'NF == 4 { print int(($1 + $3) / 2), int(($2 + $4) / 2) }')"
+  [ -n "$xy" ] || fail "no $1 in the dump of the windows"
+  # shellcheck disable=SC2086
+  a shell input tap $xy
+}
+
 # Fails when the dump of the page holds another count than $1. An empty dump is no reading: the
 # screenshot stands.
 page_reads() {
@@ -1040,6 +1176,7 @@ mode_story() {
   no_lynket_row story-shade
   no_count_text end "$((REC_TOTAL + 1))"
   no_crash
+  close_times
   log "story done"
 }
 
