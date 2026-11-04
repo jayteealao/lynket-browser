@@ -474,6 +474,8 @@ constructor(
   /**
    * Native bubble mode opens a bubble; every other mode opens a web head, a minimize from
    * slide-over mode too. Returns false when it could not show, so the caller opens a tab.
+   * The one mode value picks the class here, so no factory stands between a caller and a bubble: a
+   * new mode adds its row to this choice.
    */
   private fun openBubble(
     mode: BrowsingMode,
