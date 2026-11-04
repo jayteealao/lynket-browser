@@ -101,8 +101,10 @@ switch and the conversation's channel; after it posts, the app checks that Andro
 flag on it. A refused bubble opens its page in a tab, and `BubbleRefusedActivity` shows a snackbar
 above the tab that names the cause and opens the matching Android settings page. `BubbleReconciler`
 checks the list of open bubbles against Android's active notifications when a bubble opens, when one
-is dismissed and at each activity start, because Android sends nothing when a bubble ages into the
+is closed and at each activity start, because Android sends nothing when a bubble ages into the
 overflow or a full overflow drops it.
+A person closes a bubble by a drag, by Dismiss bubble or by the X of its page. Android sends a delete
+intent only for the first two, so a page in a bubble calls `BubbleCloser` itself when it finishes.
 When the person closes a bubble in the stack, the newest overflow bubble posts again from the data
 its registry entry holds, with no alert (`NativeFloatingBubble.returnNewestOverflowBubble`);
 `docs/native-bubble-overflow.md` says how.
