@@ -1,6 +1,6 @@
 # Native bubbles past the stack limit
 
-What Android does with Lynket's native bubbles when more are open than the stack shows. These are measurements on emulators, taken with `maestro/webheads/overflow-probe.sh` and the debug-only `BubbleProbeReceiver` on 2026-11-03 and 2026-11-04. Android 12 and 13 sit between the two versions and were not measured, and neither was a phone maker's own build of Android.
+What Android does with Lynket's native bubbles when more are open than the stack shows, and the rules the app builds on that. The rules are under [What the app does with this](#what-the-app-does-with-this). Everything else is measurements on emulators, taken with `maestro/webheads/overflow-probe.sh` and the debug-only `BubbleProbeReceiver` on 2026-11-03 and 2026-11-04. Android 12 and 13 sit between the two versions and were not measured, and neither was a phone maker's own build of Android.
 
 ## Android 14
 
@@ -75,7 +75,7 @@ Read with `overflow-probe.sh shade` on 2026-11-04, with the summary and every bu
 
 `BubbleReconciler` brings the list of open bubbles (`BubbleRegistry`) in line with this read when a bubble opens, when one is dismissed, and at each activity start. An opening or a dismissal can reach it before the flag of an aged bubble clears, so the read at an activity start is the one that a bubble page can rely on.
 
-- A bubble with `FLAG_BUBBLE` reads as in the stack, and an active one without it as in the overflow. A bubble that has just posted reads as in the overflow until its flag shows.
+- A bubble with `FLAG_BUBBLE` reads as in the stack, and an active one without it as in the overflow. A bubble that has just posted reads as in the overflow until its flag shows, and it stays on the list until Android has listed it.
 - A bubble that is no longer active leaves the list with no mark, because the person did not close it. It is not offered for a return.
 - A failed read changes nothing, so a read that throws never loses an open page.
 - The read never adds an entry, so the bubbles that outlive the app's process stay unlisted.
@@ -99,11 +99,13 @@ A close in the stack posts the newest overflow bubble again, from the data that 
 - Every update of a posted bubble carries `FLAG_ONLY_ALERT_ONCE`, so the post is the silent `same` re-post of the tables above, rebuilt rather than cloned.
 - One return runs at a time, and each waits up to 1.5 s for the flag, so the next return reads where this bubble went.
 - A close in the overflow returns nothing, and neither does a second delete intent for one close.
-- A failed return changes nothing and says nothing: the bubble stays in the overflow, and the next close tries it again.
-- A returned bubble with no icon shows its colour disc, then loads the icon and updates in place, keeping the posted title and text.
+- A failed return changes nothing and says nothing: the bubble stays in the overflow, the closes already waiting give up, and the next close tries it again.
+- A stack as full as any read found it takes no return, because the close was in the overflow after all. Android does not say how many its stack holds, so the app takes the most it has read.
+- A returned bubble keeps the height of its first post. Android 11 and 14 measured the page on screen otherwise: 731 dp fell to 566 and 452 on Android 14, and to 554 and 443 on Android 11. A link sent again and a late icon keep it too.
+- A returned bubble with no icon shows its colour disc, then loads the icon and updates in place, keeping the posted title and text. If the bubble aged out during the load, nothing posts, and the icon waits for its next return.
 - A drag of the stack is one close per bubble, so with 7 open it closes 5 and brings the 2 overflow bubbles back.
 
-A drag needs care, because Android takes `FLAG_BUBBLE` off the whole stack at once and sends the delete intents one by one. Until an intent arrives, its closed bubble reads as an overflow bubble. Android also delivers the next intent only when the receiver has finished the last one. So the receiver does not keep the broadcast open for the return, a close in the stack leaves its read to the return, and the return waits 500 ms for the rest of the drag. A delete intent later than that wait would post its closed bubble for a moment.
+A drag needs care, because Android takes `FLAG_BUBBLE` off the whole stack at once and sends the delete intents one by one. Until an intent arrives, its closed bubble reads as an overflow bubble. Android also delivers the next intent only when the receiver has finished the last one. So the receiver does not keep the broadcast open for the return, a close in the stack leaves its read to the return, and the return waits 500 ms for the rest of the drag. The wait applies to every close, so it tells no drag from a single close. A delete intent later than that wait would post its closed bubble for a moment, and the bubble leaves when the intent arrives. The closes of a drag arrived in time in all 6 drives on these emulators; no phone or loaded device was measured.
 
 | `overflow-probe.sh` | Android 11 | Android 14 |
 |---|---|---|
