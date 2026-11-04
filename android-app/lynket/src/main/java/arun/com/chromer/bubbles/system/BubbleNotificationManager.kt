@@ -42,6 +42,7 @@ import androidx.core.graphics.drawable.toBitmap
 import arun.com.chromer.MainActivity
 import arun.com.chromer.R
 import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
+import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.image.WebsiteIconLoader
@@ -249,6 +250,17 @@ constructor(
     Timber.e(e, "Could not read the active notifications")
     // Unknown: update the bubble rather than leave a stale one showing.
     true
+  }
+
+  /** Where Android holds each active notification, by id, or null when the read fails. */
+  fun bubblePlaces(): Map<Int, BubblePlace>? = try {
+    notificationManager.activeNotifications.associate {
+      val inStack = it.notification.flags and Notification.FLAG_BUBBLE != 0
+      it.id to if (inStack) BubblePlace.STACK else BubblePlace.OVERFLOW
+    }
+  } catch (e: RuntimeException) {
+    Timber.e(e, "Could not read the active notifications")
+    null
   }
 
   /**
