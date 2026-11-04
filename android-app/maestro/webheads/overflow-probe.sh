@@ -10,6 +10,9 @@
 #                                              again in each of three silent ways. Writes return.tsv.
 #   overflow-probe.sh <serial> <dir> limits    Opens links until the overflow drops a bubble. Writes
 #                                              limits.tsv.
+#   overflow-probe.sh <serial> <dir> registry  Opens 24 links and, at 7, 8 and past the overflow
+#                                              limit, compares the app's bubble list with the shell's
+#                                              stack and overflow. Writes registry.tsv.
 #
 # Needs adb on PATH, Pillow, and the debug build (`assembleDebug`, or APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
@@ -23,8 +26,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits>" >&2; exit 2 ;;
+  dismiss | return | limits | registry) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 
@@ -145,7 +148,7 @@ prepare() {
   a shell input keyevent HOME
   sleep 1
   a logcat -c
-  a logcat -v brief BubbleProbe:V BubbleDismissReceiver:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
+  a logcat -v brief BubbleProbe:V BubbleDismissReceiver:V BubbleReconciler:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
   LOGCAT_PID=$!
   a shell am broadcast -n "$PROBE" --es action clear >/dev/null
   sleep 2
@@ -365,6 +368,88 @@ mode_limits() {
     "$stack_limit" "$overflow_limit" "$shortcuts" "$dynamic" "$dropped" "$opened" >> "$OUT/limits.tsv"
   log "dropped id=$dropped app_bubble_flag=$( [ "$dropped" = none ] && echo none || bubble_flag state-limits.txt "$dropped") dismiss_lines=$( [ "$dropped" = none ] && echo none || dismiss_lines "$dropped")"
   log "limits done"
+}
+
+# The value of the field $1 of the Reconciled line $2.
+reconciled_field() { sed -n "s/.*$1=\([^ ]*\).*/\1/p" <<< "$2"; }
+
+# Starts a Lynket screen, which reconciles, then goes home. Leaves the fields of the new Reconciled
+# line in REC_TOTAL, REC_OVERFLOW and REC_RETURNABLE, the last two as comma-joined ids.
+front_reconcile() {
+  local lines line=""
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  a shell am start -n "$PKG/$MAIN" >/dev/null
+  for _ in $(seq 1 50); do
+    line="$(tail -n +"$((lines + 1))" "$OUT/$MODE.logcat.txt" | tr -d '\r' | grep 'Reconciled: ' | tail -1)"
+    [ -n "$line" ] && break
+    sleep 0.3
+  done
+  [ -n "$line" ] || fail "no Reconciled line within 15 s of an activity start"
+  a shell input keyevent HOME
+  sleep 1
+  REC_TOTAL="$(reconciled_field total "$line")"
+  REC_OVERFLOW="$(reconciled_field overflow "$line")"
+  REC_RETURNABLE="$(reconciled_field returnable "$line")"
+}
+
+# Every id that any Reconciled line so far has dropped, one per line.
+dropped_ids() {
+  tr -d '\r' < "$OUT/$MODE.logcat.txt" | sed -n 's/.*Reconciled: .* dropped=//p' | tr ',' '\n' | grep . | sort -u
+}
+
+# Compares the list with the shell after $1 links, and adds a row to registry.tsv.
+registry_row() {
+  local links="$1" stack overflow_ids=() returnable_ids=() dropped=() id app expected_total
+  sleep 2
+  front_reconcile
+  shell_bubbles "shell-registry-$links.txt"
+  read_state "state-registry-$links.txt"
+  stack=${#STACK_IDS[@]}
+  app="$(state_count "state-registry-$links.txt")"
+  IFS=, read -r -a overflow_ids <<< "$REC_OVERFLOW"
+  IFS=, read -r -a returnable_ids <<< "$REC_RETURNABLE"
+  mapfile -t dropped < <(dropped_ids)
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "$links" "$REC_TOTAL" "${#overflow_ids[@]}" "$REC_OVERFLOW" \
+    "$REC_RETURNABLE" "$(IFS=,; echo "${dropped[*]}")" "$(IFS=,; echo "${STACK_IDS[*]}")" "$OVERFLOW_COUNT" "$app" >> "$OUT/registry.tsv"
+  log "links=$links total=$REC_TOTAL overflow=${#overflow_ids[@]} dropped=${#dropped[@]} stack=$stack shell_overflow=${OVERFLOW_COUNT:-unlisted} app_notifications=$app"
+
+  [ "$stack" -eq 5 ] || fail "the stack of this screen holds $stack bubbles, not the 5 this mode expects"
+  case "$links" in
+    7) [ "$REC_TOTAL" -eq 7 ] && [ "${#overflow_ids[@]}" -eq 2 ] || fail "with 7 links the list reads $REC_TOTAL with ${#overflow_ids[@]} in the overflow" ;;
+    8) [ "$REC_TOTAL" -eq 8 ] && [ "${#overflow_ids[@]}" -eq 3 ] || fail "with 8 links the list reads $REC_TOTAL with ${#overflow_ids[@]} in the overflow" ;;
+  esac
+  [ "${#overflow_ids[@]}" -eq "$((REC_TOTAL - stack))" ] ||
+    fail "at $links links the list holds ${#overflow_ids[@]} in the overflow, but $REC_TOTAL minus the stack of $stack"
+  for id in "${overflow_ids[@]}"; do
+    in_list "$id" "${STACK_IDS[@]}" && fail "at $links links $id is listed in the overflow but sits in the stack"
+  done
+  [ "$((links - REC_TOTAL))" -eq "${#dropped[@]}" ] ||
+    fail "at $links links the list holds $REC_TOTAL, and ${#dropped[@]} were dropped"
+  if [ "$links" -ge 22 ]; then
+    # Android 11 lists no overflow: the app's notifications stand in for it.
+    expected_total="$app"
+    [ -z "$OVERFLOW_COUNT" ] || expected_total=$((stack + OVERFLOW_COUNT))
+    [ "$REC_TOTAL" -eq "$expected_total" ] || fail "at $links links the list holds $REC_TOTAL, and Android holds $expected_total"
+    [ "${#dropped[@]}" -gt 0 ] || fail "at $links links no bubble has been dropped"
+  fi
+  for id in "${dropped[@]}"; do
+    in_list "$id" "${STACK_IDS[@]}" "${OVERFLOW_IDS[@]}" && fail "dropped id $id is still in the shell's lists"
+    in_list "$id" "${overflow_ids[@]}" "${returnable_ids[@]}" && fail "dropped id $id is still offered by the list"
+    [ "$(dismiss_lines "$id")" -eq 0 ] || fail "dropped id $id has a Bubble dismissed line"
+  done
+  return 0
+}
+
+mode_registry() {
+  local n
+  printf 'sdk\tlinks\ttotal\toverflow_count\toverflow_ids\treturnable_ids\tdropped_ids_so_far\tstack_keys\tshell_overflow_count\tapp_notifications\n' > "$OUT/registry.tsv"
+  for n in $(seq 1 24); do
+    open_bubble "https://example.com/?probe=$RUN-registry-$n"
+    case "$n" in
+      7 | 8 | 21 | 22 | 23 | 24) registry_row "$n" ;;
+    esac
+  done
+  log "registry done"
 }
 
 prepare
