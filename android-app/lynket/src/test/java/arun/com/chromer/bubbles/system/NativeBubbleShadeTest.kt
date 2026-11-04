@@ -26,12 +26,11 @@ import arun.com.chromer.data.website.model.Website
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Test
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
@@ -69,9 +68,7 @@ class NativeBubbleShadeTest : LynketRobolectricSuite() {
 
   /** Returns run in the order they were asked for, so this one ends after the others. */
   private fun awaitReturn() {
-    val finished = CountDownLatch(1)
-    nativeFloatingBubble.returnNewestOverflowBubble { finished.countDown() }
-    assertThat(finished.await(WAIT_FOR_RETURN_S, TimeUnit.SECONDS)).isTrue()
+    runBlocking { withTimeout(WAIT_FOR_RETURN_MS) { nativeFloatingBubble.returnNewestOverflowBubble().join() } }
   }
 
   private fun post(url: String, incognito: Boolean = false) {
@@ -241,6 +238,6 @@ class NativeBubbleShadeTest : LynketRobolectricSuite() {
     const val TITLE = "Shade Distinctive Title"
     const val TOTAL = 7
     const val COUNT_SHAPE = "\\d+ of \\d+"
-    const val WAIT_FOR_RETURN_S = 10L
+    const val WAIT_FOR_RETURN_MS = 10_000L
   }
 }

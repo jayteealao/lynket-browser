@@ -26,6 +26,7 @@ import arun.com.chromer.data.website.model.Website
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -34,8 +35,6 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 import org.robolectric.shadows.ShadowShortcutManager
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
@@ -78,9 +77,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
 
   /** Returns run in the order they were asked for, so this one ends after the others. */
   private fun awaitReturns() {
-    val finished = CountDownLatch(1)
-    nativeFloatingBubble.returnNewestOverflowBubble { finished.countDown() }
-    assertThat(finished.await(WAIT_FOR_RETURNS_S, TimeUnit.SECONDS)).isTrue()
+    runBlocking { withTimeout(WAIT_FOR_RETURNS_MS) { nativeFloatingBubble.returnNewestOverflowBubble().join() } }
   }
 
   private fun website(url: String) = Website(TITLE, url, null, null, null, null, false, 0, 0)
@@ -456,7 +453,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     const val RETURN_POLLS = 100
     const val RETURN_POLL_MS = 50L
     const val SETTLE_MS = 1_500L
-    const val WAIT_FOR_RETURNS_S = 10L
+    const val WAIT_FOR_RETURNS_MS = 10_000L
   }
 }
 

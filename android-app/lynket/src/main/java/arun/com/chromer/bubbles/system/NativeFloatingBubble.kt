@@ -40,6 +40,7 @@ import dagger.Lazy
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -181,18 +182,14 @@ constructor(
    * lets them arrive. sdlc-debt: a fixed wait; a delete intent later than it posts its closed bubble
    * for a moment. A read that tells a closing bubble from an aged one would replace it.
    */
-  fun returnNewestOverflowBubble(done: () -> Unit = {}) {
-    scope.launch {
-      try {
-        delay(CLOSES_SETTLE_MS)
-        returnLock.withLock { returnNewest() }
-      } catch (e: CancellationException) {
-        throw e
-      } catch (e: Exception) {
-        Timber.e(e)
-      } finally {
-        done()
-      }
+  fun returnNewestOverflowBubble(): Job = scope.launch {
+    try {
+      delay(CLOSES_SETTLE_MS)
+      returnLock.withLock { returnNewest() }
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      Timber.e(e)
     }
   }
 
