@@ -32,7 +32,7 @@ Build `RSR1.240422.006` (`sdk_gphone_x86_64`), 1080 x 2400, density 420.
 | Delete intent on a bubble that ages out of the stack | Does not fire within 10 s |
 | Delete intent on a bubble that the overflow drops | Does not fire |
 
-`same` is the only re-post that Android leaves uninterruptive on both versions.
+`same` is the only re-post that Android leaves uninterruptive on both versions. A `same` re-post does not return a bubble on the [Samsung phone](#a-samsung-phone-on-android-17), so the app uses it only on Android 11.
 
 "No alert" means all of these held: no sound or vibrate key, `showFlyout` false, the stack stayed collapsed, and four screenshots in the next 3 s show no heads-up row. `mIsInterruptive` false is added where the table says so. An emulator cannot show a felt vibration, so that check reads the key.
 
@@ -45,7 +45,7 @@ Both versions gave the same result from `NotificationManager.getActiveNotificati
 | In the stack | Active, with `FLAG_BUBBLE` |
 | In the overflow | Active, without `FLAG_BUBBLE` |
 | Dropped by the overflow | Not active |
-| Returned by a re-post | Active, with `FLAG_BUBBLE` again |
+| Returned by a re-post | Active, with `FLAG_BUBBLE` again. On the Samsung phone a `same` re-post sets the flag and the bubble stays in the overflow, so the flag proves a return only after a new notification |
 
 So a bubble that aged out differs from one the person closed in two ways: no delete intent arrives, and its notification stays active.
 
@@ -75,7 +75,7 @@ Read with `overflow-probe.sh shade` on 2026-11-04, with the summary and every bu
 
 `BubbleReconciler` brings the list of open bubbles (`BubbleRegistry`) in line with this read when a bubble opens, when one is closed, and at each activity start. An opening or a dismissal can reach it before the flag of an aged bubble clears, so the read at an activity start is the one that a bubble page can rely on.
 
-- A bubble with `FLAG_BUBBLE` reads as in the stack, and an active one without it as in the overflow. A bubble that has just posted reads as in the overflow until its flag shows, and it stays on the list until Android has listed it.
+- A bubble with `FLAG_BUBBLE` reads as in the stack, and an active one without it as in the overflow. A bubble that has just posted reads as in the overflow until its flag shows, and it stays on the list until Android has listed it. The same goes for a post that takes its notification down first.
 - A bubble that is no longer active leaves the list with no mark, because the person did not close it. It is not offered for a return.
 - A failed read changes nothing, so a read that throws never loses an open page.
 - The read never adds an entry, so the bubbles that outlive the app's process stay unlisted.
@@ -100,10 +100,12 @@ A person closes a bubble in three ways: a drag to the dismiss target, Dismiss bu
 - A page in a tab, and a page opened from the conversation shortcut, finish as usual.
 - Back on a page with no history folds the stack and keeps the bubble. A bubble that ages out ends its page with no call to `finish()`, so it stays open.
 
-A close in the stack posts the newest overflow bubble again, from the data that bubble last posted.
+A close in the stack posts the newest overflow bubble again, from the data that bubble last posted. From Android 12 the post is a new notification: the app cancels that bubble's notification and posts it, with the check that the bubble is still posted before the cancel. The summary and the shortcut stay. An update with the same text can leave the bubble in the overflow, and the [Samsung phone](#a-samsung-phone-on-android-17) does, while Android sets the flag on it all the same. On Android 11 and older the post is an update: Android takes the bubble out of the overflow on any update, and there a new notification sets `showFlyout`. Android 12 and 13 were not measured, so their side of this line comes from the Android 11 and Android 14 results.
 
 - Newest means last in open order. A link sent again keeps its first place, although Android moves it to the front, so the two can differ for a link sent twice.
-- Every post with `withSummary = false`, a return or a late icon, carries `FLAG_ONLY_ALERT_ONCE`, so the post is the silent `same` re-post of the tables above, rebuilt rather than cloned. A link sent again takes the normal path and can alert.
+- Every post with `withSummary = false`, a return or a late icon, carries `FLAG_ONLY_ALERT_ONCE`. That flag covers an update. A new notification is kept silent by the channel, which has no sound or vibration, and by the suppressed notification of the bubble; Android still marks it interruptive.
+- A link sent again whose bubble is in the overflow comes out the same way, and can alert as any link does.
+- A late icon or late site details do not post to a bubble in the overflow, because that update would set its flag and leave it there. The bubble keeps them for its next return. A bubble that ages out in the moment between the read and the post can still take such an update.
 - One return runs at a time, and each waits up to 1.5 s for the flag, so the next return reads where this bubble went.
 - A close in the overflow returns nothing, and neither does a second delete intent for one close.
 - A failed return changes nothing and says nothing: the bubble stays in the overflow, the closes already waiting give up, and the next close tries it again.
@@ -121,22 +123,23 @@ Time from a close to the post of its return, from the log of `overflow-probe.sh`
 | Close | Android 14 | Android 11 |
 |---|---|---|
 | A drag of one bubble, with the wait on every close | 1141, 648 ms | 582, 584 ms |
-| A drag of one bubble (`close`) | 24, 50 ms | 37, 82 ms |
-| The X (`close-x`) | 10, 8 ms | 52, 41 ms |
-| `story`, three returns | 19, 20, 30 ms | 150, 24, 50 ms |
+| A drag of one bubble (`close`) | 48, 5 ms | 175, 24 ms |
+| The X (`close-x`) | 9, 14 ms | 24, 50 ms |
+| `story`, three returns | 70, 70, 48 ms | 94, 75, 52 ms |
 
-In a drag of the stack the first delete intent can still find every flag on. On Android 14 the first return then posted 2 to 15 ms after the first close in all 6 drives, and the second took the wait. On Android 11 the first return took the wait in 4 of 6 drives. Every drive gave 5 closes and 2 returns, newest first, because a read that finds a flag gone changes nothing and the first read files only what Android still holds. How the return feels on a phone has not been measured.
+In a drag of the stack the first delete intent can still find every flag on. On Android 14 the first return then posted within 13 ms of its close in 5 of 6 drives, and at 352 ms in the other, and the second return took 137 to 618 ms. On Android 11 the first return took 381 to 472 ms in all 6 drives, and the second 669 to 798 ms. Every drive gave 5 closes and 2 returns, newest first, because a read that finds a flag gone changes nothing and the first read files only what Android still holds. How the return feels on a phone has not been measured.
 
 | `overflow-probe.sh` | Android 11 | Android 14 |
 |---|---|---|
 | `close`: closes 1 and 2 each return the newest overflow bubble; close 3 returns none | Yes | Yes |
-| The return is interruptive, or has a sound key or a flyout | No | No |
+| The return has a sound key or a flyout | No | No |
+| The return is interruptive | Not on an update | Yes, as any new notification, and with no effect the checks can read |
 | `close-stack`: 5 closes, 2 returns, newest first, total 2 | Yes | Yes |
 | `close-stack`: the stack expands, or a heads-up row shows | No | No |
 | `close-icon`: disc, then the icon in place | Yes | Yes |
 | `close-x`: Back keeps the bubble; closes 1 and 2 each return the newest overflow bubble; close 3 returns none; no alert, no shade row | Yes | Yes |
 
-The rebuilt post behaves as the probe's clone did on both versions, so the fallbacks to a clone or a changed text were not needed.
+The check of a return on Android 11 fails on an interruptive mark, because that return is an update.
 
 ## What clears the stack and the overflow
 
@@ -159,7 +162,8 @@ Read with `overflow-probe.sh story` on 2026-11-04, one run through on one set of
 |---|---|---|---|
 | The count before and after a close, with the page on screen | 4 of 8, then 4 of 7 in place | The same | None |
 | One return per close, newest first, in the stack with its flag | Each of the first three closes returned one bubble, the newest in the overflow. The fourth returned none | The same | None |
-| No sound key, flyout or interruptive mark on a return | None on any of the three returns | The same | None |
+| No sound key or flyout on a return | None on any of the three returns | The same | None |
+| An interruptive mark on a return | Yes, a new notification | None, an update | The app posts differently on each |
 | A close from the Manage menu | Dismiss bubble sends one delete intent, closes the page's bubble and returns the next overflow bubble. The list reads 6 and the stack stays open | The same | None |
 | A closed bubble stays gone | Neither closed bubble has a notification, a place in the list or a return, through to the last close | The same | None |
 | No Lynket row, and no count in any text | No row in the shade. 5 notification records, 7 shortcut labels and no line with a count | The same | None |
@@ -168,7 +172,7 @@ Read with `overflow-probe.sh story` on 2026-11-04, one run through on one set of
 | The shade over a page | Opaque | See-through, so the page or the stack shows behind it | Android draws it |
 | A dump of the shade with a page open | Reads the shade | Reads the page | The screenshot is the evidence |
 
-The whole behaviour holds on both versions, and each difference above lies in what Android shows or lets a tool read, or in a re-post the app does not use.
+The whole behaviour holds on both versions, and each difference above lies in what Android shows or lets a tool read, in a re-post the app does not use, or in the post the app chooses for each version.
 
 This comparison ran on one screen, 1080 x 2400 at density 420. Android 12 and 13 were not measured, and no device check ran on a phone maker's build. An emulator shows no felt vibration, so the sound and vibrate check reads the key.
 
@@ -203,13 +207,23 @@ A Samsung SM-F956B on Android 17, cover screen, 968 x 2376 at density 420, tried
 - Android hides a collapsed stack while the status bar is hidden. `BubbleController.onStatusBarVisibilityChanged` calls `setTemporarilyInvisible(!visible && !isStackExpanded())`, and the phone's log shows `visible=false stackExpanded=false` during split screen, so the bubbles disappear there and come back with the status bar. The app has no control over this.
 - With 4 bubbles in the row the newest is at the left, so the third from the left read 5 of 7. That is open order, as the rule above says, and the place of a page is not its slot in the row.
 - A page that finishes is `DISMISS_TASK_FINISHED`: no delete intent, and the bubble does not go to the overflow. The X now closes the bubble as [above](#what-the-app-does-with-this).
+- A re-post behaves differently here, read with `BubbleProbeReceiver` on a bubble in the overflow:
+
+| Re-post | The bubble | The app reads | Alert in the log |
+|---|---|---|---|
+| `same` | Stays in the overflow | `FLAG_BUBBLE` on its notification | None |
+| `text` | Moves to the stack | `FLAG_BUBBLE` | None |
+| `fresh` | Moves to the stack | `FLAG_BUBBLE` | None |
+
+- About 500 ms pass from a post to the shell's add of the bubble.
+- The first builds posted `same`, logged `Returned` and left the stack at 0 and the overflow at 2. This is why a return is a new notification from Android 12. The emulators return the bubble on `same`, so their passes prove nothing about this build.
 - `dumpsys activity service SystemUIService WMShell bubbles`, with no further argument, crashed SystemUI on this phone with an `ArrayIndexOutOfBoundsException` in `BubbleShellCommandHandler`, so do not run it. A plain `WMShell` dump is safe, and it is what `overflow-probe.sh` runs.
 
 ## Android source, as read
 
 These lines describe the `android11-release` and `android14-release` branches, unless a line says otherwise, which are not the emulator builds. They are what the code says, not behaviour. Where they disagree with the tables above, the tables win.
 
-- `BubbleController.updateBubble` on `android14-release` (lines 1292-1302) keeps a same-text update of an overflow bubble in the overflow: "Update the bubble but don't promote it out of overflow". **The measurement disagrees: `same` returned the bubble on Android 14.** The cause was not traced. By then the aged notification has lost `FLAG_BUBBLE`, which may make the re-post a new bubble request rather than an update; that is a guess, and it should be checked before the app relies on it on Android 12 or 13.
+- `BubbleController.updateBubble` on `android14-release` (lines 1292-1302) and on the main branch keeps a same-text update of an overflow bubble in the overflow: "Update the bubble but don't promote it out of overflow". The Samsung phone does this. **The Android 14 emulator does not: `same` returned the bubble there.** The cause was not traced, and the app no longer depends on it from Android 12.
 - `BubbleController.updateBubble` on `android11-release` (line 1113) takes the bubble out of the overflow on any update.
 - `BubbleData` sends the delete intent only for a user gesture (`android11-release` line 692, `android14-release` line 1027).
 - `BubbleData.maybeSendDeleteIntent` on the main branch sends it only for `DISMISS_USER_GESTURE`, and `BubbleData.overflowBubble` keeps `DISMISS_TASK_FINISHED` out of the overflow.
