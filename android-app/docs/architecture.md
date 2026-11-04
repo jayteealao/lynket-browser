@@ -105,6 +105,9 @@ is dismissed and at each activity start, because Android sends nothing when a bu
 overflow or a full overflow drops it. Browsing mode
 explains the choice "All conversations can bubble" and shows the current setting under the Native
 Bubbles row.
+When the person closes a bubble in the stack, the newest overflow bubble posts again from the data
+its registry entry holds, with no alert (`NativeFloatingBubble.returnNewestOverflowBubble`);
+`docs/native-bubble-overflow.md` says how.
 
 ## Images: Coil 3
 

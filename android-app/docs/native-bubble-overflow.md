@@ -66,6 +66,28 @@ So a bubble that aged out differs from one the person closed in two ways: no del
 
 On the Android 14 emulator, `overflow-probe.sh registry` read 7 open with 2 in the overflow, 8 with 3, and 21 with 16 at 21 links. From link 22 the total stayed at 21, and each dropped bubble left the list with no `Bubble dismissed` line.
 
+A close in the stack posts the newest overflow bubble again, from the data that bubble last posted.
+
+- Newest means last in open order. A link sent again keeps its first place, although Android moves it to the front, so the two can differ for a link sent twice.
+- Every update of a posted bubble carries `FLAG_ONLY_ALERT_ONCE`, so the post is the silent `same` re-post of the tables above, rebuilt rather than cloned.
+- One return runs at a time, and each waits up to 1.5 s for the flag, so the next return reads where this bubble went.
+- A close in the overflow returns nothing, and neither does a second delete intent for one close.
+- A failed return changes nothing and says nothing: the bubble stays in the overflow, and the next close tries it again.
+- A returned bubble with no icon shows its colour disc, then loads the icon and updates in place, keeping the posted title and text.
+- A drag of the stack is one close per bubble, so with 7 open it closes 5 and brings the 2 overflow bubbles back.
+
+A drag needs care, because Android takes `FLAG_BUBBLE` off the whole stack at once and sends the delete intents one by one. Until an intent arrives, its closed bubble reads as an overflow bubble. Android also delivers the next intent only when the receiver has finished the last one. So the receiver does not keep the broadcast open for the return, a close in the stack leaves its read to the return, and the return waits 500 ms for the rest of the drag. A delete intent later than that wait would post its closed bubble for a moment.
+
+| `overflow-probe.sh` | Android 11 | Android 14 |
+|---|---|---|
+| `close`: closes 1 and 2 each return the newest overflow bubble; close 3 returns none | Yes | Yes |
+| The return is interruptive, or has a sound key or a flyout | No | No |
+| `close-stack`: 5 closes, 2 returns, newest first, total 2 | Yes | Yes |
+| `close-stack`: the stack expands, or a heads-up row shows | No | No |
+| `close-icon`: disc, then the icon in place | Not run | Yes |
+
+The rebuilt post behaves as the probe's clone did on both versions, so the fallbacks to a clone or a changed text were not needed.
+
 ## What clears the stack and the overflow
 
 Measured on Android 14 only.
