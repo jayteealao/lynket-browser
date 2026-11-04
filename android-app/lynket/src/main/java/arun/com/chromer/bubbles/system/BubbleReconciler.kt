@@ -59,12 +59,15 @@ constructor(
     )
   }
 
+  /** The same, off the calling thread: the read asks Android, so the main thread must not wait for it. */
+  fun reconcileLater() {
+    scope.launch { reconcile() }
+  }
+
   /** Reconciles at every activity start: a bubble page is an activity, so it reads a fresh list. */
   fun attach(application: Application) {
     application.registerActivityLifecycleCallbacks(object : ActivityLifeCycleCallbackAdapter() {
-      override fun onActivityStarted(activity: Activity) {
-        scope.launch { reconcile() }
-      }
+      override fun onActivityStarted(activity: Activity) = reconcileLater()
     })
   }
 

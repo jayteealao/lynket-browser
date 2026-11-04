@@ -109,6 +109,17 @@ class BubbleReconcilerTest {
   private fun returnable() = registry.returnCandidates(BrowsingMode.NativeBubbles)
 
   @Test
+  fun a_later_read_leaves_the_calling_thread_at_once() {
+    open(first)
+
+    reconciler.reconcileLater()
+
+    assertThat(FailingReadNotificationManagerShadow.reads).isEqualTo(0)
+    dispatcher.scheduler.advanceUntilIdle()
+    assertThat(FailingReadNotificationManagerShadow.reads).isGreaterThan(0)
+  }
+
+  @Test
   fun eight_open_with_five_in_the_stack_read_as_eight_with_three_in_the_overflow() {
     val links = (1..8).map { "https://example.com/$it" }
     links.forEachIndexed { index, link -> open(link, inStack = index >= 3) }

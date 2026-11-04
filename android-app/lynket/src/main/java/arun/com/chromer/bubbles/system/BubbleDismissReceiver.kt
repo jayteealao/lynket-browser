@@ -68,7 +68,7 @@ class BubbleDismissReceiver : BroadcastReceiver() {
     if (closed?.place == BubblePlace.STACK) {
       nativeFloatingBubble.returnNewestOverflowBubble()
     } else {
-      bubbleReconciler.reconcile()
+      bubbleReconciler.reconcileLater()
     }
   }
 }
