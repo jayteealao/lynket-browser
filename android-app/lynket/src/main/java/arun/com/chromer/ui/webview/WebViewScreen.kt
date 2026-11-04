@@ -211,9 +211,10 @@ fun WebViewScreen(
 private fun BubbleCount(count: BubblePageCount, separated: Boolean) {
   val text = stringResource(R.string.bubble_page_count, count.position, count.total)
   val spoken = stringResource(R.string.bubble_page_count_spoken, count.position, count.total)
+  val separator = stringResource(R.string.bubble_page_count_separator)
   Text(
     buildAnnotatedString {
-      if (separated) withStyle(SpanStyle(fontWeight = FontWeight.Normal)) { append("· ") }
+      if (separated) withStyle(SpanStyle(fontWeight = FontWeight.Normal)) { append(separator) }
       append(text)
     },
     maxLines = 1,
