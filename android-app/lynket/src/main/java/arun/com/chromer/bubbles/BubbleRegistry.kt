@@ -125,9 +125,12 @@ class BubbleRegistry @Inject constructor() {
 
   fun isClosedOnPurpose(key: BubbleKey): Boolean = synchronized(lock) { key in closedOnPurpose }
 
-  /** The entries that may come back to the stack, oldest first, so the last one is the newest. */
+  /**
+   * The overflow bubbles that may come back to the stack, oldest first, so the last one is the
+   * newest. A bubble in the stack has nowhere to return from, and one the person closed stays closed.
+   */
   fun returnCandidates(mode: BrowsingMode): List<OpenBubble> =
-    list(mode).filterNot { it.closedOnPurpose }
+    overflow(mode).filterNot { it.closedOnPurpose }
 
   private fun setMarker(key: BubbleKey, closed: Boolean) {
     if (closed) closedOnPurpose += key else closedOnPurpose -= key

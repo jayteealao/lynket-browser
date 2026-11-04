@@ -50,6 +50,12 @@ class BubbleRegistryTest {
 
   private fun reconcileTo(places: Map<Int, BubblePlace>) = registry.reconcile(NativeBubbles) { places }
 
+  /** Android holds the named links in its overflow and every other open bubble in the stack. */
+  private fun inOverflow(vararg links: String) {
+    val open = registry.list(NativeBubbles).map { it.url }
+    reconcileTo(at(STACK, *open.toTypedArray()) + at(OVERFLOW, *links))
+  }
+
   @Test
   fun three_links_read_in_open_order() {
     listOf(first, second, third).forEach { registry.add(NativeBubbles, it, incognito = false) }
@@ -146,6 +152,8 @@ class BubbleRegistryTest {
     val marked = registry.add(NativeBubbles, second, incognito = false)
     registry.add(NativeBubbles, third, incognito = false)
 
+    inOverflow(first, second, third)
+
     registry.markClosedOnPurpose(marked.key)
 
     assertThat(urls(registry.list(NativeBubbles))).containsExactly(first, second, third).inOrder()
@@ -167,6 +175,7 @@ class BubbleRegistryTest {
   fun a_marked_entry_stays_marked_after_it_is_removed() {
     val marked = registry.add(NativeBubbles, first, incognito = false)
     registry.add(NativeBubbles, second, incognito = false)
+    inOverflow(first, second)
 
     registry.markClosedOnPurpose(marked.key)
     registry.remove(marked.key)
@@ -202,6 +211,7 @@ class BubbleRegistryTest {
   fun opening_a_marked_link_that_is_still_open_clears_the_marker_and_keeps_its_place() {
     val marked = registry.add(NativeBubbles, first, incognito = false)
     registry.add(NativeBubbles, second, incognito = false)
+    inOverflow(first, second)
     registry.markClosedOnPurpose(marked.key)
 
     val again = registry.add(NativeBubbles, first, incognito = false)
@@ -218,6 +228,7 @@ class BubbleRegistryTest {
     registry.remove(marked.key)
 
     val again = registry.add(NativeBubbles, first, incognito = false)
+    inOverflow(first)
 
     assertThat(again.closedOnPurpose).isFalse()
     assertThat(registry.isClosedOnPurpose(marked.key)).isFalse()
@@ -228,9 +239,43 @@ class BubbleRegistryTest {
   fun a_return_read_leaves_out_the_other_mode() {
     registry.add(NativeBubbles, first, incognito = false)
     registry.add(WebHeads, second, incognito = false)
+    inOverflow(first)
 
     assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(first)
     assertThat(registry.returnCandidates(SlideOver)).isEmpty()
+  }
+
+  @Test
+  fun a_bubble_in_the_stack_is_not_offered_for_a_return() {
+    open(first, second)
+
+    inOverflow(second)
+
+    assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(second)
+  }
+
+  @Test
+  fun a_bubble_the_overflow_dropped_is_not_offered_for_a_return() {
+    open(first, second)
+    inOverflow(first, second)
+
+    reconcileTo(at(OVERFLOW, second))
+
+    assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(second)
+  }
+
+  @Test
+  fun a_link_removed_and_opened_again_is_not_offered_until_a_reconcile_says_so() {
+    open(first)
+    inOverflow(first)
+    registry.remove(BubbleKey.of(NativeBubbles, first, false))
+
+    open(first)
+    assertThat(registry.find(NativeBubbles, first, false)?.place).isEqualTo(STACK)
+    assertThat(registry.returnCandidates(NativeBubbles)).isEmpty()
+
+    inOverflow(first)
+    assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(first)
   }
 
   @Test
