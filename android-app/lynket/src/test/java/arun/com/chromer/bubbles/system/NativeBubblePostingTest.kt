@@ -682,6 +682,18 @@ class NativeBubblePostingTest {
   }
 
   @Test
+  fun a_failed_return_ends_the_closes_that_wait_behind_it() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE)
+    inOverflow(ONE, TWO)
+    returnAfterMs = null
+
+    repeat(3) { bubble.returnNewestOverflowBubble() }
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(TWO)
+  }
+
+  @Test
   fun a_flag_that_never_shows_changes_nothing_and_the_next_call_tries_again() = posting { bubble ->
     opened(bubble, ONE, TWO)
     inOverflow(ONE)

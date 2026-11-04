@@ -52,6 +52,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.lang.ref.WeakReference
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -93,6 +94,11 @@ constructor(
 
   /** One return at a time: see [returnNewestOverflowBubble]. */
   private val returnLock = Mutex()
+  private val waitingReturns = AtomicInteger()
+
+  /** A return failed, so the closes still waiting give up: they would post the same bubble again. */
+  @Volatile
+  private var returnFailed = false
 
   private class PostLock {
     val mutex = Mutex()
@@ -191,14 +197,19 @@ constructor(
    * lets them arrive. sdlc-debt: a fixed wait; a delete intent later than it posts its closed bubble
    * for a moment. A read that tells a closing bubble from an aged one would replace it.
    */
-  fun returnNewestOverflowBubble(): Job = scope.launch {
-    try {
-      delay(CLOSES_SETTLE_MS)
-      returnLock.withLock { returnNewest() }
-    } catch (e: CancellationException) {
-      throw e
-    } catch (e: Exception) {
-      Timber.e(e)
+  fun returnNewestOverflowBubble(): Job {
+    waitingReturns.incrementAndGet()
+    return scope.launch {
+      try {
+        delay(CLOSES_SETTLE_MS)
+        returnLock.withLock { if (!returnFailed) returnNewest() }
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e)
+      } finally {
+        if (waitingReturns.decrementAndGet() == 0) returnFailed = false
+      }
     }
   }
 
@@ -207,7 +218,11 @@ constructor(
     val bubble = bubbleRegistry.returnCandidates(BrowsingMode.NativeBubbles).lastOrNull() ?: return
     val data = bubble.loadData ?: return
     bubbleNotificationManager.showBubbles(data, withSummary = false)
-    if (shownAsBubble(bubble.url, bubble.incognito)) Timber.d("Returned: %d", bubble.key.notificationId)
+    if (shownAsBubble(bubble.url, bubble.incognito)) {
+      Timber.d("Returned: %d", bubble.key.notificationId)
+    } else {
+      returnFailed = true
+    }
     bubbleReconciler.reconcile()
     if (data.icon == null && !bubble.incognito) scope.launch { loadMissingIcon(bubble) }
   }
