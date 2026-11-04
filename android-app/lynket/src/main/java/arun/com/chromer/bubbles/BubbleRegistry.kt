@@ -63,6 +63,19 @@ data class OpenBubble(
     "OpenBubble(key=$key, incognito=$incognito, closedOnPurpose=$closedOnPurpose, place=$place)"
 }
 
+/** The place of a page among the open bubbles of its mode, from 1, and how many are open. */
+data class BubblePageCount(val position: Int, val total: Int)
+
+/**
+ * The place of the bubble of [key], counting the bubbles in Android's overflow. Null for a bubble
+ * this list does not hold, and for one alone: "1 of 1" says nothing.
+ */
+fun List<OpenBubble>.pageCount(key: BubbleKey): BubblePageCount? {
+  val open = filter { it.mode == key.mode }
+  val index = open.indexOfFirst { it.key == key }
+  return if (index < 0 || open.size < 2) null else BubblePageCount(index + 1, open.size)
+}
+
 /**
  * The open bubbles of both modes in the order they opened, oldest first. A bubble of each mode can
  * be open at once after the person changes mode, so a read names the mode it wants.

@@ -585,6 +585,50 @@ class BubbleRegistryTest {
     assertThat(registry.list(NativeBubbles)).hasSize(200)
   }
 
+  private fun openLinks(count: Int) =
+    (1..count).map { "https://example.com/$it" }.onEach { registry.add(NativeBubbles, it, incognito = false) }
+
+  private fun keyOf(link: String) = BubbleKey.of(NativeBubbles, link, incognito = false)
+
+  @Test
+  fun the_third_of_seven_reads_its_place_and_the_total() {
+    val links = openLinks(7)
+
+    assertThat(registry.bubbles.value.pageCount(keyOf(links[2]))).isEqualTo(BubblePageCount(3, 7))
+  }
+
+  @Test
+  fun a_bubble_in_the_overflow_counts_and_keeps_the_others_in_place() {
+    val links = openLinks(8)
+    inOverflow(links[0], links[1])
+
+    assertThat(registry.bubbles.value.pageCount(keyOf(links[2]))).isEqualTo(BubblePageCount(3, 8))
+    assertThat(registry.bubbles.value.pageCount(keyOf(links[0]))).isEqualTo(BubblePageCount(1, 8))
+  }
+
+  @Test
+  fun web_heads_in_the_same_list_do_not_count() {
+    val links = openLinks(2)
+    registry.add(WebHeads, first, incognito = false)
+    registry.add(WebHeads, second, incognito = false)
+
+    assertThat(registry.bubbles.value.pageCount(keyOf(links[1]))).isEqualTo(BubblePageCount(2, 2))
+  }
+
+  @Test
+  fun one_bubble_alone_has_no_count() {
+    val links = openLinks(1)
+
+    assertThat(registry.bubbles.value.pageCount(keyOf(links[0]))).isNull()
+  }
+
+  @Test
+  fun a_key_the_list_does_not_hold_has_no_count() {
+    openLinks(3)
+
+    assertThat(registry.bubbles.value.pageCount(keyOf(first))).isNull()
+  }
+
   private companion object {
     const val OPENER_HEAD_START_MS = 200L
   }
