@@ -342,6 +342,8 @@
   <string name="bubble_notification_group_description">Showing bubble notifications, swipe to expand</string>
   <string name="bubble_incognito_label">Incognito page</string>
   <string name="bubble_lock_screen_text">A page is open in a bubble</string>
+  <string name="bubble_page_count">%1$d of %2$d</string>
+  <string name="bubble_page_count_spoken">Page %1$d of %2$d</string>
   <string name="discuss_on_reddit">Discuss on Reddit</string>
   <!-- Web heads in Compose -->
   <string name="web_head_content_description">Web head: %1$s, %2$d of %3$d</string>
