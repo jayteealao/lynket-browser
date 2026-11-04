@@ -186,6 +186,8 @@ constructor(
       setLocalOnly(true)
 
       setOngoing(false) // A dismissed bubble cleans up through its delete intent.
+      // An update of a posted bubble must not alert again: a return reaches a person in another app.
+      if (!withSummary) setOnlyAlertOnce(true)
       setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
       setLargeIcon(identity.icon)
       if (bubbleData.incognito) secretOnLockScreen() else privateOnLockScreen()

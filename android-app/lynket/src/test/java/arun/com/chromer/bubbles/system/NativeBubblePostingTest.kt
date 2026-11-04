@@ -478,6 +478,47 @@ class NativeBubblePostingTest {
   private fun stored(url: String = URL, incognito: Boolean = false) =
     registry.find(keyOf(url, incognito))?.loadData
 
+  private fun postedBubble(url: String = URL): Notification? =
+    shadowOf(application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+      .allNotifications.singleOrNull { it.shortcutId == bubbleConversationId(url) }
+
+  private fun loadData(url: String = URL) =
+    BubbleLoadData(Website("Title", url, null, null, null, null, false, 0, 0), false, false, false, color = Color.RED)
+
+  @Test
+  fun a_first_post_may_alert() {
+    runBlocking { BubbleNotificationManager(application).showBubbles(loadData()) }
+
+    assertThat(postedBubble()!!.flags and Notification.FLAG_ONLY_ALERT_ONCE).isEqualTo(0)
+  }
+
+  @Test
+  fun an_update_alerts_once_and_changes_nothing_a_person_reads() {
+    val manager = BubbleNotificationManager(application)
+
+    runBlocking { manager.showBubbles(loadData()) }
+    val first = postedBubble()!!
+    runBlocking { manager.showBubbles(loadData(), withSummary = false) }
+    val update = postedBubble()!!
+
+    assertThat(update.flags and Notification.FLAG_ONLY_ALERT_ONCE).isNotEqualTo(0)
+    assertThat(update.bubbleMetadata!!.autoExpandBubble).isFalse()
+    assertThat(update.bubbleMetadata!!.isNotificationSuppressed).isTrue()
+    assertThat(update.extras.getCharSequence(Notification.EXTRA_TITLE))
+      .isEqualTo(first.extras.getCharSequence(Notification.EXTRA_TITLE))
+    assertThat(update.extras.getCharSequence(Notification.EXTRA_TEXT))
+      .isEqualTo(first.extras.getCharSequence(Notification.EXTRA_TEXT))
+    assertThat(update.shortcutId).isEqualTo(first.shortcutId)
+    assertThat(update.bubbleMetadata!!.deleteIntent).isEqualTo(first.bubbleMetadata!!.deleteIntent)
+  }
+
+  @Test
+  fun an_update_of_a_bubble_that_is_not_posted_posts_nothing() {
+    runBlocking { BubbleNotificationManager(application).showBubbles(loadData(), withSummary = false) }
+
+    assertThat(postedBubble()).isNull()
+  }
+
   @Test
   fun an_icon_ready_in_time_leaves_that_data_on_the_entry() = posting { bubble ->
     iconDelayMs = 100
