@@ -12,6 +12,7 @@
 package arun.com.chromer.debug
 
 import arun.com.chromer.bubbles.bubbleNotificationId
+import arun.com.chromer.bubbles.system.isBubbleEntry
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -81,10 +82,7 @@ class BubbleProbeReceiver : BroadcastReceiver() {
   }
 
   /** A notification of the bubble group, without the summary. */
-  private fun isBubbleEntry(active: StatusBarNotification): Boolean {
-    val notification = active.notification
-    return notification.group == BUBBLE_GROUP && notification.flags and Notification.FLAG_GROUP_SUMMARY == 0
-  }
+  private fun isBubbleEntry(active: StatusBarNotification) = active.notification.isBubbleEntry()
 
   private companion object {
     const val TAG = "BubbleProbe"
@@ -92,8 +90,6 @@ class BubbleProbeReceiver : BroadcastReceiver() {
     const val EXTRA_URL = "url"
     const val EXTRA_VARIANT = "variant"
 
-    /** The group the app's bubble notifications post in. */
-    const val BUBBLE_GROUP = "bubbles"
     const val ZERO_WIDTH_SPACE = "\u200B"
   }
 }

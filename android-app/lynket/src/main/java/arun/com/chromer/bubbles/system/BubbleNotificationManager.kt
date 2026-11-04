@@ -58,7 +58,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 internal const val BUBBLE_NOTIFICATION_CHANNEL_ID = "BUBBLE_NOTIFICATION_CHANNEL_ID"
-private const val BUBBLE_NOTIFICATION_GROUP = "bubbles"
+internal const val BUBBLE_NOTIFICATION_GROUP = "bubbles"
+
+/** A bubble's own notification, not the summary of the group. */
+internal fun Notification.isBubbleEntry(): Boolean =
+  group == BUBBLE_NOTIFICATION_GROUP && flags and Notification.FLAG_GROUP_SUMMARY == 0
 
 @Singleton
 @RequiresApi(Build.VERSION_CODES.Q)
