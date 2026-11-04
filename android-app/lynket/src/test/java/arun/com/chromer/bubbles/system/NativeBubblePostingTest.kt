@@ -21,6 +21,7 @@ import arun.com.chromer.appdetect.LinkSource
 import arun.com.chromer.browsing.icons.WebsiteIconData
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.OpenBubble
 import arun.com.chromer.data.preferences.BrowsingMode
@@ -73,6 +74,9 @@ class NativeBubblePostingTest {
   private val notShown = mutableSetOf<String>()
   private var refusedAt = -1L
   private var listedAtRefusal: List<OpenBubble>? = null
+  /** What Android answers to a read of the places; null is a read that failed. */
+  private var places: Map<Int, BubblePlace>? = null
+  private val readsAt = mutableListOf<Long>()
 
   private val repo = mockk<WebsiteRepository> {
     every { getWebsite(any()) } answers { flowOf(Website(firstArg<String>())) }
@@ -94,6 +98,10 @@ class NativeBubblePostingTest {
     }
     every { isShownAsBubble(any(), any()) } answers { shown && firstArg<String>() !in notShown }
     every { cancel(any<String>(), any()) } just Runs
+    every { bubblePlaces() } answers {
+      readsAt += clock.currentTime
+      places
+    }
   }
 
   private val gate = mockk<BubbleGate> {
@@ -112,7 +120,9 @@ class NativeBubblePostingTest {
   /** Runs [block] on virtual time with a bubble on the same clock, then runs every job to the end. */
   private fun posting(block: suspend TestScope.(NativeFloatingBubble) -> Unit) = runTest {
     clock = testScheduler
-    val bubble = NativeFloatingBubble(application, repo, notifications, icons, gate, registry, StandardTestDispatcher(testScheduler)) { tabsManager }
+    val dispatcher = StandardTestDispatcher(testScheduler)
+    val reconciler = BubbleReconciler(notifications, registry, dispatcher)
+    val bubble = NativeFloatingBubble(application, repo, notifications, icons, gate, registry, reconciler, dispatcher) { tabsManager }
     block(bubble)
     advanceUntilIdle()
   }
@@ -405,6 +415,64 @@ class NativeBubblePostingTest {
 
     assertThat(listed()).isEmpty()
     assertThat(registry.isClosedOnPurpose(keyOf(URL, incognito = true))).isFalse()
+  }
+
+  @Test
+  fun an_open_takes_off_an_older_link_that_android_no_longer_holds() = posting { bubble ->
+    val older = "https://example.com/older"
+    bubble.open(older)
+    advanceUntilIdle()
+    assertThat(listed().map { it.url }).containsExactly(older)
+
+    places = mapOf(bubbleNotificationId(URL) to BubblePlace.STACK)
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    assertThat(listed().map { it.url }).containsExactly(URL)
+    assertThat(registry.isClosedOnPurpose(keyOf(older))).isFalse()
+  }
+
+  @Test
+  fun an_open_reads_where_the_older_bubbles_are() = posting { bubble ->
+    val older = "https://example.com/older"
+    bubble.open(older)
+    advanceUntilIdle()
+
+    places = mapOf(bubbleNotificationId(older) to BubblePlace.OVERFLOW, bubbleNotificationId(URL) to BubblePlace.STACK)
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    assertThat(registry.overflow(BrowsingMode.NativeBubbles).map { it.url }).containsExactly(older)
+  }
+
+  @Test
+  fun a_link_android_refuses_runs_no_reconcile() = posting { bubble ->
+    shown = false
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    assertThat(readsAt).isEmpty()
+  }
+
+  @Test
+  fun a_late_icon_does_not_delay_the_reconcile() = posting { bubble ->
+    iconDelayMs = 5_000
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    assertThat(readsAt).containsExactly(300L)
+    assertThat(posts.map { it.at }).containsExactly(300L, 5_000L).inOrder()
+  }
+
+  @Test
+  fun a_failed_read_on_open_leaves_the_list_as_it_was() = posting { bubble ->
+    val older = "https://example.com/older"
+    bubble.open(older)
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    assertThat(readsAt).hasSize(2)
+    assertThat(listed().map { it.url }).containsExactly(older, URL).inOrder()
   }
 
   private companion object {

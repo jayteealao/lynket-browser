@@ -51,6 +51,7 @@ class NativeBubbleIncognitoReadTest {
   private val notifications = mockk<BubbleNotificationManager> {
     coEvery { showBubbles(capture(posts), any()) } answers { firstArg() }
     every { isShownAsBubble(any(), any()) } returns true
+    every { bubblePlaces() } returns null
   }
 
   private val icons = mockk<WebsiteIconsProvider> {
@@ -67,7 +68,16 @@ class NativeBubbleIncognitoReadTest {
 
   private val registry = BubbleRegistry()
 
-  private fun bubble() = NativeFloatingBubble(application, repo, notifications, icons, gate, registry, dispatcher) { tabsManager }
+  private fun bubble() = NativeFloatingBubble(
+    application,
+    repo,
+    notifications,
+    icons,
+    gate,
+    registry,
+    BubbleReconciler(notifications, registry, dispatcher),
+    dispatcher,
+  ) { tabsManager }
 
   @Test
   fun an_incognito_bubble_reads_nothing_about_its_site() {

@@ -74,6 +74,7 @@ constructor(
   private val websiteIconsProvider: WebsiteIconsProvider,
   private val bubbleGate: BubbleGate,
   private val bubbleRegistry: BubbleRegistry,
+  private val bubbleReconciler: BubbleReconciler,
   @IoDispatcher ioDispatcher: CoroutineDispatcher,
   // Lazy: the tabs manager opens bubbles through this class, so the two cannot build each other.
   private val tabsManager: Lazy<TabsManager>,
@@ -153,6 +154,8 @@ constructor(
       tabsManager.get().openRefusedBubble(application, initial.website, BubbleRefusal.NOT_SHOWN, initial.incognito)
       return@coroutineScope
     }
+
+    bubbleReconciler.reconcile()
 
     if (details != null && ready == null) {
       val late = details.await()
