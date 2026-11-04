@@ -49,7 +49,8 @@
 #                                              Opens 7 links and turns one off from its Manage menu, and
 #                                              records what the app then reads. Writes dont-bubble.tsv.
 #
-# Needs adb on PATH, Pillow, and the debug build (`assembleDebug`, or APK=<path>); each mode
+# Needs adb and curl on PATH, python with Pillow, and the debug build (`assembleDebug`, or
+# APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
 set -uo pipefail
 
@@ -65,6 +66,12 @@ case "$MODE" in
   *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon|count|count-long|shade|story|dont-bubble>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
+# Before anything is uninstalled: a missing tool would otherwise show up minutes later as a claim
+# about the device.
+for tool in adb curl python; do
+  command -v "$tool" >/dev/null || { echo "overflow-probe: $tool is not on PATH" >&2; exit 2; }
+done
+python -c 'import PIL' 2>/dev/null || { echo "overflow-probe: python needs Pillow" >&2; exit 2; }
 
 CHECK_NAME="overflow-probe $MODE"
 LOG_NAME="$MODE"
