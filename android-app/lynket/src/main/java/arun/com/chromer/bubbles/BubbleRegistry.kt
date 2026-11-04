@@ -52,7 +52,6 @@ data class OpenBubble(
   val key: BubbleKey,
   val url: String,
   val incognito: Boolean,
-  val closedOnPurpose: Boolean = false,
   val place: BubblePlace = BubblePlace.STACK,
   /** What the bubble last posted, so it can post again. Web heads hold none. */
   val loadData: BubbleLoadData? = null,
@@ -62,7 +61,7 @@ data class OpenBubble(
   val mode: BrowsingMode get() = key.mode
 
   override fun toString() =
-    "OpenBubble(key=$key, incognito=$incognito, closedOnPurpose=$closedOnPurpose, place=$place)"
+    "OpenBubble(key=$key, incognito=$incognito, place=$place)"
 }
 
 /** The place of a page among the open bubbles of its mode, from 1, and how many are open. */
@@ -82,17 +81,18 @@ fun List<OpenBubble>.pageCount(key: BubbleKey): BubblePageCount? {
  * The open bubbles of both modes in the order they opened, oldest first. A bubble of each mode can
  * be open at once after the person changes mode, so a read names the mode it wants.
  *
- * An entry marked closed on purpose is one the person dismissed: it never comes back on its own.
+ * A key marked closed on purpose is one the person dismissed: it is never offered for a return.
  * Only a dismissal by the person sets the marker, never a bubble that ages out of Android's
  * overflow. The marker outlasts the entry, because a dismissal can arrive twice and a closed web
  * head is gone from the list at once. It lives by key, so no incognito address stays behind, and
- * it clears when the person opens that link again.
+ * it clears when the person opens that link again. Only the latest [CLOSED_KEYS_KEPT] are kept: a
+ * bubble that left the list has nothing to return with, so forgetting an old mark returns nothing.
  */
 @Singleton
 class BubbleRegistry @Inject constructor() {
   private val lock = Any()
   private val entries = MutableStateFlow<List<OpenBubble>>(emptyList())
-  private val closedOnPurpose = mutableSetOf<BubbleKey>()
+  private val closedOnPurpose = LinkedHashSet<BubbleKey>()
   private var changes = 0L
 
   val bubbles: StateFlow<List<OpenBubble>> = entries.asStateFlow()
@@ -109,7 +109,7 @@ class BubbleRegistry @Inject constructor() {
     loadData: BubbleLoadData? = null,
   ): OpenBubble = synchronized(lock) {
     val key = BubbleKey.of(mode, url, incognito)
-    setMarker(key, closed = false)
+    closedOnPurpose -= key
     val open = find(key)
     when {
       open == null -> OpenBubble(key, url, incognito, loadData = loadData, settledAt = ++changes)
@@ -166,7 +166,11 @@ class BubbleRegistry @Inject constructor() {
     find(key)?.let { replace(it.copy(loadData = loadData)) }
   }
 
-  fun markClosedOnPurpose(key: BubbleKey) = synchronized(lock) { setMarker(key, closed = true) }
+  fun markClosedOnPurpose(key: BubbleKey) = synchronized(lock) {
+    closedOnPurpose -= key
+    closedOnPurpose += key
+    if (closedOnPurpose.size > CLOSED_KEYS_KEPT) closedOnPurpose -= closedOnPurpose.first()
+  }
 
   fun isClosedOnPurpose(key: BubbleKey): Boolean = synchronized(lock) { key in closedOnPurpose }
 
@@ -175,16 +179,13 @@ class BubbleRegistry @Inject constructor() {
    * newest. A bubble in the stack has nowhere to return from, and one the person closed stays closed.
    */
   fun returnCandidates(mode: BrowsingMode): List<OpenBubble> =
-    overflow(mode).filterNot { it.closedOnPurpose }
+    overflow(mode).filterNot { isClosedOnPurpose(it.key) }
 
   private fun replace(entry: OpenBubble) {
     entries.value = entries.value.map { if (it.key == entry.key) entry else it }
   }
 
-  private fun setMarker(key: BubbleKey, closed: Boolean) {
-    if (closed) closedOnPurpose += key else closedOnPurpose -= key
-    entries.value = entries.value.map {
-      if (it.key == key) it.copy(closedOnPurpose = closed) else it
-    }
+  private companion object {
+    const val CLOSED_KEYS_KEPT = 64
   }
 }

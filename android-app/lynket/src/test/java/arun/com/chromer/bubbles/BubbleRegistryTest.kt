@@ -165,11 +165,11 @@ class BubbleRegistryTest {
   @Test
   fun the_entry_shows_its_marker() {
     val opened = registry.add(NativeBubbles, first, incognito = false)
-    assertThat(opened.closedOnPurpose).isFalse()
+    assertThat(registry.isClosedOnPurpose(opened.key)).isFalse()
 
     registry.markClosedOnPurpose(opened.key)
 
-    assertThat(registry.find(NativeBubbles, first, incognito = false)?.closedOnPurpose).isTrue()
+    assertThat(registry.find(NativeBubbles, first, incognito = false)).isNotNull()
     assertThat(registry.isClosedOnPurpose(opened.key)).isTrue()
   }
 
@@ -218,7 +218,6 @@ class BubbleRegistryTest {
 
     val again = registry.add(NativeBubbles, first, incognito = false)
 
-    assertThat(again.closedOnPurpose).isFalse()
     assertThat(registry.isClosedOnPurpose(marked.key)).isFalse()
     assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(first, second).inOrder()
   }
@@ -232,7 +231,6 @@ class BubbleRegistryTest {
     val again = registry.add(NativeBubbles, first, incognito = false)
     inOverflow(first)
 
-    assertThat(again.closedOnPurpose).isFalse()
     assertThat(registry.isClosedOnPurpose(marked.key)).isFalse()
     assertThat(urls(registry.returnCandidates(NativeBubbles))).containsExactly(first)
   }
@@ -434,6 +432,16 @@ class BubbleRegistryTest {
   }
 
   @Test
+  fun the_marks_hold_the_latest_keys_and_no_more() {
+    val closed = (1..65).map { BubbleKey(NativeBubbles, it) }
+
+    closed.forEach(registry::markClosedOnPurpose)
+
+    assertThat(registry.isClosedOnPurpose(closed.first())).isFalse()
+    assertThat(closed.drop(1).all(registry::isClosedOnPurpose)).isTrue()
+  }
+
+  @Test
   fun a_marked_entry_stays_marked_after_a_reconcile_takes_it_off() {
     val marked = registry.add(NativeBubbles, first, incognito = false)
     registry.markClosedOnPurpose(marked.key)
@@ -453,7 +461,7 @@ class BubbleRegistryTest {
 
     val entry = registry.find(NativeBubbles, first, false)
     assertThat(entry?.place).isEqualTo(OVERFLOW)
-    assertThat(entry?.closedOnPurpose).isTrue()
+    assertThat(registry.isClosedOnPurpose(marked.key)).isTrue()
   }
 
   @Test
