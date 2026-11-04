@@ -702,6 +702,24 @@ class NativeBubblePostingTest {
   }
 
   @Test
+  fun a_read_before_android_lists_the_post_keeps_the_new_bubble() = posting { bubble ->
+    val reconciler = BubbleReconciler(notifications, registry, StandardTestDispatcher(testScheduler))
+    opened(bubble, ONE)
+    shown = false
+    places = mapOf(keyOf(ONE).notificationId to BubblePlace.STACK)
+
+    bubble.open(TWO)
+    advanceTimeBy(ICON_AND_POST_MS)
+    reconciler.reconcile()
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+
+    shown = true
+    places = places!! + (keyOf(TWO).notificationId to BubblePlace.STACK)
+    advanceUntilIdle()
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+  }
+
+  @Test
   fun a_failed_return_ends_the_closes_that_wait_behind_it() = posting { bubble ->
     opened(bubble, ONE, TWO, THREE)
     inOverflow(ONE, TWO)
@@ -985,6 +1003,7 @@ class NativeBubblePostingTest {
     const val URL = "https://example.com/bubble"
     /** How long a return waits for the delete intents of one drag. */
     const val SETTLE_MS = 500L
+    const val ICON_AND_POST_MS = 400L
     const val ONE = "https://one.example/"
     const val TWO = "https://two.example/"
     const val THREE = "https://three.example/"

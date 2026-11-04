@@ -55,8 +55,12 @@ data class OpenBubble(
   val place: BubblePlace = BubblePlace.STACK,
   /** What the bubble last posted, so it can post again. Web heads hold none. */
   val loadData: BubbleLoadData? = null,
-  /** The list's count of changes when this entry opened: a read that began before it cannot judge it. */
-  val settledAt: Long = 0,
+  /**
+   * The list's count of changes when Android was last known to hold this bubble: a read that began
+   * before it cannot judge it. Null while a post is on its way, because Android lists a notification
+   * a moment after the post.
+   */
+  val settledAt: Long? = 0,
 ) {
   val mode: BrowsingMode get() = key.mode
 
@@ -100,22 +104,29 @@ class BubbleRegistry @Inject constructor() {
   /**
    * Opens an entry at the end of the list. A link that is already open keeps its entry and place,
    * and takes [loadData] when a value comes. Either way the person opened it, so it is no longer
-   * closed on purpose.
+   * closed on purpose. With [posting], no read drops the entry until [settled] says Android has it.
    */
   fun add(
     mode: BrowsingMode,
     url: String,
     incognito: Boolean,
     loadData: BubbleLoadData? = null,
+    posting: Boolean = false,
   ): OpenBubble = synchronized(lock) {
     val key = BubbleKey.of(mode, url, incognito)
     closedOnPurpose -= key
     val open = find(key)
+    val settledAt = if (posting) null else ++changes
     when {
-      open == null -> OpenBubble(key, url, incognito, loadData = loadData, settledAt = ++changes)
+      open == null -> OpenBubble(key, url, incognito, loadData = loadData, settledAt = settledAt)
         .also { entries.value += it }
-      else -> open.copy(loadData = loadData ?: open.loadData, settledAt = ++changes).also(::replace)
+      else -> open.copy(loadData = loadData ?: open.loadData, settledAt = settledAt).also(::replace)
     }
+  }
+
+  /** Android shows the posted bubble of [key], so a later read may judge it. */
+  fun settled(key: BubbleKey) = synchronized(lock) {
+    find(key)?.let { replace(it.copy(settledAt = ++changes)) }
   }
 
   /**
@@ -143,15 +154,15 @@ class BubbleRegistry @Inject constructor() {
    * Brings the entries of [mode] in line with what Android holds. [read] gives the place of each
    * notification id, or null when it could not tell, and then nothing changes. The read asks
    * Android, so it runs outside the lock, which the main thread also takes. An entry that opened
-   * after the read began keeps its place: the read cannot have seen it. An entry Android no longer
-   * holds leaves unmarked. Returns the keys that left.
+   * after the read began, or whose post is on its way, stays: the read cannot have seen it. An entry
+   * Android no longer holds leaves unmarked. Returns the keys that left.
    */
   fun reconcile(mode: BrowsingMode, read: () -> Map<Int, BubblePlace>?): List<BubbleKey>? {
     val readFrom = synchronized(lock) { changes }
     val places = read() ?: return null
     return synchronized(lock) {
       val (kept, gone) = entries.value.partition {
-        it.mode != mode || it.key.notificationId in places || it.settledAt > readFrom
+        it.mode != mode || it.key.notificationId in places || it.settledAt.isAfter(readFrom)
       }
       entries.value = kept.map { entry ->
         val place = places[entry.key.notificationId]
@@ -180,6 +191,8 @@ class BubbleRegistry @Inject constructor() {
    */
   fun returnCandidates(mode: BrowsingMode): List<OpenBubble> =
     overflow(mode).filterNot { isClosedOnPurpose(it.key) }
+
+  private fun Long?.isAfter(read: Long) = this == null || this > read
 
   private fun replace(entry: OpenBubble) {
     entries.value = entries.value.map { if (it.key == entry.key) entry else it }

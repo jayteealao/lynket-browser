@@ -156,19 +156,21 @@ constructor(
     val details = if (initial.incognito) null else async { withDetails(initial) }
     val ready = details?.let { withTimeoutOrNull(ICON_WAIT_MS) { it.await() } }
     val posted = bubbleNotificationManager.showBubbles((ready ?: initial).withHeightOfOpenBubble())
-    bubbleRegistry.add(BrowsingMode.NativeBubbles, url, initial.incognito, posted)
+    val key = BubbleKey.of(BrowsingMode.NativeBubbles, url, initial.incognito)
+    bubbleRegistry.add(BrowsingMode.NativeBubbles, url, initial.incognito, posted, posting = true)
 
     // Android can still post the notification without showing it as a bubble. Then the page opens
     // in a tab with a message instead of being lost in the notification shade.
     if (!shownAsBubble(url, initial.incognito)) {
       details?.cancel()
       Timber.w("Android did not show %s as a bubble; opening it in a tab", url)
-      bubbleRegistry.remove(BubbleKey.of(BrowsingMode.NativeBubbles, url, initial.incognito))
+      bubbleRegistry.remove(key)
       bubbleNotificationManager.cancel(url, initial.incognito)
       tabsManager.get().openRefusedBubble(application, initial.website, BubbleRefusal.NOT_SHOWN, initial.incognito)
       return@coroutineScope
     }
 
+    bubbleRegistry.settled(key)
     bubbleReconciler.reconcile()
 
     if (details != null && ready == null) {
@@ -177,7 +179,7 @@ constructor(
       if (late !== initial) {
         val update = late.copy(desiredHeightDp = posted.desiredHeightDp)
         bubbleNotificationManager.showBubbles(update, withSummary = false)
-        bubbleRegistry.updateLoadData(BubbleKey.of(BrowsingMode.NativeBubbles, url, initial.incognito), update)
+        bubbleRegistry.updateLoadData(key, update)
       }
     }
   }

@@ -432,6 +432,37 @@ class BubbleRegistryTest {
   }
 
   @Test
+  fun a_read_leaves_an_entry_whose_post_is_on_its_way() {
+    registry.add(NativeBubbles, first, incognito = false, posting = true)
+
+    reconcileTo(emptyMap())
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first)
+  }
+
+  @Test
+  fun a_read_drops_an_entry_once_android_had_it() {
+    val posted = registry.add(NativeBubbles, first, incognito = false, posting = true)
+    registry.settled(posted.key)
+
+    reconcileTo(emptyMap())
+
+    assertThat(registry.list(NativeBubbles)).isEmpty()
+  }
+
+  @Test
+  fun a_read_that_began_before_android_showed_the_bubble_leaves_it() {
+    val posted = registry.add(NativeBubbles, first, incognito = false, posting = true)
+
+    registry.reconcile(NativeBubbles) {
+      registry.settled(posted.key)
+      emptyMap()
+    }
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first)
+  }
+
+  @Test
   fun the_marks_hold_the_latest_keys_and_no_more() {
     val closed = (1..65).map { BubbleKey(NativeBubbles, it) }
 
