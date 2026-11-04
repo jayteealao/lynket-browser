@@ -56,6 +56,8 @@ data class OpenBubble(
   val place: BubblePlace = BubblePlace.STACK,
   /** What the bubble last posted, so it can post again. Web heads hold none. */
   val loadData: BubbleLoadData? = null,
+  /** The list's count of changes when this entry opened: a read that began before it cannot judge it. */
+  val settledAt: Long = 0,
 ) {
   val mode: BrowsingMode get() = key.mode
 
@@ -91,6 +93,7 @@ class BubbleRegistry @Inject constructor() {
   private val lock = Any()
   private val entries = MutableStateFlow<List<OpenBubble>>(emptyList())
   private val closedOnPurpose = mutableSetOf<BubbleKey>()
+  private var changes = 0L
 
   val bubbles: StateFlow<List<OpenBubble>> = entries.asStateFlow()
 
@@ -109,9 +112,9 @@ class BubbleRegistry @Inject constructor() {
     setMarker(key, closed = false)
     val open = find(key)
     when {
-      open == null -> OpenBubble(key, url, incognito, loadData = loadData).also { entries.value += it }
-      loadData == null -> open
-      else -> open.copy(loadData = loadData).also(::replace)
+      open == null -> OpenBubble(key, url, incognito, loadData = loadData, settledAt = ++changes)
+        .also { entries.value += it }
+      else -> open.copy(loadData = loadData ?: open.loadData, settledAt = ++changes).also(::replace)
     }
   }
 
@@ -138,19 +141,25 @@ class BubbleRegistry @Inject constructor() {
 
   /**
    * Brings the entries of [mode] in line with what Android holds. [read] gives the place of each
-   * notification id, or null when it could not tell, and then nothing changes. It runs under the
-   * lock: an entry is added after its post, so a bubble posted during the read cannot be taken off
-   * by it. An entry Android no longer holds leaves unmarked. Returns the keys that left.
+   * notification id, or null when it could not tell, and then nothing changes. The read asks
+   * Android, so it runs outside the lock, which the main thread also takes. An entry that opened
+   * after the read began keeps its place: the read cannot have seen it. An entry Android no longer
+   * holds leaves unmarked. Returns the keys that left.
    */
-  fun reconcile(mode: BrowsingMode, read: () -> Map<Int, BubblePlace>?): List<BubbleKey>? =
-    synchronized(lock) {
-      val places = read() ?: return null
-      val (kept, gone) = entries.value.partition { it.mode != mode || it.key.notificationId in places }
-      entries.value = kept.map {
-        if (it.mode == mode) it.copy(place = places.getValue(it.key.notificationId)) else it
+  fun reconcile(mode: BrowsingMode, read: () -> Map<Int, BubblePlace>?): List<BubbleKey>? {
+    val readFrom = synchronized(lock) { changes }
+    val places = read() ?: return null
+    return synchronized(lock) {
+      val (kept, gone) = entries.value.partition {
+        it.mode != mode || it.key.notificationId in places || it.settledAt > readFrom
+      }
+      entries.value = kept.map { entry ->
+        val place = places[entry.key.notificationId]
+        if (entry.mode == mode && place != null) entry.copy(place = place) else entry
       }
       gone.map { it.key }
     }
+  }
 
   /** Stores what the bubble of [key] posted last. A bubble that has left stays gone. */
   fun updateLoadData(key: BubbleKey, loadData: BubbleLoadData) = synchronized(lock) {

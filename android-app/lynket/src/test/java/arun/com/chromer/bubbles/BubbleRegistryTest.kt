@@ -393,6 +393,47 @@ class BubbleRegistryTest {
   }
 
   @Test
+  fun the_read_runs_outside_the_lock_so_another_thread_is_not_held_up_by_it() {
+    open(first)
+    var doneDuringTheRead = false
+
+    registry.reconcile(NativeBubbles) {
+      val other = Thread { registry.remove(BubbleKey.of(NativeBubbles, second, false)); doneDuringTheRead = true }
+      other.start()
+      other.join(OPENER_HEAD_START_MS)
+      at(STACK, first)
+    }
+
+    assertThat(doneDuringTheRead).isTrue()
+  }
+
+  @Test
+  fun an_entry_that_opens_during_the_read_stays_with_its_place() {
+    open(first)
+
+    registry.reconcile(NativeBubbles) {
+      registry.add(NativeBubbles, second, incognito = false)
+      at(OVERFLOW, first)
+    }
+
+    assertThat(registry.list(NativeBubbles).map { it.url }).containsExactly(first, second).inOrder()
+    assertThat(registry.find(NativeBubbles, second, false)?.place).isEqualTo(STACK)
+    assertThat(registry.find(NativeBubbles, first, false)?.place).isEqualTo(OVERFLOW)
+  }
+
+  @Test
+  fun an_entry_closed_during_the_read_stays_closed() {
+    open(first, second)
+
+    registry.reconcile(NativeBubbles) {
+      registry.remove(BubbleKey.of(NativeBubbles, second, false))
+      at(STACK, first, second)
+    }
+
+    assertThat(registry.list(NativeBubbles).map { it.url }).containsExactly(first)
+  }
+
+  @Test
   fun a_marked_entry_stays_marked_after_a_reconcile_takes_it_off() {
     val marked = registry.add(NativeBubbles, first, incognito = false)
     registry.markClosedOnPurpose(marked.key)
@@ -457,7 +498,7 @@ class BubbleRegistryTest {
     }
     opener.join()
 
-    assertThat(urls(registry.list(NativeBubbles))).containsExactly(second, first).inOrder()
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first, second).inOrder()
   }
 
   @Test
