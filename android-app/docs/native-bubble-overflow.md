@@ -66,6 +66,16 @@ So a bubble that aged out differs from one the person closed in two ways: no del
 
 On the Android 14 emulator, `overflow-probe.sh registry` read 7 open with 2 in the overflow, 8 with 3, and 21 with 16 at 21 links. From link 22 the total stayed at 21, and each dropped bubble left the list with no `Bubble dismissed` line.
 
+A page opened by its bubble reads its place and the total from the list, and shows them in its top bar, for example 3 of 7.
+
+- Android hides the group summary while a bubble is open, so the count is drawn in the page and goes to no system surface.
+- The place is the open order, not the order of the stack, which Android changes as bubbles are read.
+- The total counts the overflow. A bubble that ages out stays listed, so the total does not move; a bubble dropped from a full overflow leaves the list at the next read, and a bubble page start is one.
+- Only the bubble intent names a bubble. A page in a tab, and a page opened from the conversation shortcut, show no count, and one bubble alone shows none.
+- Bubbles that outlive the app's process stay out of it: a page with no entry shows no count, and a page with an entry shows a total that leaves out the unlisted ones.
+
+On the Android 14 emulator, `overflow-probe.sh count` read 3 of 7 with 2 in the overflow, 5 of 8 with 3, and 5 of 7 after a close with that page on screen. `overflow-probe.sh count-long` read 12 of 12 whole beside a shortened address at the largest font.
+
 A close in the stack posts the newest overflow bubble again, from the data that bubble last posted.
 
 - Newest means last in open order. A link sent again keeps its first place, although Android moves it to the front, so the two can differ for a link sent twice.
