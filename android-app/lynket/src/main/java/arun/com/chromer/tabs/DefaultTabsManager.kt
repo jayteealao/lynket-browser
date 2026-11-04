@@ -49,13 +49,13 @@ import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.browsing.customtabs.CustomTabs
 import arun.com.chromer.browsing.newtab.NewTabDialogActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
-import arun.com.chromer.bubbles.BubbleType.NATIVE
-import arun.com.chromer.bubbles.BubbleType.WEB_HEADS
-import arun.com.chromer.bubbles.FloatingBubbleFactory
+import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
+import arun.com.chromer.bubbles.system.NativeFloatingBubble
 import arun.com.chromer.bubbles.system.bubbleConversationId
+import arun.com.chromer.bubbles.webheads.WebHeadsFloatingBubble
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
@@ -82,6 +82,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 
 @Singleton
@@ -95,7 +96,8 @@ constructor(
   private val websiteRepository: WebsiteRepository,
   private val backgroundLoadingStrategyFactory: BackgroundLoadingStrategyFactory,
   private val eventBus: EventBus,
-  private val floatingBubbleFactory: FloatingBubbleFactory,
+  private val nativeFloatingBubble: Provider<NativeFloatingBubble>,
+  private val webHeadsFloatingBubble: Provider<WebHeadsFloatingBubble>,
   private val bubbleGate: BubbleGate,
 ) : TabsManager {
 
@@ -469,6 +471,26 @@ constructor(
     incognito: Boolean
   ) = openWebHeads(context, website, fromMinimize, fromAmp, incognito, LinkSource.NONE)
 
+  /**
+   * Native bubble mode opens a bubble; every other mode opens a web head, a minimize from
+   * slide-over mode too. Returns false when it could not show, so the caller opens a tab.
+   */
+  private fun openBubble(
+    mode: BrowsingMode,
+    website: Website,
+    fromMinimize: Boolean,
+    fromAmp: Boolean,
+    incognito: Boolean,
+    context: Context,
+    @ColorInt color: Int,
+  ): Boolean {
+    val bubble: FloatingBubble = when (mode) {
+      BrowsingMode.NativeBubbles -> nativeFloatingBubble.get()
+      BrowsingMode.WebHeads, BrowsingMode.SlideOver -> webHeadsFloatingBubble.get()
+    }
+    return bubble.openBubble(website, fromMinimize, fromAmp, incognito, context, color)
+  }
+
   private fun openWebHeads(
     context: Context,
     website: Website,
@@ -480,9 +502,8 @@ constructor(
     // App-wide incognito makes every bubble incognito, the same as a tab.
     val isIncognito = preferences.fullIncognitoMode() || incognito
     val url = website.preferredUrl()
-    // Native bubble mode opens a bubble; every other mode opens a web head, a minimize from
-    // slide-over mode too.
-    val nativeBubble = preferences.browsingMode() == BrowsingMode.NativeBubbles
+    val mode = preferences.browsingMode()
+    val nativeBubble = mode == BrowsingMode.NativeBubbles
 
     if (nativeBubble && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       // Android would not show the bubble: open the page in a tab now and say why.
@@ -500,7 +521,8 @@ constructor(
       return
     }
 
-    val opened = floatingBubbleFactory[if (nativeBubble) NATIVE else WEB_HEADS].openBubble(
+    val opened = openBubble(
+      mode,
       website,
       fromMinimize,
       fromAmp,
