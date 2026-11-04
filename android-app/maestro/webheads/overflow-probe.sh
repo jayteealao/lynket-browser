@@ -35,6 +35,10 @@
 #                                              with long addresses and the newest bubble, which reads
 #                                              12 of 12 with the address cut short. Writes
 #                                              count-long.tsv.
+#   overflow-probe.sh <serial> <dir> shade     Opens 1 link, then 7, the last with a long address, then
+#                                              a page; the shade shows no Lynket row, and no text of the
+#                                              app's notifications and shortcuts holds the count. Writes
+#                                              shade.tsv.
 #
 # Needs adb on PATH, Pillow, and the debug build (`assembleDebug`, or APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
@@ -48,8 +52,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits | registry | close | close-stack | close-icon | count | count-long) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon|count|count-long>" >&2; exit 2 ;;
+  dismiss | return | limits | registry | close | close-stack | close-icon | count | count-long | shade) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon|count|count-long|shade>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 
@@ -832,6 +836,70 @@ mode_count_long() {
   sleep 1
   no_crash
   log "count-long done"
+}
+
+# Fails when Lynket draws a row in the shade capture $1, and when the dump did not read the shade.
+no_lynket_row() {
+  local rows
+  grep -q 'text="Manage"' "$OUT/$1.xml" || fail "the dump of $1 did not read the shade"
+  rows="$(tr '>' '\n' < "$OUT/$1.xml" | grep -E 'package="arun\.com\.chromer|text="[^"]*(Active bubbles|swipe to expand|Example Domain|example\.com|Lynket|A page is open)' | wc -l)"
+  [ "$rows" -eq 0 ] || fail "$1 shows $rows Lynket rows"
+}
+
+# Saves every text of the app's notifications and shortcuts as notification-$1.txt and
+# shortcut-$1.txt, and fails when one holds a count. It first shows that the dumps read the text:
+# $2 records, the summary's title and text, and at least one shortcut label.
+no_count_text() {
+  local labels hits records
+  a shell dumpsys notification --noredact | tr -d '\r' \
+    | awk -v pkg="pkg=$PKG " '/NotificationRecord\(/ { on = index($0, pkg) > 0 } on' > "$OUT/notification-$1.txt"
+  a shell dumpsys shortcut | tr -d '\r' \
+    | awk -v pkg="Package: $PKG " '/^ *Package: / { on = index($0, pkg) > 0 } on' > "$OUT/shortcut-$1.txt"
+  records="$(grep -c 'NotificationRecord(' "$OUT/notification-$1.txt" || true)"
+  [ "$records" -eq "$2" ] || fail "the dump at $1 holds $records records of the app, not $2"
+  grep -qF 'android.title=String (Active bubbles)' "$OUT/notification-$1.txt" || fail "the dump at $1 reads no summary title"
+  grep -qF 'android.text=String (Showing bubble notifications, swipe to expand)' "$OUT/notification-$1.txt" || fail "the dump at $1 reads no summary text"
+  labels="$(grep -c 'shortLabel=' "$OUT/shortcut-$1.txt" || true)"
+  [ "$labels" -gt 0 ] || fail "the dump at $1 reads no shortcut label"
+  hits="$(cat "$OUT/notification-$1.txt" "$OUT/shortcut-$1.txt" | grep -cE '[0-9]+ of [0-9]+' || true)"
+  [ "$hits" -eq 0 ] || fail "$hits lines at $1 hold a count"
+  printf '%s\t%s\t%s\t%s\t%s\n' "$SDK" "$1" "$records" "$labels" "$hits" >> "$OUT/shade.tsv"
+  log "point=$1 records=$records shortcut_labels=$labels count_lines=$hits"
+}
+
+mode_shade() {
+  local n filler
+  printf 'sdk\tpoint\tnotification_records\tshortcut_labels\tcount_lines\n' > "$OUT/shade.tsv"
+  open_bubble "https://example.com/?probe=$RUN-shade-1"
+  a shell input keyevent HOME
+  sleep 2
+  shade_capture shade-1
+  no_lynket_row shade-1
+  no_count_text 1 2
+  for n in 2 3 4 5 6; do
+    open_bubble "https://example.com/?probe=$RUN-shade-$n"
+  done
+  # The worst content of the screen: a long address.
+  filler="$(printf 'a%.0s' $(seq 1 220))"
+  open_bubble "https://example.com/?probe=$RUN-shade-7&pad=$filler"
+  sleep 2
+  front_reconcile
+  [ "$REC_TOTAL" -eq 7 ] || fail "with 7 links the list reads $REC_TOTAL"
+  shade_capture shade-7
+  no_lynket_row shade-7
+  no_count_text 7 8
+  # With a page on screen the count is drawn, and it must still reach nothing else. The screenshot
+  # is the evidence for the shade here: a dump can read the page rather than the shade.
+  shell_bubbles shell-shade-7.txt
+  expand_stack shell-shade-7.txt
+  tap_row_bubble "${STACK_IDS[-1]}"
+  page_text shade-page-open
+  shade_capture shade-page
+  no_count_text page 8
+  a shell input keyevent HOME
+  sleep 1
+  no_crash
+  log "shade done"
 }
 
 prepare
