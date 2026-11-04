@@ -1,6 +1,6 @@
 # Native bubbles past the stack limit
 
-What Android does with Lynket's native bubbles when more are open than the stack shows. These are measurements on emulators, taken with `maestro/webheads/overflow-probe.sh` and the debug-only `BubbleProbeReceiver` on 2026-11-03. Android 12 and 13 sit between the two versions and were not measured, and neither was a phone maker's own build of Android.
+What Android does with Lynket's native bubbles when more are open than the stack shows. These are measurements on emulators, taken with `maestro/webheads/overflow-probe.sh` and the debug-only `BubbleProbeReceiver` on 2026-11-03 and 2026-11-04. Android 12 and 13 sit between the two versions and were not measured, and neither was a phone maker's own build of Android.
 
 ## Android 14
 
@@ -81,7 +81,7 @@ Read with `overflow-probe.sh shade` on 2026-11-04, with the summary and every bu
 - The read never adds an entry, so the bubbles that outlive the app's process stay unlisted.
 - The shortcut of a dropped bubble still stays behind.
 
-On the Android 14 emulator, `overflow-probe.sh registry` read 7 open with 2 in the overflow, 8 with 3, and 21 with 16 at 21 links. From link 22 the total stayed at 21, and each dropped bubble left the list with no `Bubble dismissed` line.
+On the Android 14 emulator, `overflow-probe.sh registry` read 7 open with 2 in the overflow, 8 with 3, and 21 with 16 at 21 links. From link 22 the total stayed at 21, and each dropped bubble left the list with no `Bubble dismissed` line. On the Android 11 emulator the mode read the same at every point, with the app's own notifications standing in for the overflow that the shell does not list.
 
 A page opened by its bubble reads its place and the total from the list, and shows them in its top bar, for example 3 of 7.
 
@@ -91,7 +91,7 @@ A page opened by its bubble reads its place and the total from the list, and sho
 - Only the bubble intent names a bubble. A page in a tab, and a page opened from the conversation shortcut, show no count, and one bubble alone shows none.
 - Bubbles that outlive the app's process stay out of it: a page with no entry shows no count, and a page with an entry shows a total that leaves out the unlisted ones.
 
-On the Android 14 emulator, `overflow-probe.sh count` read 3 of 7 with 2 in the overflow, 5 of 8 with 3, and 5 of 7 after a close with that page on screen. `overflow-probe.sh count-long` read 12 of 12 whole beside a shortened address at the largest font.
+On the Android 14 emulator, `overflow-probe.sh count` read 3 of 7 with 2 in the overflow, 5 of 8 with 3, and 5 of 7 after a close with that page on screen. `overflow-probe.sh count-long` read 12 of 12 whole beside a shortened address at the largest font. Both modes read the same on the Android 11 emulator.
 
 A close in the stack posts the newest overflow bubble again, from the data that bubble last posted.
 
@@ -111,7 +111,7 @@ A drag needs care, because Android takes `FLAG_BUBBLE` off the whole stack at on
 | The return is interruptive, or has a sound key or a flyout | No | No |
 | `close-stack`: 5 closes, 2 returns, newest first, total 2 | Yes | Yes |
 | `close-stack`: the stack expands, or a heads-up row shows | No | No |
-| `close-icon`: disc, then the icon in place | Not run | Yes |
+| `close-icon`: disc, then the icon in place | Yes | Yes |
 
 The rebuilt post behaves as the probe's clone did on both versions, so the fallbacks to a clone or a changed text were not needed.
 
@@ -127,6 +127,37 @@ Measured on Android 14 only.
 | An uninstall | Both empty |
 
 A later cancel by the app does not clear what a force stop left behind, so the app has no read of those bubbles and no way to remove them.
+
+## Android 11 and Android 14 compared
+
+Read with `overflow-probe.sh story` on 2026-11-04, one run through on one set of bubbles: 8 links, a close in the stack with a page on screen, a close of that page from its Manage menu, then two more closes. The two runs gave the same rows, with the ids left out.
+
+| Outcome | Android 14 | Android 11 | Cause of a difference |
+|---|---|---|---|
+| The count before and after a close, with the page on screen | 4 of 8, then 4 of 7 in place | The same | None |
+| One return per close, newest first, in the stack with its flag | Each of the first three closes returned one bubble, the newest in the overflow. The fourth returned none | The same | None |
+| No sound key, flyout or interruptive mark on a return | None on any of the three returns | The same | None |
+| A close from the Manage menu | Dismiss bubble sends one delete intent, closes the page's bubble and returns the next overflow bubble. The list reads 6 and the stack stays open | The same | None |
+| A closed bubble stays gone | Neither closed bubble has a notification, a place in the list or a return, through to the last close | The same | None |
+| No Lynket row, and no count in any text | No row in the shade. 5 notification records, 7 shortcut labels and no line with a count | The same | None |
+| How the overflow can be read | The shell lists it | The shell does not list it; the app's own read stands in | The shell's dump on Android 11 prints the stack only, and the two versions dump different services |
+| A `text` re-post | Not interruptive | Interruptive; the app does not use it | Not traced. The measurement stands |
+| The shade over a page | Opaque | See-through, so the page or the stack shows behind it | Android draws it |
+| A dump of the shade with a page open | Reads the shade | Reads the page | The screenshot is the evidence |
+
+The whole behaviour holds on both versions, and each difference above lies in what Android shows or lets a tool read, or in a re-post the app does not use.
+
+One screen was measured, 1080 x 2400 at density 420. Android 12 and 13 and a phone maker's build, Samsung's included, were not measured. An emulator shows no felt vibration, so the sound and vibrate check reads the key.
+
+## A bubble turned off from its menu
+
+Read with `overflow-probe.sh dont-bubble` on 2026-11-04: 7 links, then Manage and Don't bubble conversation on the page on screen. Both versions read the same.
+
+- The bubble and its notification go, and no delete intent arrives.
+- The list goes from 7 to 6 at the next read, and the top bar of the page on screen reads 3 of 6.
+- The stack holds 4 and the overflow 2, and no bubble returns, because a return needs a delete intent.
+
+What a later close does in that state was not measured, nor was a bubble turned off in Android's settings with the app closed.
 
 ## Android source, as read
 
