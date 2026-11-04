@@ -21,7 +21,9 @@
 package arun.com.chromer
 
 import android.app.Application
+import android.os.Build
 import androidx.core.app.NotificationManagerCompat
+import arun.com.chromer.bubbles.system.BubbleReconciler
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.util.debug.DebugHooks
@@ -30,6 +32,7 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.memoryCacheMaxSizePercentWhileInBackground
+import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -51,6 +54,10 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
   @Inject
   lateinit var appDiskStore: AppDiskStore
 
+  // Lazy: the class needs Android 10, and the app starts on older versions.
+  @Inject
+  lateinit var bubbleReconciler: Lazy<BubbleReconciler>
+
   override fun onCreate() {
     DebugHooks.from(this).installStrictModeIfRequested(this)
     super.onCreate()
@@ -68,6 +75,7 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
     // Links now name their source app when they open, so the old app-detection service and its
     // notification channel are gone; remove the channel earlier versions created.
     NotificationManagerCompat.from(this).deleteNotificationChannel(OLD_APP_DETECTION_CHANNEL)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) bubbleReconciler.get().attach(this)
   }
 
   /**

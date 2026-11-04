@@ -19,6 +19,7 @@ import android.content.Intent
 import android.content.pm.ShortcutManager
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.model.Website
@@ -249,6 +250,43 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     manager.cancel(first, incognito = false)
 
     assertThat(registry.isClosedOnPurpose(keyOf(first))).isFalse()
+  }
+
+  @Test
+  fun a_dismissal_takes_off_a_bubble_that_went_behind_the_app_s_back_and_leaves_it_unmarked() {
+    post(first)
+    post(second)
+
+    notificationManager.cancel(bubbleNotificationId(first))
+    post("https://secret.example/three")
+    dismiss(second)
+
+    assertThat(listed()).containsExactly("https://secret.example/three")
+    assertThat(registry.isClosedOnPurpose(keyOf(first))).isFalse()
+    assertThat(registry.isClosedOnPurpose(keyOf(second))).isTrue()
+  }
+
+  @Test
+  fun a_dismissal_never_marks_a_bubble_that_the_reconcile_moved_to_the_overflow() {
+    post(first)
+    post(second)
+
+    dismiss(first)
+
+    assertThat(registry.find(BrowsingMode.NativeBubbles, second, false)?.place).isEqualTo(BubblePlace.OVERFLOW)
+    assertThat(registry.isClosedOnPurpose(keyOf(second))).isFalse()
+  }
+
+  @Test
+  fun an_aged_bubble_still_active_with_no_flag_stays_listed_and_unmarked() {
+    val aged = "https://secret.example/aged"
+    post(aged)
+    post(first)
+
+    dismiss(first)
+
+    assertThat(listed()).containsExactly(aged)
+    assertThat(registry.isClosedOnPurpose(keyOf(aged))).isFalse()
   }
 
   @Test

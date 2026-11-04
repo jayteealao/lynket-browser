@@ -43,6 +43,9 @@ class BubbleDismissReceiver : BroadcastReceiver() {
   @Inject
   lateinit var bubbleRegistry: BubbleRegistry
 
+  @Inject
+  lateinit var bubbleReconciler: BubbleReconciler
+
   override fun onReceive(context: Context, intent: Intent) {
     if (!intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)) {
       Timber.w("A bubble dismiss without a notification id")
@@ -54,5 +57,6 @@ class BubbleDismissReceiver : BroadcastReceiver() {
     bubbleRegistry.markClosedOnPurpose(key)
     bubbleRegistry.remove(key)
     bubbleNotificationManager.dismissed(id)
+    bubbleReconciler.reconcile()
   }
 }
