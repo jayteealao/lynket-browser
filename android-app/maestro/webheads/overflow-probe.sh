@@ -545,7 +545,7 @@ close_row() {
 
 mode_close() {
   local n close overflow_ids=()
-  printf 'sdk\tclose\tclosed_id\texpected_id\treturned_ids\ttotal\toverflow_ids\treturnable_ids\tstack_keys\tapp_notifications\treturned_flag\tsound_key\tflyout\tinteractive\texpanded\tselected\n' > "$OUT/close.tsv"
+  printf 'sdk\tclose\tclosed_id\texpected_id\treturned_ids\ttotal\toverflow_ids\treturnable_ids\tstack_keys\tapp_notifications\treturned_flag\tsound_key\tflyout\tinterruptive\texpanded\tselected\n' > "$OUT/close.tsv"
   for n in 1 2 3 4 5 6 7; do
     open_bubble "https://example.com/?probe=$RUN-close-$n"
   done
