@@ -24,6 +24,7 @@ import arun.com.chromer.data.preferences.BrowsingMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -119,7 +120,11 @@ class BubbleRegistry @Inject constructor() {
     when {
       open == null -> OpenBubble(key, url, incognito, loadData = loadData, settledAt = settledAt)
         .also { entries.value += it }
-      else -> open.copy(loadData = loadData ?: open.loadData, settledAt = settledAt).also(::replace)
+      else -> {
+        // Two links can share an id: they already share a notification, and the first keeps the entry.
+        if (open.url != url) Timber.w("Two links share the bubble id %d", key.notificationId)
+        open.copy(loadData = loadData ?: open.loadData, settledAt = settledAt).also(::replace)
+      }
     }
   }
 

@@ -27,6 +27,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.Assert.assertThrows
 import org.junit.Test
+import timber.log.Timber
 import javax.inject.Inject
 import kotlin.concurrent.thread
 
@@ -458,6 +459,26 @@ class BubbleRegistryTest {
     }
 
     assertThat(urls(registry.list(NativeBubbles))).containsExactly(first)
+  }
+
+  @Test
+  fun two_links_with_one_id_keep_the_first_entry_and_log_it_with_no_address() {
+    // Two strings with one hash code.
+    val colliding = listOf("https://example.com/Aa", "https://example.com/BB")
+    val logged = mutableListOf<String>()
+    val tree = object : Timber.Tree() {
+      override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+        logged += message
+      }
+    }
+    Timber.plant(tree)
+
+    colliding.forEach { registry.add(NativeBubbles, it, incognito = false) }
+    Timber.uproot(tree)
+
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(colliding.first())
+    assertThat(logged.single()).startsWith("Two links share the bubble id")
+    assertThat(logged.single()).doesNotContain("example.com")
   }
 
   @Test
