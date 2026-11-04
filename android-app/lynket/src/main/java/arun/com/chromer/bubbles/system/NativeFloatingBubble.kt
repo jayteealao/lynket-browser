@@ -75,7 +75,7 @@ constructor(
   private val bubbleGate: BubbleGate,
   private val bubbleRegistry: BubbleRegistry,
   @IoDispatcher ioDispatcher: CoroutineDispatcher,
-  // Lazy: the tabs manager reaches this class through the bubble factory.
+  // Lazy: the tabs manager opens bubbles through this class, so the two cannot build each other.
   private val tabsManager: Lazy<TabsManager>,
 ) : FloatingBubble {
 
