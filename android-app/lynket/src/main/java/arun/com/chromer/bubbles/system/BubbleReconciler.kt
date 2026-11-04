@@ -50,6 +50,8 @@ constructor(
     // A person who never uses native bubbles pays for no read.
     if (bubbleRegistry.list(mode).isEmpty()) return
     val dropped = bubbleRegistry.reconcile(mode, bubbleNotificationManager::bubblePlaces) ?: return
+    // The arguments cost a read of the list at every activity start, so a build with no log skips them.
+    if (Timber.treeCount == 0) return
     Timber.d(
       "Reconciled: total=%d overflow=%s returnable=%s dropped=%s",
       bubbleRegistry.list(mode).size,
