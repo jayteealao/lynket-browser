@@ -397,7 +397,7 @@ class BubbleRegistryTest {
     registry.reconcile(NativeBubbles) {
       val other = Thread { registry.remove(BubbleKey.of(NativeBubbles, second, false)); doneDuringTheRead = true }
       other.start()
-      other.join(OPENER_HEAD_START_MS)
+      other.join(OTHER_THREAD_WAIT_MS)
       at(STACK, first)
     }
 
@@ -730,6 +730,7 @@ class BubbleRegistryTest {
 
   private companion object {
     const val OPENER_HEAD_START_MS = 200L
+    const val OTHER_THREAD_WAIT_MS = 10_000L
   }
 }
 
