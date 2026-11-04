@@ -19,6 +19,8 @@ import android.content.Intent
 import android.content.pm.ShortcutManager
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.os.Build
+import android.service.notification.StatusBarNotification
 import arun.com.chromer.appdetect.LinkSource
 import arun.com.chromer.browsing.icons.WebsiteIconData
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
@@ -42,7 +44,10 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.spyk
 import io.mockk.verify
+import io.mockk.verifyOrder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
@@ -93,6 +98,8 @@ class NativeBubblePostingTest {
   /** How long Android takes to bring back an overflow bubble after its update; null is never. */
   private var returnAfterMs: Long? = 0L
   private val backAt = mutableMapOf<Int, Long>()
+  /** The links posted by the path out of the overflow. */
+  private val returned = mutableListOf<String>()
   private var failUpdates = false
   private val postedData = mutableListOf<BubbleLoadData>()
   private var heightOfAFirstPost: Int? = null
@@ -121,16 +128,25 @@ class NativeBubblePostingTest {
     }
   }
 
+  private fun posted(data: BubbleLoadData, withSummary: Boolean): BubbleLoadData {
+    posts += Post(data.website.url, clock.currentTime, data.icon != null, withSummary, data.color)
+    postedData += data
+    return heightOfAFirstPost?.let { data.copy(desiredHeightDp = data.desiredHeightDp ?: it) } ?: data
+  }
+
   private val notifications = mockk<BubbleNotificationManager> {
     coEvery { showBubbles(any(), any()) } coAnswers {
       val data = firstArg<BubbleLoadData>()
       val withSummary = secondArg<Boolean>()
       if (!withSummary && failUpdates) error("The update failed")
-      posts += Post(data.website.url, clock.currentTime, data.icon != null, withSummary, data.color)
-      postedData += data
-      val id = bubbleNotificationId(data.website.url, data.incognito)
-      if (!withSummary) returnAfterMs?.let { backAt[id] = clock.currentTime + it }
-      heightOfAFirstPost?.let { data.copy(desiredHeightDp = data.desiredHeightDp ?: it) } ?: data
+      posted(data, withSummary)
+    }
+    coEvery { returnBubble(any()) } coAnswers {
+      val data = firstArg<BubbleLoadData>()
+      if (failUpdates) error("The return failed")
+      returned += data.website.url
+      returnAfterMs?.let { backAt[bubbleNotificationId(data.website.url, data.incognito)] = clock.currentTime + it }
+      posted(data, withSummary = false)
     }
     every { isShownAsBubble(any(), any()) } answers {
       val id = bubbleNotificationId(firstArg(), secondArg())
@@ -556,6 +572,213 @@ class NativeBubblePostingTest {
     assertThat(posts.single().withSummary).isFalse()
     assertThat(postedData.single()).isSameInstanceAs(data)
     assertThat(overflow()).containsExactly(ONE)
+  }
+
+  @Test
+  fun a_return_takes_the_path_out_of_the_overflow_and_its_late_icon_does_not() = posting { bubble ->
+    failingIconLoads = 1
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(returned).containsExactly(ONE)
+    assertThat(posts.map { it.withIcon }).containsExactly(false, true).inOrder()
+  }
+
+  @Test
+  fun a_read_while_a_return_has_taken_the_notification_down_keeps_the_bubble() = posting { bubble ->
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+    val reconciler = BubbleReconciler(notifications, registry, StandardTestDispatcher(testScheduler))
+    returnAfterMs = 1_000
+
+    bubble.returnNewestOverflowBubble()
+    advanceTimeBy(SETTLE_MS + 1)
+    // Android has the cancel and not yet the post.
+    val working = places
+    places = working!!.filterKeys { it != keyOf(ONE).notificationId }
+    reconciler.reconcile()
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+
+    places = working
+    advanceUntilIdle()
+
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+    assertThat(overflow()).isEmpty()
+  }
+
+  @Test
+  fun a_return_that_lost_the_notification_lets_the_next_read_drop_the_bubble() = posting { bubble ->
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+    returnAfterMs = null
+
+    bubble.returnNewestOverflowBubble()
+    advanceTimeBy(SETTLE_MS + 1)
+    places = places!!.filterKeys { it != keyOf(ONE).notificationId }
+    advanceUntilIdle()
+
+    assertThat(listed().map { it.url }).containsExactly(TWO)
+  }
+
+  @Test
+  fun a_late_icon_of_a_bubble_that_aged_out_posts_nothing_and_waits_for_its_return() = posting { bubble ->
+    iconDelayMs = 1_000
+    bubble.open(ONE)
+    advanceTimeBy(ICON_AND_POST_MS)
+    posts.clear()
+    places = mapOf(keyOf(ONE).notificationId to BubblePlace.OVERFLOW)
+    advanceUntilIdle()
+
+    assertThat(posts).isEmpty()
+    assertThat(stored(ONE)?.icon).isNotNull()
+  }
+
+  @Test
+  fun a_read_while_a_link_sent_again_posts_keeps_its_entry() = posting { bubble ->
+    val reconciler = BubbleReconciler(notifications, registry, StandardTestDispatcher(testScheduler))
+    opened(bubble, ONE, TWO)
+    iconDelayMs = 100
+    // Android has the cancel of the link sent again and not yet its post.
+    places = mapOf(keyOf(TWO).notificationId to BubblePlace.STACK)
+    shown = false
+
+    bubble.open(ONE)
+    advanceTimeBy(101)
+    reconciler.reconcile()
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+
+    shown = true
+    places = places!! + (keyOf(ONE).notificationId to BubblePlace.STACK)
+    advanceUntilIdle()
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+  }
+
+  /** The system a real manager called, with [activeFlags] the flags of the posted bubble, if any. */
+  private fun systemCalls(
+    activeFlags: Int?,
+    readFails: Boolean = false,
+    block: suspend (BubbleNotificationManager) -> Unit,
+  ): NotificationManager {
+    val active = activeFlags?.let { flags ->
+      mockk<StatusBarNotification> {
+        every { id } returns bubbleNotificationId(URL)
+        every { notification } returns Notification().apply { this.flags = flags }
+      }
+    }
+    val system = mockk<NotificationManager>(relaxed = true) {
+      if (readFails) {
+        every { activeNotifications } throws RuntimeException("No read")
+      } else {
+        every { activeNotifications } returns listOfNotNull(active).toTypedArray()
+      }
+    }
+    val context = spyk(application) {
+      every { getSystemService(Context.NOTIFICATION_SERVICE) } returns system
+    }
+    runBlocking { block(BubbleNotificationManager(context)) }
+    return system
+  }
+
+  @Test
+  fun a_return_cancels_only_the_bubble_and_then_posts_it() {
+    val system = systemCalls(activeFlags = 0) { it.returnBubble(loadData()) }
+
+    verifyOrder {
+      system.cancel(bubbleNotificationId(URL))
+      system.notify(bubbleNotificationId(URL), any())
+    }
+    verify(exactly = 1) { system.cancel(any()) }
+    verify(exactly = 1) { system.notify(any(), any()) }
+  }
+
+  @Test
+  fun a_return_cancels_a_bubble_with_the_flag_too() {
+    val system = systemCalls(activeFlags = Notification.FLAG_BUBBLE) { it.returnBubble(loadData()) }
+
+    verifyOrder {
+      system.cancel(bubbleNotificationId(URL))
+      system.notify(bubbleNotificationId(URL), any())
+    }
+  }
+
+  @Test
+  @Config(application = Application::class, sdk = [Build.VERSION_CODES.R])
+  fun on_android_11_a_return_updates_in_place() {
+    val system = systemCalls(activeFlags = 0) { it.returnBubble(loadData()) }
+
+    verify(exactly = 0) { system.cancel(any()) }
+    verify(exactly = 1) { system.notify(bubbleNotificationId(URL), any()) }
+  }
+
+  @Test
+  @Config(application = Application::class, sdk = [Build.VERSION_CODES.R])
+  fun on_android_11_a_link_sent_again_updates_in_place() {
+    val system = systemCalls(activeFlags = 0) { it.showBubbles(loadData()) }
+
+    verify(exactly = 0) { system.cancel(any()) }
+  }
+
+  @Test
+  fun a_return_of_a_bubble_no_longer_posted_does_nothing() {
+    val system = systemCalls(activeFlags = null) { it.returnBubble(loadData()) }
+
+    verify(exactly = 0) { system.cancel(any()) }
+    verify(exactly = 0) { system.notify(any(), any()) }
+  }
+
+  @Test
+  fun a_returned_bubble_keeps_its_height_and_alerts_once() {
+    val notification = slot<Notification>()
+    val system = systemCalls(activeFlags = 0) { it.returnBubble(loadData().copy(desiredHeightDp = 731)) }
+
+    verify { system.notify(any(), capture(notification)) }
+    assertThat(notification.captured.flags and Notification.FLAG_ONLY_ALERT_ONCE).isNotEqualTo(0)
+    assertThat(notification.captured.bubbleMetadata!!.desiredHeight).isEqualTo(731)
+  }
+
+  @Test
+  fun a_link_sent_again_comes_out_of_the_overflow_and_keeps_the_summary_posted() {
+    val system = systemCalls(activeFlags = 0) { it.showBubbles(loadData()) }
+
+    verifyOrder {
+      system.notify(BUBBLE_NOTIFICATION_GROUP.hashCode(), any())
+      system.cancel(bubbleNotificationId(URL))
+      system.notify(bubbleNotificationId(URL), any())
+    }
+    verify(exactly = 1) { system.cancel(any()) }
+  }
+
+  @Test
+  fun a_link_sent_again_in_the_stack_updates_in_place() {
+    val system = systemCalls(activeFlags = Notification.FLAG_BUBBLE) { it.showBubbles(loadData()) }
+
+    verify(exactly = 0) { system.cancel(any()) }
+  }
+
+  @Test
+  fun a_first_post_cancels_nothing() {
+    val system = systemCalls(activeFlags = null) { it.showBubbles(loadData()) }
+
+    verify(exactly = 0) { system.cancel(any()) }
+  }
+
+  @Test
+  fun an_update_never_cancels() {
+    val system = systemCalls(activeFlags = Notification.FLAG_BUBBLE) { it.showBubbles(loadData(), withSummary = false) }
+
+    verify(exactly = 0) { system.cancel(any()) }
+    verify(exactly = 1) { system.notify(any(), any()) }
+  }
+
+  @Test
+  fun a_failed_read_takes_no_link_sent_again_down() {
+    val system = systemCalls(activeFlags = 0, readFails = true) { it.showBubbles(loadData()) }
+
+    verify(exactly = 0) { system.cancel(any()) }
+    verify(exactly = 1) { system.notify(bubbleNotificationId(URL), any()) }
   }
 
   @Test

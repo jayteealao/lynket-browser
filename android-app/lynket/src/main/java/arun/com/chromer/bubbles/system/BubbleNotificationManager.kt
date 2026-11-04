@@ -125,18 +125,34 @@ constructor(
 
   /**
    * An update of a posted bubble passes withSummary = false: the summary is already there, and the
-   * update is dropped when the bubble is no longer posted.
+   * update is dropped when the bubble is no longer posted. An update leaves a bubble in the overflow,
+   * so it is only for a bubble in the stack. A link sent again comes out of the overflow, as a return
+   * does.
    */
-  suspend fun showBubbles(bubbleData: BubbleLoadData, withSummary: Boolean = true): BubbleLoadData = try {
+  suspend fun showBubbles(bubbleData: BubbleLoadData, withSummary: Boolean = true): BubbleLoadData =
+    posting(bubbleData) { post(bubbleData, withSummary) }
+
+  /**
+   * Brings a posted bubble out of the overflow. A bubble no longer posted stays closed.
+   *
+   * From Android 12 only a new notification does that for sure: on a Samsung phone on Android 17 an
+   * update with the same text stays in the overflow, and Android sets the bubble flag on it all the
+   * same. Android 11 and older take a bubble out on any update, and there a new notification shows
+   * a flyout, so they keep the update.
+   */
+  suspend fun returnBubble(bubbleData: BubbleLoadData): BubbleLoadData =
+    posting(bubbleData) { post(bubbleData, withSummary = false, fromOverflow = true) }
+
+  private suspend fun posting(bubbleData: BubbleLoadData, post: () -> BubbleLoadData): BubbleLoadData = try {
     // Posting a bubble and its summary, and removing a bubble and the summary it leaves alone, each
     // run whole: bubbles of different links post from different threads.
-    withContext(Dispatchers.IO) { synchronized(postLock) { post(bubbleData, withSummary) } }
+    withContext(Dispatchers.IO) { synchronized(postLock) { post() } }
   } catch (e: Exception) {
     Timber.e(e)
     bubbleData
   }
 
-  private fun post(bubbleData: BubbleLoadData, withSummary: Boolean): BubbleLoadData {
+  private fun post(bubbleData: BubbleLoadData, withSummary: Boolean, fromOverflow: Boolean = false): BubbleLoadData {
     val website = bubbleData.website
     val notificationId = bubbleNotificationId(website.url, bubbleData.incognito)
     // A bubble the person dismissed while its icon loaded stays dismissed: an update of it would
@@ -197,7 +213,8 @@ constructor(
       setLocalOnly(true)
 
       setOngoing(false) // A dismissed bubble cleans up through its delete intent.
-      // A return and a late icon must not alert again: a return reaches a person in another app.
+      // A return and a late icon must not alert again: a return reaches a person in another app. Where
+      // a return is a new notification, the channel and the suppressed bubble keep it silent.
       if (!withSummary) setOnlyAlertOnce(true)
       setSmallIcon(Icon.createWithResource(context, R.drawable.ic_chromer_notification))
       setLargeIcon(identity.icon)
@@ -227,6 +244,10 @@ constructor(
 
     if (withSummary) updateGroupSummaryNotification(if (bubbleData.incognito) Constants.NO_COLOR else bubbleData.color)
 
+    // Only the bubble's own notification goes, and last, so a post that cannot build leaves it in place.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (fromOverflow || (withSummary && isInOverflow(notificationId)))) {
+      notificationManager.cancel(notificationId)
+    }
     notificationManager.notify(notificationId, bubbleNotification)
     return bubbleData.copy(desiredHeightDp = height)
   }
@@ -267,6 +288,16 @@ constructor(
     Timber.e(e, "Could not read the active notifications")
     // Unknown: update the bubble rather than leave a stale one showing.
     true
+  }
+
+  /** Active with no bubble flag. Unknown reads as no: a failed read must not take a bubble down. */
+  private fun isInOverflow(notificationId: Int): Boolean = try {
+    notificationManager.activeNotifications.any {
+      it.id == notificationId && it.notification.flags and Notification.FLAG_BUBBLE == 0
+    }
+  } catch (e: RuntimeException) {
+    Timber.e(e, "Could not read the active notifications")
+    false
   }
 
   /** Where Android holds each active notification, by id, or null when the read fails. */

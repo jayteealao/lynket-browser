@@ -30,9 +30,10 @@ import timber.log.Timber
  * `adb shell am broadcast -n arun.com.chromer.debug/arun.com.chromer.debug.BubbleProbeReceiver
  * --es action <action>`, with these actions:
  * - `state`: one line under the tag `BubbleProbe` for each bubble notification, then a count;
- * - `repost`, with `--es url <url> --es variant <same|text|fresh>`: posts the active notification
- *   of that link again, silently. `same` changes nothing else, `text` adds an invisible character
- *   to its text, and `fresh` cancels it first;
+ * - `repost`, with `--es url <url>` or `--ei id <id>`, and `--es variant <same|text|fresh>`: posts
+ *   the active notification of that link or id again, silently. Only the id reaches an incognito
+ *   bubble, whose id is not the one of its link. `same` changes nothing else, `text` adds an
+ *   invisible character to its text, and `fresh` cancels it first;
  * - `clear`: cancels every notification of the app.
  */
 class BubbleProbeReceiver : BroadcastReceiver() {
@@ -42,7 +43,7 @@ class BubbleProbeReceiver : BroadcastReceiver() {
     val manager = context.getSystemService(NotificationManager::class.java)
     when (intent.getStringExtra(EXTRA_ACTION)) {
       "state" -> logState(manager)
-      "repost" -> repost(manager, intent.getStringExtra(EXTRA_URL).orEmpty(), intent.getStringExtra(EXTRA_VARIANT))
+      "repost" -> repost(manager, repostId(intent), intent.getStringExtra(EXTRA_VARIANT))
       "clear" -> {
         manager.cancelAll()
         Timber.tag(TAG).i("clear done")
@@ -65,8 +66,11 @@ class BubbleProbeReceiver : BroadcastReceiver() {
     Timber.tag(TAG).i("state done count=%d", bubbles.size)
   }
 
-  private fun repost(manager: NotificationManager, url: String, variant: String?) {
-    val id = bubbleNotificationId(url)
+  /** A bubble by `--ei id <id>`, which reaches an incognito one, or by its `--es url <url>`. */
+  private fun repostId(intent: Intent): Int =
+    if (intent.hasExtra(EXTRA_ID)) intent.getIntExtra(EXTRA_ID, 0) else bubbleNotificationId(intent.getStringExtra(EXTRA_URL).orEmpty())
+
+  private fun repost(manager: NotificationManager, id: Int, variant: String?) {
     val active = manager.activeNotifications.firstOrNull { it.id == id }
     Timber.tag(TAG).i("repost id=%d variant=%s found=%b", id, variant, active != null)
     if (active == null) return
@@ -88,6 +92,7 @@ class BubbleProbeReceiver : BroadcastReceiver() {
     const val TAG = "BubbleProbe"
     const val EXTRA_ACTION = "action"
     const val EXTRA_URL = "url"
+    const val EXTRA_ID = "id"
     const val EXTRA_VARIANT = "variant"
 
     const val ZERO_WIDTH_SPACE = "\u200B"

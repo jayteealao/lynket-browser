@@ -128,6 +128,14 @@ class BubbleRegistry @Inject constructor() {
     }
   }
 
+  /**
+   * A post of the open bubble of [key] is on its way, and it can take the notification down first.
+   * Until [settled], no read drops the entry.
+   */
+  fun posting(key: BubbleKey) = synchronized(lock) {
+    find(key)?.let { replace(it.copy(settledAt = null)) }
+  }
+
   /** Android shows the posted bubble of [key], so a later read may judge it. */
   fun settled(key: BubbleKey) = synchronized(lock) {
     find(key)?.let { replace(it.copy(settledAt = ++changes)) }

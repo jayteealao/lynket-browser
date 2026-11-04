@@ -114,12 +114,13 @@ class BubbleReconcilerTest {
   @Test
   fun a_later_read_leaves_the_calling_thread_at_once() {
     open(first)
+    val readsOfThePost = FailingReadNotificationManagerShadow.reads
 
     reconciler.reconcileLater()
 
-    assertThat(FailingReadNotificationManagerShadow.reads).isEqualTo(0)
+    assertThat(FailingReadNotificationManagerShadow.reads).isEqualTo(readsOfThePost)
     dispatcher.scheduler.advanceUntilIdle()
-    assertThat(FailingReadNotificationManagerShadow.reads).isGreaterThan(0)
+    assertThat(FailingReadNotificationManagerShadow.reads).isGreaterThan(readsOfThePost)
   }
 
   @Test

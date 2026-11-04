@@ -144,8 +144,9 @@ constructor(
     // site is read for it. A normal bubble's site and icon load while the first post publishes.
     val details = if (initial.incognito) null else async { withDetails(initial) }
     val ready = details?.let { withTimeoutOrNull(ICON_WAIT_MS) { it.await() } }
-    val posted = bubbleNotificationManager.showBubbles((ready ?: initial).withHeightOfOpenBubble())
     val key = BubbleKey.of(BrowsingMode.NativeBubbles, url, initial.incognito)
+    bubbleRegistry.posting(key)
+    val posted = bubbleNotificationManager.showBubbles((ready ?: initial).withHeightOfOpenBubble())
     bubbleRegistry.add(BrowsingMode.NativeBubbles, url, initial.incognito, posted, posting = true)
 
     // Android can still post the notification without showing it as a bubble. Then the page opens
@@ -164,10 +165,14 @@ constructor(
 
     if (details != null && ready == null) {
       val late = details.await()
-      // Same url, so the same notification is updated in place; the summary is already posted.
+      // Same url, so the same notification is updated in place; the summary is already posted. An
+      // update would set the flag of a bubble that aged out and leave it in the overflow, so that
+      // bubble only keeps the details for its next return.
       if (late !== initial) {
         val update = late.copy(desiredHeightDp = posted.desiredHeightDp)
-        bubbleNotificationManager.showBubbles(update, withSummary = false)
+        if (bubbleNotificationManager.isShownAsBubble(url, initial.incognito)) {
+          bubbleNotificationManager.showBubbles(update, withSummary = false)
+        }
         bubbleRegistry.updateLoadData(key, update)
       }
     }
@@ -180,7 +185,7 @@ constructor(
   }
 
   /**
-   * Posts the newest overflow bubble again after the person closed a bubble in the stack, with no
+   * Posts the newest overflow bubble anew after the person closed a bubble in the stack, with no
    * alert. Returns run one at a time and each waits for Android's flag, so a close that follows reads
    * where this bubble went. A return that fails says nothing: the bubble stays in the overflow.
    *
@@ -232,11 +237,16 @@ constructor(
     val bubble = bubbleRegistry.returnCandidates(BrowsingMode.NativeBubbles).lastOrNull() ?: return
     val data = bubble.loadData ?: return
     Timber.d("Returning: %d", bubble.key.notificationId)
-    bubbleNotificationManager.showBubbles(data, withSummary = false)
-    if (shownAsBubble(bubble.url, bubble.incognito)) {
-      Timber.d("Returned: %d", bubble.key.notificationId)
-    } else {
-      returnFailed = true
+    bubbleRegistry.posting(bubble.key)
+    try {
+      bubbleNotificationManager.returnBubble(data)
+      if (shownAsBubble(bubble.url, bubble.incognito)) {
+        Timber.d("Returned: %d", bubble.key.notificationId)
+      } else {
+        returnFailed = true
+      }
+    } finally {
+      bubbleRegistry.settled(bubble.key)
     }
     bubbleReconciler.reconcile()
     if (data.icon == null && !bubble.incognito) scope.launch { loadMissingIcon(bubble) }

@@ -550,6 +550,12 @@ alert_fields() {
   INTERRUPTIVE="$(awk -v key="key=0|$PKG|$1|" 'index($0, key) { on = 1 } on && /mIsInterruptive=/ { sub(/.*=/, ""); print; exit }' "$OUT/$3")"
 }
 
+# From Android 12 a return is a new notification, which Android marks interruptive; it stays silent,
+# and the other checks hold that. Android 11 keeps an update, which must stay unmarked.
+no_interruption() {
+  [ "$SDK" -ge 31 ] || [ "$1" = false ] || fail "the return was marked interruptive: $1"
+}
+
 # Runs the close $1 of mode_close and adds its row to close.tsv.
 close_row() {
   local close="$1" returnable=() expected="" lines closed returned overflow_ids=() returnable_ids=() flag="" expanded selected app id
@@ -596,6 +602,10 @@ close_row() {
   in_list "$returned" "${STACK_IDS[@]}" || fail "returned id $returned is not in the stack"
   [ "$flag" = true ] || fail "returned id $returned has no bubble flag"
   [ "$selected" != "$returned" ] || fail "returned id $returned took the selection"
+  [ -z "$SOUND_KEY" ] || fail "the return took the sound or the vibration: $SOUND_KEY"
+  # A collapsed stack would show it: with the stack open, Android holds it back.
+  [ "$FLYOUT" = false ] || fail "the return showed a flyout: $FLYOUT"
+  no_interruption "$INTERRUPTIVE"
   return 0
 }
 
@@ -673,7 +683,7 @@ x_close() {
   [ "$flag" = true ] || fail "returned id $returned has no bubble flag"
   [ -z "$SOUND_KEY" ] || fail "the return took the sound or the vibration: $SOUND_KEY"
   [ "$FLYOUT" = false ] || fail "the return showed a flyout: $FLYOUT"
-  [ "$INTERRUPTIVE" = false ] || fail "the return was marked interruptive: $INTERRUPTIVE"
+  no_interruption "$INTERRUPTIVE"
 }
 
 mode_close_x() {
@@ -783,7 +793,8 @@ mode_close_stack() {
   [ "$expanded" = false ] || fail "the stack is expanded after the returns"
   [ -z "$sound_keys" ] || fail "a return took the sound or the vibration: $sound_keys"
   [ "$flyouts" = "false false " ] || fail "a return showed a flyout: $flyouts"
-  [ "$interrupted" = "false false " ] || fail "a return was marked interruptive: $interrupted"
+  no_interruption "${interrupted%% *}"
+  no_interruption "$(echo "$interrupted" | awk '{ print $2 }')"
   [ "$heads_up" = false ] || fail "the shots show a heads-up row"
   close_times
   log "close-stack done"
@@ -1101,7 +1112,7 @@ story_close() {
   [ "$(bubble_flag "state-story-$1.txt" "$CLOSED")" = gone ] || fail "closed id $CLOSED still has a notification after $1"
   [ -z "$SOUND_KEY" ] || fail "the return of $1 took the sound or the vibration: $SOUND_KEY"
   [ "$FLYOUT" = false ] || fail "the return of $1 showed a flyout: $FLYOUT"
-  [ "$INTERRUPTIVE" = false ] || fail "the return of $1 was marked interruptive: $INTERRUPTIVE"
+  no_interruption "$INTERRUPTIVE"
 }
 
 mode_story() {

@@ -115,6 +115,18 @@ class BubbleProbeReceiverTest : LynketRobolectricSuite() {
   }
 
   @Test
+  fun an_id_names_the_bubble_when_the_link_cannot() {
+    postBubble()
+
+    BubbleProbeReceiver().onReceive(
+      application,
+      Intent().putExtra("action", "repost").putExtra("id", id).putExtra("variant", "fresh"),
+    )
+
+    assertThat(RecordingNotificationManagerShadow.calls).containsExactly("cancel $id", "notify $id").inOrder()
+  }
+
+  @Test
   fun a_link_with_no_active_notification_posts_nothing() {
     broadcast("repost", "same")
 
