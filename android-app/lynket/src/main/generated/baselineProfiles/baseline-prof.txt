@@ -7847,8 +7847,6 @@ Larun/com/chromer/browsing/webview/EmbeddableWebViewActivity;
 Larun/com/chromer/browsing/webview/EmbeddableWebViewActivity_GeneratedInjector;
 Larun/com/chromer/browsing/webview/WebViewActivity;
 Larun/com/chromer/browsing/webview/WebViewActivity_GeneratedInjector;
-Larun/com/chromer/bubbles/FloatingBubbleFactory;
-SPLarun/com/chromer/bubbles/FloatingBubbleFactory;-><init>(Ldagger/internal/Provider;Ldagger/internal/Provider;)V
 Larun/com/chromer/bubbles/system/BubbleDismissReceiver_GeneratedInjector;
 Larun/com/chromer/bubbles/system/BubbleGate;
 SPLarun/com/chromer/bubbles/system/BubbleGate;-><init>(Landroid/app/Application;)V
@@ -8139,7 +8137,6 @@ Larun/com/chromer/settings/PreferencesEntryPoint;
 Larun/com/chromer/shared/base/activity/BaseActivity;
 Larun/com/chromer/shortcuts/HomeScreenShortcutCreatorActivity_GeneratedInjector;
 Larun/com/chromer/tabs/DefaultTabsManager;
-SPLarun/com/chromer/tabs/DefaultTabsManager;-><init>(Landroid/app/Application;Larun/com/chromer/settings/Preferences;Larun/com/chromer/appdetect/AppDetectionManager;Larun/com/chromer/data/apps/DefaultAppRepository;Larun/com/chromer/data/website/DefaultWebsiteRepository;Larun/com/chromer/browsing/backgroundloading/BackgroundLoadingStrategyFactory;Larun/com/chromer/util/events/EventBus;Larun/com/chromer/bubbles/FloatingBubbleFactory;Larun/com/chromer/bubbles/system/BubbleGate;)V
 SPLarun/com/chromer/tabs/DefaultTabsManager;->customizedWebsiteColor(Larun/com/chromer/data/website/model/Website;Larun/com/chromer/appdetect/LinkSource;)I
 SPLarun/com/chromer/tabs/DefaultTabsManager;->findTaskAndExecuteAction(Landroid/content/Context;Larun/com/chromer/data/website/model/Website;Ljava/util/List;Lkotlin/jvm/functions/Function1;)Z
 SPLarun/com/chromer/tabs/DefaultTabsManager;->openBrowsingTab(Landroid/content/Context;Larun/com/chromer/data/website/model/Website;ZZLjava/util/List;ZLarun/com/chromer/appdetect/LinkSource;)V
