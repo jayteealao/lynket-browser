@@ -15,10 +15,12 @@ import app.cash.turbine.test
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.bubbles.BubblePlace.OVERFLOW
 import arun.com.chromer.bubbles.BubblePlace.STACK
+import arun.com.chromer.bubbles.system.BubbleLoadData
 import arun.com.chromer.bubbles.system.bubbleNotificationId
 import arun.com.chromer.data.preferences.BrowsingMode.NativeBubbles
 import arun.com.chromer.data.preferences.BrowsingMode.SlideOver
 import arun.com.chromer.data.preferences.BrowsingMode.WebHeads
+import arun.com.chromer.data.website.model.Website
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.Dispatchers
@@ -467,6 +469,111 @@ class BubbleRegistryTest {
 
     assertThat(printed).contains("place=OVERFLOW")
     assertThat(printed).doesNotContain("example.com")
+  }
+
+  private fun data(url: String = first, incognito: Boolean = false, color: Int = 1) =
+    BubbleLoadData(Website(url), fromMinimize = false, fromAmp = false, incognito = incognito, color = color)
+
+  @Test
+  fun an_add_with_data_stores_it() {
+    val data = data()
+
+    assertThat(registry.add(NativeBubbles, first, false, data).loadData).isSameInstanceAs(data)
+  }
+
+  @Test
+  fun an_add_of_an_open_link_with_new_data_replaces_the_data_and_keeps_the_place_and_the_order() {
+    open(first, second)
+    inOverflow(first)
+    val data = data()
+
+    val again = registry.add(NativeBubbles, first, false, data)
+
+    assertThat(again.loadData).isSameInstanceAs(data)
+    assertThat(again.place).isEqualTo(OVERFLOW)
+    assertThat(registry.find(NativeBubbles, first, false)).isEqualTo(again)
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first, second).inOrder()
+  }
+
+  @Test
+  fun an_add_of_an_open_link_with_no_data_keeps_the_data() {
+    val data = data()
+    registry.add(NativeBubbles, first, false, data)
+
+    assertThat(registry.add(NativeBubbles, first, false).loadData).isSameInstanceAs(data)
+  }
+
+  @Test
+  fun an_update_changes_the_data_of_one_entry() {
+    val untouched = data(second)
+    val opened = registry.add(NativeBubbles, first, false, data())
+    registry.add(NativeBubbles, second, false, untouched)
+    val update = data(color = 2)
+
+    registry.updateLoadData(opened.key, update)
+
+    assertThat(registry.find(opened.key)?.loadData).isSameInstanceAs(update)
+    assertThat(registry.find(NativeBubbles, second, false)?.loadData).isSameInstanceAs(untouched)
+  }
+
+  @Test
+  fun an_update_of_a_key_with_no_entry_changes_nothing_and_emits_nothing() = runTest {
+    open(first)
+
+    registry.bubbles.test {
+      awaitItem()
+      registry.updateLoadData(BubbleKey.of(NativeBubbles, second, false), data(second))
+      expectNoEvents()
+    }
+    assertThat(urls(registry.list(NativeBubbles))).containsExactly(first)
+  }
+
+  @Test
+  fun a_reconcile_keeps_the_data() {
+    val data = data()
+    registry.add(NativeBubbles, first, false, data)
+
+    reconcileTo(at(OVERFLOW, first))
+
+    assertThat(registry.find(NativeBubbles, first, false)?.loadData).isSameInstanceAs(data)
+  }
+
+  @Test
+  fun a_reconcile_that_changes_nothing_emits_nothing_with_data_on_the_entries() = runTest {
+    registry.add(NativeBubbles, first, false, data())
+    reconcileTo(at(STACK, first))
+
+    registry.bubbles.test {
+      awaitItem()
+      reconcileTo(at(STACK, first))
+      expectNoEvents()
+    }
+  }
+
+  @Test
+  fun a_remove_returns_the_entry_and_null_on_a_second_call() {
+    val opened = registry.add(NativeBubbles, first, false, data())
+
+    assertThat(registry.remove(opened.key)).isEqualTo(opened)
+    assertThat(registry.remove(opened.key)).isNull()
+  }
+
+  @Test
+  fun find_by_key_finds_the_entry_and_is_null_after_a_remove() {
+    val opened = registry.add(NativeBubbles, first, false)
+
+    assertThat(registry.find(opened.key)).isEqualTo(opened)
+    registry.remove(opened.key)
+    assertThat(registry.find(opened.key)).isNull()
+  }
+
+  @Test
+  fun an_entry_with_data_prints_no_address() {
+    val normal = registry.add(NativeBubbles, first, false, data())
+    val incognito = registry.add(NativeBubbles, first, true, data(incognito = true))
+
+    assertThat(normal.toString()).doesNotContain("example.com")
+    assertThat(incognito.toString()).doesNotContain("example.com")
   }
 
   @Test

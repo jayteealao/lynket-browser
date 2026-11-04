@@ -20,6 +20,7 @@
 
 package arun.com.chromer.bubbles
 
+import arun.com.chromer.bubbles.system.BubbleLoadData
 import arun.com.chromer.bubbles.system.bubbleNotificationId
 import arun.com.chromer.data.preferences.BrowsingMode
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +54,8 @@ data class OpenBubble(
   val incognito: Boolean,
   val closedOnPurpose: Boolean = false,
   val place: BubblePlace = BubblePlace.STACK,
+  /** What the bubble last posted, so it can post again. Web heads hold none. */
+  val loadData: BubbleLoadData? = null,
 ) {
   val mode: BrowsingMode get() = key.mode
 
@@ -79,20 +82,35 @@ class BubbleRegistry @Inject constructor() {
   val bubbles: StateFlow<List<OpenBubble>> = entries.asStateFlow()
 
   /**
-   * Opens an entry at the end of the list. A link that is already open keeps its entry and place.
-   * Either way the person opened it, so it is no longer closed on purpose.
+   * Opens an entry at the end of the list. A link that is already open keeps its entry and place,
+   * and takes [loadData] when a value comes. Either way the person opened it, so it is no longer
+   * closed on purpose.
    */
-  fun add(mode: BrowsingMode, url: String, incognito: Boolean): OpenBubble = synchronized(lock) {
+  fun add(
+    mode: BrowsingMode,
+    url: String,
+    incognito: Boolean,
+    loadData: BubbleLoadData? = null,
+  ): OpenBubble = synchronized(lock) {
     val key = BubbleKey.of(mode, url, incognito)
     setMarker(key, closed = false)
-    entries.value.find { it.key == key }
-      ?: OpenBubble(key, url, incognito).also { entries.value += it }
+    val open = find(key)
+    when {
+      open == null -> OpenBubble(key, url, incognito, loadData = loadData).also { entries.value += it }
+      loadData == null -> open
+      else -> open.copy(loadData = loadData).also(::replace)
+    }
   }
 
-  /** Takes the entry off the list and does not mark it: a bubble can leave on its own. */
-  fun remove(key: BubbleKey) = synchronized(lock) {
-    entries.value = entries.value.filterNot { it.key == key }
+  /**
+   * Takes the entry off the list and does not mark it: a bubble can leave on its own. Returns the
+   * entry, or null when it had already left.
+   */
+  fun remove(key: BubbleKey): OpenBubble? = synchronized(lock) {
+    find(key).also { entries.value = entries.value.filterNot { it.key == key } }
   }
+
+  fun find(key: BubbleKey): OpenBubble? = entries.value.find { it.key == key }
 
   fun find(mode: BrowsingMode, url: String, incognito: Boolean): OpenBubble? {
     val id = bubbleNotificationId(url, incognito)
@@ -121,6 +139,11 @@ class BubbleRegistry @Inject constructor() {
       gone.map { it.key }
     }
 
+  /** Stores what the bubble of [key] posted last. A bubble that has left stays gone. */
+  fun updateLoadData(key: BubbleKey, loadData: BubbleLoadData) = synchronized(lock) {
+    find(key)?.let { replace(it.copy(loadData = loadData)) }
+  }
+
   fun markClosedOnPurpose(key: BubbleKey) = synchronized(lock) { setMarker(key, closed = true) }
 
   fun isClosedOnPurpose(key: BubbleKey): Boolean = synchronized(lock) { key in closedOnPurpose }
@@ -131,6 +154,10 @@ class BubbleRegistry @Inject constructor() {
    */
   fun returnCandidates(mode: BrowsingMode): List<OpenBubble> =
     overflow(mode).filterNot { it.closedOnPurpose }
+
+  private fun replace(entry: OpenBubble) {
+    entries.value = entries.value.map { if (it.key == entry.key) entry else it }
+  }
 
   private fun setMarker(key: BubbleKey, closed: Boolean) {
     if (closed) closedOnPurpose += key else closedOnPurpose -= key
