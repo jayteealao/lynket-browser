@@ -373,10 +373,14 @@ mode_limits() {
 # The value of the field $1 of the Reconciled line $2.
 reconciled_field() { sed -n "s/.*$1=\([^ ]*\).*/\1/p" <<< "$2"; }
 
-# Starts a Lynket screen, which reconciles, then goes home. Leaves the fields of the new Reconciled
-# line in REC_TOTAL, REC_OVERFLOW and REC_RETURNABLE, the last two as comma-joined ids.
+# Goes home and starts a Lynket screen, which reconciles, then goes home again. A link leaves the
+# home screen of the app on top, and starting that again runs no activity start, hence the first
+# HOME. Leaves the fields of the new Reconciled line in REC_TOTAL, REC_OVERFLOW and REC_RETURNABLE,
+# the last two as comma-joined ids.
 front_reconcile() {
   local lines line=""
+  a shell input keyevent HOME
+  sleep 1
   lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
   a shell am start -n "$PKG/$MAIN" >/dev/null
   for _ in $(seq 1 50); do
