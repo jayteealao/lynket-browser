@@ -13,6 +13,9 @@
 #   overflow-probe.sh <serial> <dir> registry  Opens 24 links and, at 7, 8 and past the overflow
 #                                              limit, compares the app's bubble list with the shell's
 #                                              stack and overflow. Writes registry.tsv.
+#   overflow-probe.sh <serial> <dir> close     Opens 7 links and closes 3 bubbles one at a time; each
+#                                              close must return the newest overflow bubble, with no
+#                                              alert, until the overflow is empty. Writes close.tsv.
 #
 # Needs adb on PATH, Pillow, and the debug build (`assembleDebug`, or APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
@@ -26,8 +29,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits | registry) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry>" >&2; exit 2 ;;
+  dismiss | return | limits | registry | close) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 
@@ -148,7 +151,7 @@ prepare() {
   a shell input keyevent HOME
   sleep 1
   a logcat -c
-  a logcat -v brief BubbleProbe:V BubbleDismissReceiver:V BubbleReconciler:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
+  a logcat -v brief BubbleProbe:V BubbleDismissReceiver:V BubbleReconciler:V NativeFloatingBubble:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
   LOGCAT_PID=$!
   a shell am broadcast -n "$PROBE" --es action clear >/dev/null
   sleep 2
@@ -177,15 +180,9 @@ stack_point() {
 # The overflow button ends the row of 5 bubbles at the top of the screen. The system introduction of
 # the first bubble takes the first tap.
 overflow_panel_capture() {
-  local x y w h
-  read -r x y < <(stack_point shell-start.txt)
+  local w h
+  expand_stack shell-start.txt
   read -r w h < <(screen_size)
-  for _ in 1 2 3; do
-    a shell input tap "$x" "$y"
-    sleep 3
-    shell_bubbles shell-expanded.txt
-    grep -q 'expanded: true' "$OUT/shell-expanded.txt" && break
-  done
   a shell input tap "$((w * 11 / 12))" "$((h * 23 / 300))"
   sleep 3
   shot return-overflow-panel
@@ -195,10 +192,23 @@ overflow_panel_capture() {
   sleep 2
 }
 
-# A drag of the collapsed stack to the dismiss target, held there, as a person does it.
-drag_stack_to_dismiss() {
-  local x y w h target_x target_y step
+# Opens the stack from the shell's dump $1. The system introduction of the first bubble takes the
+# first tap.
+expand_stack() {
+  local x y
   read -r x y < <(stack_point "$1")
+  for _ in 1 2 3; do
+    a shell input tap "$x" "$y"
+    sleep 3
+    shell_bubbles shell-expanded.txt
+    grep -q 'expanded: true' "$OUT/shell-expanded.txt" && return 0
+  done
+  fail "the stack did not open"
+}
+
+# A drag from $1,$2 to the dismiss target, held there, as a person does it.
+drag_to_dismiss() {
+  local x="$1" y="$2" w h target_x target_y step
   read -r w h < <(screen_size)
   target_x=$((w / 2))
   target_y=$((h - 240))
@@ -211,6 +221,21 @@ drag_stack_to_dismiss() {
   sleep 1
   a shell input motionevent UP "$target_x" "$target_y"
   sleep 3
+}
+
+drag_stack_to_dismiss() {
+  local x y
+  read -r x y < <(stack_point "$1")
+  drag_to_dismiss "$x" "$y"
+}
+
+# Opens the stack from the shell's dump $1 and drags the bubble at the left of the row away. Which
+# bubble that is does not matter: the close reads its id from the log.
+drag_bubble_to_dismiss() {
+  local w h
+  expand_stack "$1"
+  read -r w h < <(screen_size)
+  drag_to_dismiss "$((w / 12))" "$((h * 23 / 300))"
 }
 
 dismiss_lines() { grep -c "Bubble dismissed: $1\$" "$OUT/$MODE.logcat.txt" || true; }
@@ -454,6 +479,86 @@ mode_registry() {
     esac
   done
   log "registry done"
+}
+
+# The ids of the lines with the text $1 in the log after line $2, comma-joined, oldest first.
+new_ids() {
+  tail -n +"$(($2 + 1))" "$OUT/$MODE.logcat.txt" | tr -d '\r' | sed -n "s/.*$1 \(-\{0,1\}[0-9]*\)\$/\1/p" | paste -s -d, -
+}
+
+# What Android recorded of the bubble $1, from the shell's dump $2 and the notification dump $3.
+# Leaves SOUND_KEY, FLYOUT and INTERRUPTIVE.
+alert_fields() {
+  SOUND_KEY="$(grep -E 'mSoundNotificationKey|mVibrateNotificationKey' "$OUT/$3" | sed 's/^ *//' | grep -v '=null$' | tr '\n' ' ')"
+  FLYOUT="$(awk -v key="key: 0|$PKG|$1|" 'index($0, key) { on = 1 } on && /showFlyout:/ { print $2; exit }' "$OUT/$2")"
+  INTERRUPTIVE="$(awk -v key="key=0|$PKG|$1|" 'index($0, key) { on = 1 } on && /mIsInterruptive=/ { sub(/.*=/, ""); print; exit }' "$OUT/$3")"
+}
+
+# Runs the close $1 of mode_close and adds its row to close.tsv.
+close_row() {
+  local close="$1" returnable=() expected="" lines closed returned overflow_ids=() returnable_ids=() flag="" expanded selected app id
+  IFS=, read -r -a returnable <<< "$REC_RETURNABLE"
+  [ "${#returnable[@]}" -eq 0 ] || expected="${returnable[-1]}"
+  shell_bubbles "shell-close-$close-before.txt"
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  shot "close-$close-before"
+  drag_bubble_to_dismiss "shell-close-$close-before.txt"
+  shot "close-$close-after"
+  a shell input keyevent HOME
+  sleep 2
+  closed="$(new_ids 'Bubble dismissed:' "$lines")"
+  returned="$(new_ids 'Returned:' "$lines")"
+  shell_bubbles "shell-close-$close-after.txt"
+  read_state "state-close-$close.txt"
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/notification-close-$close.txt"
+  expanded="$(awk '/expanded:/ { print $NF; exit }' "$OUT/shell-close-$close-after.txt")"
+  selected="$(sed -n 's/^ *selected: *//p' "$OUT/shell-close-$close-after.txt" | head -1 | awk -F'|' '{ print (NF > 2 ? $3 : $0) }')"
+  alert_fields "${returned:-none}" "shell-close-$close-after.txt" "notification-close-$close.txt"
+  [ -z "$returned" ] || flag="$(bubble_flag "state-close-$close.txt" "$returned")"
+  app="$(state_count "state-close-$close.txt")"
+  front_reconcile
+  IFS=, read -r -a overflow_ids <<< "$REC_OVERFLOW"
+  IFS=, read -r -a returnable_ids <<< "$REC_RETURNABLE"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "$close" "$closed" "$expected" "$returned" \
+    "$REC_TOTAL" "$REC_OVERFLOW" "$REC_RETURNABLE" "$(IFS=,; echo "${STACK_IDS[*]}")" "$app" "${flag:-none}" "${SOUND_KEY:-none}" \
+    "${FLYOUT:-none}" "${INTERRUPTIVE:-none}" "${expanded:-unknown}" "${selected:-none}" >> "$OUT/close.tsv"
+  log "close=$close closed=$closed expected=${expected:-none} returned=${returned:-none} total=$REC_TOTAL overflow=${#overflow_ids[@]} stack=${#STACK_IDS[@]}"
+
+  [[ "$closed" =~ ^-?[0-9]+$ ]] || fail "close $close has the Bubble dismissed lines \"$closed\", not one"
+  [ "$returned" = "$expected" ] || fail "close $close returned \"$returned\", and the newest overflow bubble is \"$expected\""
+  [ "$REC_TOTAL" -eq "$((TOTAL_BEFORE - 1))" ] || fail "close $close leaves a list of $REC_TOTAL after $TOTAL_BEFORE"
+  TOTAL_BEFORE="$REC_TOTAL"
+  in_list "$closed" "${CLOSED_IDS[@]}" && fail "close $close closed $closed a second time"
+  CLOSED_IDS+=("$closed")
+  for id in "${CLOSED_IDS[@]}"; do
+    in_list "$id" "${STACK_IDS[@]}" "${OVERFLOW_IDS[@]}" "${overflow_ids[@]}" "${returnable_ids[@]}" &&
+      fail "closed id $id is still listed after close $close"
+    [ "$(bubble_flag "state-close-$close.txt" "$id")" = gone ] || fail "closed id $id still has a notification after close $close"
+    tail -n +"$((lines + 1))" "$OUT/$MODE.logcat.txt" | grep -q "Returned: $id\$" && fail "closed id $id returned after close $close"
+  done
+  [ -z "$returned" ] && return 0
+  in_list "$returned" "${STACK_IDS[@]}" || fail "returned id $returned is not in the stack"
+  [ "$flag" = true ] || fail "returned id $returned has no bubble flag"
+  [ "$selected" != "$returned" ] || fail "returned id $returned took the selection"
+  return 0
+}
+
+mode_close() {
+  local n close overflow_ids=()
+  printf 'sdk\tclose\tclosed_id\texpected_id\treturned_ids\ttotal\toverflow_ids\treturnable_ids\tstack_keys\tapp_notifications\treturned_flag\tsound_key\tflyout\tinteractive\texpanded\tselected\n' > "$OUT/close.tsv"
+  for n in 1 2 3 4 5 6 7; do
+    open_bubble "https://example.com/?probe=$RUN-close-$n"
+  done
+  sleep 2
+  front_reconcile
+  shell_bubbles shell-close-start.txt
+  IFS=, read -r -a overflow_ids <<< "$REC_OVERFLOW"
+  [ "${#STACK_IDS[@]}" -eq 5 ] || fail "the stack of this screen holds ${#STACK_IDS[@]} bubbles, not the 5 this mode expects"
+  [ "$REC_TOTAL" -eq 7 ] && [ "${#overflow_ids[@]}" -eq 2 ] || fail "with 7 links the list reads $REC_TOTAL with ${#overflow_ids[@]} in the overflow"
+  TOTAL_BEFORE="$REC_TOTAL"
+  CLOSED_IDS=()
+  for close in 1 2 3; do close_row "$close"; done
+  log "close done"
 }
 
 prepare
