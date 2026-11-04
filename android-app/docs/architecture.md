@@ -99,7 +99,10 @@ per site and a bubble notification that opens the page in `EmbeddableWebViewActi
 bubble posts, `BubbleGate` reads the notification switch, the app's bubble setting, the device
 switch and the conversation's channel; after it posts, the app checks that Android set the bubble
 flag on it. A refused bubble opens its page in a tab, and `BubbleRefusedActivity` shows a snackbar
-above the tab that names the cause and opens the matching Android settings page. Browsing mode
+above the tab that names the cause and opens the matching Android settings page. `BubbleReconciler`
+checks the list of open bubbles against Android's active notifications when a bubble opens, when one
+is dismissed and at each activity start, because Android sends nothing when a bubble ages into the
+overflow or a full overflow drops it. Browsing mode
 explains the choice "All conversations can bubble" and shows the current setting under the Native
 Bubbles row.
 

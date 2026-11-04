@@ -54,6 +54,18 @@ So a bubble that aged out differs from one the person closed in two ways: no del
 - No Lynket row shows in the shade while a bubble is in the overflow, on either version.
 - The newest overflow bubble was read from the order the bubbles left the stack. Android 14 lists the overflow newest first; Android 11 does not list it.
 
+## What the app does with this
+
+`BubbleReconciler` brings the list of open bubbles (`BubbleRegistry`) in line with this read when a bubble opens, when one is dismissed, and at each activity start. An opening or a dismissal can reach it before the flag of an aged bubble clears, so the read at an activity start is the one that a bubble page can rely on.
+
+- A bubble with `FLAG_BUBBLE` reads as in the stack, and an active one without it as in the overflow. A bubble that has just posted reads as in the overflow until its flag shows.
+- A bubble that is no longer active leaves the list with no mark, because the person did not close it. It is not offered for a return.
+- A failed read changes nothing, so a read that throws never loses an open page.
+- The read never adds an entry, so the bubbles that outlive the app's process stay unlisted.
+- The shortcut of a dropped bubble still stays behind.
+
+On the Android 14 emulator, `overflow-probe.sh registry` read 7 open with 2 in the overflow, 8 with 3, and 21 with 16 at 21 links. From link 22 the total stayed at 21, and each dropped bubble left the list with no `Bubble dismissed` line.
+
 ## What clears the stack and the overflow
 
 Measured on Android 14 only.
