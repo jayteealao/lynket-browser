@@ -178,6 +178,64 @@ class NativeBubbleShadeTest : LynketRobolectricSuite() {
     assertSummaryKeepsItsWords()
   }
 
+  private fun bubbleOf(url: String): Notification = bubbles().single { it.shortcutId in bubbleIdsOf(url) }
+
+  private fun Notification.alertsOnce() = flags and Notification.FLAG_ONLY_ALERT_ONCE != 0
+
+  private fun Notification.title() = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+
+  private fun Notification.text() = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+
+  /** Returns the newest of the seven bubbles posted, and reads what that return posted. */
+  private fun assertTheNewestReturnsSilently() {
+    val newest = links.last()
+    val before = bubbleOf(newest)
+    val olderBefore = links.dropLast(1).map(::bubbleOf)
+    val summaryBefore = summary()
+    assertThat(before.alertsOnce()).isFalse()
+
+    awaitReturn()
+
+    // The flag also shows that the return posted: only that post sets it.
+    val after = bubbleOf(newest)
+    assertThat(after).isNotSameInstanceAs(before)
+    assertThat(after.alertsOnce()).isTrue()
+    assertThat(after.bubbleMetadata!!.autoExpandBubble).isFalse()
+    assertThat(after.bubbleMetadata!!.isNotificationSuppressed).isTrue()
+    assertThat(after.fullScreenIntent).isNull()
+    assertThat(after.tickerText).isNull()
+    assertThat(after.title()).isEqualTo(before.title())
+    assertThat(after.text()).isEqualTo(before.text())
+    assertThat(after.shortcutId).isEqualTo(before.shortcutId)
+    assertThat(after.bubbleMetadata!!.deleteIntent).isEqualTo(before.bubbleMetadata!!.deleteIntent)
+
+    // One bubble was posted, and no summary.
+    links.dropLast(1).forEachIndexed { index, url -> assertThat(bubbleOf(url)).isSameInstanceAs(olderBefore[index]) }
+    assertThat(summary()).isSameInstanceAs(summaryBefore)
+
+    val channel = notificationManager.getNotificationChannel(BUBBLE_NOTIFICATION_CHANNEL_ID)
+    assertThat(channel.sound).isNull()
+    assertThat(channel.shouldVibrate()).isFalse()
+
+    assertNoCount(surfaceTexts())
+  }
+
+  @Test
+  fun a_returned_bubble_carries_no_alert() {
+    links.forEach { post(it) }
+
+    assertTheNewestReturnsSilently()
+  }
+
+  @Test
+  fun a_returned_incognito_bubble_carries_no_alert() {
+    postSeven()
+
+    assertTheNewestReturnsSilently()
+
+    assertThat(bubbleOf(links.last()).title()).isEqualTo(application.getString(R.string.bubble_incognito_label))
+  }
+
   private companion object {
     const val HOST = "shade.example"
     const val TITLE = "Shade Distinctive Title"
