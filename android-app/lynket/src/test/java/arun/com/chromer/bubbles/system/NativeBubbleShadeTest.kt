@@ -159,6 +159,25 @@ class NativeBubbleShadeTest : LynketRobolectricSuite() {
     }
   }
 
+  private fun assertSummaryKeepsItsWords() {
+    val extras = summary().extras
+    assertThat(extras.getCharSequence(Notification.EXTRA_TITLE).toString()).isEqualTo("Active bubbles")
+    assertThat(extras.getCharSequence(Notification.EXTRA_TEXT).toString())
+      .isEqualTo("Showing bubble notifications, swipe to expand")
+    assertThat(extras.containsKey(Notification.EXTRA_SUB_TEXT)).isFalse()
+    assertThat(extras.containsKey(Notification.EXTRA_SUMMARY_TEXT)).isFalse()
+    assertThat(extras.containsKey(Notification.EXTRA_BIG_TEXT)).isFalse()
+  }
+
+  @Test
+  fun the_summary_says_what_it_says_today() {
+    post(links.first())
+    assertSummaryKeepsItsWords()
+
+    links.drop(1).forEach { post(it) }
+    assertSummaryKeepsItsWords()
+  }
+
   private companion object {
     const val HOST = "shade.example"
     const val TITLE = "Shade Distinctive Title"
