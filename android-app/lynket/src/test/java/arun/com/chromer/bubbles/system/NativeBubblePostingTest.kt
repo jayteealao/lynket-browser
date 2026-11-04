@@ -30,6 +30,7 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.tabs.TabsManager
 import com.google.common.truth.Truth.assertThat
 import io.mockk.Runs
+import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -45,13 +46,18 @@ import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
+import timber.log.Timber
 
 /**
  * A shared link posts its bubble with no fixed wait: with the site icon when it is ready within
@@ -77,6 +83,19 @@ class NativeBubblePostingTest {
   /** What Android answers to a read of the places; null is a read that failed. */
   private var places: Map<Int, BubblePlace>? = null
   private val readsAt = mutableListOf<Long>()
+  /** How long Android takes to bring back an overflow bubble after its update; null is never. */
+  private var returnAfterMs: Long? = 0L
+  private val backAt = mutableMapOf<Int, Long>()
+  private var failUpdates = false
+  private val postedData = mutableListOf<BubbleLoadData>()
+  private val logs = mutableListOf<String>()
+  private val tree = object : Timber.Tree() {
+    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+      logs += message
+    }
+  }
+
+  private fun isBack(id: Int) = backAt[id]?.let { clock.currentTime >= it } == true
 
   private val repo = mockk<WebsiteRepository> {
     every { getWebsite(any()) } answers { flowOf(Website(firstArg<String>())) }
@@ -93,14 +112,22 @@ class NativeBubblePostingTest {
   private val notifications = mockk<BubbleNotificationManager> {
     coEvery { showBubbles(any(), any()) } coAnswers {
       val data = firstArg<BubbleLoadData>()
-      posts += Post(data.website.url, clock.currentTime, data.icon != null, secondArg(), data.color)
+      val withSummary = secondArg<Boolean>()
+      if (!withSummary && failUpdates) error("The update failed")
+      posts += Post(data.website.url, clock.currentTime, data.icon != null, withSummary, data.color)
+      postedData += data
+      val id = bubbleNotificationId(data.website.url, data.incognito)
+      if (!withSummary) returnAfterMs?.let { backAt[id] = clock.currentTime + it }
       data
     }
-    every { isShownAsBubble(any(), any()) } answers { shown && firstArg<String>() !in notShown }
+    every { isShownAsBubble(any(), any()) } answers {
+      val id = bubbleNotificationId(firstArg(), secondArg())
+      shown && firstArg<String>() !in notShown && (places?.get(id) != BubblePlace.OVERFLOW || isBack(id))
+    }
     every { cancel(any<String>(), any()) } just Runs
     every { bubblePlaces() } answers {
       readsAt += clock.currentTime
-      places
+      places?.mapValues { (id, place) -> if (isBack(id)) BubblePlace.STACK else place }
     }
   }
 
@@ -116,6 +143,12 @@ class NativeBubblePostingTest {
   }
 
   private val registry = BubbleRegistry()
+
+  @Before
+  fun plant() = Timber.plant(tree)
+
+  @After
+  fun uproot() = Timber.uproot(tree)
 
   /** Runs [block] on virtual time with a bubble on the same clock, then runs every job to the end. */
   private fun posting(block: suspend TestScope.(NativeFloatingBubble) -> Unit) = runTest {
@@ -478,6 +511,163 @@ class NativeBubblePostingTest {
   private fun stored(url: String = URL, incognito: Boolean = false) =
     registry.find(keyOf(url, incognito))?.loadData
 
+  private fun TestScope.opened(bubble: NativeFloatingBubble, vararg links: String) = links.forEach {
+    bubble.open(it)
+    advanceUntilIdle()
+  }
+
+  /** Android holds [links] in its overflow and every other open bubble in the stack. */
+  private fun inOverflow(vararg links: String) {
+    places = listed().associate {
+      it.key.notificationId to if (it.url in links) BubblePlace.OVERFLOW else BubblePlace.STACK
+    }
+    posts.clear()
+    postedData.clear()
+  }
+
+  private fun overflow() = registry.overflow(BrowsingMode.NativeBubbles).map { it.url }
+
+  @Test
+  fun the_newest_overflow_bubble_posts_its_stored_data_as_an_update() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE)
+    inOverflow(ONE, TWO)
+    val data = stored(TWO)
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(TWO)
+    assertThat(posts.single().withSummary).isFalse()
+    assertThat(postedData.single()).isSameInstanceAs(data)
+    assertThat(overflow()).containsExactly(ONE)
+  }
+
+  @Test
+  fun two_calls_return_two_bubbles_newest_first_and_the_second_waits_for_the_first_flag() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE)
+    inOverflow(ONE, TWO)
+    returnAfterMs = 1_000
+    val start = currentTime
+
+    bubble.returnNewestOverflowBubble()
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(TWO, ONE).inOrder()
+    assertThat(posts.map { it.at }).containsExactly(start, start + 1_000).inOrder()
+    assertThat(overflow()).isEmpty()
+  }
+
+  @Test
+  fun a_call_with_an_empty_overflow_posts_nothing_and_still_finishes() = posting { bubble ->
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+    var done = 0
+
+    repeat(2) { bubble.returnNewestOverflowBubble { done++ } }
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(ONE)
+    assertThat(done).isEqualTo(2)
+  }
+
+  @Test
+  fun a_bubble_in_the_stack_is_never_posted() = posting { bubble ->
+    opened(bubble, ONE, TWO)
+    inOverflow()
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts).isEmpty()
+  }
+
+  @Test
+  fun a_bubble_closed_on_purpose_is_never_posted() = posting { bubble ->
+    opened(bubble, ONE, TWO)
+    inOverflow(TWO)
+    registry.markClosedOnPurpose(keyOf(TWO))
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts).isEmpty()
+  }
+
+  @Test
+  fun an_incognito_bubble_returns_with_its_data_and_reads_nothing_about_the_site() = posting { bubble ->
+    bubble.open(ONE, incognito = true)
+    advanceUntilIdle()
+    opened(bubble, TWO)
+    inOverflow(ONE)
+    clearMocks(repo, icons, answers = false)
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(ONE)
+    assertThat(postedData.single().incognito).isTrue()
+    verify(exactly = 0) { repo.getWebsite(any()) }
+    coVerify(exactly = 0) { icons.getBubbleIconAndColor(any()) }
+  }
+
+  private fun assertTheReturnFailedQuietly() {
+    assertThat(listed()).hasSize(2)
+    assertThat(overflow()).containsExactly(ONE)
+    assertThat(ShadowToast.shownToastCount()).isEqualTo(0)
+    verify(exactly = 0) { tabsManager.openRefusedBubble(any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { notifications.cancel(any<String>(), any()) }
+    assertThat(logs.filter { it.startsWith("Returned:") }).isEmpty()
+  }
+
+  @Test
+  fun a_failed_return_shows_no_message_and_keeps_the_total() = posting { bubble ->
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+    failUpdates = true
+    var done = 0
+
+    bubble.returnNewestOverflowBubble { done++ }
+    advanceUntilIdle()
+
+    assertThat(done).isEqualTo(1)
+    assertTheReturnFailedQuietly()
+  }
+
+  @Test
+  fun a_flag_that_never_shows_changes_nothing_and_the_next_call_tries_again() = posting { bubble ->
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+    returnAfterMs = null
+    var done = 0
+
+    bubble.returnNewestOverflowBubble { done++ }
+    advanceUntilIdle()
+
+    assertThat(done).isEqualTo(1)
+    assertThat(posts.map { it.url }).containsExactly(ONE)
+    assertTheReturnFailedQuietly()
+
+    returnAfterMs = 0
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(ONE, ONE)
+    assertThat(overflow()).isEmpty()
+  }
+
+  @Test
+  fun the_returned_line_holds_the_id_and_no_address() = posting { bubble ->
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(logs.filter { it.startsWith("Returned:") }).containsExactly("Returned: ${keyOf(ONE).notificationId}")
+    assertThat(logs.filter { "one.example" in it }).isEmpty()
+  }
+
   private fun postedBubble(url: String = URL): Notification? =
     shadowOf(application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
       .allNotifications.singleOrNull { it.shortcutId == bubbleConversationId(url) }
@@ -583,5 +773,8 @@ class NativeBubblePostingTest {
 
   private companion object {
     const val URL = "https://example.com/bubble"
+    const val ONE = "https://one.example/"
+    const val TWO = "https://two.example/"
+    const val THREE = "https://three.example/"
   }
 }

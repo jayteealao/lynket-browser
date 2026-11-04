@@ -87,6 +87,9 @@ constructor(
    */
   private val postLocks = HashMap<String, PostLock>()
 
+  /** One return at a time: see [returnNewestOverflowBubble]. */
+  private val returnLock = Mutex()
+
   private class PostLock {
     val mutex = Mutex()
     /** Sends of the link that hold or wait for [mutex]; read and written under postLocks. */
@@ -165,6 +168,34 @@ constructor(
         bubbleRegistry.updateLoadData(BubbleKey.of(BrowsingMode.NativeBubbles, url, initial.incognito), late)
       }
     }
+  }
+
+  /**
+   * Posts the newest overflow bubble again after the person closed a bubble in the stack, with no
+   * alert. Returns run one at a time and each waits for Android's flag, so a close that follows reads
+   * where this bubble went. A return that fails says nothing: the bubble stays in the overflow.
+   */
+  fun returnNewestOverflowBubble(done: () -> Unit = {}) {
+    scope.launch {
+      try {
+        returnLock.withLock { returnNewest() }
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e)
+      } finally {
+        done()
+      }
+    }
+  }
+
+  private suspend fun returnNewest() {
+    bubbleReconciler.reconcile()
+    val bubble = bubbleRegistry.returnCandidates(BrowsingMode.NativeBubbles).lastOrNull() ?: return
+    val data = bubble.loadData ?: return
+    bubbleNotificationManager.showBubbles(data, withSummary = false)
+    if (shownAsBubble(bubble.url, bubble.incognito)) Timber.d("Returned: %d", bubble.key.notificationId)
+    bubbleReconciler.reconcile()
   }
 
   /** The site read, with its icon and colour, of a normal bubble. */
