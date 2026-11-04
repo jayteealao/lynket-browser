@@ -559,8 +559,26 @@ class NativeBubblePostingTest {
     advanceUntilIdle()
 
     assertThat(posts.map { it.url }).containsExactly(TWO, ONE).inOrder()
-    assertThat(posts.map { it.at }).containsExactly(start, start + 1_000).inOrder()
+    assertThat(posts.map { it.at }).containsExactly(start + SETTLE_MS, start + SETTLE_MS + 1_000).inOrder()
     assertThat(overflow()).isEmpty()
+  }
+
+  @Test
+  fun a_drag_of_the_stack_returns_the_overflow_bubble_and_not_a_bubble_android_is_closing() = posting { bubble ->
+    opened(bubble, ONE, TWO, THREE)
+    // Android took the flag off the whole stack at once, and its delete intents are on the way.
+    inOverflow(ONE, TWO, THREE)
+
+    bubble.returnNewestOverflowBubble()
+    advanceTimeBy(50)
+    personDismisses(TWO)
+    bubble.returnNewestOverflowBubble()
+    advanceTimeBy(50)
+    personDismisses(THREE)
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).containsExactly(ONE)
   }
 
   @Test
@@ -671,7 +689,7 @@ class NativeBubblePostingTest {
     bubble.returnNewestOverflowBubble()
     advanceTimeBy(1_000)
 
-    assertThat(posts.map { it.at to it.withIcon }).containsExactly(1_000L to false)
+    assertThat(posts.map { it.at to it.withIcon }).containsExactly(1_000L + SETTLE_MS to false)
 
     advanceUntilIdle()
 
@@ -735,7 +753,7 @@ class NativeBubblePostingTest {
     iconDelayMs = 1_000
 
     bubble.returnNewestOverflowBubble()
-    advanceTimeBy(500)
+    advanceTimeBy(SETTLE_MS + 500)
     personDismisses(ONE)
     advanceUntilIdle()
 
@@ -755,9 +773,10 @@ class NativeBubblePostingTest {
     bubble.returnNewestOverflowBubble()
     advanceUntilIdle()
 
+    val returned = start + SETTLE_MS
     assertThat(posts.filterNot { it.withIcon }.map { it.url to it.at })
-      .containsExactly(TWO to start, ONE to start).inOrder()
-    assertThat(posts.filter { it.withIcon }.map { it.at }).containsExactly(start + 5_000, start + 5_000)
+      .containsExactly(TWO to returned, ONE to returned).inOrder()
+    assertThat(posts.filter { it.withIcon }.map { it.at }).containsExactly(returned + 5_000, returned + 5_000)
   }
 
   @Test
@@ -877,6 +896,8 @@ class NativeBubblePostingTest {
 
   private companion object {
     const val URL = "https://example.com/bubble"
+    /** How long a return waits for the delete intents of one drag. */
+    const val SETTLE_MS = 500L
     const val ONE = "https://one.example/"
     const val TWO = "https://two.example/"
     const val THREE = "https://three.example/"

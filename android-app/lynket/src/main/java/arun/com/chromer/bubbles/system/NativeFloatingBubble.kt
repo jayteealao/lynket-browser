@@ -175,10 +175,16 @@ constructor(
    * Posts the newest overflow bubble again after the person closed a bubble in the stack, with no
    * alert. Returns run one at a time and each waits for Android's flag, so a close that follows reads
    * where this bubble went. A return that fails says nothing: the bubble stays in the overflow.
+   *
+   * A drag of the stack takes the flag off every bubble in it at once, and their delete intents
+   * follow one by one, so until they arrive a closed bubble reads like an overflow bubble. The wait
+   * lets them arrive. sdlc-debt: a fixed wait; a delete intent later than it posts its closed bubble
+   * for a moment. A read that tells a closing bubble from an aged one would replace it.
    */
   fun returnNewestOverflowBubble(done: () -> Unit = {}) {
     scope.launch {
       try {
+        delay(CLOSES_SETTLE_MS)
         returnLock.withLock { returnNewest() }
       } catch (e: CancellationException) {
         throw e
@@ -254,5 +260,7 @@ constructor(
     const val ICON_WAIT_MS = 300L
     const val FLAG_READS = 7
     const val FLAG_READ_INTERVAL_MS = 250L
+    /** The time the delete intents of one drag take to arrive. */
+    const val CLOSES_SETTLE_MS = 500L
   }
 }

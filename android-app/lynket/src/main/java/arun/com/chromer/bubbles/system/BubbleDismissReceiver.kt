@@ -61,11 +61,14 @@ class BubbleDismissReceiver : BroadcastReceiver() {
     bubbleRegistry.markClosedOnPurpose(key)
     val closed = bubbleRegistry.remove(key)
     bubbleNotificationManager.dismissed(id)
-    bubbleReconciler.reconcile()
-    // A close in the overflow leaves the stack full, and a second delete intent finds no entry.
+    // A close in the overflow leaves the stack full, and a second delete intent finds no entry. A
+    // close in the stack reconciles in the return, after the rest of a drag has arrived: a read now
+    // would file those closing bubbles under the overflow, and their closes would ask for no return.
+    // The broadcast does not stay open for the return, or Android would hold those closes back.
     if (closed?.place == BubblePlace.STACK) {
-      val pending: PendingResult? = goAsync()
-      nativeFloatingBubble.returnNewestOverflowBubble { pending?.finish() }
+      nativeFloatingBubble.returnNewestOverflowBubble()
+    } else {
+      bubbleReconciler.reconcile()
     }
   }
 }

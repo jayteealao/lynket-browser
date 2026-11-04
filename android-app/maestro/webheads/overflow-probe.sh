@@ -16,6 +16,10 @@
 #   overflow-probe.sh <serial> <dir> close     Opens 7 links and closes 3 bubbles one at a time; each
 #                                              close must return the newest overflow bubble, with no
 #                                              alert, until the overflow is empty. Writes close.tsv.
+#   overflow-probe.sh <serial> <dir> close-stack
+#                                              Opens 7 links and drags the collapsed stack away; each
+#                                              of its 5 closes may return one bubble, so 2 come back,
+#                                              with no alert and no expansion. Writes close-stack.tsv.
 #
 # Needs adb on PATH, Pillow, and the debug build (`assembleDebug`, or APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
@@ -29,8 +33,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits | registry | close) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close>" >&2; exit 2 ;;
+  dismiss | return | limits | registry | close | close-stack) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 
@@ -561,5 +565,60 @@ mode_close() {
   log "close done"
 }
 
+mode_close_stack() {
+  local n lines attempt returnable=() closed=() returned=() sound_keys="" flyouts="" interrupted="" heads_up expanded id overflow_ids=()
+  printf 'sdk\tdismissed_count\treturned_ids\ttotal\tstack_keys\toverflow_ids\tsound_key\tflyout\theads_up_in_shots\tinterruptive\texpanded\n' > "$OUT/close-stack.tsv"
+  for n in 1 2 3 4 5 6 7; do
+    open_bubble "https://example.com/?probe=$RUN-stack-$n"
+  done
+  sleep 2
+  front_reconcile
+  IFS=, read -r -a returnable <<< "$REC_RETURNABLE"
+  [ "${#returnable[@]}" -eq 2 ] || fail "with 7 links ${#returnable[@]} bubbles can return, not 2"
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  for attempt in 1 2 3; do
+    shell_bubbles shell-closestack-before.txt
+    shot return-closestack-before
+    drag_stack_to_dismiss shell-closestack-before.txt
+    [ -n "$(new_ids 'Bubble dismissed:' "$lines")" ] && break
+    # The system introduction of the first bubble takes the first touch.
+    a shell input keyevent BACK
+    sleep 2
+  done
+  for n in 1 2 3 4; do shot "return-closestack-shot-$n"; sleep 0.2; done
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/notification-closestack.txt"
+  shell_bubbles shell-closestack-after.txt
+  IFS=, read -r -a closed <<< "$(new_ids 'Bubble dismissed:' "$lines")"
+  IFS=, read -r -a returned <<< "$(new_ids 'Returned:' "$lines")"
+  for id in "${returned[@]}"; do
+    alert_fields "$id" shell-closestack-after.txt notification-closestack.txt
+    sound_keys="$sound_keys${SOUND_KEY:-}"
+    flyouts="$flyouts${FLYOUT:-none} "
+    interrupted="$interrupted${INTERRUPTIVE:-none} "
+  done
+  heads_up="$(heads_up_in_shots closestack)"
+  expanded="$(awk '/expanded:/ { print $NF; exit }' "$OUT/shell-closestack-after.txt")"
+  front_reconcile
+  IFS=, read -r -a overflow_ids <<< "$REC_OVERFLOW"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "${#closed[@]}" "$(IFS=,; echo "${returned[*]}")" "$REC_TOTAL" \
+    "$(IFS=,; echo "${STACK_IDS[*]}")" "$REC_OVERFLOW" "${sound_keys:-none}" "$flyouts" "$heads_up" "$interrupted" "${expanded:-unknown}" >> "$OUT/close-stack.tsv"
+  log "drags=$attempt closed=${#closed[@]} returned=${returned[*]} total=$REC_TOTAL stack=${#STACK_IDS[@]} heads_up=$heads_up expanded=$expanded"
+
+  [ "${#closed[@]}" -eq 5 ] || fail "the drag gave ${#closed[@]} Bubble dismissed lines, not 5"
+  [ "${#returned[@]}" -eq 2 ] || fail "the drag gave ${#returned[@]} Returned lines, not 2"
+  [ "${returned[0]}" = "${returnable[1]}" ] && [ "${returned[1]}" = "${returnable[0]}" ] ||
+    fail "the returns ran ${returned[*]}, and the overflow newest first is ${returnable[1]} ${returnable[0]}"
+  [ "$REC_TOTAL" -eq 2 ] || fail "the list holds $REC_TOTAL after the drag, not 2"
+  for id in "${returned[@]}"; do
+    in_list "$id" "${STACK_IDS[@]}" || fail "returned id $id is not in the stack"
+  done
+  [ "$expanded" = false ] || fail "the stack is expanded after the returns"
+  [ -z "$sound_keys" ] || fail "a return took the sound or the vibration: $sound_keys"
+  [ "$flyouts" = "false false " ] || fail "a return showed a flyout: $flyouts"
+  [ "$interrupted" = "false false " ] || fail "a return was marked interruptive: $interrupted"
+  [ "$heads_up" = false ] || fail "the shots show a heads-up row"
+  log "close-stack done"
+}
+
 prepare
-"mode_$MODE"
+"mode_${MODE//-/_}"

@@ -73,6 +73,11 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
   @After
   fun waitForTheReturns() {
     registry.bubbles.value.forEach { registry.remove(it.key) }
+    awaitReturns()
+  }
+
+  /** Returns run in the order they were asked for, so this one ends after the others. */
+  private fun awaitReturns() {
     val finished = CountDownLatch(1)
     nativeFloatingBubble.returnNewestOverflowBubble { finished.countDown() }
     assertThat(finished.await(WAIT_FOR_RETURNS_S, TimeUnit.SECONDS)).isTrue()
@@ -279,6 +284,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     notificationManager.cancel(bubbleNotificationId(first))
     post("https://secret.example/three")
     dismiss(second)
+    awaitReturns()
 
     assertThat(listed()).containsExactly("https://secret.example/three")
     assertThat(registry.isClosedOnPurpose(keyOf(first))).isFalse()
@@ -291,6 +297,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     post(second)
 
     dismiss(first)
+    awaitReturns()
 
     assertThat(registry.find(BrowsingMode.NativeBubbles, second, false)?.place).isEqualTo(BubblePlace.OVERFLOW)
     assertThat(registry.isClosedOnPurpose(keyOf(second))).isFalse()
@@ -303,6 +310,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     post(first)
 
     dismiss(first)
+    awaitReturns()
 
     assertThat(listed()).containsExactly(aged)
     assertThat(registry.isClosedOnPurpose(keyOf(aged))).isFalse()
@@ -337,6 +345,28 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
 
     assertThat(returned(third)).isTrue()
     assertThat(alertsOnce(second)).isFalse()
+  }
+
+  @Test
+  fun each_close_of_a_drag_asks_for_a_return_while_the_others_are_on_the_way() {
+    val third = "https://secret.example/three"
+    val fourth = "https://secret.example/four"
+    listOf(first, second, third, fourth).forEach { post(it) }
+    val places = mapOf(
+      bubbleNotificationId(first) to BubblePlace.OVERFLOW,
+      bubbleNotificationId(second) to BubblePlace.OVERFLOW,
+      bubbleNotificationId(third) to BubblePlace.STACK,
+      bubbleNotificationId(fourth) to BubblePlace.STACK,
+    )
+    registry.reconcile(BrowsingMode.NativeBubbles) { places }
+
+    // As in a drag: neither bubble has its flag any more when the delete intents arrive.
+    dismiss(third)
+    dismiss(fourth)
+
+    assertThat(returned(second)).isTrue()
+    showInStack(second)
+    assertThat(returned(first)).isTrue()
   }
 
   @Test
@@ -425,7 +455,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     const val TITLE = "Secret Distinctive Title"
     const val RETURN_POLLS = 100
     const val RETURN_POLL_MS = 50L
-    const val SETTLE_MS = 750L
+    const val SETTLE_MS = 1_500L
     const val WAIT_FOR_RETURNS_S = 10L
   }
 }
