@@ -179,7 +179,8 @@ prepare() {
   a shell input keyevent HOME
   sleep 1
   a logcat -c
-  a logcat -v brief BubbleProbe:V BubbleDismissReceiver:V BubbleReconciler:V NativeFloatingBubble:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
+  # adb itself, so the kill in finish reaches it: a subshell would leave it holding the log file.
+  adb -s "$SERIAL" logcat -v brief BubbleProbe:V BubbleDismissReceiver:V BubbleReconciler:V NativeFloatingBubble:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
   LOGCAT_PID=$!
   a shell am broadcast -n "$PROBE" --es action clear >/dev/null
   sleep 2
@@ -700,10 +701,16 @@ mode_close_icon() {
   log "close-icon done"
 }
 
-# Taps the bubble $1 in the row of the open stack, from the last read of the shell. The row has six
-# slots: the stack, then the overflow button.
+# Shows the page of the bubble $1 in the open stack, from the last read of the shell. The row has six
+# slots: the stack, then the overflow button. A tap on the selected bubble would close the stack, and
+# its page already shows.
 tap_row_bubble() {
-  local i w h
+  local i w h selected
+  selected="$(sed -n 's/^ *selected: *//p' "$OUT/shell-expanded.txt" | head -1 | awk -F'|' '{ print (NF > 2 ? $3 : $0) }')"
+  if [ "$selected" = "$1" ]; then
+    sleep 5
+    return 0
+  fi
   read -r w h < <(screen_size)
   for i in "${!STACK_IDS[@]}"; do
     if [ "${STACK_IDS[$i]}" = "$1" ]; then
@@ -715,13 +722,13 @@ tap_row_bubble() {
   fail "bubble $1 is not in the stack: ${STACK_IDS[*]}"
 }
 
-# Saves the screen as $1.png, and what a dump of every window holds of the count as $1.txt with its
-# text in PAGE_TEXT. The screenshot is the evidence: the dump is a second reading, and may be empty.
+# Saves the screen as $1.png, and what a dump of every window holds of the count as $1.dump.txt with
+# its text in PAGE_TEXT. The screenshot is the evidence: the dump is a second reading, and may be empty.
 page_text() {
   shot "$1"
   a shell uiautomator dump --windows /sdcard/overflow-probe-ui.xml >/dev/null 2>&1 || true
-  a exec-out cat /sdcard/overflow-probe-ui.xml | tr -d '\r' | tr '>' '\n' | grep -F 'webview-count' > "$OUT/$1.txt" || true
-  PAGE_TEXT="$(sed -n 's/.* text="\([^"]*\)".*/\1/p' "$OUT/$1.txt" | head -1)"
+  a exec-out cat /sdcard/overflow-probe-ui.xml | tr -d '\r' | tr '>' '\n' | grep -F 'webview-count' > "$OUT/$1.dump.txt" || true
+  PAGE_TEXT="$(sed -n 's/.* text="\([^"]*\)".*/\1/p' "$OUT/$1.dump.txt" | head -1)"
 }
 
 # The place of the bubble $1 in OPEN_IDS, from 1, as the count reads it.
