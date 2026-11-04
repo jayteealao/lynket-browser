@@ -20,6 +20,11 @@
 #                                              Opens 7 links and drags the collapsed stack away; each
 #                                              of its 5 closes may return one bubble, so 2 come back,
 #                                              with no alert and no expansion. Writes close-stack.tsv.
+#   overflow-probe.sh <serial> <dir> close-icon
+#                                              Opens a link whose icon is held back (slow-icon-server.py),
+#                                              lets it age out and returns it with a close; it must show
+#                                              the colour disc, then the icon in place. Writes
+#                                              close-icon.tsv.
 #
 # Needs adb on PATH, Pillow, and the debug build (`assembleDebug`, or APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
@@ -33,8 +38,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits | registry | close | close-stack) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack>" >&2; exit 2 ;;
+  dismiss | return | limits | registry | close | close-stack | close-icon) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 
@@ -50,6 +55,8 @@ SDK="$(a shell getprop ro.build.version.sdk | tr -d '\r')"
 RUN="$(date +%s)"
 APK="${APK:-$(dirname "${BASH_SOURCE[0]}")/../../lynket/build/outputs/apk/debug/lynket-debug.apk}"
 LOGCAT_PID=""
+ICON_PORT=8799
+ICON_SERVER_PID=""
 STACK_IDS=()
 OVERFLOW_IDS=()
 OVERFLOW_COUNT=""
@@ -58,6 +65,7 @@ declare -A URL_OF
 
 finish() {
   [ -z "$LOGCAT_PID" ] || kill "$LOGCAT_PID" 2>/dev/null || true
+  [ -z "$ICON_SERVER_PID" ] || { kill "$ICON_SERVER_PID" 2>/dev/null; a reverse --remove "tcp:$ICON_PORT"; } || true
 }
 trap finish EXIT
 
@@ -618,6 +626,62 @@ mode_close_stack() {
   [ "$interrupted" = "false false " ] || fail "a return was marked interruptive: $interrupted"
   [ "$heads_up" = false ] || fail "the shots show a heads-up row"
   log "close-stack done"
+}
+
+# The share of the row of the open stack that differs between the shots $1 and $2.
+row_changed_share() {
+  python - "$OUT/$1.png" "$OUT/$2.png" <<'PY'
+import sys
+from PIL import Image, ImageChops
+first, second = (Image.open(path).convert("RGB") for path in sys.argv[1:3])
+w, h = first.size
+box = (0, int(h * 0.04), w, int(h * 0.11))
+data = ImageChops.difference(first.crop(box), second.crop(box)).convert("L").point(lambda v: 255 if v > 24 else 0).histogram()
+print(round(data[255] / ((box[2] - box[0]) * (box[3] - box[1])), 4))
+PY
+}
+
+mode_close_icon() {
+  local n id lines returned in_stack=false share copies
+  python "$(hostpath "$HERE/slow-icon-server.py")" "$ICON_PORT" > "$OUT/slow-icon-server.txt" 2>&1 &
+  ICON_SERVER_PID=$!
+  sleep 1
+  kill -0 "$ICON_SERVER_PID" 2>/dev/null || fail "the icon server could not start; is port $ICON_PORT taken?"
+  a reverse "tcp:$ICON_PORT" "tcp:$ICON_PORT" >/dev/null
+  printf 'sdk\tid\treturned\tin_stack\tchanged_share\n' > "$OUT/close-icon.tsv"
+  open_bubble "http://localhost:$ICON_PORT/?probe=$RUN"
+  id="$OPENED"
+  for n in 1 2 3 4 5; do
+    open_bubble "https://example.com/?probe=$RUN-icon-$n"
+  done
+  sleep 2
+  front_reconcile
+  [ "$REC_RETURNABLE" = "$id" ] || fail "the slow link $id is not the one bubble in the overflow: \"$REC_RETURNABLE\""
+  shell_bubbles shell-icon-before.txt
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  drag_bubble_to_dismiss shell-icon-before.txt
+  # The stack stays open: the row shows the returned bubble wherever Android puts it, and a collapsed
+  # stack shows only its front bubble.
+  shot close-icon-disc
+  curl -s -m 5 "localhost:$ICON_PORT/release" >/dev/null || fail "the icon server did not answer"
+  sleep 8
+  shot close-icon-done
+  a shell input keyevent HOME
+  sleep 2
+  returned="$(new_ids 'Returned:' "$lines")"
+  shell_bubbles shell-icon-after.txt
+  read_state state-icon-after.txt
+  in_list "$id" "${STACK_IDS[@]}" && in_stack=true
+  share="$(row_changed_share close-icon-disc close-icon-done)"
+  copies="$(grep -c "state id=$id " "$OUT/state-icon-after.txt" || true)"
+  printf '%s\t%s\t%s\t%s\t%s\n' "$SDK" "$id" "$returned" "$in_stack" "$share" >> "$OUT/close-icon.tsv"
+  log "id=$id returned=$returned in_stack=$in_stack notifications=$copies changed_share=$share"
+
+  [ "$returned" = "$id" ] || fail "the close returned \"$returned\", not the one bubble $id"
+  [ "$in_stack" = true ] || fail "the returned bubble left the stack"
+  [ "$copies" -eq 1 ] || fail "the returned bubble has $copies notifications"
+  python -c "import sys; sys.exit(0 if $share > 0.002 else 1)" || fail "the row did not change when the icon arrived"
+  log "close-icon done"
 }
 
 prepare

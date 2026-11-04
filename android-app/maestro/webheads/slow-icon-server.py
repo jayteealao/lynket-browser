@@ -17,7 +17,8 @@ SIZE = 192
 COLOUR = bytes((0xE6, 0x51, 0x00))
 TRICKLE_S = 2
 FIRST_BYTES = 64
-PAGE = b'<!doctype html><title>Slow icon</title><link rel="icon" href="/icon.png"><p>Slow icon</p>'
+# The app reads a page only up to the end of its head, so the head must close.
+PAGE = b'<!doctype html><html><head><title>Slow icon</title><link rel="icon" href="/icon.png"></head><body><p>Slow icon</p></body></html>'
 
 released = threading.Event()
 
@@ -50,7 +51,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?")[0]
         if path == "/":
-            self.respond("text/html", PAGE)
+            self.respond("text/html; charset=utf-8", PAGE)
         elif path == "/release":
             released.set()
             self.respond("text/plain", b"released\n")
