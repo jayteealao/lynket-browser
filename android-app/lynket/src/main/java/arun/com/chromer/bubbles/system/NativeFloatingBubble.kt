@@ -27,6 +27,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.bubbles.OpenBubble
@@ -232,14 +233,17 @@ constructor(
     try {
       withPostLock(bubble.url) {
         val current = bubbleRegistry.find(bubble.key)?.loadData ?: return@withPostLock
-        val update = if (current.icon != null) current else {
-          val loaded = withDetails(current)
-          current.copy(icon = loaded.icon, color = loaded.color)
-        }
-        if (update.icon != null && bubbleRegistry.find(bubble.key) != null) {
+        if (current.icon != null) return@withPostLock
+        val loaded = withDetails(current)
+        val update = current.copy(icon = loaded.icon, color = loaded.color)
+        if (update.icon == null) return@withPostLock
+        // A post brings a bubble back to the stack, so one that aged out during the load only keeps
+        // the icon for its next return.
+        bubbleReconciler.reconcile()
+        if (bubbleRegistry.find(bubble.key)?.place == BubblePlace.STACK) {
           bubbleNotificationManager.showBubbles(update, withSummary = false)
-          bubbleRegistry.updateLoadData(bubble.key, update)
         }
+        bubbleRegistry.updateLoadData(bubble.key, update)
       }
     } catch (e: CancellationException) {
       throw e

@@ -682,6 +682,26 @@ class NativeBubblePostingTest {
   }
 
   @Test
+  fun a_bubble_that_ages_out_while_its_icon_loads_keeps_the_icon_and_posts_nothing() = posting { bubble ->
+    failingIconLoads = 2
+    iconDelayMs = 1_000
+    opened(bubble, ONE, TWO)
+    backAt.clear()
+    inOverflow(ONE)
+    failingIconLoads = 0
+
+    bubble.returnNewestOverflowBubble()
+    advanceTimeBy(SETTLE_MS + 100)
+    assertThat(posts.map { it.url }).containsExactly(ONE)
+    inOverflow(ONE)
+    backAt.clear()
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).isEmpty()
+    assertThat(stored(ONE)?.icon).isNotNull()
+  }
+
+  @Test
   fun a_failed_return_ends_the_closes_that_wait_behind_it() = posting { bubble ->
     opened(bubble, ONE, TWO, THREE)
     inOverflow(ONE, TWO)
