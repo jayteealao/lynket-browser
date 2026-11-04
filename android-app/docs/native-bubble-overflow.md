@@ -96,7 +96,7 @@ On the Android 14 emulator, `overflow-probe.sh count` read 3 of 7 with 2 in the 
 A close in the stack posts the newest overflow bubble again, from the data that bubble last posted.
 
 - Newest means last in open order. A link sent again keeps its first place, although Android moves it to the front, so the two can differ for a link sent twice.
-- Every update of a posted bubble carries `FLAG_ONLY_ALERT_ONCE`, so the post is the silent `same` re-post of the tables above, rebuilt rather than cloned.
+- Every post with `withSummary = false`, a return or a late icon, carries `FLAG_ONLY_ALERT_ONCE`, so the post is the silent `same` re-post of the tables above, rebuilt rather than cloned. A link sent again takes the normal path and can alert.
 - One return runs at a time, and each waits up to 1.5 s for the flag, so the next return reads where this bubble went.
 - A close in the overflow returns nothing, and neither does a second delete intent for one close.
 - A failed return changes nothing and says nothing: the bubble stays in the overflow, the closes already waiting give up, and the next close tries it again.
