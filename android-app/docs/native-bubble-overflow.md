@@ -54,6 +54,23 @@ So a bubble that aged out differs from one the person closed in two ways: no del
 - No Lynket row shows in the shade while a bubble is in the overflow, on either version.
 - The newest overflow bubble was read from the order the bubbles left the stack. Android 14 lists the overflow newest first; Android 11 does not list it.
 
+## The shade
+
+Read with `overflow-probe.sh shade` on 2026-11-04, with the summary and every bubble notification active. The seventh link has a long address.
+
+| Open | Android 14 | Android 11 |
+|---|---|---|
+| 1 bubble | No Lynket row. 2 notifications of the app are active | No Lynket row. 2 active |
+| 7 bubbles, 2 of them in the overflow | No Lynket row. 8 active | No Lynket row. 8 active |
+| 7 bubbles, with a page on screen that reads 3 of 7 | No Lynket row. 8 active | No Lynket row. 8 active |
+
+- No notification, summary or shortcut text holds the count, at any of the three points, on either version. The count is drawn in the page and nowhere else.
+- The summary keeps its text, "Active bubbles" and "Showing bubble notifications, swipe to expand". It stays active, and Android hides it while a bubble is open.
+- With a page on screen, the screenshot is the evidence for the row: the dump of the screen can read the page and not the shade. The shade is see-through on Android 11, so the page or the stack can show behind it.
+- A phone maker's own build was not measured, so a row there is not ruled out.
+
+`NativeBubbleShadeTest` holds the text on the JVM: no count in what the manager posts, the summary's words, and no alert on a returned bubble.
+
 ## What the app does with this
 
 `BubbleReconciler` brings the list of open bubbles (`BubbleRegistry`) in line with this read when a bubble opens, when one is dismissed, and at each activity start. An opening or a dismissal can reach it before the flag of an aged bubble clears, so the read at an activity start is the one that a bubble page can rely on.
