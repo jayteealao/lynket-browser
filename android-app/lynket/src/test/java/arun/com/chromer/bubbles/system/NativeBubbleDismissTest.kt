@@ -26,6 +26,7 @@ import arun.com.chromer.data.website.model.Website
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.robolectric.Shadows.shadowOf
@@ -33,6 +34,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 import org.robolectric.shadows.ShadowShortcutManager
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
@@ -49,6 +52,9 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
   @Inject
   lateinit var registry: BubbleRegistry
 
+  @Inject
+  lateinit var nativeFloatingBubble: NativeFloatingBubble
+
   private val notificationManager: NotificationManager
     get() = application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -60,11 +66,24 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     RecordingShortcutManagerShadow.removedLongLived.clear()
   }
 
+  /**
+   * A return runs on a real thread, and the notifications of Robolectric outlive a test, so a return
+   * still running would post into the next test. An empty list stops it, and a last call waits for it.
+   */
+  @After
+  fun waitForTheReturns() {
+    registry.bubbles.value.forEach { registry.remove(it.key) }
+    val finished = CountDownLatch(1)
+    nativeFloatingBubble.returnNewestOverflowBubble { finished.countDown() }
+    assertThat(finished.await(WAIT_FOR_RETURNS_S, TimeUnit.SECONDS)).isTrue()
+  }
+
   private fun website(url: String) = Website(TITLE, url, null, null, null, null, false, 0, 0)
 
   private fun post(url: String, incognito: Boolean = false) {
-    runBlocking { manager.showBubbles(BubbleLoadData(website(url), false, false, incognito)) }
-    registry.add(BrowsingMode.NativeBubbles, url, incognito)
+    val data = BubbleLoadData(website(url), false, false, incognito)
+    runBlocking { manager.showBubbles(data) }
+    registry.add(BrowsingMode.NativeBubbles, url, incognito, data)
   }
 
   private fun listed() = registry.list(BrowsingMode.NativeBubbles).map { it.url }
@@ -289,6 +308,112 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     assertThat(registry.isClosedOnPurpose(keyOf(aged))).isFalse()
   }
 
+  private fun alertsOnce(url: String) =
+    notificationOf(url)?.let { it.flags and Notification.FLAG_ONLY_ALERT_ONCE != 0 } == true
+
+  /** A return runs on an IO thread, so its post is polled for, for up to 5 s. */
+  private fun returned(url: String): Boolean {
+    repeat(RETURN_POLLS) {
+      if (alertsOnce(url)) return true
+      Thread.sleep(RETURN_POLL_MS)
+    }
+    return false
+  }
+
+  /** What Android does to a bubble in the stack. */
+  private fun showInStack(url: String) {
+    notificationOf(url)!!.flags = notificationOf(url)!!.flags or Notification.FLAG_BUBBLE
+  }
+
+  /** The time a return that must not happen gets to show. */
+  private fun settle() = Thread.sleep(SETTLE_MS)
+
+  @Test
+  fun a_close_in_the_stack_posts_the_newest_overflow_bubble_again() {
+    val third = "https://secret.example/three"
+    listOf(first, second, third).forEach { post(it) }
+
+    dismiss(first)
+
+    assertThat(returned(third)).isTrue()
+    assertThat(alertsOnce(second)).isFalse()
+  }
+
+  @Test
+  fun a_close_in_the_overflow_posts_nothing_and_stays_closed() {
+    val third = "https://secret.example/three"
+    listOf(first, second, third).forEach { post(it) }
+    val places = mapOf(
+      bubbleNotificationId(first) to BubblePlace.OVERFLOW,
+      bubbleNotificationId(second) to BubblePlace.OVERFLOW,
+      bubbleNotificationId(third) to BubblePlace.STACK,
+    )
+    registry.reconcile(BrowsingMode.NativeBubbles) { places }
+
+    dismiss(first)
+    settle()
+
+    assertThat(alertsOnce(second)).isFalse()
+    assertThat(alertsOnce(third)).isFalse()
+    assertThat(listed()).containsExactly(second, third).inOrder()
+    assertThat(registry.isClosedOnPurpose(keyOf(first))).isTrue()
+  }
+
+  @Test
+  fun a_delete_intent_sent_twice_posts_one_bubble() {
+    val third = "https://secret.example/three"
+    listOf(first, second, third).forEach { post(it) }
+
+    val sent = dismiss(first)
+    BubbleDismissReceiver().onReceive(application, sent)
+
+    assertThat(returned(third)).isTrue()
+    showInStack(third)
+    settle()
+    assertThat(alertsOnce(second)).isFalse()
+  }
+
+  @Test
+  fun a_close_with_an_empty_overflow_changes_nothing_more_and_the_summary_goes_with_the_last_bubble() {
+    post(first)
+    post(second)
+    showInStack(second)
+
+    dismiss(first)
+    settle()
+
+    assertThat(alertsOnce(second)).isFalse()
+    assertThat(summary()).isNotNull()
+
+    dismiss(second)
+    settle()
+
+    assertThat(shadowOf(notificationManager).allNotifications).isEmpty()
+  }
+
+  @Test
+  fun a_dismiss_without_an_id_posts_nothing() {
+    post(first)
+    post(second)
+
+    BubbleDismissReceiver().onReceive(application, Intent())
+    settle()
+
+    assertThat(alertsOnce(first)).isFalse()
+    assertThat(alertsOnce(second)).isFalse()
+  }
+
+  @Test
+  fun a_bubble_android_did_not_show_brings_no_bubble_back() {
+    post(first)
+    post(second)
+
+    manager.cancel(first, incognito = false)
+    settle()
+
+    assertThat(alertsOnce(second)).isFalse()
+  }
+
   @Test
   fun the_receiver_is_declared_and_not_exported() {
     val info = application.packageManager.getReceiverInfo(ComponentName(application, BubbleDismissReceiver::class.java), 0)
@@ -298,6 +423,10 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
 
   private companion object {
     const val TITLE = "Secret Distinctive Title"
+    const val RETURN_POLLS = 100
+    const val RETURN_POLL_MS = 50L
+    const val SETTLE_MS = 750L
+    const val WAIT_FOR_RETURNS_S = 10L
   }
 }
 

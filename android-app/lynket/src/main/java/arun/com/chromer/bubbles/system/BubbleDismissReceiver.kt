@@ -17,6 +17,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.data.preferences.BrowsingMode
 import dagger.hilt.android.AndroidEntryPoint
@@ -31,7 +32,7 @@ internal const val EXTRA_BUBBLE_NOTIFICATION_ID = "arun.com.chromer.extra.BUBBLE
  * summary when no bubble is left, and its shortcut. The bubble leaves the list of open bubbles
  * marked as closed on purpose, so it never comes back on its own. The mark lives here and not in
  * the manager: a refused bubble goes through the manager too, and only a person dismissal arrives
- * here.
+ * here. A close of a bubble in the stack leaves room, so the newest overflow bubble comes back.
  */
 @AndroidEntryPoint
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -46,6 +47,9 @@ class BubbleDismissReceiver : BroadcastReceiver() {
   @Inject
   lateinit var bubbleReconciler: BubbleReconciler
 
+  @Inject
+  lateinit var nativeFloatingBubble: NativeFloatingBubble
+
   override fun onReceive(context: Context, intent: Intent) {
     if (!intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)) {
       Timber.w("A bubble dismiss without a notification id")
@@ -55,8 +59,13 @@ class BubbleDismissReceiver : BroadcastReceiver() {
     Timber.d("Bubble dismissed: %d", id)
     val key = BubbleKey(BrowsingMode.NativeBubbles, id)
     bubbleRegistry.markClosedOnPurpose(key)
-    bubbleRegistry.remove(key)
+    val closed = bubbleRegistry.remove(key)
     bubbleNotificationManager.dismissed(id)
     bubbleReconciler.reconcile()
+    // A close in the overflow leaves the stack full, and a second delete intent finds no entry.
+    if (closed?.place == BubblePlace.STACK) {
+      val pending: PendingResult? = goAsync()
+      nativeFloatingBubble.returnNewestOverflowBubble { pending?.finish() }
+    }
   }
 }
