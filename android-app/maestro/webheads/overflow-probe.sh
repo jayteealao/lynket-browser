@@ -45,6 +45,9 @@
 #                                              Manage menu, closes two more, and checks that each close
 #                                              returns one bubble with no alert and that a closed bubble
 #                                              stays gone. Writes story.tsv, close.tsv and shade.tsv.
+#   overflow-probe.sh <serial> <dir> dont-bubble
+#                                              Opens 7 links and turns one off from its Manage menu, and
+#                                              records what the app then reads. Writes dont-bubble.tsv.
 #
 # Needs adb on PATH, Pillow, and the debug build (`assembleDebug`, or APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
@@ -58,8 +61,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits | registry | close | close-stack | close-icon | count | count-long | shade | story) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon|count|count-long|shade|story>" >&2; exit 2 ;;
+  dismiss | return | limits | registry | close | close-stack | close-icon | count | count-long | shade | story | dont-bubble) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon|count|count-long|shade|story|dont-bubble>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 
@@ -1031,6 +1034,38 @@ mode_story() {
   no_count_text end "$((REC_TOTAL + 1))"
   no_crash
   log "story done"
+}
+
+# Turns the bubble of a page off through its Manage menu, and records what the app then reads. Neither
+# a close nor a return is expected, so this mode reads and does not judge.
+mode_dont_bubble() {
+  local n id lines before
+  printf 'sdk\tid\ttotal_before\ttotal_after\tnotification\tdismiss_lines\treturned_ids\toverflow_ids\tstack_keys\n' > "$OUT/dont-bubble.tsv"
+  for n in 1 2 3 4 5 6 7; do open_bubble "https://example.com/?probe=$RUN-off-$n"; done
+  sleep 2
+  front_reconcile
+  before="$REC_TOTAL"
+  shell_bubbles shell-off-before.txt
+  expand_stack shell-off-before.txt
+  id="${STACK_IDS[-1]}"
+  tap_row_bubble "$id"
+  tap_window_text Manage
+  sleep 2
+  shot off-menu
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  tap_window_text "Don’t bubble conversation"
+  sleep 5
+  shot off-after
+  a shell input keyevent HOME
+  sleep 2
+  shell_bubbles shell-off-after.txt
+  read_state state-off-after.txt
+  front_reconcile
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "$id" "$before" "$REC_TOTAL" "$(bubble_flag state-off-after.txt "$id")" \
+    "$(new_ids 'Bubble dismissed:' "$lines")" "$(new_ids 'Returned:' "$lines")" "$REC_OVERFLOW" "$(IFS=,; echo "${STACK_IDS[*]}")" >> "$OUT/dont-bubble.tsv"
+  shade_capture off-shade
+  no_crash
+  log "dont-bubble done"
 }
 
 prepare
