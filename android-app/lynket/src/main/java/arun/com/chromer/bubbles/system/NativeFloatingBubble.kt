@@ -29,6 +29,7 @@ import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.FloatingBubble
+import arun.com.chromer.bubbles.OpenBubble
 import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
@@ -196,6 +197,28 @@ constructor(
     bubbleNotificationManager.showBubbles(data, withSummary = false)
     if (shownAsBubble(bubble.url, bubble.incognito)) Timber.d("Returned: %d", bubble.key.notificationId)
     bubbleReconciler.reconcile()
+    if (data.icon == null && !bubble.incognito) scope.launch { loadMissingIcon(bubble) }
+  }
+
+  /** Under the link's lock, so it follows a load in flight, and keeps the posted title and text. */
+  private suspend fun loadMissingIcon(bubble: OpenBubble) {
+    try {
+      withPostLock(bubble.url) {
+        val current = bubbleRegistry.find(bubble.key)?.loadData ?: return@withPostLock
+        val update = if (current.icon != null) current else {
+          val loaded = withDetails(current)
+          current.copy(icon = loaded.icon, color = loaded.color)
+        }
+        if (update.icon != null && bubbleRegistry.find(bubble.key) != null) {
+          bubbleNotificationManager.showBubbles(update, withSummary = false)
+          bubbleRegistry.updateLoadData(bubble.key, update)
+        }
+      }
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      Timber.e(e)
+    }
   }
 
   /** The site read, with its icon and colour, of a normal bubble. */

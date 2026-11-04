@@ -76,6 +76,7 @@ class NativeBubblePostingTest {
   private lateinit var clock: TestCoroutineScheduler
   private val posts = mutableListOf<Post>()
   private var iconDelayMs = 0L
+  private var failingIconLoads = 0
   private var shown = true
   private val notShown = mutableSetOf<String>()
   private var refusedAt = -1L
@@ -105,6 +106,10 @@ class NativeBubblePostingTest {
   private val icons = mockk<WebsiteIconsProvider> {
     coEvery { getBubbleIconAndColor(any()) } coAnswers {
       delay(iconDelayMs)
+      if (failingIconLoads > 0) {
+        failingIconLoads--
+        error("No icon")
+      }
       WebsiteIconData(firstArg(), Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888), Color.BLUE)
     }
   }
@@ -654,6 +659,105 @@ class NativeBubblePostingTest {
 
     assertThat(posts.map { it.url }).containsExactly(ONE, ONE)
     assertThat(overflow()).isEmpty()
+  }
+
+  @Test
+  fun a_bubble_returned_during_its_first_load_posts_the_disc_at_once_then_the_icon() = posting { bubble ->
+    iconDelayMs = 5_000
+    bubble.open(ONE, color = Color.RED)
+    advanceTimeBy(1_000)
+    inOverflow(ONE)
+
+    bubble.returnNewestOverflowBubble()
+    advanceTimeBy(1_000)
+
+    assertThat(posts.map { it.at to it.withIcon }).containsExactly(1_000L to false)
+
+    advanceUntilIdle()
+
+    // The disc never comes after the icon.
+    assertThat(posts.drop(1).all { it.withIcon }).isTrue()
+    assertThat(posts.size).isGreaterThan(1)
+    assertThat(posts.last().at).isEqualTo(5_000L)
+    assertThat(stored(ONE)?.icon).isNotNull()
+  }
+
+  @Test
+  fun a_bubble_whose_load_failed_returns_with_the_disc_then_gets_its_icon() = posting { bubble ->
+    failingIconLoads = 1
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.withIcon }).containsExactly(false, true).inOrder()
+    assertThat(posts.last().withSummary).isFalse()
+    assertThat(stored(ONE)?.icon).isNotNull()
+    assertThat(stored(ONE)?.color).isEqualTo(Color.BLUE)
+  }
+
+  @Test
+  fun the_icon_update_keeps_the_posted_website() = posting { bubble ->
+    failingIconLoads = 1
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+    val posted = stored(ONE)!!.website
+    every { repo.getWebsite(any()) } answers {
+      flowOf(Website("A new title", firstArg(), null, null, null, null, false, 0, 0))
+    }
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(postedData.last().website).isSameInstanceAs(posted)
+    assertThat(stored(ONE)?.website).isSameInstanceAs(posted)
+  }
+
+  @Test
+  fun a_load_that_fails_again_posts_nothing_more() = posting { bubble ->
+    failingIconLoads = 1
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+    failingIconLoads = 1
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.withIcon }).containsExactly(false)
+  }
+
+  @Test
+  fun a_bubble_closed_during_the_load_gets_no_icon_post() = posting { bubble ->
+    failingIconLoads = 1
+    opened(bubble, ONE, TWO)
+    inOverflow(ONE)
+    iconDelayMs = 1_000
+
+    bubble.returnNewestOverflowBubble()
+    advanceTimeBy(500)
+    personDismisses(ONE)
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.withIcon }).containsExactly(false)
+    assertThat(listed().map { it.url }).containsExactly(TWO)
+  }
+
+  @Test
+  fun a_slow_icon_does_not_hold_the_next_return() = posting { bubble ->
+    failingIconLoads = 2
+    opened(bubble, ONE, TWO, THREE)
+    inOverflow(ONE, TWO)
+    iconDelayMs = 5_000
+    val start = currentTime
+
+    bubble.returnNewestOverflowBubble()
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(posts.filterNot { it.withIcon }.map { it.url to it.at })
+      .containsExactly(TWO to start, ONE to start).inOrder()
+    assertThat(posts.filter { it.withIcon }.map { it.at }).containsExactly(start + 5_000, start + 5_000)
   }
 
   @Test
