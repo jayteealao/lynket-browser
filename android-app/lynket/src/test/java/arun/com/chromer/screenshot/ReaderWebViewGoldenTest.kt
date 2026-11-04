@@ -19,11 +19,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -33,6 +36,7 @@ import arun.com.chromer.browsing.menu.ActionButton
 import arun.com.chromer.browsing.menu.BrowsingScreen
 import arun.com.chromer.browsing.menu.browsingBottomBarItems
 import arun.com.chromer.browsing.menu.browsingMenuItems
+import arun.com.chromer.bubbles.BubblePageCount
 import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.reader.ImageViewerScreen
 import arun.com.chromer.ui.reader.ReaderScreen
@@ -122,9 +126,13 @@ class ReaderWebViewGoldenTest {
   }
 
   @Composable
-  private fun WebView(bottomBar: Boolean) = WebViewScreen(
-    page = WebViewPage("Android 17 brings resizable apps everywhere", "https://www.theverge.com/2026/10/android-17", 60),
-    toolbarColour = Color(0xFF3F51B5),
+  private fun WebView(
+    bottomBar: Boolean,
+    page: WebViewPage = WebViewPage("Android 17 brings resizable apps everywhere", "https://www.theverge.com/2026/10/android-17", 60),
+    toolbarColour: Color = Color(0xFF3F51B5),
+  ) = WebViewScreen(
+    page = page,
+    toolbarColour = toolbarColour,
     menuItems = browsingMenuItems(BrowsingScreen.WebView, bottomBar, ActionButton(text(R.string.share), iconRes = R.drawable.ic_share_24dp), null, text),
     bottomBarItems = browsingBottomBarItems(BrowsingScreen.WebView, bottomBar, text),
     bars = WebViewBarsState(),
@@ -141,6 +149,32 @@ class ReaderWebViewGoldenTest {
 
   @Test
   fun webView_bottomBarOff() = capture { WebView(bottomBar = false) }
+
+  private val countedPage =
+    WebViewPage("Use bubbles to let users participate in conversations", "developer.android.com/develop/ui/views/notifications/bubbles", 100, BubblePageCount(3, 7))
+
+  @Test
+  fun webView_bubbleCount() = capture { WebView(bottomBar = true, page = countedPage) }
+
+  @Test
+  fun webView_bubbleCount_lightBar() = capture {
+    WebView(bottomBar = true, page = countedPage.copy(count = BubblePageCount(5, 7)), toolbarColour = Color(0xFFDDE3F8))
+  }
+
+  /** The worst content of the bubble page: a long address and a two-digit count at the largest font. */
+  @Test
+  fun webView_bubbleCount_worst() = capture {
+    val density = LocalDensity.current.density
+    CompositionLocalProvider(LocalDensity provides Density(density, fontScale = 2f)) {
+      WebView(
+        bottomBar = true,
+        page = countedPage.copy(
+          address = "subdomain.of.a.very.long.example.co.uk/2026/10/31/a-very-long-path-that-goes-on-for-a-while",
+          count = BubblePageCount(12, 12),
+        ),
+      )
+    }
+  }
 }
 
 private const val RW_PHONE = "w411dp-h891dp-xxhdpi"
