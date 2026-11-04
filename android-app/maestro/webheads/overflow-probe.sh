@@ -39,6 +39,12 @@
 #                                              a page; the shade shows no Lynket row, and no text of the
 #                                              app's notifications and shortcuts holds the count. Writes
 #                                              shade.tsv.
+#   overflow-probe.sh <serial> <dir> story     The whole behaviour on one set of bubbles: opens 8 links and
+#                                              reads the count in a page, closes a bubble in the stack with
+#                                              that page on screen, closes the page's own bubble from its
+#                                              Manage menu, closes two more, and checks that each close
+#                                              returns one bubble with no alert and that a closed bubble
+#                                              stays gone. Writes story.tsv, close.tsv and shade.tsv.
 #
 # Needs adb on PATH, Pillow, and the debug build (`assembleDebug`, or APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
@@ -52,8 +58,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits | registry | close | close-stack | close-icon | count | count-long | shade) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon|count|count-long|shade>" >&2; exit 2 ;;
+  dismiss | return | limits | registry | close | close-stack | close-icon | count | count-long | shade | story) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon|count|count-long|shade|story>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 
@@ -900,6 +906,131 @@ mode_shade() {
   sleep 1
   no_crash
   log "shade done"
+}
+
+# Taps the node with the text $1 in any window: the Manage menu of an open bubble is the shell's, and a
+# dump of the active window can miss it.
+tap_window_text() {
+  local xy
+  a shell uiautomator dump --windows /sdcard/overflow-probe-ui.xml >/dev/null 2>&1 || true
+  xy="$(a exec-out cat /sdcard/overflow-probe-ui.xml | tr -d '\r' | tr '>' '\n' | grep -F "text=\"$1\"" | head -1 |
+    sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
+    awk 'NF == 4 { print int(($1 + $3) / 2), int(($2 + $4) / 2) }')"
+  [ -n "$xy" ] || fail "no \"$1\" in the dump of the windows"
+  # shellcheck disable=SC2086
+  a shell input tap $xy
+}
+
+# Fails when the dump of the page holds another count than $1. An empty dump is no reading: the
+# screenshot stands.
+page_reads() {
+  [ -z "$PAGE_TEXT" ] || [[ "$PAGE_TEXT" == *"$1" ]] || fail "the page reads \"$PAGE_TEXT\", not \"$1\""
+}
+
+# Adds a row to story.tsv: the point, the total, the closed id, the expected and the real return, and
+# the expected and the dumped count.
+story_row() {
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "$1" "$2" "$3" "$4" "$5" "$(IFS=,; echo "${STACK_IDS[*]}")" \
+    "${SOUND_KEY:-none}" "${FLYOUT:-none}" "${INTERRUPTIVE:-none}" "$6" "${PAGE_TEXT:-none}" >> "$OUT/story.tsv"
+  log "point=$1 total=$2 closed=${3:-none} expected_return=${4:-none} returned=${5:-none} page=\"$6\" dump=\"${PAGE_TEXT:-none}\""
+}
+
+# Reads the close named $1, made since line $2 of the log, which must return $3 and leave a list of $4:
+# one closed id in CLOSED, with no alert. Leaves the ids of the stack in STACK_IDS.
+story_close() {
+  local total
+  sleep 2
+  CLOSED="$(new_ids 'Bubble dismissed:' "$2")"
+  RETURNED="$(new_ids 'Returned:' "$2")"
+  shell_bubbles "shell-story-$1.txt"
+  read_state "state-story-$1.txt"
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/notification-story-$1.txt"
+  alert_fields "${RETURNED:-none}" "shell-story-$1.txt" "notification-story-$1.txt"
+  total="$(reconciled_field total "$(tr -d '\r' < "$OUT/$MODE.logcat.txt" | grep 'Reconciled: ' | tail -1)")"
+  [[ "$CLOSED" =~ ^-?[0-9]+$ ]] || fail "$1 has the Bubble dismissed lines \"$CLOSED\", not one"
+  [ "$RETURNED" = "$3" ] || fail "$1 returned \"$RETURNED\", and the newest overflow bubble is \"$3\""
+  [ "$total" -eq "$4" ] || fail "$1 leaves a list of $total, not $4"
+  in_list "$RETURNED" "${STACK_IDS[@]}" || fail "returned id $RETURNED is not in the stack after $1"
+  [ "$(bubble_flag "state-story-$1.txt" "$RETURNED")" = true ] || fail "returned id $RETURNED has no bubble flag after $1"
+  [ "$(bubble_flag "state-story-$1.txt" "$CLOSED")" = gone ] || fail "closed id $CLOSED still has a notification after $1"
+  [ -z "$SOUND_KEY" ] || fail "the return of $1 took the sound or the vibration: $SOUND_KEY"
+  [ "$FLYOUT" = false ] || fail "the return of $1 showed a flyout: $FLYOUT"
+  [ "$INTERRUPTIVE" = false ] || fail "the return of $1 was marked interruptive: $INTERRUPTIVE"
+}
+
+mode_story() {
+  local n id lines w h page position returnable=() first
+  OPEN_IDS=()
+  printf 'sdk\tpoint\ttotal\tclosed_id\texpected_return\treturned_ids\tstack_keys\tsound_key\tflyout\tinterruptive\texpected_text\tdump_text\n' > "$OUT/story.tsv"
+  printf 'sdk\tclose\tclosed_id\texpected_id\treturned_ids\ttotal\toverflow_ids\treturnable_ids\tstack_keys\tapp_notifications\treturned_flag\tsound_key\tflyout\tinterruptive\texpanded\tselected\n' > "$OUT/close.tsv"
+  printf 'sdk\tpoint\tnotification_records\tshortcut_labels\tcount_lines\n' > "$OUT/shade.tsv"
+
+  # Eight links, and the count of a bubble in the stack.
+  for n in 1 2 3 4 5 6 7 8; do
+    open_bubble "https://example.com/?probe=$RUN-story-$n"
+    OPEN_IDS+=("$OPENED")
+  done
+  sleep 2
+  front_reconcile
+  IFS=, read -r -a returnable <<< "$REC_RETURNABLE"
+  [ "$REC_TOTAL" -eq 8 ] && [ "${#returnable[@]}" -eq 3 ] || fail "with 8 links the list reads $REC_TOTAL with ${#returnable[@]} to return"
+  shell_bubbles shell-story-8.txt
+  [ "${#STACK_IDS[@]}" -eq 5 ] || fail "the stack of this screen holds ${#STACK_IDS[@]} bubbles, not the 5 this mode expects"
+  expand_stack shell-story-8.txt
+  page="${STACK_IDS[-1]}"
+  position="$(open_place "$page")"
+  tap_row_bubble "$page"
+  page_text story-8
+  page_reads "$position of 8"
+  story_row open 8 "" "" "" "$position of 8"
+
+  # One close in the stack with that page on screen: the count changes in place, and the newest
+  # overflow bubble returns.
+  [ "${STACK_IDS[0]}" != "$page" ] || fail "the page's own bubble is in the first slot"
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  read -r w h < <(screen_size)
+  shot story-close-before
+  drag_to_dismiss "$((w / 12))" "$((h * 23 / 300))"
+  story_close close "$lines" "${returnable[-1]}" 7
+  first="$CLOSED"
+  [ "$first" != "$page" ] || fail "the close took the page's own bubble"
+  [ "$(open_place "$first")" -lt "$position" ] && position=$((position - 1))
+  grep -q 'expanded: true' "$OUT/shell-story-close.txt" || fail "the stack closed with the bubble"
+  page_text story-7
+  page_reads "$position of 7"
+  story_row close 7 "$first" "${returnable[-1]}" "$RETURNED" "$position of 7"
+
+  # One close on purpose, of the page on screen, through its Manage menu.
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  tap_window_text Manage
+  sleep 2
+  shot story-menu
+  tap_window_text "Dismiss bubble"
+  sleep 2
+  story_close purpose "$lines" "${returnable[-2]}" 6
+  [ "$CLOSED" = "$page" ] || fail "the menu closed $CLOSED, not the page's bubble $page"
+  shot story-purpose-after
+  a shell input keyevent HOME
+  sleep 2
+  PAGE_TEXT=""
+  story_row purpose 6 "$CLOSED" "${returnable[-2]}" "$RETURNED" ""
+  front_reconcile
+  [ "$REC_TOTAL" -eq 6 ] || fail "the two closes leave a list of $REC_TOTAL, not 6"
+
+  # Later closes empty the overflow; neither closed bubble comes back.
+  TOTAL_BEFORE="$REC_TOTAL"
+  CLOSED_IDS=("$first" "$page")
+  for n in 3 4; do close_row "$n"; done
+  [ -z "$REC_RETURNABLE" ] || fail "the overflow still holds $REC_RETURNABLE after four closes"
+  for id in "$first" "$page"; do
+    if tr -d '\r' < "$OUT/$MODE.logcat.txt" | grep -q "Returned: $id\$"; then fail "closed id $id returned"; fi
+  done
+
+  shade_capture story-shade
+  no_lynket_row story-shade
+  no_count_text end "$((REC_TOTAL + 1))"
+  no_crash
+  log "story done"
 }
 
 prepare
