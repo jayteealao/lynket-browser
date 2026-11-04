@@ -475,6 +475,71 @@ class NativeBubblePostingTest {
     assertThat(listed().map { it.url }).containsExactly(older, URL).inOrder()
   }
 
+  private fun stored(url: String = URL, incognito: Boolean = false) =
+    registry.find(keyOf(url, incognito))?.loadData
+
+  @Test
+  fun an_icon_ready_in_time_leaves_that_data_on_the_entry() = posting { bubble ->
+    iconDelayMs = 100
+    bubble.open(URL)
+    advanceUntilIdle()
+
+    assertThat(stored()?.icon).isNotNull()
+    assertThat(stored()?.color).isEqualTo(Color.BLUE)
+  }
+
+  @Test
+  fun a_slow_icon_leaves_the_disc_data_and_then_the_icon_data() = posting { bubble ->
+    iconDelayMs = 500
+    bubble.open(URL, color = Color.RED)
+    advanceTimeBy(301)
+
+    assertThat(stored()?.icon).isNull()
+    assertThat(stored()?.color).isEqualTo(Color.RED)
+
+    advanceUntilIdle()
+
+    assertThat(stored()?.icon).isNotNull()
+    assertThat(stored()?.color).isEqualTo(Color.BLUE)
+  }
+
+  @Test
+  fun a_late_icon_of_a_dismissed_bubble_adds_nothing() = posting { bubble ->
+    iconDelayMs = 500
+    bubble.open(URL)
+    advanceTimeBy(301)
+    personDismisses(URL)
+    advanceUntilIdle()
+
+    assertThat(listed()).isEmpty()
+    assertThat(stored()).isNull()
+  }
+
+  @Test
+  fun a_second_send_replaces_the_data() = posting { bubble ->
+    bubble.open(URL, color = Color.RED)
+    advanceUntilIdle()
+    val first = stored()
+
+    coEvery { icons.getBubbleIconAndColor(any()) } coAnswers {
+      WebsiteIconData(firstArg(), Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888), Color.GREEN)
+    }
+    bubble.open(URL, color = Color.RED)
+    advanceUntilIdle()
+
+    assertThat(stored()).isNotEqualTo(first)
+    assertThat(stored()?.color).isEqualTo(Color.GREEN)
+  }
+
+  @Test
+  fun an_incognito_entry_holds_data_with_no_icon() = posting { bubble ->
+    bubble.open(URL, incognito = true)
+    advanceUntilIdle()
+
+    assertThat(stored(incognito = true)?.incognito).isTrue()
+    assertThat(stored(incognito = true)?.icon).isNull()
+  }
+
   private companion object {
     const val URL = "https://example.com/bubble"
   }

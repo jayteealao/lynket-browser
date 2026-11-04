@@ -141,8 +141,8 @@ constructor(
     // site is read for it. A normal bubble's site and icon load while the first post publishes.
     val details = if (initial.incognito) null else async { withDetails(initial) }
     val ready = details?.let { withTimeoutOrNull(ICON_WAIT_MS) { it.await() } }
-    bubbleNotificationManager.showBubbles(ready ?: initial)
-    bubbleRegistry.add(BrowsingMode.NativeBubbles, url, initial.incognito)
+    val posted = bubbleNotificationManager.showBubbles(ready ?: initial)
+    bubbleRegistry.add(BrowsingMode.NativeBubbles, url, initial.incognito, posted)
 
     // Android can still post the notification without showing it as a bubble. Then the page opens
     // in a tab with a message instead of being lost in the notification shade.
@@ -160,7 +160,10 @@ constructor(
     if (details != null && ready == null) {
       val late = details.await()
       // Same url, so the same notification is updated in place; the summary is already posted.
-      if (late !== initial) bubbleNotificationManager.showBubbles(late, withSummary = false)
+      if (late !== initial) {
+        bubbleNotificationManager.showBubbles(late, withSummary = false)
+        bubbleRegistry.updateLoadData(BubbleKey.of(BrowsingMode.NativeBubbles, url, initial.incognito), late)
+      }
     }
   }
 
