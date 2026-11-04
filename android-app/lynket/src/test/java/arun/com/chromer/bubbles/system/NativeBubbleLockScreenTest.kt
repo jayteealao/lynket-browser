@@ -8,6 +8,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import arun.com.chromer.R
+import arun.com.chromer.bubbles.BubbleLoadData
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import com.google.common.truth.Truth.assertThat

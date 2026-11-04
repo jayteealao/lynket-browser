@@ -18,6 +18,7 @@ import android.content.pm.ShortcutManager
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubbleLoadData
 import arun.com.chromer.bubbles.BubblePageCount
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.pageCount

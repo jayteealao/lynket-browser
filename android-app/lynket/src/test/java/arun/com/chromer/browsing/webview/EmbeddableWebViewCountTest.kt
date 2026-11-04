@@ -23,8 +23,8 @@ import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubblePageCount
 import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.bubbles.bubbleNotificationId
 import arun.com.chromer.bubbles.system.EXTRA_BUBBLE_NOTIFICATION_ID
-import arun.com.chromer.bubbles.system.bubbleNotificationId
 import arun.com.chromer.data.preferences.BrowsingMode.NativeBubbles
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.ui.accessibility.AccessibilityChecksRule

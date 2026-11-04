@@ -22,15 +22,16 @@ package arun.com.chromer.bubbles.system
 
 import android.app.Application
 import android.content.Context
-import android.graphics.Bitmap
 import android.os.Build
 import androidx.annotation.RequiresApi
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
 import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubbleLoadData
 import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.bubbles.OpenBubble
+import arun.com.chromer.bubbles.bubbleConversationId
 import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
@@ -56,18 +57,6 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
-
-data class BubbleLoadData(
-  val website: Website,
-  val fromMinimize: Boolean,
-  val fromAmp: Boolean,
-  val incognito: Boolean,
-  val contextRef: WeakReference<Context?> = WeakReference(null),
-  val icon: Bitmap? = null,
-  val color: Int = Constants.NO_COLOR,
-  /** The height the first post asked for; a later post keeps it, whatever window is on screen then. */
-  val desiredHeightDp: Int? = null,
-)
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Singleton

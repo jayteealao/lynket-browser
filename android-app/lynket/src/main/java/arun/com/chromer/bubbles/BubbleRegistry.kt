@@ -20,8 +20,6 @@
 
 package arun.com.chromer.bubbles
 
-import arun.com.chromer.bubbles.system.BubbleLoadData
-import arun.com.chromer.bubbles.system.bubbleNotificationId
 import arun.com.chromer.data.preferences.BrowsingMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

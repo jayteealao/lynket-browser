@@ -18,13 +18,13 @@ import android.content.Intent
 import android.content.pm.ShortcutManager
 import android.os.Looper
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.bubbles.BubbleLoadData
+import arun.com.chromer.bubbles.bubbleConversationId
 import arun.com.chromer.bubbles.system.BubbleGate
-import arun.com.chromer.bubbles.system.BubbleLoadData
 import arun.com.chromer.bubbles.system.BubbleNotificationManager
 import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.bubbles.system.NativeFloatingBubble
-import arun.com.chromer.bubbles.system.bubbleConversationId
 import arun.com.chromer.bubbles.system.bubbleIdsOf
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO

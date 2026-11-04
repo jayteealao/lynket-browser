@@ -18,7 +18,7 @@ import android.content.Context
 import android.content.Intent
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.R
-import arun.com.chromer.bubbles.system.bubbleNotificationId
+import arun.com.chromer.bubbles.bubbleNotificationId
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After

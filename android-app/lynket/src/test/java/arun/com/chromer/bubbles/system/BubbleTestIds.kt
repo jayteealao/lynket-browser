@@ -11,6 +11,8 @@
 
 package arun.com.chromer.bubbles.system
 
+import arun.com.chromer.bubbles.bubbleConversationId
+
 /** The conversation ids a bubble of [url] can post under: the normal one and the incognito one. */
 fun bubbleIdsOf(url: String): Set<String> =
   setOf(bubbleConversationId(url), bubbleConversationId(url, incognito = true))

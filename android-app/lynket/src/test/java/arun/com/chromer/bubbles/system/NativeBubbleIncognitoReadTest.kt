@@ -4,6 +4,7 @@ import android.app.Application
 import android.graphics.Bitmap
 import arun.com.chromer.browsing.icons.WebsiteIconData
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
+import arun.com.chromer.bubbles.BubbleLoadData
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository

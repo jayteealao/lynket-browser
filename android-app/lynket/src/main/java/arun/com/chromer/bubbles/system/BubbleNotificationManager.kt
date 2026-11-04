@@ -42,7 +42,11 @@ import androidx.core.graphics.drawable.toBitmap
 import arun.com.chromer.MainActivity
 import arun.com.chromer.R
 import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
+import arun.com.chromer.bubbles.BubbleLoadData
 import arun.com.chromer.bubbles.BubblePlace
+import arun.com.chromer.bubbles.bubbleConversationId
+import arun.com.chromer.bubbles.bubbleNotificationId
+import arun.com.chromer.bubbles.conversationIdOfNotification
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.image.WebsiteIconLoader
