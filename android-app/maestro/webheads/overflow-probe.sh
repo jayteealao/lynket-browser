@@ -25,6 +25,16 @@
 #                                              lets it age out and returns it with a close; it must show
 #                                              the colour disc, then the icon in place. Writes
 #                                              close-icon.tsv.
+#   overflow-probe.sh <serial> <dir> count     Opens 7 links and opens the third bubble, which reads
+#                                              3 of 7; opens an eighth link and a bubble of the stack,
+#                                              which reads its place of 8; closes another bubble with
+#                                              that page on screen, and the count changes in place.
+#                                              Writes count.tsv.
+#   overflow-probe.sh <serial> <dir> count-long
+#                                              At the largest font (restored on exit), opens 12 links
+#                                              with long addresses and the newest bubble, which reads
+#                                              12 of 12 with the address cut short. Writes
+#                                              count-long.tsv.
 #
 # Needs adb on PATH, Pillow, and the debug build (`assembleDebug`, or APK=<path>); each mode
 # reinstalls it. The serial must start with emulator-, so this can never drive an attached phone.
@@ -38,8 +48,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits | registry | close | close-stack | close-icon) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon>" >&2; exit 2 ;;
+  dismiss | return | limits | registry | close | close-stack | close-icon | count | count-long) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-icon|count|count-long>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 
@@ -57,6 +67,7 @@ APK="${APK:-$(dirname "${BASH_SOURCE[0]}")/../../lynket/build/outputs/apk/debug/
 LOGCAT_PID=""
 ICON_PORT=8799
 ICON_SERVER_PID=""
+FONT_SCALE_BEFORE=""
 STACK_IDS=()
 OVERFLOW_IDS=()
 OVERFLOW_COUNT=""
@@ -66,6 +77,11 @@ declare -A URL_OF
 finish() {
   [ -z "$LOGCAT_PID" ] || kill "$LOGCAT_PID" 2>/dev/null || true
   [ -z "$ICON_SERVER_PID" ] || { kill "$ICON_SERVER_PID" 2>/dev/null; a reverse --remove "tcp:$ICON_PORT"; } || true
+  case "$FONT_SCALE_BEFORE" in
+    "") ;;
+    null) a shell settings delete system font_scale >/dev/null || true ;;
+    *) a shell settings put system font_scale "$FONT_SCALE_BEFORE" || true ;;
+  esac
 }
 trap finish EXIT
 
@@ -682,6 +698,133 @@ mode_close_icon() {
   [ "$copies" -eq 1 ] || fail "the returned bubble has $copies notifications"
   python -c "import sys; sys.exit(0 if $share > 0.002 else 1)" || fail "the row did not change when the icon arrived"
   log "close-icon done"
+}
+
+# Taps the bubble $1 in the row of the open stack, from the last read of the shell. The row has six
+# slots: the stack, then the overflow button.
+tap_row_bubble() {
+  local i w h
+  read -r w h < <(screen_size)
+  for i in "${!STACK_IDS[@]}"; do
+    if [ "${STACK_IDS[$i]}" = "$1" ]; then
+      a shell input tap "$((w * (2 * i + 1) / 12))" "$((h * 23 / 300))"
+      sleep 5
+      return 0
+    fi
+  done
+  fail "bubble $1 is not in the stack: ${STACK_IDS[*]}"
+}
+
+# Saves the screen as $1.png, and what a dump of every window holds of the count as $1.txt with its
+# text in PAGE_TEXT. The screenshot is the evidence: the dump is a second reading, and may be empty.
+page_text() {
+  shot "$1"
+  a shell uiautomator dump --windows /sdcard/overflow-probe-ui.xml >/dev/null 2>&1 || true
+  a exec-out cat /sdcard/overflow-probe-ui.xml | tr -d '\r' | tr '>' '\n' | grep -F 'webview-count' > "$OUT/$1.txt" || true
+  PAGE_TEXT="$(sed -n 's/.* text="\([^"]*\)".*/\1/p' "$OUT/$1.txt" | head -1)"
+}
+
+# The place of the bubble $1 in OPEN_IDS, from 1, as the count reads it.
+open_place() {
+  local i
+  for i in "${!OPEN_IDS[@]}"; do
+    [ "${OPEN_IDS[$i]}" = "$1" ] && { echo "$((i + 1))"; return 0; }
+  done
+  fail "bubble $1 was not opened by this run"
+}
+
+# Adds a row to the .tsv of the mode: the point, the bubble, the expected text and the dump's text.
+count_row() {
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "$1" "${URL_OF[$2]}" "$REC_TOTAL" "$REC_OVERFLOW" "$3" "${PAGE_TEXT:-none}" >> "$OUT/$MODE.tsv"
+  log "point=$1 id=$2 total=$REC_TOTAL expected=\"$3\" dump=\"${PAGE_TEXT:-none}\""
+}
+
+# Fails when the app crashed during the run.
+no_crash() {
+  a logcat -d -b crash | tr -d '\r' > "$OUT/$MODE.crash.txt"
+  [ ! -s "$OUT/$MODE.crash.txt" ] || fail "the crash buffer is not empty"
+}
+
+mode_count() {
+  local n id lines w h closed overflow_ids=() position
+  OPEN_IDS=()
+  printf 'sdk\tpoint\tlink\treconciled_total\treconciled_overflow\texpected\tdump_text\n' > "$OUT/count.tsv"
+  for n in 1 2 3 4 5 6 7; do
+    open_bubble "https://example.com/?probe=$RUN-count-$n"
+    OPEN_IDS+=("$OPENED")
+  done
+  sleep 2
+  front_reconcile
+  IFS=, read -r -a overflow_ids <<< "$REC_OVERFLOW"
+  [ "$REC_TOTAL" -eq 7 ] && [ "${#overflow_ids[@]}" -eq 2 ] || fail "with 7 links the list reads $REC_TOTAL with ${#overflow_ids[@]} in the overflow"
+  shell_bubbles shell-count-7.txt
+  expand_stack shell-count-7.txt
+  tap_row_bubble "${OPEN_IDS[2]}"
+  page_text count-3of7
+  count_row 3of7 "${OPEN_IDS[2]}" "3 of 7"
+  a shell input keyevent HOME
+  sleep 2
+
+  open_bubble "https://example.com/?probe=$RUN-count-8"
+  OPEN_IDS+=("$OPENED")
+  sleep 2
+  front_reconcile
+  IFS=, read -r -a overflow_ids <<< "$REC_OVERFLOW"
+  [ "$REC_TOTAL" -eq 8 ] && [ "${#overflow_ids[@]}" -eq 3 ] || fail "with 8 links the list reads $REC_TOTAL with ${#overflow_ids[@]} in the overflow"
+  # A bubble that was read moves in the stack, so the page comes from a fresh read.
+  shell_bubbles shell-count-8.txt
+  expand_stack shell-count-8.txt
+  id="${STACK_IDS[-1]}"
+  position="$(open_place "$id")"
+  tap_row_bubble "$id"
+  page_text count-at8
+  count_row at8 "$id" "$position of 8"
+
+  # A close of the bubble in the first slot, with this page on screen.
+  [ "${STACK_IDS[0]}" != "$id" ] || fail "the page's own bubble is in the first slot"
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  read -r w h < <(screen_size)
+  drag_to_dismiss "$((w / 12))" "$((h * 23 / 300))"
+  closed="$(new_ids 'Bubble dismissed:' "$lines")"
+  [[ "$closed" =~ ^-?[0-9]+$ ]] || fail "the close has the Bubble dismissed lines \"$closed\", not one"
+  [ "$closed" != "$id" ] || fail "the close took the page's own bubble"
+  [ "$(open_place "$closed")" -lt "$position" ] && position=$((position - 1))
+  shell_bubbles shell-count-closed.txt
+  grep -q 'expanded: true' "$OUT/shell-count-closed.txt" || fail "the stack closed with the bubble"
+  page_text count-after-close
+  a shell input keyevent HOME
+  sleep 2
+  front_reconcile
+  [ "$REC_TOTAL" -eq 7 ] || fail "the close leaves a list of $REC_TOTAL, not 7"
+  count_row after-close "$id" "$position of 7"
+  no_crash
+  log "count done"
+}
+
+mode_count_long() {
+  local n filler
+  OPEN_IDS=()
+  printf 'sdk\tpoint\tlink\treconciled_total\treconciled_overflow\texpected\tdump_text\n' > "$OUT/count-long.tsv"
+  FONT_SCALE_BEFORE="$(a shell settings get system font_scale | tr -d '\r')"
+  log "font_scale before=$FONT_SCALE_BEFORE"
+  a shell settings put system font_scale 2.0
+  filler="$(printf 'a%.0s' $(seq 1 220))"
+  for n in $(seq 1 12); do
+    open_bubble "https://example.com/?probe=$RUN-long-$n&pad=$filler"
+    OPEN_IDS+=("$OPENED")
+  done
+  sleep 2
+  front_reconcile
+  [ "$REC_TOTAL" -eq 12 ] || fail "with 12 links the list reads $REC_TOTAL"
+  shell_bubbles shell-long.txt
+  expand_stack shell-long.txt
+  tap_row_bubble "${OPEN_IDS[11]}"
+  page_text count-long
+  count_row long "${OPEN_IDS[11]}" "12 of 12"
+  a shell input keyevent HOME
+  sleep 1
+  no_crash
+  log "count-long done"
 }
 
 prepare
