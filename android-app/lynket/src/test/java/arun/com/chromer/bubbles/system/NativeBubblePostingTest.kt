@@ -15,11 +15,14 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
+import android.content.pm.ShortcutManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import arun.com.chromer.appdetect.LinkSource
 import arun.com.chromer.browsing.icons.WebsiteIconData
 import arun.com.chromer.browsing.icons.WebsiteIconsProvider
+import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
@@ -797,6 +800,38 @@ class NativeBubblePostingTest {
 
   private fun loadData(url: String = URL) =
     BubbleLoadData(Website("Title", url, null, null, null, null, false, 0, 0), false, false, false, color = Color.RED)
+
+  private fun bubbleIntentOf(url: String, incognito: Boolean): Intent =
+    shadowOf(application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+      .allNotifications.single { it.shortcutId == bubbleConversationId(url, incognito) }
+      .let { shadowOf(it.bubbleMetadata!!.intent).savedIntent }
+
+  @Test
+  fun a_bubble_intent_names_its_bubble_by_id() {
+    runBlocking { BubbleNotificationManager(application).showBubbles(loadData()) }
+
+    assertThat(bubbleIntentOf(URL, incognito = false).getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0))
+      .isEqualTo(bubbleNotificationId(URL))
+  }
+
+  @Test
+  fun an_incognito_bubble_intent_names_its_own_id() {
+    val data = BubbleLoadData(Website(URL), false, false, incognito = true)
+    runBlocking { BubbleNotificationManager(application).showBubbles(data) }
+
+    assertThat(bubbleIntentOf(URL, incognito = true).getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0))
+      .isEqualTo(bubbleNotificationId(URL, incognito = true))
+  }
+
+  @Test
+  fun the_conversation_shortcut_does_not_name_a_bubble() {
+    runBlocking { BubbleNotificationManager(application).showBubbles(loadData()) }
+
+    val shortcut = application.getSystemService(ShortcutManager::class.java).dynamicShortcuts
+      .single { it.id == bubbleConversationId(URL) }
+    assertThat(shortcut.intent!!.component?.className).isEqualTo(EmbeddableWebViewActivity::class.java.name)
+    assertThat(shortcut.intent!!.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)).isFalse()
+  }
 
   @Test
   fun a_first_post_may_alert() {

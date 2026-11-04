@@ -149,6 +149,8 @@ constructor(
       Intent(context, EmbeddableWebViewActivity::class.java).apply {
         data = Uri.parse(website.url)
         putExtra(Constants.EXTRA_KEY_INCOGNITO, bubbleData.incognito)
+        // Only this intent names the bubble: the page opened from the shortcut is not in one.
+        putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, notificationId)
       },
       flags
     )
