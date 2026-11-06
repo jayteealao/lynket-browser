@@ -27,6 +27,13 @@
 #                                              until the stack folds and then the newest overflow
 #                                              bubble, with no alert, no delete intent and no shade row,
 #                                              until the overflow is empty. Writes close-x.tsv.
+#   overflow-probe.sh <serial> <dir> close-last
+#                                              Opens 7 links, closes the open stack down to one page by
+#                                              dragging bubbles away, then taps the X of that page; the
+#                                              stack must stay open on the page of the newest overflow
+#                                              bubble, with one page start, no fold and no alert. A
+#                                              later fold returns the held closes, up to the overflow.
+#                                              Writes close-last.tsv.
 #   overflow-probe.sh <serial> <dir> close-icon
 #                                              Opens a link whose icon is held back (slow-icon-server.py),
 #                                              lets it age out and returns it with a close; it must show
@@ -74,8 +81,8 @@ case "$SERIAL" in
   *) echo "overflow-probe: \"$SERIAL\" is not an emulator serial" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  dismiss | return | limits | registry | close | close-stack | close-x | close-icon | count | count-long | shade | story | dont-bubble) ;;
-  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-x|close-icon|count|count-long|shade|story|dont-bubble>" >&2; exit 2 ;;
+  dismiss | return | limits | registry | close | close-stack | close-x | close-last | close-icon | count | count-long | shade | story | dont-bubble) ;;
+  *) echo "usage: overflow-probe.sh <serial> <dir> <dismiss|return|limits|registry|close|close-stack|close-x|close-last|close-icon|count|count-long|shade|story|dont-bubble>" >&2; exit 2 ;;
 esac
 [ -n "$OUT" ] || { echo "overflow-probe: no output folder" >&2; exit 2; }
 # Before anything is uninstalled: a missing tool would otherwise show up minutes later as a claim
@@ -733,6 +740,110 @@ mode_close_x() {
   no_crash
   close_times
   log "close-x done"
+}
+
+# Drags the bubble at the left of the open row away, with the page of another bubble on screen, and
+# reads the stack after it into STACK_IDS. An X would do on a phone, but the Android 14 emulator can
+# fold on an X, and a fold returns the held closes. The row is centred, with room for 6 icons.
+drag_left_of_open_row() {
+  local w h icons=$((${#STACK_IDS[@]} + 1))
+  read -r w h < <(screen_size)
+  drag_to_dismiss "$((w * (6 - icons) / 12 + w / 12))" "$((h * 23 / 300))"
+  shell_bubbles "shell-last-$1.txt"
+  grep -q 'expanded: true' "$OUT/shell-last-$1.txt" || fail "drag $1 folded the stack"
+}
+
+mode_close_last() {
+  local n=0 returnable=() lines page returned closed started folded expanded after total returned_held reader
+  printf 'sdk\tclosed_id\texpected_id\treturned_ids\tfolded\texpanded\tselected\tpages_started\ttotal\tstack_keys\tnotification\tsound_key\tflyout\tinterruptive\tms_x_to_close\n' > "$OUT/close-last.tsv"
+  for n in 1 2 3 4 5 6 7; do
+    open_bubble "https://example.com/?probe=$RUN-last-$n"
+  done
+  sleep 2
+  front_reconcile
+  IFS=, read -r -a returnable <<< "$REC_RETURNABLE"
+  [ "$REC_TOTAL" -eq 7 ] && [ "${#returnable[@]}" -eq 2 ] || fail "with 7 links the list reads $REC_TOTAL with ${#returnable[@]} to return"
+  shell_bubbles shell-last-start.txt
+  expand_stack shell-last-start.txt
+  tap_row_bubble "${STACK_IDS[-1]}"
+
+  n=0
+  while [ "${#STACK_IDS[@]}" -gt 1 ]; do
+    n=$((n + 1))
+    [ "$n" -le 8 ] || fail "the stack still holds ${#STACK_IDS[@]} bubbles after $n closes"
+    drag_left_of_open_row "$n"
+  done
+  sleep 1
+
+  # The X of the last bubble in the stack.
+  page="${STACK_IDS[0]}"
+  shot last-before
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  stack_reads "${returnable[-1]}" > "$OUT/stack-reads.txt" &
+  reader=$!
+  tap_window_tag webview-close
+  sleep 0.2
+  shot last-wait
+  sleep 3
+  wait "$reader"
+  shot last-after
+  shell_bubbles shell-last-final.txt
+  closed="$(new_ids 'Bubble dismissed:' "$lines")"
+  returned="$(new_ids 'Returned:' "$lines")"
+  folded="$(tail -n +"$((lines + 1))" "$OUT/$MODE.logcat.txt" | grep -c 'Stack folded' || true)"
+  started="$(tail -n +"$((lines + 1))" "$OUT/$MODE.logcat.txt" | grep -c 'Bubble page started' || true)"
+  expanded="$(sed -n 's/^ *expanded: *//p' "$OUT/shell-last-final.txt" | head -1)"
+  read_state state-last.txt
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/notification-last.txt"
+  alert_fields "${returned:-none}" shell-last-final.txt notification-last.txt
+  after="$(bubble_flag state-last.txt "$page")"
+  total="$(reconciled_field total "$(tr -d '\r' < "$OUT/$MODE.logcat.txt" | grep 'Reconciled: ' | tail -1)")"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$SDK" "$page" "${returnable[-1]}" "${returned:-none}" "$folded" "$expanded" \
+    "$(sed -n 's/^ *selected: *//p' "$OUT/shell-last-final.txt" | head -1)" "$started" "$total" "$(IFS=,; echo "${STACK_IDS[*]}")" "$after" \
+    "${SOUND_KEY:-none}" "${FLYOUT:-none}" "${INTERRUPTIVE:-none}" "$(last_x_times "$lines")" >> "$OUT/close-last.tsv"
+  log "last x page=$page closed=${closed:-none} returned=${returned:-none} expected=${returnable[-1]} folded=$folded expanded=$expanded pages_started=$started total=$total notification=$after"
+
+  [ "$closed" = "$page" ] || fail "the last X closed \"$closed\", not $page"
+  [ "$returned" = "${returnable[-1]}" ] || fail "the last X returned \"$returned\", not the newest overflow bubble ${returnable[-1]}"
+  [ "$folded" -eq 0 ] || fail "the last X folded the stack"
+  [ "$expanded" = true ] || fail "the stack is not open after the last X: \"$expanded\""
+  [ "$started" -eq 1 ] || fail "the last X started $started pages, not one"
+  [ "$after" = gone ] || fail "$page still has a notification after its X"
+  [ "${#STACK_IDS[@]}" -eq 1 ] && [ "${STACK_IDS[0]}" = "$returned" ] || fail "the stack holds ${STACK_IDS[*]}, not $returned"
+  [ -z "$SOUND_KEY" ] || fail "the return took the sound or the vibration: $SOUND_KEY"
+  [ "$FLYOUT" = false ] || fail "the return showed a flyout: $FLYOUT"
+  no_interruption "$INTERRUPTIVE"
+
+  # A fold returns what the earlier closes held, and no more than the overflow holds.
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  a shell input keyevent HOME
+  sleep 5
+  returned_held="$(new_ids 'Returned:' "$lines")"
+  shell_bubbles shell-last-fold.txt
+  front_reconcile
+  log "fold returned=${returned_held:-none} stack=${STACK_IDS[*]} total=$REC_TOTAL overflow=${REC_OVERFLOW:-none}"
+  [ -z "$REC_RETURNABLE" ] || fail "the overflow still holds $REC_RETURNABLE after the fold"
+  in_list "$page" "${STACK_IDS[@]}" && fail "closed id $page came back"
+  no_crash
+  log "close-last done"
+}
+
+# Prints a clock line and whether the shell's stack holds the id $1, in a loop on the device, so the
+# clock is the one in the log and shows when the shell added a bubble.
+stack_reads() {
+  local section=Bubbles
+  [ "$SDK" -lt 31 ] || section=WMShell
+  a shell "end=\$((\$(date +%s) + 9)); while [ \$(date +%s) -lt \$end ]; do date +%T.%N; dumpsys activity service $SYSTEMUI $section | sed -n '/state:/,/overflow bubble count/p' | grep -c 'key:.*|$1|'; done" | tr -d '\r'
+}
+
+# The milliseconds from the close of the X to the flag of the return and to the page that followed.
+last_x_times() {
+  tail -n +"$(($1 + 1))" "$OUT/$MODE.logcat.txt" | tr -d '\r' | awk '
+    function ms(t) { split(t, p, /[:.]/); return (p[1] * 3600 + p[2] * 60 + p[3]) * 1000 + p[4] }
+    /Bubble dismissed:/ && !x { x = ms($2) }
+    /Returned:/ && !r { r = ms($2) }
+    /Bubble page started/ && !s { s = ms($2) }
+    END { printf "returned=%s,page=%s", (r ? r - x : "none"), (s ? s - x : "none") }'
 }
 
 mode_close() {

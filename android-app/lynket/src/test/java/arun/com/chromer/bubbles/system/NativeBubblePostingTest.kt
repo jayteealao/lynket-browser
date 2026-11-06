@@ -59,6 +59,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.currentTime
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -190,7 +191,7 @@ class NativeBubblePostingTest {
     val reconciler = BubbleReconciler(notifications, registry, dispatcher)
     val bubble = NativeFloatingBubble(application, repo, notifications, icons, gate, registry, reconciler, dispatcher) { tabsManager }
     watcher = BubbleStackWatcher { bubble }
-    closer = BubbleCloser(notifications, registry, reconciler, bubble, watcher)
+    closer = BubbleCloser(notifications, registry, reconciler, bubble, watcher, dispatcher)
     block(bubble)
     advanceUntilIdle()
   }
@@ -1623,6 +1624,217 @@ class NativeBubblePostingTest {
     advanceUntilIdle()
 
     assertThat(posts.map { it.url }).contains(ONE)
+  }
+
+  /** The X of the page of [url], which finishes as [finished] records. */
+  private fun x(url: String, finished: MutableList<String>) = closer.closePage(id(url)) { finished += url }
+
+  private fun TestScope.mainRuns() {
+    shadowOf(Looper.getMainLooper()).idle()
+    runCurrent()
+  }
+
+  @Test
+  fun the_x_of_the_last_bubble_keeps_it_until_the_next_page_starts() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
+    watcher.pageStarted(id(THREE))
+    val finished = mutableListOf<String>()
+
+    x(THREE, finished)
+    runCurrent()
+    mainRuns()
+
+    assertThat(returned).containsExactly(TWO)
+    assertThat(registry.isClosedOnPurpose(keyOf(THREE))).isTrue()
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+    verify(exactly = 0) { notifications.dismissed(id(THREE)) }
+    assertThat(finished).isEmpty()
+
+    watcher.pageStopped()
+    watcher.pageStarted(id(TWO))
+    runCurrent()
+    mainRuns()
+
+    verify(exactly = 1) { notifications.dismissed(id(THREE)) }
+    assertThat(finished).containsExactly(THREE)
+  }
+
+  @Test
+  fun with_no_selection_of_a_returned_bubble_the_closed_one_goes_after_the_wait_for_the_shell() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
+    watcher.pageStarted(id(THREE))
+    val finished = mutableListOf<String>()
+
+    x(THREE, finished)
+    advanceTimeBy(699)
+    verify(exactly = 0) { notifications.dismissed(id(THREE)) }
+
+    advanceTimeBy(2)
+    verify(exactly = 1) { notifications.dismissed(id(THREE)) }
+    mainRuns()
+    assertThat(finished).isEmpty()
+
+    // The shell selects the bubble that is left, and only then does the page end.
+    watcher.pageStopped()
+    watcher.pageStarted(id(TWO))
+    runCurrent()
+    mainRuns()
+    assertThat(finished).containsExactly(THREE)
+  }
+
+  @Test
+  fun a_page_that_no_page_follows_still_finishes() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
+    watcher.pageStarted(id(THREE))
+    val finished = mutableListOf<String>()
+
+    x(THREE, finished)
+    advanceUntilIdle()
+    mainRuns()
+
+    assertThat(finished).containsExactly(THREE)
+    verify(exactly = 1) { notifications.dismissed(id(THREE)) }
+  }
+
+  @Test
+  fun a_second_tap_of_the_x_closes_nothing_more() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
+    watcher.pageStarted(id(THREE))
+    val finished = mutableListOf<String>()
+
+    x(THREE, finished)
+    runCurrent()
+    x(THREE, finished)
+    advanceUntilIdle()
+    mainRuns()
+
+    assertThat(returned).containsExactly(TWO)
+    assertThat(finished).containsExactly(THREE)
+    verify(exactly = 1) { notifications.dismissed(id(THREE)) }
+  }
+
+  @Test
+  fun a_failed_return_of_a_last_close_closes_as_any_close_and_the_fold_tries_again() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
+    returnAfterMs = null
+    watcher.pageStarted(id(THREE))
+    val finished = mutableListOf<String>()
+
+    x(THREE, finished)
+    advanceUntilIdle()
+    mainRuns()
+
+    assertThat(returned).containsExactly(TWO)
+    verify(exactly = 1) { notifications.dismissed(id(THREE)) }
+    assertThat(finished).containsExactly(THREE)
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+
+    returnAfterMs = 0
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(TWO, TWO).inOrder()
+  }
+
+  @Test
+  fun held_closes_wait_for_the_fold_and_a_last_close_adds_none() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR, FIVE), ONE, TWO, THREE)
+    watcher.pageStarted(id(FIVE))
+    val finished = mutableListOf<String>()
+
+    closer.closePage(id(FIVE)) { finished += FIVE }
+    watcher.pageStopped()
+    watcher.pageStarted(id(FOUR))
+    x(FOUR, finished)
+    runCurrent()
+    mainRuns()
+    assertThat(returned).containsExactly(THREE)
+
+    watcher.pageStopped()
+    watcher.pageStarted(id(THREE))
+    runCurrent()
+    mainRuns()
+    assertThat(finished).containsExactly(FIVE, FOUR).inOrder()
+    assertThat(returned).containsExactly(THREE)
+
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    // One held close and one bubble back at the fold, though ONE is still in the overflow.
+    assertThat(returned).containsExactly(THREE, TWO).inOrder()
+  }
+
+  @Test
+  fun a_delete_intent_during_a_last_close_returns_no_second_bubble() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
+    watcher.pageStarted(id(THREE))
+    val finished = mutableListOf<String>()
+
+    x(THREE, finished)
+    runCurrent()
+    closer.close(id(THREE))
+    watcher.pageStopped()
+    afterTheFoldCheck()
+    mainRuns()
+
+    assertThat(returned).containsExactly(TWO)
+    assertThat(finished).containsExactly(THREE)
+  }
+
+  @Test
+  fun the_x_of_the_last_bubble_with_an_empty_overflow_closes_at_once() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE), *emptyArray())
+    watcher.pageStarted(id(ONE))
+    val finished = mutableListOf<String>()
+
+    x(ONE, finished)
+
+    verify(exactly = 1) { notifications.dismissed(id(ONE)) }
+    assertThat(finished).containsExactly(ONE)
+  }
+
+  @Test
+  fun the_x_with_another_bubble_in_the_stack_closes_at_once() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE)
+    watcher.pageStarted(id(THREE))
+    val finished = mutableListOf<String>()
+
+    x(THREE, finished)
+    runCurrent()
+
+    verify(exactly = 1) { notifications.dismissed(id(THREE)) }
+    assertThat(finished).containsExactly(THREE)
+    assertThat(returned).isEmpty()
+  }
+
+  @Test
+  fun a_list_that_read_one_bubble_too_few_closes_as_any_close() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
+    watcher.pageStarted(id(THREE))
+    // Android holds a bubble in the stack that the list has not read yet.
+    places = places!! + (id(TWO) to BubblePlace.STACK)
+    val finished = mutableListOf<String>()
+
+    x(THREE, finished)
+    runCurrent()
+    mainRuns()
+
+    assertThat(returned).isEmpty()
+    verify(exactly = 1) { notifications.dismissed(id(THREE)) }
+    assertThat(finished).containsExactly(THREE)
+  }
+
+  @Test
+  fun the_x_of_a_folded_stack_keeps_its_path() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO), ONE)
+    val finished = mutableListOf<String>()
+
+    x(TWO, finished)
+    advanceUntilIdle()
+
+    assertThat(finished).containsExactly(TWO)
+    verify(exactly = 1) { notifications.dismissed(id(TWO)) }
+    assertThat(returned).containsExactly(ONE)
   }
 
   private companion object {

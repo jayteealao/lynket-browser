@@ -40,8 +40,10 @@ import arun.com.chromer.shared.Constants
 import arun.com.chromer.tabs.TabsManager
 import dagger.Lazy
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -232,6 +234,19 @@ constructor(
         }
       }
     }
+  }
+
+  /**
+   * Posts the newest overflow bubble at once with the stack open, for the X of the last bubble in it:
+   * see [BubbleCloser.closePage]. It takes no held close, because its own close is not held. The
+   * answer says whether the bubble came back.
+   */
+  fun returnIntoOpenStack(): Deferred<Boolean> {
+    val back = CompletableDeferred<Boolean>()
+    launchReturn {
+      returnLock.withLock { back.complete(!returnFailed && returnNewest(reconciled = false)) }
+    }.invokeOnCompletion { back.complete(false) }
+    return back
   }
 
   private fun launchReturn(block: suspend () -> Unit): Job {

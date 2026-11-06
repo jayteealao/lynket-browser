@@ -100,7 +100,7 @@ A person closes a bubble in three ways: a drag to the dismiss target, Dismiss bu
 - A page in a tab, and a page opened from the conversation shortcut, finish as usual.
 - Back on a page with no history folds the stack and keeps the bubble. A bubble that ages out ends its page with no call to `finish()`, so it stays open.
 
-A close in an open stack returns nothing while the stack is open: a bubble that returns there takes the selection and replaces the page on screen, as the [Samsung phone](#a-samsung-phone-on-android-17) showed. See [The return waits for the fold](#the-return-waits-for-the-fold). A close in a folded stack returns at once.
+A close in an open stack returns nothing while the stack is open: a bubble that returns there takes the selection and replaces the page on screen, as the [Samsung phone](#a-samsung-phone-on-android-17) showed. See [The return waits for the fold](#the-return-waits-for-the-fold). The X of the last bubble in the stack is the one exception: see [The X of the last bubble](#the-x-of-the-last-bubble). A close in a folded stack returns at once.
 
 A return posts the newest overflow bubble again, from the data that bubble last posted. From Android 12 the post is a new notification: the app cancels that bubble's notification and posts it, with the check that the bubble is still posted before the cancel. The summary and the shortcut stay. An update with the same text can leave the bubble in the overflow, and the [Samsung phone](#a-samsung-phone-on-android-17) does, while Android sets the flag on it all the same. On Android 11 and older the post is an update: Android takes the bubble out of the overflow on any update, and there a new notification sets `showFlyout`. Android 12 and 13 were not measured, so their side of this line comes from the Android 11 and Android 14 results.
 
@@ -149,7 +149,7 @@ On Android 14 a bubble that returns after a drag of the stack can lose its notif
 
 On the Samsung phone, an X with the stack open selects the next bubble at once and its page shows. About 480 ms later the returned bubble enters the row, the shell selects it, and its page replaces the page on the screen. So one X changed the page twice, in 3 of 3 returns, and no timing in the app can change that: a first post takes the same wait there. So a return waits until the stack folds.
 
-- With the stack open, a close of any kind returns nothing, and the count changes in place. `BubbleCloser` holds the close, and the hold lives as long as the process, as the list of open bubbles does.
+- With the stack open, a close of any kind returns nothing, but for [the X of the last bubble](#the-x-of-the-last-bubble), and the count changes in place. `BubbleCloser` holds the close, and the hold lives as long as the process, as the list of open bubbles does.
 - When the stack folds, the bubbles come back one for each held close, newest first. Each post reads the free places from the list again, and stops at the fullest stack. The closes bound this, because a read just after a post can find a stack above the real limit, and a fold with no close must return nothing. The first build used the fullest stack alone: on the emulators a fold with no close then returned 2 bubbles, and a fold after one close returned up to 8.
 - A fold with the stack opened again before the last post stops there, and the next fold returns the rest. So does a return that fails.
 - A close of a folded stack is as before: one return at once, or the wait of a drag. A link sent again leaves the overflow at once, because the person asked for that bubble.
@@ -163,11 +163,41 @@ Android sends the app nothing when the stack folds, so `BubbleStackWatcher` read
 
 - The longest of these are why the wait is 1 s; 300 ms read several switches as folds. A page slower than that on a phone reads as a fold, and the return then comes with the stack open, as it did before.
 - A delete intent can arrive after the page stopped and before the next page started, as Dismiss bubble does on Android 11, so the wait counts as open.
-- The X of the last page in the row leaves no page to start, so it reads as a fold, and the return runs.
+- The X of the last bubble with an empty overflow leaves no page to start, so it reads as a fold. A drag or Dismiss bubble of the last bubble reads the same, and the bubbles come back to a folded stack: Android has taken the bubble away before the app hears of it.
 - The Android 14 emulator can fold the stack on an X, with no page starting next. The return then comes at once, which is right.
 - The overflow panel of an open stack shows no page, so opening it reads as a fold.
 
 From the check that reads a fold to the post of the first return, the log of `overflow-probe.sh` reads 3 to 14 ms on both versions, so a return posts about 1 s after a page stops. This was read with two emulators and a build running on one machine, so the gaps above are on the long side, and how a phone compares has not been read.
+
+## The X of the last bubble
+
+With the closes held, the stack can run down to one bubble while the overflow still holds some. On the [Samsung phone](#a-samsung-phone-on-android-17), an X of that bubble emptied the stack: the shell folded it, the bubbles came back 1.6 s later, folded, and the person called that bad. So when the X closes the last bubble in an open stack and the overflow holds a bubble, the stack stays open and an overflow bubble takes the place.
+
+`BubbleCloser.closePage` does this in order:
+
+1. The closed bubble leaves the list and is marked as closed, so it can never return. The count goes from its top bar, and that is all the person sees change on the page for now. A second tap of the X does nothing.
+2. The newest overflow bubble posts, with the usual return. It takes no held close, because this close is not held. Other held closes still wait for the fold, and the fold returns one for each of them.
+3. The app waits for the page of another bubble to start, which is what the phone is expected to do, or 700 ms from the flag of the returned bubble.
+4. It cancels the closed bubble. A cancel before the shell adds the returned bubble would empty the stack and fold it.
+5. It finishes the page when the next page has started, or after 1 s. A page that finishes first can fold the stack on Android 14.
+
+- A return that fails ends as any close in an open stack does, after the flag's wait of 1.5 s: the bubble goes, the stack folds, and the fold tries again.
+- Every finish of a page takes this path, so a page that gave up does too, and stays up for the wait. Back folds the stack and closes nothing. A drag and Dismiss bubble do not take it: Android has already removed the bubble.
+- A delete intent during the wait closes the bubble early, and returns no second bubble.
+- The read of the list comes first, so an X with other bubbles in the stack costs no read of Android on the main thread. The last X reads Android off the main thread before it posts, and a read that finds another bubble in the stack closes as usual.
+
+`overflow-probe.sh close-last` closes an open stack of 5 down to one by drags, because the Android 14 emulator can fold on an X with two left, then taps the X, on 2026-11-06:
+
+| Read after the X | Android 14, 3 runs | Android 11, 2 runs |
+|---|---|---|
+| The stack stays open on the returned bubble, one page start, no fold, no sound key or flyout, the closed bubble gone | All 3 | Both |
+| The fold after it returns the one bubble left in the overflow, for 4 held closes | All 3 | Both |
+| The flag of the returned bubble, in ms | 318, 321, 365 | 362, 438 |
+| The next page starts, in ms | 1868, 1981, 2491 | 1771, 1925 |
+
+During the wait the page stays as it was, with its count gone: `last-wait.png` of those runs shows no blank and no fold. The first read of the shell's stack already held the returned bubble, 438 ms after its flag on Android 14 and 6 ms after it on Android 11, so these are upper bounds on the add. The wait of 700 ms stands above both, and above the add on the phone, about 500 ms after a post. An interruptive mark on Android 14 is the new notification of any return.
+
+The emulators do not select a returned bubble in an open stack, so they always take the full wait, and the page changes only after the cancel. Step 3 on the phone rests on the log of an earlier build, not on a run of this path: **this path has not been read on a phone**, so the wait of 700 ms is only a bound there, and how long the X feels dead there has not been measured.
 
 ## What clears the stack and the overflow
 

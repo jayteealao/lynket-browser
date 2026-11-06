@@ -20,6 +20,9 @@ import androidx.annotation.RequiresApi
 import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.util.ActivityLifeCycleCallbackAdapter
 import dagger.Lazy
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,6 +51,11 @@ constructor(
 
   private val main = Handler(Looper.getMainLooper())
 
+  private val lastStartedPage = MutableStateFlow<Int?>(null)
+
+  /** The notification id of the bubble page that started last, so the page a person sees. */
+  val startedPage: StateFlow<Int?> = lastStartedPage.asStateFlow()
+
   /** The bubble pages between a start and a stop, written on the main thread. */
   @Volatile
   private var startedPages = 0
@@ -68,7 +76,7 @@ constructor(
   fun attach(application: Application) {
     application.registerActivityLifecycleCallbacks(object : ActivityLifeCycleCallbackAdapter() {
       override fun onActivityStarted(activity: Activity) {
-        if (activity.isBubblePage) pageStarted()
+        if (activity.isBubblePage) pageStarted(activity.intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0))
       }
 
       override fun onActivityStopped(activity: Activity) {
@@ -77,8 +85,9 @@ constructor(
     })
   }
 
-  internal fun pageStarted() {
+  internal fun pageStarted(notificationId: Int? = null) {
     startedPages++
+    lastStartedPage.value = notificationId
     Timber.d("Bubble page started: %d", startedPages)
     foldUnsure = false
     main.removeCallbacks(foldCheck)

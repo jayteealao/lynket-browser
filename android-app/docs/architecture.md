@@ -108,7 +108,9 @@ intent only for the first two, so a page in a bubble calls `BubbleCloser` itself
 When the person closes a bubble in a folded stack, the newest overflow bubble posts again from the
 data its registry entry holds, with no alert (`NativeFloatingBubble.returnNewestOverflowBubble`).
 A close in an open stack waits, and the places it left free fill when the stack folds
-(`BubbleStackWatcher`, `NativeFloatingBubble.fillFreePlaces`); `docs/native-bubble-overflow.md` says how.
+(`BubbleStackWatcher`, `NativeFloatingBubble.fillFreePlaces`). The X of the last bubble in an open
+stack keeps it open on the next overflow bubble (`BubbleCloser.closePage`);
+`docs/native-bubble-overflow.md` says how.
 
 Browsing mode explains the choice "All conversations can bubble" and shows the current setting under
 the Native Bubbles row.

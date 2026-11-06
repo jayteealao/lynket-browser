@@ -12,12 +12,24 @@
 package arun.com.chromer.bubbles.system
 
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.RequiresApi
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.bubbles.OpenBubble
 import arun.com.chromer.data.preferences.BrowsingMode
+import arun.com.chromer.di.hilt.IoDispatcher
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,7 +45,8 @@ import javax.inject.Singleton
  * asks for no return.
  *
  * A close of a bubble in the stack leaves room. With the stack folded the newest overflow bubble
- * comes back at once. With the stack open it waits for the fold, see [BubbleStackWatcher].
+ * comes back at once. With the stack open it waits for the fold, see [BubbleStackWatcher]. The X of
+ * the last bubble in an open stack is the exception, see [closePage].
  */
 @Singleton
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -45,13 +58,17 @@ constructor(
   private val bubbleReconciler: BubbleReconciler,
   private val nativeFloatingBubble: NativeFloatingBubble,
   private val stackWatcher: BubbleStackWatcher,
+  @IoDispatcher ioDispatcher: CoroutineDispatcher,
 ) {
 
+  private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+  private val main = Handler(Looper.getMainLooper())
+
+  /** The bubbles between their X and the end of [closePage]: a second tap of the X closes nothing. */
+  private val pagesClosing = ConcurrentHashMap.newKeySet<Int>()
+
   fun close(notificationId: Int) {
-    Timber.d("Bubble dismissed: %d", notificationId)
-    val key = BubbleKey(BrowsingMode.NativeBubbles, notificationId)
-    bubbleRegistry.markClosedOnPurpose(key)
-    val closed = bubbleRegistry.remove(key)
+    val closed = takeOffTheList(notificationId)
     bubbleNotificationManager.dismissed(notificationId)
     // A close in the overflow leaves the stack full, and a second signal finds no entry. A close in
     // an open stack waits for the fold, and only a folded stack can be dragged away. A close in a
@@ -66,5 +83,84 @@ constructor(
       }
       else -> nativeFloatingBubble.returnNewestOverflowBubble()
     }
+  }
+
+  /**
+   * What a page in a bubble does when it finishes: [close], then [finishPage], on the main thread.
+   *
+   * The X of the last bubble in an open stack needs more, or the stack empties and folds, and the
+   * bubbles come back to a folded stack. So when the overflow holds a bubble, the closed bubble stays
+   * until the newest overflow bubble is in the stack, and the stack stays open on that bubble's page.
+   * A phone that selects a returned bubble starts its page, and that is the signal. The emulators
+   * leave the selection alone, so their closed bubble goes at the end of [SHELL_ADD_MS], and the shell
+   * selects the bubble that is left. Other held closes still wait for the fold.
+   *
+   * The closed bubble leaves the list at once, so its count goes from the top bar and it can never be
+   * returned. A return that fails ends as any close in an open stack does.
+   * sdlc-debt: a fixed wait; a shell slower than it to add the bubble empties the stack and folds it,
+   * and a signal that a bubble entered the stack would replace it.
+   */
+  fun closePage(notificationId: Int, finishPage: () -> Unit) {
+    if (notificationId in pagesClosing) return
+    if (!isLastInOpenStack(notificationId)) {
+      close(notificationId)
+      finishPage()
+      return
+    }
+    pagesClosing += notificationId
+    scope.launch {
+      try {
+        bubbleReconciler.reconcile()
+        if (isLastInOpenStack(notificationId)) takeLastPlace(notificationId) else close(notificationId)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e)
+      } finally {
+        main.post {
+          pagesClosing -= notificationId
+          finishPage()
+        }
+      }
+    }
+  }
+
+  private suspend fun takeLastPlace(notificationId: Int) {
+    takeOffTheList(notificationId)
+    val returned = nativeFloatingBubble.returnIntoOpenStack().await()
+    val nextPage = stackWatcher.startedPage
+    if (returned) {
+      withTimeoutOrNull(SHELL_ADD_MS) { nextPage.first { it != null && it != notificationId } }
+    } else if (stackWatcher.stackOpen) {
+      nativeFloatingBubble.holdReturn()
+    }
+    bubbleNotificationManager.dismissed(notificationId)
+    bubbleReconciler.reconcile()
+    // A page that finishes before the next one starts can fold the stack on Android 14.
+    if (returned) withTimeoutOrNull(NEXT_PAGE_MS) { nextPage.first { it != null && it != notificationId } }
+  }
+
+  /** From the list alone, so an ordinary close reads nothing from Android on the main thread. */
+  private fun isLastInOpenStack(notificationId: Int): Boolean {
+    val mode = BrowsingMode.NativeBubbles
+    val stack = bubbleRegistry.list(mode).filter { it.place == BubblePlace.STACK }
+    return stackWatcher.stackOpen &&
+      stack.singleOrNull()?.key?.notificationId == notificationId &&
+      bubbleRegistry.returnCandidates(mode).isNotEmpty()
+  }
+
+  private fun takeOffTheList(notificationId: Int): OpenBubble? {
+    Timber.d("Bubble dismissed: %d", notificationId)
+    val key = BubbleKey(BrowsingMode.NativeBubbles, notificationId)
+    bubbleRegistry.markClosedOnPurpose(key)
+    return bubbleRegistry.remove(key)
+  }
+
+  private companion object {
+    /** How long after its flag a returned bubble can take to enter the stack. See the note above. */
+    const val SHELL_ADD_MS = 700L
+
+    /** How long the page of the bubble that is left can take to start. */
+    const val NEXT_PAGE_MS = 1_000L
   }
 }

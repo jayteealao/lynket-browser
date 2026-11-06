@@ -67,8 +67,9 @@ class EmbeddableWebViewActivity : WebViewActivity() {
 
   override fun finish() {
     if (!isFinishing && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)) {
-      bubbleCloser.get().close(intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0))
+      bubbleCloser.get().closePage(intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)) { super.finish() }
+    } else {
+      super.finish()
     }
-    super.finish()
   }
 }
