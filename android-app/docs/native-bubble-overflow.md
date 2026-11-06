@@ -136,12 +136,14 @@ In a drag of the stack the first delete intent can still find every flag on. On 
 | `close`: closes 1 and 2 each return nothing with the stack open and the newest overflow bubble at the fold; close 3 returns none | Yes | Yes |
 | The return has a sound key or a flyout | No | No |
 | The return is interruptive | Not on an update | Yes, as any new notification, and with no effect the checks can read |
-| `close-stack`: 5 closes, 2 returns, newest first, total 2 | Yes | Yes |
+| `close-stack`: 5 closes, 2 returns, newest first, total 2 | Yes | Not always: see below |
 | `close-stack`: the stack expands, or a heads-up row shows | No | No |
 | `close-icon`: disc, then the icon in place | Yes | Yes |
 | `close-x`: Back keeps the bubble and returns nothing; closes 1 and 2 each return nothing before a fold and the newest overflow bubble at it; close 3 returns none; no alert, no shade row | Yes | Yes |
 
 The check of a return on Android 11 fails on an interruptive mark, because that return is an update.
+
+On Android 14 a bubble that returns after a drag of the stack can lose its notification about a second later, while Android's stack still shows it. The list then drops it. `close-stack` failed this way in 1 of 4 runs before the return waited for the fold and in 6 of 8 after, on a path that change does not touch, and in none of 4 on Android 11. The events log gives `notification_canceled` reason 2 from System UI, 0.7 to 1.2 s after the post, with no delete intent. The app makes no call there, and why System UI does it was not traced.
 
 ## The return waits for the fold
 
