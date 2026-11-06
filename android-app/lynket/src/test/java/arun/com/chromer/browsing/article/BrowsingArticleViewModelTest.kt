@@ -39,7 +39,7 @@ import org.robolectric.annotation.Config
 /** The reader's view model: loading, content, error (never a silent close), retry, text size, keyword search. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class BrowsingArticleViewModelTest {
 
   private val dispatcher = StandardTestDispatcher()

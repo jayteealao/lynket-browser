@@ -25,6 +25,7 @@ import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
@@ -50,6 +51,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import arun.com.chromer.R
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.browsing.menu.MenuDelegate
+import arun.com.chromer.bubbles.BubblePageCount
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.WebUrl
@@ -110,6 +112,7 @@ open class WebViewActivity : BrowsingActivity() {
     }
     Timber.d("WebView created")
     webView = view
+    hideFromScreenShareWhenIncognito(view)
     setupWebView(view)
     val restored = savedInstanceState?.getBundle(KEY_WEB_VIEW_STATE)?.let { view.restoreState(it) } != null
     if (!restored) view.loadUrl(url)
@@ -148,6 +151,12 @@ open class WebViewActivity : BrowsingActivity() {
         }
       }
     }
+  }
+
+  /** On Android 15 and later, an incognito page is hidden from a screen share; normal pages are not. */
+  private fun hideFromScreenShareWhenIncognito(view: WebView) {
+    if (!incognito || Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return
+    view.contentSensitivity = View.CONTENT_SENSITIVITY_SENSITIVE
   }
 
   @SuppressLint("SetJavaScriptEnabled")
@@ -224,6 +233,11 @@ open class WebViewActivity : BrowsingActivity() {
   private var stateAfterRendererGone: Bundle? = null
 
   override fun getCurrentUrl(): String = webView?.url ?: super.getCurrentUrl()
+
+  /** Shows the place of this page among the open bubbles, or nothing when [count] is null. */
+  protected fun showPageCount(count: BubblePageCount?) {
+    page = page.copy(count = count)
+  }
 
   override fun onWebsiteLoaded(website: Website) {
     page = page.copy(title = website.safeLabel(), address = website.url)

@@ -98,7 +98,7 @@ fun WebHeadBubble(
   modifier: Modifier = Modifier,
 ) {
   val inset = WebHeadMotion.HEAD_WINDOW_INSET_DP.dp
-  val description = stringResource(R.string.web_head_content_description, head.website.safeLabel())
+  val description = stringResource(R.string.web_head_content_description, head.website.safeLabel(), head.stackPosition, head.badgeCount)
   val openLabel = stringResource(R.string.web_head_action_open)
   val listLabel = stringResource(R.string.web_head_action_list)
   val closeLabel = stringResource(R.string.web_head_action_close)

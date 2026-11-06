@@ -29,10 +29,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -59,13 +61,16 @@ import javax.inject.Inject
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = HiltTestApplication::class)
+@Config(application = HiltTestApplication::class)
 class BrowsingModePermissionTest {
   @get:Rule(order = 0)
   val hiltRule = HiltAndroidRule(this)
 
   @get:Rule(order = 1)
   val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   @Inject lateinit var repository: UserPreferencesRepository
 
@@ -123,7 +128,7 @@ class BrowsingModePermissionTest {
     error("The settings store did not reach the expected value")
   }
 
-  private fun awaitWebHeads(on: Boolean) = awaitStore { preferences.webHeads() == on }
+  private fun awaitWebHeads(on: Boolean) = awaitStore { (preferences.browsingMode() == BrowsingMode.WebHeads) == on }
 
   @Test
   fun withoutThePermissionTheExplainerShowsAndWebHeadsStayOff() {
@@ -132,7 +137,7 @@ class BrowsingModePermissionTest {
 
     composeRule.onNodeWithText(string(R.string.overlay_explainer_title)).assertExists()
     composeRule.waitForIdle()
-    assertThat(preferences.webHeads()).isFalse()
+    assertThat(preferences.browsingMode()).isNotEqualTo(BrowsingMode.WebHeads)
   }
 
   @Test
@@ -143,7 +148,7 @@ class BrowsingModePermissionTest {
 
     composeRule.onNodeWithText(string(R.string.overlay_explainer_title)).assertDoesNotExist()
     assertThat(shadowOf(composeRule.activity).nextStartedActivity).isNull()
-    assertThat(preferences.webHeads()).isFalse()
+    assertThat(preferences.browsingMode()).isNotEqualTo(BrowsingMode.WebHeads)
   }
 
   @Test

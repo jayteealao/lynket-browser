@@ -20,6 +20,7 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.ui.browsing.BubbleRefusedMessage
@@ -31,7 +32,9 @@ import javax.inject.Inject
 /**
  * A small window at the bottom of the screen, over the tab a refused bubble opened in. It shows the
  * cause and an "Open Settings" action, takes no touch outside itself, so the page under it stays
- * usable, and closes on Back, on the action or when the message times out.
+ * usable, and closes on Back, on the action or when the message times out. The window draws behind
+ * the system bars, the message stays above the navigation bar, and the bar icons follow the app's
+ * light or dark theme.
  */
 @AndroidEntryPoint
 class BubbleRefusedActivity : BaseActivity() {
@@ -46,6 +49,7 @@ class BubbleRefusedActivity : BaseActivity() {
       finish()
       return
     }
+    enableEdgeToEdge()
     window.apply {
       setGravity(Gravity.BOTTOM)
       setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -53,7 +57,7 @@ class BubbleRefusedActivity : BaseActivity() {
       clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
     }
     setContent {
-      ChromerThemeFromSettings(applySystemBars = false) {
+      ChromerThemeFromSettings {
         BubbleRefusedMessage(
           refusal = refusal,
           onOpenSettings = { openSettings(refusal) },

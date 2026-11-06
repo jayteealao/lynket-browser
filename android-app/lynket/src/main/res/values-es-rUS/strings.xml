@@ -187,7 +187,6 @@
   <string name="article_mode">Modo lectura</string>
   <string name="article_theme">Modo lectura</string>
   <string name="amp_warning_title">Advertencia de AMP</string>
-  <string name="not_available_in_slide_mode">No disponible durante el modo deslizar encima</string>
   <string name="title_activity_browsing_options">Opciones de navegación</string>
   <string name="link_found">Enlacé encontrado!</string>
   <string name="link_not_found">Enlacé de AMP no encontrado</string>
@@ -205,4 +204,6 @@
   <string name="more_menu">Mas</string>
   <string name="open_article_view">Ver artículo</string>
   <string name="browse_seamlessly">Navegar sin problemas</string>
+  <string name="only_used_in_web_heads_mode">Solo se usa en el modo Web Heads</string>
+  <string name="minimize_always_opens_bubble">Minimizar siempre abre una burbuja</string>
 </resources>

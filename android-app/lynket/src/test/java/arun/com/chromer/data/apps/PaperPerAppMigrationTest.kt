@@ -35,7 +35,7 @@ import kotlin.random.Random
  * (`paper-2.1.3/APPS/`, copied from the upgrade seed): Calendar blacklisted, Clock incognito.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class PaperPerAppMigrationTest {
   private val context: Application get() = RuntimeEnvironment.getApplication()
   private val tree = RecordingTree()

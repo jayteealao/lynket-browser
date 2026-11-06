@@ -218,9 +218,8 @@
   <string name="article_mode">Artikelweergave</string>
   <string name="article_theme">Thema van artikelen</string>
   <string name="amp_warning_title">Waarschuwing bij AMP</string>
-  <string name="amp_warning_content"><![CDATA[Indien <b>Schuiven</b> is gekozen, kan het even duren tot de AMP-link gevonden is. Er wordt dan een pop-up weergegeven.]]></string>
+  <string name="amp_warning_content"><![CDATA[Buiten de modus <b>Webheads</b> kan het even duren tot de AMP-link gevonden is. Er wordt dan een pop-up weergegeven.]]></string>
   <string name="title_activity_look_and_feel">Uiterlijk</string>
-  <string name="not_available_in_slide_mode">Niet beschikbaar bij de optie Schuiven</string>
   <string name="title_activity_browsing_options">Browsing</string>
   <string name="grabbing_amp_link">AMP-link openen</string>
   <string name="link_found">Link gevonden!</string>
@@ -241,4 +240,6 @@
   <string name="open_article_view">Artikelweergave openen</string>
   <string name="browse_seamlessly">Naadloos bladeren</string>
   <string name="slide_over_explanation">Webpagina\'s schuiven over de de app die u op dat moment gebruikt en snel gesloten worden met een tik op de X.</string>
+  <string name="only_used_in_web_heads_mode">Alleen gebruikt in de modus Webheads</string>
+  <string name="minimize_always_opens_bubble">Minimaliseren opent altijd een bubbel</string>
 </resources>

@@ -29,7 +29,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import arun.com.chromer.R
 import arun.com.chromer.bubbles.webheads.motion.TrashState
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 
@@ -37,6 +43,7 @@ import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
  * The trash target under the screen centre. It appears when a head is dragged, and morphs from a
  * neutral circle into a red rounded square when a head locks onto it. It draws flat (tonal colour, no
  * shadow): shadows belong to the heads only, and a flat window is cheaper to draw at drag start.
+ * Screen readers hear it as "Close target", and "Release to close" once each time a head locks onto it.
  */
 @Composable
 fun TrashTarget(trash: TrashState, modifier: Modifier = Modifier) {
@@ -50,7 +57,16 @@ fun TrashTarget(trash: TrashState, modifier: Modifier = Modifier) {
   val corner by animateDpAsState(if (trash.locked) 24.dp else 36.dp, label = "trashCorner")
   val container by animateColorAsState(if (trash.locked) colours.error else colours.surfaceContainerHighest, label = "trashColour")
   val content by animateColorAsState(if (trash.locked) colours.onError else colours.onSurfaceVariant, label = "trashIcon")
-  Box(modifier = modifier.size(WebHeadMotion.TRASH_WINDOW_DP.dp), contentAlignment = Alignment.Center) {
+  val closeTarget = stringResource(R.string.web_head_trash_description)
+  val releaseToClose = stringResource(R.string.web_head_trash_locked)
+  // A hidden trash says nothing; a shown one has its name.
+  val shown = trash.scale > 0f
+  Box(
+    modifier = modifier
+      .size(WebHeadMotion.TRASH_WINDOW_DP.dp)
+      .semantics { if (shown) contentDescription = closeTarget },
+    contentAlignment = Alignment.Center,
+  ) {
     Box(
       modifier = Modifier
         .graphicsLayer {
@@ -67,6 +83,16 @@ fun TrashTarget(trash: TrashState, modifier: Modifier = Modifier) {
         contentDescription = null,
         tint = content,
         modifier = Modifier.size(28.dp),
+      )
+      // The text changes only when the lock does, so the platform says it once per lock and nothing
+      // when the head leaves (the text empties).
+      Box(
+        Modifier
+          .matchParentSize()
+          .semantics {
+            liveRegion = LiveRegionMode.Polite
+            contentDescription = if (trash.locked) releaseToClose else ""
+          },
       )
     }
   }

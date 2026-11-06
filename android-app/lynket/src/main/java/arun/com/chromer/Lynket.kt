@@ -21,7 +21,10 @@
 package arun.com.chromer
 
 import android.app.Application
+import android.os.Build
 import androidx.core.app.NotificationManagerCompat
+import arun.com.chromer.bubbles.system.BubbleReconciler
+import arun.com.chromer.bubbles.system.BubbleStackWatcher
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.util.debug.DebugHooks
@@ -29,6 +32,8 @@ import arun.com.chromer.util.image.ApplicationIconFetcher
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.memoryCacheMaxSizePercentWhileInBackground
+import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -50,6 +55,13 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
   @Inject
   lateinit var appDiskStore: AppDiskStore
 
+  // Lazy: the class needs Android 10, and the app starts on older versions.
+  @Inject
+  lateinit var bubbleReconciler: Lazy<BubbleReconciler>
+
+  @Inject
+  lateinit var bubbleStackWatcher: Lazy<BubbleStackWatcher>
+
   override fun onCreate() {
     DebugHooks.from(this).installStrictModeIfRequested(this)
     super.onCreate()
@@ -67,18 +79,28 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
     // Links now name their source app when they open, so the old app-detection service and its
     // notification channel are gone; remove the channel earlier versions created.
     NotificationManagerCompat.from(this).deleteNotificationChannel(OLD_APP_DETECTION_CHANNEL)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      bubbleReconciler.get().attach(this)
+      bubbleStackWatcher.get().attach(this)
+    }
   }
 
   /**
    * The one image loader for Compose images, favicons and app icons. Network loading comes from
    * the OkHttp fetcher Coil registers on its own when coil-network-okhttp is on the classpath.
+   * The memory cache shrinks to half while no Lynket screen is visible and returns to full size
+   * when one starts.
    */
   override fun newImageLoader(context: PlatformContext): ImageLoader =
     ImageLoader.Builder(context)
       .components { add(ApplicationIconFetcher.Factory()) }
+      .memoryCacheMaxSizePercentWhileInBackground(BACKGROUND_MEMORY_CACHE_PERCENT)
       .build()
 
   companion object {
     private const val OLD_APP_DETECTION_CHANNEL = "App detection service"
+
+    /** Share of the memory cache kept while no Lynket screen is visible. */
+    internal const val BACKGROUND_MEMORY_CACHE_PERCENT = 0.5
   }
 }

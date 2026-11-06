@@ -34,7 +34,6 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_AMP
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_MINIMIZE
-import arun.com.chromer.util.Utils
 import arun.com.chromer.util.debug.DebugHooks
 import timber.log.Timber
 import java.util.Optional
@@ -62,13 +61,9 @@ constructor(
     context: Context?,
     color: Int
   ): Boolean {
+    // The tabs manager checks the overlay permission before it gets here, and the service checks
+    // it again on start, so this only starts the service.
     val ctx = context ?: application
-    if (!Utils.isOverlayGranted(ctx)) {
-      mainHandler.post {
-        Utils.openDrawOverlaySettings(ctx)
-      }
-      return true
-    }
     val webHeadLauncher = Intent(ctx, WebHeadService::class.java).apply {
       data = website.preferredUri()
       addFlags(FLAG_ACTIVITY_NEW_TASK)

@@ -53,7 +53,8 @@ class ModernTabsViewModel @Inject constructor(
   private var loadJob: Job? = null
 
   /**
-   * Reads the open tasks, with the stored site of each page when there is one. A new load cancels
+   * Reads the open tasks, with the stored site of each page when there is one, and stores nothing,
+   * since the list cannot tell an incognito tab from a normal one. A new load cancels
    * the one in progress, so an older, slower read never replaces a newer list.
    */
   fun load() {
@@ -63,7 +64,7 @@ class ModernTabsViewModel @Inject constructor(
       try {
         val tabs = tabsManager.getActiveTabs().map { tab ->
           tab.website = try {
-            websiteRepository.getWebsiteReadOnly(tab.url).first()
+            websiteRepository.getWebsiteWithoutSaving(tab.url).first()
           } catch (e: CancellationException) {
             throw e
           } catch (e: Exception) {

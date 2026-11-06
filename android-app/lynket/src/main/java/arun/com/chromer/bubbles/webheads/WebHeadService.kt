@@ -52,6 +52,9 @@ import arun.com.chromer.R
 import arun.com.chromer.browsing.article.ArticlePreloader
 import arun.com.chromer.browsing.customtabs.CustomTabManager
 import arun.com.chromer.browsing.newtab.NewTabDialogActivity
+import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.bubbles.webheads.motion.TrashTick
 import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadState
@@ -61,6 +64,7 @@ import arun.com.chromer.bubbles.webheads.ui.TrashTarget
 import arun.com.chromer.bubbles.webheads.ui.WebHeadBubble
 import arun.com.chromer.bubbles.webheads.ui.WebHeadGestures
 import arun.com.chromer.bubbles.webheads.ui.context.WebHeadContextActivity
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
@@ -73,7 +77,6 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_MINIMIZE
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
-import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.events.Event
@@ -107,13 +110,13 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   lateinit var websiteRepository: WebsiteRepository
 
   @Inject
-  lateinit var tabsManager: TabsManager
-
-  @Inject
   lateinit var articlePreloader: ArticlePreloader
 
   @Inject
   lateinit var eventBus: EventBus
+
+  @Inject
+  lateinit var bubbleRegistry: BubbleRegistry
 
   private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
   private var motionScope: CoroutineScope? = null
@@ -264,6 +267,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   private fun removeOverlay() {
     controller?.removeAll()
+    bubbleRegistry.list(BrowsingMode.WebHeads).forEach { bubbleRegistry.remove(it.key) }
     headWindows.values.forEach { it.remove() }
     headWindows.clear()
     trashWindow?.remove()
@@ -285,14 +289,25 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     controller?.let { trashWindow?.move(it.trashX, it.trashY) }
   }
 
-  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+  /**
+   * The web heads notification lives only while a head does. A start that leaves no head, as when
+   * Android restarts the service with no link after its process was killed, stops the service,
+   * removes the notification and asks Android not to restart it.
+   */
+  override fun onStartOverlay(intent: Intent?, flags: Int, startId: Int): Int {
+    // The base service already ran the overlay check: with the permission off, its message names
+    // the cause that Open Settings fixes, and no head is added over a refused overlay.
     if (!foregroundStarted) {
       openInTabInstead(intent)
       stopSelf()
       return START_NOT_STICKY
     }
-    checkForOverlayPermission()
     processIntent(intent)
+    if ((controller?.size ?: 0) == 0) {
+      Timber.d("Web heads started with no head; stopping")
+      stopService()
+      return START_NOT_STICKY
+    }
     return START_STICKY
   }
 
@@ -332,6 +347,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   private fun addWebHead(controller: WebHeadsController, url: String, isFromAmp: Boolean, isIncognito: Boolean) {
     val head = controller.add(url, isFromAmp, isIncognito)
+    bubbleRegistry.add(BrowsingMode.WebHeads, url, isIncognito)
     val userColour = Preferences.get(this).webHeadColor()
     if (userColour != ContextCompat.getColor(this, R.color.web_head_color)) {
       head.colour = Color(userColour)
@@ -403,7 +419,19 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     openContextActivity()
   }
 
+  override fun onTrashShown(shown: Boolean) {
+    trashWindow?.touchable = shown
+  }
+
+  override fun onTrashTick(head: WebHeadState, tick: TrashTick) {
+    headWindows[head.url]?.view?.performHapticFeedback(tick.feedbackConstant())
+  }
+
+  /** Only a close by the person gets here: a service stop removes its heads with no callback. */
   override fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean) {
+    val key = BubbleKey.of(BrowsingMode.WebHeads, head.url, head.incognito)
+    bubbleRegistry.markClosedOnPurpose(key)
+    bubbleRegistry.remove(key)
     if (isLastHead) {
       controller?.exitTrash { stopService() } ?: stopService()
     } else if (!Preferences.get(this).articleMode()) {
@@ -418,7 +446,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     val websiteFlow = if (!isIncognito) {
       websiteRepository.getWebsite(webHeadUrl)
     } else {
-      websiteRepository.getWebsiteReadOnly(webHeadUrl)
+      websiteRepository.getWebsiteWithoutSaving(webHeadUrl)
     }
     serviceScope.launch {
       try {
@@ -495,7 +523,8 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   private fun openContextActivity() {
-    val websites = ArrayList(controller?.all.orEmpty().asReversed().map { it.website })
+    val openOrder = bubbleRegistry.list(BrowsingMode.WebHeads).asReversed()
+    val websites = ArrayList(openOrder.mapNotNull { controller?.get(it.url)?.website })
     ContextActivityHelper.open(this, websites)
   }
 

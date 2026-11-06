@@ -111,7 +111,7 @@ fun LookAndFeelContent(
 ) {
   var listKey by rememberSaveable { mutableStateOf(openList) }
   var colourKey by rememberSaveable { mutableStateOf(openColour) }
-  val webHeadsNotice = if (SettingsRules.showsSlideOverNotice(values)) stringResource(R.string.not_available_in_slide_mode) else null
+  val webHeadsNotice = if (SettingsRules.showsOutsideWebHeadsNotice(values)) stringResource(R.string.only_used_in_web_heads_mode) else null
 
   val actions = listChoices(PREFERRED_ACTION, R.array.actionValues, R.array.actionKeys)
   val animations = listChoices(ANIMATION_TYPE, R.array.animationValues, R.array.animationKeys)

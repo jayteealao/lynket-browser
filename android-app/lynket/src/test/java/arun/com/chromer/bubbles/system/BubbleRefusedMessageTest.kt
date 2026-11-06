@@ -19,15 +19,24 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import arun.com.chromer.R
+import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.browsing.BubbleRefusedMessage
 import arun.com.chromer.ui.browsing.TOUCH_EXPLORATION_TIMEOUT_MS
 import arun.com.chromer.ui.browsing.messageRes
@@ -45,6 +54,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * The message over a refused bubble's tab: its text per cause, one "Open Settings" action that
@@ -53,13 +63,16 @@ import org.robolectric.annotation.Config
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = HiltTestApplication::class)
+@Config(application = HiltTestApplication::class)
 class BubbleRefusedMessageTest {
   @get:Rule(order = 0)
   val hiltRule = HiltAndroidRule(this)
 
   @get:Rule(order = 1)
   val composeRule = createEmptyComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val application: Application get() = RuntimeEnvironment.getApplication()
 
@@ -181,6 +194,57 @@ class BubbleRefusedMessageTest {
   }
 
   @Test
+  fun overlayCauseShowsTheApprovedSentence() {
+    val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+    controller.get().setContent {
+      ChromerTheme { BubbleRefusedMessage(BubbleRefusal.OVERLAY_OFF, onOpenSettings = {}, onDone = {}) }
+    }
+    showSnackbar()
+
+    composeRule.onNodeWithText("Web heads need Display over other apps, so the page opened in a tab.").assertExists()
+    composeRule.onNodeWithText("Open Settings").assertHasClickAction()
+  }
+
+  // Real text measurement: the legacy graphics mode does not break lines.
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun overlayCauseAtDoubleTextSizeKeepsTheSentenceWholeAndTheActionOnItsOwnLine() {
+    val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+    controller.get().setContent {
+      val density = LocalDensity.current.density
+      CompositionLocalProvider(LocalDensity provides Density(density, fontScale = 2f)) {
+        ChromerTheme { BubbleRefusedMessage(BubbleRefusal.OVERLAY_OFF, onOpenSettings = {}, onDone = {}) }
+      }
+    }
+    showSnackbar()
+
+    val sentence = composeRule.onNodeWithText(string(R.string.web_heads_refused_overlay_off), useUnmergedTree = true)
+    val layouts = mutableListOf<TextLayoutResult>()
+    sentence.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+    assertThat(layouts.single().hasVisualOverflow).isFalse()
+    val action = composeRule.onNodeWithText(string(R.string.open_settings))
+    action.assertHeightIsAtLeast(48.dp)
+    val sentenceBottom = sentence.fetchSemanticsNode().boundsInRoot.bottom
+    val actionTop = action.fetchSemanticsNode().boundsInRoot.top
+    assertThat(actionTop).isAtLeast(sentenceBottom)
+  }
+
+  @Test
+  fun overlayCauseOpenSettingsOpensDisplayOverOtherAppsAndCloses() {
+    val controller = messageActivity(BubbleRefusal.OVERLAY_OFF)
+    showSnackbar()
+
+    composeRule.onNodeWithText(string(R.string.open_settings)).performClick()
+    composeRule.mainClock.advanceTimeBy(1_000)
+    composeRule.waitForIdle()
+
+    val started = shadowOf(controller.get()).nextStartedActivity
+    assertThat(started.action).isEqualTo(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+    assertThat(started.dataString).isEqualTo("package:${application.packageName}")
+    assertThat(controller.get().isFinishing).isTrue()
+  }
+
+  @Test
   fun withoutACauseTheWindowClosesAtOnce() {
     assertThat(messageActivity(null).get().isFinishing).isTrue()
   }
@@ -199,6 +263,27 @@ class BubbleRefusedMessageTest {
 
     controller.recreate()
     assertThat(shadowOf(controller.get()).nextStartedActivity).isNull()
+  }
+
+  @Test
+  fun aCustomTabHostStartsTheMessageOnlyOnceTheTabCoversIt() {
+    val intent = Intent(application, CustomTabActivity::class.java)
+      .setData(Uri.parse("https://example.com/"))
+      .putExtra(EXTRA_KEY_BUBBLE_REFUSAL, BubbleRefusal.OVERLAY_OFF.name)
+    val controller = Robolectric.buildActivity(CustomTabActivity::class.java, intent).setup()
+    fun messages() = generateSequence { shadowOf(controller.get()).nextStartedActivity }
+      .filter { it.component?.className == BubbleRefusedActivity::class.java.name }.toList()
+
+    // The provider's tab opens on top through a trampoline: a message started now would land under it.
+    assertThat(messages()).isEmpty()
+
+    controller.pause().stop()
+    val started = messages()
+    assertThat(started).hasSize(1)
+    assertThat(BubbleRefusedActivity.refusalOf(started.single())).isEqualTo(BubbleRefusal.OVERLAY_OFF)
+
+    controller.restart().start().resume().pause().stop()
+    assertThat(messages()).isEmpty()
   }
 
   @Test

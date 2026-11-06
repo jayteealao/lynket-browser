@@ -49,13 +49,15 @@ android {
     buildTypes {
         release {
             resValue("string", "app_name", "Lynket")
-            isMinifyEnabled = true
-            isShrinkResources = true
             isDebuggable = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            // R8 code and resource shrinking. AGP adds proguard-android-optimize.txt (includeDefault) and
+            // the app rules in src/main/keepRules/*.keep, which also reach the benchmark build type.
+            optimization {
+                enable = true
+                keepRules {
+                    includeDefault = true
+                }
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -67,6 +69,7 @@ android {
         }
         // Release-like build used only by the :benchmark module to measure start-up and frame times.
         create("benchmark") {
+            // initWith copies release's optimization block: R8 and resource shrinking with the same rules.
             initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
@@ -148,7 +151,8 @@ dependencies {
     testImplementation(libs.hilt.android.testing)
     kspTest(libs.hilt.compiler)
     androidTestImplementation(libs.hilt.android.testing)
-    kspAndroidTest(libs.hilt.compiler)
+    // HiltTestRunner extends AndroidJUnitRunner, which comes from androidx.test:runner
+    androidTestImplementation(libs.androidx.test.runner)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -193,10 +197,6 @@ dependencies {
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
 
     // Pull to refresh around the web view, and website and app colours
     implementation(libs.androidx.swiperefreshlayout)
@@ -239,9 +239,7 @@ kotlin {
         freeCompilerArgs.addAll(
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-opt-in=kotlinx.coroutines.FlowPreview",
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
-            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
         )
     }
 }

@@ -16,6 +16,7 @@ import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.data.preferences.BrowsingMode
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After
@@ -24,6 +25,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowSettings
 import org.robolectric.shadows.ShadowToast
 import arun.com.chromer.debug.FileDebugHooks
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import java.io.File
 import javax.inject.Inject
 
@@ -43,7 +45,7 @@ class WebHeadStartFallbackTest : LynketRobolectricSuite() {
 
   private fun webHeadsOn() {
     ShadowSettings.setCanDrawOverlays(true)
-    preferences.webHeads(true)
+    preferences.browsingMode(BrowsingMode.WebHeads)
     preferences.aggressiveLoading(false)
   }
 
@@ -58,8 +60,36 @@ class WebHeadStartFallbackTest : LynketRobolectricSuite() {
   }
 
   @Test
+  fun app_wide_incognito_opens_the_bubble_as_incognito() {
+    webHeadsOn()
+    preferences.fullIncognitoMode(true)
+    tabs.openWebHeads(application, Website("https://a.example"))
+
+    val started = shadowOf(application).nextStartedService
+    assertThat(started?.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+  }
+
+  @Test
   fun a_refused_start_opens_a_tab_with_a_message() {
     webHeadsOn()
+    faultFile.parentFile!!.mkdirs()
+    faultFile.createNewFile()
+
+    tabs.openWebHeads(application, Website("https://a.example"))
+    shadowOf(Looper.getMainLooper()).idle()
+
+    assertThat(shadowOf(application).nextStartedService).isNull()
+    val tab = shadowOf(application).nextStartedActivity
+    assertThat(tab).isNotNull()
+    assertThat(tab.dataString).isEqualTo("https://a.example")
+    assertThat(ShadowToast.getTextOfLatestToast()).isEqualTo(application.getString(R.string.web_heads_start_failed))
+  }
+
+  @Test
+  fun a_refused_start_from_slide_over_opens_a_tab_with_a_message() {
+    ShadowSettings.setCanDrawOverlays(true)
+    preferences.browsingMode(BrowsingMode.SlideOver)
+    preferences.aggressiveLoading(false)
     faultFile.parentFile!!.mkdirs()
     faultFile.createNewFile()
 

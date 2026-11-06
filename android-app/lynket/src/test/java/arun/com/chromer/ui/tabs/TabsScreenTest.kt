@@ -28,6 +28,7 @@ import arun.com.chromer.tabs.ARTICLE
 import arun.com.chromer.tabs.CUSTOM_TAB
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.ui.ModernTabsViewModel
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import io.mockk.coEvery
@@ -39,7 +40,6 @@ import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 
 /**
  * The Tabs screen with a fake tab manager: a tap brings the task forward and never opens a page,
@@ -47,11 +47,13 @@ import org.robolectric.annotation.Config
  * asks first, the empty state, and a reload whenever the screen comes back.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34])
 class TabsScreenTest {
 
   @get:Rule
   val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val tabsManager = mockk<TabsManager>(relaxed = true)
   private val websites = mockk<WebsiteRepository>()
@@ -63,7 +65,7 @@ class TabsScreenTest {
 
   private fun show(open: List<TabsManager.Tab> = tabs) {
     coEvery { tabsManager.getActiveTabs() } returns open
-    every { websites.getWebsiteReadOnly(any()) } answers { flowOf(Website("Site ${firstArg<String>().last()}", firstArg(), null, null, null, null, false, 0, 1)) }
+    every { websites.getWebsiteWithoutSaving(any()) } answers { flowOf(Website("Site ${firstArg<String>().last()}", firstArg(), null, null, null, null, false, 0, 1)) }
     val viewModel = ModernTabsViewModel(tabsManager, websites)
     composeRule.setContent { ChromerTheme(themeMode = ThemeMode.Light) { TabsScreen(onBack = {}, closeIcon = true, viewModel = viewModel) } }
     composeRule.waitForIdle()

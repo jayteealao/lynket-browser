@@ -32,6 +32,7 @@ import arun.com.chromer.tabs.CUSTOM_TAB
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.tabs.WEB_VIEW
 import arun.com.chromer.tabs.ui.TabsUiState
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.history.HistoryActions
 import arun.com.chromer.ui.history.HistoryContent
 import arun.com.chromer.history.HistoryListItem
@@ -59,7 +60,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = Application::class, qualifiers = HT_PHONE)
+@Config(application = Application::class, qualifiers = HT_PHONE)
 class HistoryTabsGoldenTest {
 
   @get:Rule(order = 0)
@@ -67,6 +68,9 @@ class HistoryTabsGoldenTest {
 
   @get:Rule(order = 1)
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val tabs = listOf(
     tab("https://developer.android.com/compose", CUSTOM_TAB, "Compose BOM mapping"),

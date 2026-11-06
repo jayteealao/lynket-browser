@@ -11,6 +11,7 @@
 
 package arun.com.chromer.bubbles.system
 
+import arun.com.chromer.bubbles.bubbleConversationId
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -31,7 +32,7 @@ import org.robolectric.annotation.Config
 
 /** Which cause the gate names for each bubble setting, and which settings page it opens. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = Application::class)
+@Config(application = Application::class)
 class BubbleGateTest {
 
   private fun state(
@@ -162,6 +163,14 @@ class BubbleGateTest {
     }
     assertThat(gate.settingsIntent(BubbleSetting.NOTIFICATIONS_OFF).action).isEqualTo(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
     assertThat(gate.settingsIntent(BubbleSetting.SELECTED).action).isEqualTo(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS)
+  }
+
+  @Test
+  fun overlayCauseOpensDisplayOverOtherAppsForThisApp() {
+    val intent = BubbleGate(application).settingsIntent(BubbleRefusal.OVERLAY_OFF)
+
+    assertThat(intent.action).isEqualTo(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+    assertThat(intent.dataString).isEqualTo("package:${application.packageName}")
   }
 
   @Test

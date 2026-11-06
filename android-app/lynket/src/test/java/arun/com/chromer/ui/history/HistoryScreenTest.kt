@@ -39,6 +39,7 @@ import arun.com.chromer.history.HistoryUiState
 import arun.com.chromer.history.ModernHistoryViewModel
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import arun.com.chromer.util.events.Event
@@ -66,7 +67,7 @@ import java.util.concurrent.TimeUnit
  */
 @RunWith(AndroidJUnit4::class)
 // A phone-sized window: the default Robolectric screen is too short for the switches and the first day.
-@Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class HistoryScreenTest {
 
   @get:Rule(order = 0)
@@ -74,6 +75,9 @@ class HistoryScreenTest {
 
   @get:Rule(order = 1)
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val log = mutableListOf<String>()
 

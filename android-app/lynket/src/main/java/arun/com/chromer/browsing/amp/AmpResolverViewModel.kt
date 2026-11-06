@@ -79,7 +79,7 @@ class AmpResolverViewModel @Inject constructor(
     _state.value = AmpState.Loading(url)
     lookup = viewModelScope.launch {
       val website = runCatching {
-        if (incognito) websiteRepository.getWebsiteReadOnly(url).first() else websiteRepository.getWebsite(url).first()
+        if (incognito) websiteRepository.getWebsiteWithoutSaving(url).first() else websiteRepository.getWebsite(url).first()
       }.onFailure { Timber.e(it, "AMP lookup failed for %s", WebUrl.hostForLog(url)) }.getOrNull()
       _state.value = when {
         website != null && website.hasAmp() -> AmpState.Found(website)

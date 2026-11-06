@@ -13,6 +13,7 @@ package arun.com.chromer.ui.settings
 
 import androidx.annotation.StringRes
 import arun.com.chromer.R
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.preferences.SettingsSchema
 
 /** The screen that shows a setting; [None] for a setting with no control on a settings screen. */
@@ -73,8 +74,8 @@ object SettingsKeyTable {
   const val PREFERRED_ACTION = "preferred_action_preference"
   const val ANIMATION_TYPE = "animation_preference"
   const val ANIMATION_SPEED = "animation_speed_preference"
-  const val WEB_HEAD_ENABLED = "webhead_enabled_pref"
-  const val NATIVE_BUBBLES = "native_bubbles_preference"
+  const val WEB_HEAD_ENABLED = SettingsSchema.WEB_HEADS_SWITCH
+  const val NATIVE_BUBBLES = SettingsSchema.NATIVE_BUBBLES_SWITCH
   const val WEB_HEADS_COLOR = "webhead_color"
   const val WEB_HEAD_SPAWN = "webhead_spawn_preference"
   const val WEB_HEAD_SIZE = "webhead_size_preference"

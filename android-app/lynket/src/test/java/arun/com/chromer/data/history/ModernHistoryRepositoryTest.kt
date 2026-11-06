@@ -35,7 +35,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
@@ -44,7 +43,6 @@ import kotlin.time.Duration.Companion.seconds
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30])
 class ModernHistoryRepositoryTest {
 
     private lateinit var context: Context

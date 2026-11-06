@@ -36,6 +36,7 @@ import arun.com.chromer.browsing.menu.BrowsingMenuItem
 import arun.com.chromer.browsing.menu.BrowsingScreen
 import arun.com.chromer.browsing.menu.browsingBottomBarItems
 import arun.com.chromer.browsing.menu.browsingMenuItems
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import com.google.common.truth.Truth.assertThat
@@ -73,11 +74,14 @@ internal fun readerMenu(text: (Int) -> String, bottomBar: Boolean = true) = brow
 )
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class ReaderScreenTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val context = ApplicationProvider.getApplicationContext<Application>()
   private val text = { id: Int -> context.getString(id) }

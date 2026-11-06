@@ -221,9 +221,8 @@
   <string name="article_theme">閱讀模式的顏色主題</string>
   <string name="article_mode_summary">載入文章閱讀模式的版面能夠移除像是網頁裡的按鈕、廣告等干擾物，讓您更容易閱讀顯示在螢幕上的文字。</string>
   <string name="amp_warning_title">AMP警告</string>
-  <string name="amp_warning_content"><![CDATA[當使用<b>滑入</b> 模式時，Lynket需要時間抓取加速行動版網頁的連結，當下會有提示方塊供用戶知悉。]]></string>
+  <string name="amp_warning_content"><![CDATA[在<b>浮動氣泡</b>以外的模式下，Lynket需要時間抓取加速行動版網頁的連結，當下會有提示方塊供用戶知悉。]]></string>
   <string name="title_activity_look_and_feel">樣式及外觀</string>
-  <string name="not_available_in_slide_mode">在滑入模式下不可用</string>
   <string name="title_activity_browsing_options">瀏覽選項</string>
   <string name="grabbing_amp_link">正在抓取加速行動版網頁的連結</string>
   <string name="link_found">已找到連結</string>
@@ -251,4 +250,6 @@
   <string name="enable_history">瀏覽記錄已開啟</string>
   <string name="enable_history_subtitle">關閉「記錄」將停止保存瀏覽記錄。</string>
   <string name="enable_history_subtitle_custom_tab"><![CDATA[關閉關閉「記錄」將會停止保存瀏覽記錄。但自定標籤頁的瀏覽器，<b>%1$s</b> 仍可能保存瀏覽記錄。]]></string>
+  <string name="only_used_in_web_heads_mode">僅用於浮動氣泡模式</string>
+  <string name="minimize_always_opens_bubble">最小化時一律以泡泡開啟</string>
 </resources>

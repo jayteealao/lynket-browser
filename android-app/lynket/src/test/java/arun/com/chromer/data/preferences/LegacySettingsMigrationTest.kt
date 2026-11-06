@@ -33,7 +33,7 @@ import java.io.File
  * (`settings-2.1.3/`, copied from the upgrade seed).
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class LegacySettingsMigrationTest {
   private val context: Application get() = RuntimeEnvironment.getApplication()
   private val tree = RecordingTree()

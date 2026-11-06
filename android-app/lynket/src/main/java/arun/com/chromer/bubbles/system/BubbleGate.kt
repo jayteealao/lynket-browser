@@ -22,7 +22,7 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Why Android will not show a link as a bubble. */
+/** Why Android will not show a link as a bubble or a web head. */
 enum class BubbleRefusal {
   /** Notifications are off for the app, or its bubble channel is blocked. */
   NOTIFICATIONS_OFF,
@@ -32,6 +32,9 @@ enum class BubbleRefusal {
 
   /** The bubble notification posted, but Android showed it as a plain notification. */
   NOT_SHOWN,
+
+  /** Web heads cannot draw: the "Display over other apps" permission is off. */
+  OVERLAY_OFF,
 }
 
 /** The app's bubble setting, as the browsing mode screen shows it. */
@@ -54,9 +57,6 @@ data class BubbleState(
   /** Whether the channel a bubble of this conversation posts to (its own or the parent) can bubble. */
   val conversationCanBubble: Boolean?,
 )
-
-/** The id of the conversation (and its long-lived shortcut) a bubble of [url] belongs to. */
-fun bubbleConversationId(url: String): String = "bubble_${url.hashCode()}"
 
 /**
  * Reads the notification and bubble settings before a bubble posts, names the cause when Android
@@ -120,11 +120,22 @@ class BubbleGate @Inject constructor(private val application: Application) {
     }
   }
 
-  /** The settings page for [refusal]: notification settings, or the app's bubble settings. */
+  /**
+   * The settings page for [refusal]: notification settings, the app's bubble settings, or
+   * "Display over other apps".
+   */
   fun settingsIntent(refusal: BubbleRefusal): Intent = when (refusal) {
     BubbleRefusal.NOTIFICATIONS_OFF -> notificationSettingsIntent()
     BubbleRefusal.BUBBLES_OFF, BubbleRefusal.NOT_SHOWN -> bubbleSettingsIntent()
+    BubbleRefusal.OVERLAY_OFF -> overlaySettingsIntent()
   }
+
+  /**
+   * "Display over other apps" for this app. From Android 11 the platform ignores the package and
+   * opens the list of apps, where the person picks Lynket.
+   */
+  private fun overlaySettingsIntent(): Intent =
+    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${application.packageName}".toUri())
 
   /** The settings page the browsing mode screen opens for [setting]. */
   fun settingsIntent(setting: BubbleSetting): Intent = when (setting) {

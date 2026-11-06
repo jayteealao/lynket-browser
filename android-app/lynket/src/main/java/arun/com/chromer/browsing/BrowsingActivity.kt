@@ -94,8 +94,13 @@ abstract class BrowsingActivity : BaseActivity() {
   override fun onPostCreate(savedInstanceState: Bundle?) {
     super.onPostCreate(savedInstanceState)
     if (savedInstanceState == null && !isFinishing) {
-      BubbleRefusedActivity.showIfRefused(this)
+      showRefusalMessage()
     }
+  }
+
+  /** Starts the refused-link message above this page; a subclass may wait until its page is on top. */
+  protected open fun showRefusalMessage() {
+    BubbleRefusedActivity.showIfRefused(this)
   }
 
   /** Whether this screen may open [url]; checked in [onCreate] before anything loads. */

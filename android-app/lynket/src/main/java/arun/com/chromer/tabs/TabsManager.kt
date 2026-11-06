@@ -165,10 +165,30 @@ interface TabsManager {
   )
 
   /**
-   * Opens [website] in a browsing tab after Android refused its native bubble, and shows the
-   * message that names [refusal] above the tab.
+   * Opens [website] in a browsing tab after Android refused its native bubble or web head, and shows
+   * the message that names [refusal] above the tab. [linkSource] is the app the link came from, for
+   * the toolbar colour.
    */
-  fun openRefusedBubble(context: Context, website: Website, refusal: BubbleRefusal, incognito: Boolean = false)
+  fun openRefusedBubble(
+    context: Context,
+    website: Website,
+    refusal: BubbleRefusal,
+    incognito: Boolean = false,
+    linkSource: LinkSource = LinkSource.NONE,
+  )
+
+  /**
+   * Opens [website] in a browsing tab because the overlay permission ("Display over other apps") is
+   * off, keeping its incognito flag; the tab then shows the message that names the setting, with
+   * Open Settings. Every web heads entry that finds the permission off hands its link here. This
+   * never opens the overlay settings page: that page opens only when a person taps Open Settings.
+   */
+  fun openOverlayRefused(
+    context: Context,
+    website: Website,
+    incognito: Boolean = false,
+    linkSource: LinkSource = LinkSource.NONE,
+  )
 
   /**
    * Opens new tab activity.

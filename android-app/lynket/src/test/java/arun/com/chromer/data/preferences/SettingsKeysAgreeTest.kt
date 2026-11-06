@@ -23,7 +23,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import java.lang.reflect.Modifier
 
 /**
@@ -32,7 +31,6 @@ import java.lang.reflect.Modifier
  * A name or a default that drifts in one of them fails here.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class SettingsKeysAgreeTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

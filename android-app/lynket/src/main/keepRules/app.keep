@@ -1,0 +1,40 @@
+# App rules for R8 (AGP picks up *.keep files in src/<source set>/keepRules). AGP adds proguard-android-optimize.txt (optimization.keepRules.includeDefault) and each library's consumer rules.
+
+-dontwarn sun.misc.Unsafe
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+
+# Legacy HTTP classes: nothing in the app or its libraries uses them (R8 Configuration Analyzer: the old keeps matched 0 items); the -dontwarn lines stay.
+-dontwarn org.apache.http.**
+-dontwarn android.net.http.**
+-dontwarn com.google.common.**
+# jsoup (version catalog) parses pages for the reader and the website details.
+-keep public class org.jsoup.** {
+    public *;
+}
+-keepattributes EnclosingMethod
+
+-dontwarn java.lang.invoke.*
+
+-dontwarn org.w3c.dom.bootstrap.DOMImplementationRegistry
+
+-keepattributes *Annotation*
+-keepattributes SourceFile,LineNumberTable
+
+-dontwarn edu.umd.cs.findbugs.annotations.SuppressFBWarnings
+
+-keep public class * extends java.lang.Exception
+
+# One-time read of the per-app rules that release 2.1.3 saved with PaperDB (Kryo). Kryo finds
+# classes and fields by name and sets the fields by reflection, and the stored records name the App
+# class and its five fields; it builds App through the no-arg constructor.
+# Paper 2.6's own consumer rules keep io.paperdb.**, com.esotericsoftware.** (Kryo) and de.javakaffee.kryoserializers.** with { *; }.
+# Objenesis needs no rule: Kryo, kept by Paper's rules, references the instantiators it uses, and App is built through the no-arg constructor kept below.
+-keep class arun.com.chromer.data.common.App {
+    <fields>;
+    <init>();
+}
+
+# The article disk cache (ParcelDiskCache) is a folder named after WebArticle and stores each article with its class name; a name that changed between releases would orphan the cache. AGP's default rules keep every Parcelable CREATOR.
+-keepnames class arun.com.chromer.data.webarticle.model.WebArticle

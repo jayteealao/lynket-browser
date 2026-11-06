@@ -115,42 +115,21 @@ internal constructor(
     emit(Website(url))
   }.flowOn(Dispatchers.IO)
 
-  override fun getWebsiteReadOnly(url: String): Flow<Website> = flow {
-    // Try cache first
-    val cacheResult = cacheStore.getWebsite(url)
-      .filterNotNull()
-      .firstOrNull()
+  override fun getWebsiteWithoutHistory(url: String): Flow<Website> =
+    lookup(url) { webSite -> scope.launch { cacheStore.saveWebsite(webSite) } }
 
-    if (cacheResult != null) {
-      emit(cacheResult)
-      return@flow
-    }
+  override fun getWebsiteWithoutSaving(url: String): Flow<Website> = lookup(url) {}
 
-    // Try history
-    val historyResult = historyRepository.get(Website(url))
-
-    if (historyResult != null) {
-      emit(historyResult)
-      return@flow
-    }
-
-    // Try remote
-    val remoteResult = webNetworkStore.getWebsite(url)
-      .filterNotNull()
-      .onEach { webSite ->
-        scope.launch {
-          cacheStore.saveWebsite(webSite)
-        }
-      }
-      .firstOrNull()
-
-    if (remoteResult != null) {
-      emit(remoteResult)
-      return@flow
-    }
-
-    // If nothing found, emit default
-    emit(Website(url))
+  /**
+   * Reads the website from the cache, then history, then the network, falling back to a bare
+   * [Website]. Only [onFetched] may store anything, and it sees only a network result.
+   */
+  private fun lookup(url: String, onFetched: (Website) -> Unit): Flow<Website> = flow {
+    val website = cacheStore.getWebsite(url).filterNotNull().firstOrNull()
+      ?: historyRepository.get(Website(url))
+      ?: webNetworkStore.getWebsite(url).filterNotNull().firstOrNull()?.also(onFetched)
+      ?: Website(url)
+    emit(website)
   }.catch { throwable ->
     Timber.e(throwable)
     emit(Website(url))
@@ -169,7 +148,7 @@ internal constructor(
   }
 
   override suspend fun saveWebColor(url: String): WebColor {
-    val webSite = getWebsiteReadOnly(url).first()
+    val webSite = getWebsiteWithoutHistory(url).first()
     val host = Uri.parse(webSite.url).host ?: ""
 
     return if (webSite.themeColor() != NO_COLOR) {

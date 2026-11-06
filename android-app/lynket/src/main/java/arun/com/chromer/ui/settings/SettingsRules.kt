@@ -16,6 +16,7 @@ import androidx.annotation.StringRes
 import androidx.datastore.preferences.core.Preferences
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.preferences.SettingType
 import arun.com.chromer.data.preferences.SettingsSchema
 import arun.com.chromer.data.preferences.readBoolean
@@ -59,16 +60,13 @@ data class SettingsValues(val values: Map<String, Any?>) {
   }
 }
 
-/** The browsing mode choices; slide over is "web heads off and native bubbles off". */
-enum class BrowsingMode { SlideOver, WebHeads, NativeBubbles }
-
 /** A dialog a settings change asks for, in the order the old screens showed them. */
 sealed interface SettingsDialog {
   data object DynamicColourHelp : SettingsDialog
   data object UsageAccessForAppColour : SettingsDialog
   data object MergeTabsOff : SettingsDialog
   data object AggressiveLoadingNeedsMergeTabs : SettingsDialog
-  data object AmpInSlideOver : SettingsDialog
+  data object AmpOutsideWebHeads : SettingsDialog
   data object AmpAndArticle : SettingsDialog
   data object OverlayPermission : SettingsDialog
   data class NotificationPermission(val forBubbles: Boolean) : SettingsDialog
@@ -88,9 +86,9 @@ data class RuleResult(val writes: Map<String, Any?>, val dialogs: List<SettingsD
  */
 object SettingsRules {
 
-  /** Aggressive loading as the old code read it: only while web heads are on. */
+  /** Aggressive loading is in effect only in web heads mode. */
   private fun aggressiveLoading(values: SettingsValues) =
-    values.bool(WEB_HEAD_ENABLED) && values.bool(AGGRESSIVE_LOADING)
+    selectedMode(values) == BrowsingMode.WebHeads && values.bool(AGGRESSIVE_LOADING)
 
   /** The writes and dialogs for setting [key] to [value]. */
   fun change(key: String, value: Any?, current: SettingsValues, canReadUsageStats: Boolean): RuleResult {
@@ -121,8 +119,8 @@ object SettingsRules {
         dialogs += SettingsDialog.AggressiveLoadingNeedsMergeTabs
       }
       AMP_MODE -> if (value == true) {
-        // The old screen counted any mode without web heads as slide over.
-        if (!current.bool(WEB_HEAD_ENABLED)) dialogs += SettingsDialog.AmpInSlideOver
+        // AMP warns in every mode but web heads.
+        if (selectedMode(current) != BrowsingMode.WebHeads) dialogs += SettingsDialog.AmpOutsideWebHeads
         if (current.bool(ARTICLE_MODE)) dialogs += SettingsDialog.AmpAndArticle
       }
       ARTICLE_MODE -> if (value == true && current.bool(AMP_MODE)) {
@@ -138,21 +136,22 @@ object SettingsRules {
    */
   fun chooseMode(mode: BrowsingMode, overlayGranted: Boolean, notificationsAllowed: Boolean): RuleResult =
     when (mode) {
-      BrowsingMode.SlideOver -> RuleResult(mapOf(NATIVE_BUBBLES to false, WEB_HEAD_ENABLED to false))
+      BrowsingMode.SlideOver -> RuleResult(BrowsingMode.SlideOver.switches())
       BrowsingMode.NativeBubbles -> RuleResult(
-        mapOf(NATIVE_BUBBLES to true, WEB_HEAD_ENABLED to false),
+        BrowsingMode.NativeBubbles.switches(),
         listOf(SettingsDialog.NativeBubblesWarning),
       )
       BrowsingMode.WebHeads -> if (overlayGranted) {
         overlayGranted(notificationsAllowed)
       } else {
-        RuleResult(mapOf(NATIVE_BUBBLES to false, WEB_HEAD_ENABLED to false), listOf(SettingsDialog.OverlayPermission))
+        // Without the permission web heads stay off: the stored mode is slide over.
+        RuleResult(BrowsingMode.SlideOver.switches(), listOf(SettingsDialog.OverlayPermission))
       }
     }
 
   /** Back from the overlay setting with the permission: web heads on, native bubbles off. */
   fun overlayGranted(notificationsAllowed: Boolean): RuleResult = RuleResult(
-    mapOf(NATIVE_BUBBLES to false, WEB_HEAD_ENABLED to true),
+    BrowsingMode.WebHeads.switches(),
     if (notificationsAllowed) emptyList() else listOf(SettingsDialog.NotificationPermission(forBubbles = false)),
   )
 
@@ -168,13 +167,13 @@ object SettingsRules {
 
   private val BUBBLE_SETTINGS_TO_EXPLAIN = setOf(BubbleSetting.SELECTED, BubbleSetting.NONE, BubbleSetting.DEVICE_OFF)
 
-  fun selectedMode(values: SettingsValues): BrowsingMode = when {
-    values.bool(WEB_HEAD_ENABLED) -> BrowsingMode.WebHeads
-    values.bool(NATIVE_BUBBLES) -> BrowsingMode.NativeBubbles
-    else -> BrowsingMode.SlideOver
-  }
+  fun selectedMode(values: SettingsValues): BrowsingMode =
+    BrowsingMode.resolve(webHeads = values.bool(WEB_HEAD_ENABLED), nativeBubbles = values.bool(NATIVE_BUBBLES))
 
-  /** Whether the row of [key] takes input, as the old screens enabled and disabled it. */
+  /**
+   * Whether the row of [key] takes input. The web head rows take input only in web heads mode.
+   * Minimize behavior takes none in native bubble mode, where Minimize always opens a bubble.
+   */
   fun isEnabled(key: String, values: SettingsValues): Boolean = when (key) {
     SettingsKeyTable.TOOLBAR_COLOR, DYNAMIC_COLOR -> values.bool(TOOLBAR_COLOR_PREF)
     ANIMATION_SPEED -> values.int(ANIMATION_TYPE) != 0
@@ -182,8 +181,20 @@ object SettingsRules {
     SettingsKeyTable.WEB_HEAD_SPAWN,
     SettingsKeyTable.WEB_HEAD_SIZE,
     AGGRESSIVE_LOADING,
-    SettingsKeyTable.WEB_HEAD_CLOSE_ON_OPEN -> values.bool(WEB_HEAD_ENABLED)
+    SettingsKeyTable.WEB_HEAD_CLOSE_ON_OPEN -> selectedMode(values) == BrowsingMode.WebHeads
+    SettingsKeyTable.MINIMIZE_BEHAVIOR -> selectedMode(values) != BrowsingMode.NativeBubbles
     else -> true
+  }
+
+  /**
+   * The summary a row shows in place of its chosen value: Minimize behavior in native bubble mode,
+   * where Minimize always opens a bubble.
+   */
+  @StringRes
+  fun summaryOverride(key: String, values: SettingsValues): Int? = when {
+    key == SettingsKeyTable.MINIMIZE_BEHAVIOR && selectedMode(values) == BrowsingMode.NativeBubbles ->
+      R.string.minimize_always_opens_bubble
+    else -> null
   }
 
   /** Whether the row of [key] shows at all: the dynamic colour boxes only while dynamic colour is on. */
@@ -192,8 +203,8 @@ object SettingsRules {
     else -> true
   }
 
-  /** "Not available during slide-over mode" shows over the web head groups while web heads are off. */
-  fun showsSlideOverNotice(values: SettingsValues): Boolean = !values.bool(WEB_HEAD_ENABLED)
+  /** The web head groups carry a note while the browsing mode is not web heads (slide over or native bubbles). */
+  fun showsOutsideWebHeadsNotice(values: SettingsValues): Boolean = selectedMode(values) != BrowsingMode.WebHeads
 
   /** The dynamic colour summary of the old screen. */
   @StringRes

@@ -32,6 +32,7 @@ import arun.com.chromer.data.preferences.readInt
 import arun.com.chromer.data.preferences.readString
 import arun.com.chromer.di.hilt.ApplicationScope
 import arun.com.chromer.shared.Constants.CHROME_PACKAGE
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.blockingWait
 import dagger.hilt.EntryPoint
@@ -48,6 +49,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -61,7 +63,7 @@ import javax.inject.Singleton
  * through [UserPreferencesRepository]'s suspend functions instead, so the main thread never waits.
  */
 const val SEARCH_ENGINE_PREFERENCE = "search_engine_preference"
-const val NATIVE_BUBBLES_PREFERENCE = "native_bubbles_preference"
+const val NATIVE_BUBBLES_PREFERENCE = SettingsSchema.NATIVE_BUBBLES_SWITCH
 
 @Singleton
 class Preferences @Inject constructor(
@@ -71,8 +73,9 @@ class Preferences @Inject constructor(
 ) {
   private val context: Context = context.applicationContext
 
-  private fun bool(name: String): Boolean =
-    repository.current().readBoolean(name, SettingsSchema.require(name).default(context) as Boolean)
+  private fun bool(name: String): Boolean = repository.current().readBoolean(name, default(name))
+
+  private fun default(name: String): Boolean = SettingsSchema.require(name).default(context) as Boolean
 
   private fun int(name: String): Int =
     repository.current().readInt(name, SettingsSchema.require(name).default(context) as Int)
@@ -89,6 +92,15 @@ class Preferences @Inject constructor(
       blockingWait("Preferences.put($name)", Dispatchers.IO) { repository.setValue(name, value) }
     } catch (e: IOException) {
       Timber.e(e, "Setting %s could not be saved", name)
+    }
+  }
+
+  /** Writes every entry of [values] in one store edit and waits, logging a failure as [put] does. */
+  private fun putAll(values: Map<String, Any?>) {
+    try {
+      blockingWait("Preferences.putAll(${values.keys})", Dispatchers.IO) { repository.setValues(values) }
+    } catch (e: IOException) {
+      Timber.e(e, "Settings %s could not be saved", values.keys)
     }
   }
 
@@ -319,9 +331,10 @@ class Preferences @Inject constructor(
     put(DYNAMIC_COLOR_WEB, preference)
   }
 
+  /** Pages load in the background as a link opens; on only in web heads mode. */
   fun aggressiveLoading(): Boolean {
     return Utils.ANDROID_LOLLIPOP &&
-      webHeads() &&
+      browsingMode() == BrowsingMode.WebHeads &&
       bool(AGGRESSIVE_LOADING)
   }
 
@@ -348,10 +361,41 @@ class Preferences @Inject constructor(
 
   fun themeMode(mode: Int) = put(SettingsSchema.THEME_MODE, mode)
 
-  /** Native bubbles instead of web heads (Android 11 and later). */
-  fun nativeBubbles(): Boolean = bool(NATIVE_BUBBLES_PREFERENCE)
+  /** Whether the background write that turns native bubbles off beside web heads is running. */
+  private val bothModesRepair = AtomicBoolean(false)
 
-  fun nativeBubbles(preference: Boolean) = put(NATIVE_BUBBLES_PREFERENCE, preference)
+  /**
+   * The one browsing mode of the stored settings. When both web heads and native bubbles are on
+   * (the Web heads tile could leave them so), it is web heads, as the settings screens show it,
+   * and native bubbles are turned off in the background so the next read and the settings screen
+   * agree; the caller does not wait for that write. One such write runs at a time, however often
+   * the mode is read while it is pending.
+   */
+  fun browsingMode(): BrowsingMode {
+    val webHeads = bool(WEB_HEAD_ENABLED)
+    val nativeBubbles = bool(NATIVE_BUBBLES_PREFERENCE)
+    if (webHeads && nativeBubbles && bothModesRepair.compareAndSet(false, true)) {
+      appScope.launch {
+        try {
+          runCatching {
+            repository.setValuesIf(mapOf(NATIVE_BUBBLES_PREFERENCE to false)) { stored ->
+              stored.readBoolean(WEB_HEAD_ENABLED, default(WEB_HEAD_ENABLED)) &&
+                stored.readBoolean(NATIVE_BUBBLES_PREFERENCE, default(NATIVE_BUBBLES_PREFERENCE))
+            }
+          }.onFailure { Timber.e(it, "Native bubbles could not be turned off beside web heads") }
+        } finally {
+          bothModesRepair.set(false)
+        }
+      }
+    }
+    return BrowsingMode.resolve(webHeads = webHeads, nativeBubbles = nativeBubbles)
+  }
+
+  /**
+   * Stores [mode] as the only browsing mode, in one edit. It does not ask for the overlay or
+   * notification permission; the settings screen does that before it chooses a mode.
+   */
+  fun browsingMode(mode: BrowsingMode) = putAll(mode.switches())
 
   /** The search engine's name now and after each change. */
   fun searchEngineChanges(): Flow<String> = repository.snapshot
@@ -360,14 +404,6 @@ class Preferences @Inject constructor(
     .distinctUntilChanged()
 
   fun searchEngine(name: String) = put(SEARCH_ENGINE_PREFERENCE, name)
-
-  fun webHeads(): Boolean {
-    return bool(WEB_HEAD_ENABLED)
-  }
-
-  fun webHeads(preference: Boolean) {
-    put(WEB_HEAD_ENABLED, preference)
-  }
 
   fun favicons(): Boolean {
     return bool(WEB_HEAD_FAVICON)
@@ -430,7 +466,7 @@ class Preferences @Inject constructor(
     const val DYNAMIC_COLOR = "dynamic_color"
     const val WEB_HEAD_CLOSE_ON_OPEN = "webhead_close_onclick_pref"
     const val PREFERRED_ACTION = "preferred_action_preference"
-    const val WEB_HEAD_ENABLED = "webhead_enabled_pref"
+    const val WEB_HEAD_ENABLED = SettingsSchema.WEB_HEADS_SWITCH
     const val WEB_HEAD_SPAWN_LOCATION = "webhead_spawn_preference"
     const val WEB_HEAD_SIZE = "webhead_size_preference"
     const val BOTTOM_BAR_ENABLED = "bottombar_enabled_preference"

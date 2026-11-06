@@ -115,6 +115,11 @@
     <receiver android:name=".browsing.customtabs.callbacks.OpenInChromeReceiver" />
     <receiver android:name=".browsing.customtabs.callbacks.MinimizeBroadcastReceiver" />
     <receiver android:name=".browsing.customtabs.bottombar.BottomBarReceiver" />
+    <!-- Only a bubble's delete intent (API 29 and later) sends it. -->
+    <receiver
+      android:name=".bubbles.system.BubbleDismissReceiver"
+      android:exported="false"
+      tools:targetApi="29" />
 
     <!-- Modern Compose-based main activity (Phase 3) -->
     <activity

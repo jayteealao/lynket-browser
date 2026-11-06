@@ -130,7 +130,7 @@ fun SettingsDialogContent(dialog: SettingsDialog?, actions: SettingsDialogAction
     SettingsDialog.MergeTabsOff -> Info(R.string.merge_tabs_off_title, R.string.merget_tabs_off_content, actions.onDismiss)
     SettingsDialog.AggressiveLoadingNeedsMergeTabs ->
       Info(R.string.aggresive_dia_title, R.string.aggresive_dia_content, actions.onDismiss)
-    SettingsDialog.AmpInSlideOver -> Info(R.string.amp_warning_title, R.string.amp_warning_content, actions.onDismiss, html = true)
+    SettingsDialog.AmpOutsideWebHeads -> Info(R.string.amp_warning_title, R.string.amp_warning_content, actions.onDismiss, html = true)
     SettingsDialog.AmpAndArticle -> Info(R.string.attention, R.string.amp_article_combined_explanation, actions.onDismiss, html = true)
     SettingsDialog.UsageAccessForAppColour -> AlertDialog(
       onDismissRequest = actions.onUsageAccessDeclined,

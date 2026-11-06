@@ -20,6 +20,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import arun.com.chromer.data.apps.store.PaperPerAppMigration
+import arun.com.chromer.data.preferences.BrowsingModeMigration
 import arun.com.chromer.data.preferences.LegacySettingsMigration
 import dagger.Module
 import dagger.Provides
@@ -47,10 +48,11 @@ annotation class PerAppRules
 /**
  * The two DataStores of the app:
  * - `user_preferences`: every setting; filled once from the old settings file by
- *   [LegacySettingsMigration].
+ *   [LegacySettingsMigration]. At each start, [BrowsingModeMigration] then stores one browsing
+ *   mode when the settings hold both web heads and native bubbles on.
  * - `per_app_rules`: the per-app rules; filled once from the store release 2.1.3 wrote by
  *   [PaperPerAppMigration].
- * Neither migration deletes the data it reads.
+ * No migration deletes the data it reads.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -83,16 +85,16 @@ object DataStoreModule {
     const val CORRUPT_FOLDER = "datastore-corrupt"
 
     fun settingsDataStore(context: Context, file: () -> File): DataStore<Preferences> =
-        create(context, USER_PREFERENCES_NAME, file, LegacySettingsMigration(context))
+        create(context, USER_PREFERENCES_NAME, file, listOf(LegacySettingsMigration(context), BrowsingModeMigration))
 
     fun perAppRulesDataStore(context: Context, file: () -> File): DataStore<Preferences> =
-        create(context, PER_APP_RULES_NAME, file, PaperPerAppMigration(context))
+        create(context, PER_APP_RULES_NAME, file, listOf(PaperPerAppMigration(context)))
 
     private fun create(
         context: Context,
         name: String,
         file: () -> File,
-        migration: DataMigration<Preferences>,
+        migrations: List<DataMigration<Preferences>>,
     ): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(
             corruptionHandler = ReplaceFileCorruptionHandler { exception ->
@@ -102,7 +104,7 @@ object DataStoreModule {
                 Timber.e(exception, "The %s store was corrupt and starts empty; copy kept: %s", name, kept != null)
                 emptyPreferences()
             },
-            migrations = listOf(migration),
+            migrations = migrations,
             scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
             produceFile = file,
         )

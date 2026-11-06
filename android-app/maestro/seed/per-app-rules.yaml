@@ -27,11 +27,12 @@ appId: arun.com.chromer.debug
         - text: "com.google.android.deskclock"
 - tapOn:
     id: ".*blacklist_switch"
-# The switch starts the app-detect service; Android 13+ then asks for notifications once.
+# The switch starts the app-detect service; Android 13+ then asks for notifications once. The
+# dialog names the app by its label, "Lynket Dev" or "Lynket-dev" depending on the 2.1.3 build.
 - waitForAnimationToEnd
 - runFlow:
     when:
-      visible: "Allow Lynket Dev to send you notifications?"
+      visible: "Allow Lynket.[Dd]ev to send you notifications.*"
     commands:
       - tapOn: "Allow"
 - extendedWaitUntil:

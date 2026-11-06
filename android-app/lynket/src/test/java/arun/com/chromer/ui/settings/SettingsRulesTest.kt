@@ -13,16 +13,20 @@ package arun.com.chromer.ui.settings
 
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.ui.settings.SettingsKeyTable.AGGRESSIVE_LOADING
 import arun.com.chromer.ui.settings.SettingsKeyTable.AMP_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_TYPE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_MODE
+import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_THEME
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_APP
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_WEB
 import arun.com.chromer.ui.settings.SettingsKeyTable.MERGE_TABS
+import arun.com.chromer.ui.settings.SettingsKeyTable.MINIMIZE_BEHAVIOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
+import arun.com.chromer.ui.settings.SettingsKeyTable.PREFERRED_ACTION
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR_PREF
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEADS_COLOR
@@ -31,6 +35,7 @@ import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_ENABLED
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_SIZE
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_SPAWN
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 /** The dependent rows and the dialogs of the old preference screens, one rule at a time. */
@@ -100,13 +105,36 @@ class SettingsRulesTest {
   }
 
   @Test
-  fun webHeadRowsTakeInputOnlyWithWebHeadsOn() {
-    listOf(WEB_HEADS_COLOR, WEB_HEAD_SPAWN, WEB_HEAD_SIZE, AGGRESSIVE_LOADING, WEB_HEAD_CLOSE_ON_OPEN).forEach { key ->
-      assertThat(SettingsRules.isEnabled(key, values(WEB_HEAD_ENABLED to false))).isFalse()
-      assertThat(SettingsRules.isEnabled(key, values(WEB_HEAD_ENABLED to true))).isTrue()
+  fun webHeadRowsMinimizeAndTheNoteFollowTheBrowsingMode() {
+    // Each stored set, named for the mode it reads as; with both switches on, web heads win.
+    val stored = listOf(
+      "slide over" to values(WEB_HEAD_ENABLED to false, NATIVE_BUBBLES to false),
+      "web heads" to values(WEB_HEAD_ENABLED to true, NATIVE_BUBBLES to false),
+      "native bubbles" to values(WEB_HEAD_ENABLED to false, NATIVE_BUBBLES to true),
+      "both on, read as web heads" to values(WEB_HEAD_ENABLED to true, NATIVE_BUBBLES to true),
+    )
+    val expectedMode = listOf(BrowsingMode.SlideOver, BrowsingMode.WebHeads, BrowsingMode.NativeBubbles, BrowsingMode.WebHeads)
+    val webHeadRows = listOf(WEB_HEADS_COLOR, WEB_HEAD_SPAWN, WEB_HEAD_SIZE, AGGRESSIVE_LOADING, WEB_HEAD_CLOSE_ON_OPEN)
+
+    stored.zip(expectedMode).forEach { (named, mode) ->
+      val (name, set) = named
+      assertWithMessage("mode of $name").that(SettingsRules.selectedMode(set)).isEqualTo(mode)
+      webHeadRows.forEach { key ->
+        assertWithMessage("$key enabled in $name").that(SettingsRules.isEnabled(key, set))
+          .isEqualTo(mode == BrowsingMode.WebHeads)
+      }
+      assertWithMessage("Minimize behavior enabled in $name").that(SettingsRules.isEnabled(MINIMIZE_BEHAVIOR, set))
+        .isEqualTo(mode != BrowsingMode.NativeBubbles)
+      assertWithMessage("web heads note in $name").that(SettingsRules.showsOutsideWebHeadsNotice(set))
+        .isEqualTo(mode != BrowsingMode.WebHeads)
+      assertWithMessage("Minimize behavior summary in $name").that(SettingsRules.summaryOverride(MINIMIZE_BEHAVIOR, set))
+        .isEqualTo(if (mode == BrowsingMode.NativeBubbles) R.string.minimize_always_opens_bubble else null)
     }
-    assertThat(SettingsRules.showsSlideOverNotice(values(WEB_HEAD_ENABLED to false))).isTrue()
-    assertThat(SettingsRules.showsSlideOverNotice(values(WEB_HEAD_ENABLED to true))).isFalse()
+
+    val nativeBubbles = stored.first { it.first == "native bubbles" }.second
+    listOf(PREFERRED_ACTION, ANIMATION_TYPE, WEB_HEAD_SPAWN, WEB_HEAD_SIZE, ARTICLE_THEME).forEach { key ->
+      assertWithMessage("$key summary in native bubbles").that(SettingsRules.summaryOverride(key, nativeBubbles)).isNull()
+    }
   }
 
   @Test
@@ -132,13 +160,15 @@ class SettingsRulesTest {
   }
 
   @Test
-  fun ampInSlideOverWarnsAndAmpWithArticleExplains() {
+  fun ampOutsideWebHeadsWarnsAndAmpWithArticleExplains() {
     assertThat(SettingsRules.change(AMP_MODE, true, values(WEB_HEAD_ENABLED to false), true).dialogs)
-      .containsExactly(SettingsDialog.AmpInSlideOver)
+      .containsExactly(SettingsDialog.AmpOutsideWebHeads)
+    assertThat(SettingsRules.change(AMP_MODE, true, values(NATIVE_BUBBLES to true), true).dialogs)
+      .containsExactly(SettingsDialog.AmpOutsideWebHeads)
     assertThat(SettingsRules.change(AMP_MODE, true, values(WEB_HEAD_ENABLED to true, ARTICLE_MODE to true), true).dialogs)
       .containsExactly(SettingsDialog.AmpAndArticle)
     assertThat(SettingsRules.change(AMP_MODE, true, values(WEB_HEAD_ENABLED to false, ARTICLE_MODE to true), true).dialogs)
-      .containsExactly(SettingsDialog.AmpInSlideOver, SettingsDialog.AmpAndArticle).inOrder()
+      .containsExactly(SettingsDialog.AmpOutsideWebHeads, SettingsDialog.AmpAndArticle).inOrder()
     assertThat(SettingsRules.change(ARTICLE_MODE, true, values(AMP_MODE to true), true).dialogs)
       .containsExactly(SettingsDialog.AmpAndArticle)
     assertThat(SettingsRules.change(ARTICLE_MODE, true, values(AMP_MODE to false), true).dialogs).isEmpty()
@@ -193,5 +223,21 @@ class SettingsRulesTest {
     assertThat(SettingsRules.selectedMode(none)).isEqualTo(BrowsingMode.SlideOver)
     assertThat(SettingsRules.selectedMode(values(NATIVE_BUBBLES to true))).isEqualTo(BrowsingMode.NativeBubbles)
     assertThat(SettingsRules.selectedMode(values(WEB_HEAD_ENABLED to true, NATIVE_BUBBLES to true))).isEqualTo(BrowsingMode.WebHeads)
+  }
+
+  @Test
+  fun everyPairOfStoredSwitchesResolvesToExactlyOneMode() {
+    val table = mapOf(
+      (false to false) to BrowsingMode.SlideOver,
+      (true to false) to BrowsingMode.WebHeads,
+      (false to true) to BrowsingMode.NativeBubbles,
+      (true to true) to BrowsingMode.WebHeads,
+    )
+    table.forEach { (switches, mode) ->
+      val (webHeads, nativeBubbles) = switches
+      assertThat(BrowsingMode.resolve(webHeads = webHeads, nativeBubbles = nativeBubbles)).isEqualTo(mode)
+      assertThat(SettingsRules.selectedMode(values(WEB_HEAD_ENABLED to webHeads, NATIVE_BUBBLES to nativeBubbles)))
+        .isEqualTo(mode)
+    }
   }
 }

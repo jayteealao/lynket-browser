@@ -36,7 +36,17 @@ import kotlinx.coroutines.flow.Flow
 interface WebsiteRepository {
   fun getWebsite(url: String): Flow<Website>
 
-  fun getWebsiteReadOnly(url: String): Flow<Website>
+  /**
+   * Reads the website from the cache, history and the network, and writes no history row; a
+   * network result is still stored in the cache. Not for a page that must leave no trace.
+   */
+  fun getWebsiteWithoutHistory(url: String): Flow<Website>
+
+  /**
+   * Reads the website from the cache, history and the network, and writes neither a history
+   * row nor a cache entry, for a page that must leave no trace (an incognito page).
+   */
+  fun getWebsiteWithoutSaving(url: String): Flow<Website>
 
   fun getWebsiteColorSync(url: String): Int
 

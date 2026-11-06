@@ -11,12 +11,19 @@
 
 package arun.com.chromer.bubbles.webheads
 
+import android.app.NotificationManager
+import android.app.Service
 import android.content.Intent
 import android.net.Uri
 import android.os.Looper
+import android.provider.Settings
+import android.view.HapticFeedbackConstants
+import android.view.WindowManager
 import androidx.compose.ui.graphics.Color
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import com.google.common.truth.Truth.assertThat
@@ -32,6 +39,7 @@ import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ServiceController
 import org.robolectric.shadows.ShadowSettings
+import org.robolectric.shadows.ShadowToast
 import java.time.Duration
 import javax.inject.Inject
 
@@ -222,6 +230,146 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
     assertThat(job.isCancelled).isTrue()
   }
 
+  /** Every activity started so far, after the posted work of the main thread ran. */
+  private fun startedActivities(): List<Intent> {
+    shadowOf(Looper.getMainLooper()).idle()
+    return generateSequence { shadowOf(application).nextStartedActivity }.toList()
+  }
+
+  private fun List<Intent>.settingsPages() =
+    filter { it.action == Settings.ACTION_MANAGE_OVERLAY_PERMISSION }
+
+  @Test
+  fun with_the_permission_off_a_link_goes_to_the_refusal_path_and_the_service_stops() {
+    ShadowSettings.setCanDrawOverlays(false)
+    val intent = intentFor("https://a.example").putExtra(EXTRA_KEY_INCOGNITO, true)
+    val controller = Robolectric.buildService(WebHeadService::class.java, intent).create()
+    val service = controller.get()
+
+    val result = service.onStartCommand(intent, 0, 1)
+    val started = startedActivities()
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(started.settingsPages()).isEmpty()
+    val tab = started.single { it.dataString == "https://a.example" }
+    assertThat(tab.getStringExtra(EXTRA_KEY_BUBBLE_REFUSAL)).isEqualTo("OVERLAY_OFF")
+    assertThat(tab.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+    assertThat(service.controller).isNull()
+    assertThat(service.overlayWindows).isEmpty()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+    assertThat(ShadowToast.shownToastCount()).isEqualTo(0)
+  }
+
+  @Test
+  fun a_revocation_after_create_refuses_the_link_and_adds_no_head() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val controller = Robolectric.buildService(WebHeadService::class.java).create()
+    val service = controller.get()
+    assertThat(service.controller).isNotNull()
+
+    ShadowSettings.setCanDrawOverlays(false)
+    val result = service.onStartCommand(intentFor("https://b.example"), 0, 1)
+    val started = startedActivities()
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(service.controller!!.size).isEqualTo(0)
+    assertThat(started.settingsPages()).isEmpty()
+    val tab = started.single { it.dataString == "https://b.example" }
+    assertThat(tab.getStringExtra(EXTRA_KEY_BUBBLE_REFUSAL)).isEqualTo("OVERLAY_OFF")
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+  }
+
+  @Test
+  fun with_the_permission_off_a_restart_without_a_link_stops_and_opens_nothing() {
+    ShadowSettings.setCanDrawOverlays(false)
+    val controller = Robolectric.buildService(WebHeadService::class.java).create()
+    val service = controller.get()
+
+    val result = service.onStartCommand(null, 0, 1)
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(startedActivities()).isEmpty()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+  }
+
+  @Test
+  fun with_the_permission_on_a_link_keeps_the_service_sticky() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val intent = intentFor("https://a.example")
+    val controller = Robolectric.buildService(WebHeadService::class.java, intent).create()
+    val service = controller.get()
+
+    val result = service.onStartCommand(intent, 0, 1)
+
+    assertThat(result).isEqualTo(Service.START_STICKY)
+    assertThat(service.controller!!.size).isEqualTo(1)
+    assertThat(startedActivities()).isEmpty()
+  }
+
+  /** The web heads notification that is posted now, or null when none is. */
+  private fun webHeadNotification(service: WebHeadService) =
+    shadowOf(service.getSystemService(NotificationManager::class.java)).getNotification(1)
+
+  @Test
+  fun a_restart_with_no_head_stops_and_removes_the_notification() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val service = Robolectric.buildService(WebHeadService::class.java).create().get()
+    assertThat(webHeadNotification(service)).isNotNull()
+    assertThat(service.controller!!.size).isEqualTo(0)
+
+    // Android restarts a killed sticky service with a null intent.
+    val result = service.onStartCommand(null, Service.START_FLAG_RETRY, 1)
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(webHeadNotification(service)).isNull()
+    assertThat(shadowOf(service).isForegroundStopped).isTrue()
+    assertThat(shadowOf(service).notificationShouldRemoved).isTrue()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+    assertThat(startedActivities()).isEmpty()
+    assertThat(ShadowToast.shownToastCount()).isEqualTo(0)
+  }
+
+  @Test
+  fun a_start_without_a_link_and_no_head_stops() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val service = Robolectric.buildService(WebHeadService::class.java).create().get()
+
+    val result = service.onStartCommand(Intent(application, WebHeadService::class.java), 0, 1)
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(webHeadNotification(service)).isNull()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+  }
+
+  @Test
+  fun a_start_without_a_link_keeps_the_heads_that_show() {
+    val controller = serviceWith("https://a.example")
+    val service = controller.get()
+
+    val result = service.onStartCommand(null, 0, 2)
+
+    assertThat(result).isEqualTo(Service.START_STICKY)
+    assertThat(service.controller!!.size).isEqualTo(1)
+    assertThat(webHeadNotification(service)).isNotNull()
+    assertThat(shadowOf(service).isStoppedBySelf).isFalse()
+  }
+
+  @Test
+  fun an_empty_link_with_no_head_stops() {
+    ShadowSettings.setCanDrawOverlays(true)
+    val service = Robolectric.buildService(WebHeadService::class.java).create().get()
+
+    val result = service.onStartCommand(
+      Intent(application, WebHeadService::class.java).setData(Uri.parse("")),
+      0,
+      1,
+    )
+
+    assertThat(result).isEqualTo(Service.START_NOT_STICKY)
+    assertThat(webHeadNotification(service)).isNull()
+    assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+  }
+
   @Test
   fun a_pending_preload_runs_after_the_delay() {
     val controller = Robolectric.buildService(WebHeadService::class.java).create()
@@ -232,5 +380,55 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
 
     assertThat(job.isCompleted).isTrue()
     assertThat(job.isCancelled).isFalse()
+  }
+
+  @Test
+  fun the_trash_window_takes_touches_only_while_a_head_is_dragged() {
+    val service = serviceWith("https://a.example").get()
+    val trash = service.overlayWindows.last()
+    val notTouchable = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+    assertThat(trash.params.flags and notTouchable).isEqualTo(notTouchable)
+
+    val heads = service.controller!!
+    val head = heads["https://a.example"]!!
+    val downX = head.windowX + 50f
+    val downY = head.windowY + 50f
+    heads.onTouchDown(head, downX, downY)
+    heads.onTouchMove(head, downX - 150f, downY + 150f)
+    shadowOf(Looper.getMainLooper()).idle()
+    heads.onTouchMove(head, downX - 300f, downY + 300f)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(trash.params.flags and notTouchable).isEqualTo(0)
+    assertThat(trash.touchable).isTrue()
+
+    heads.onTouchUp(head, 0f, 0f, downX - 300f, downY + 300f)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(trash.params.flags and notTouchable).isEqualTo(notTouchable)
+  }
+
+  @Test
+  fun locking_and_leaving_the_trash_ticks_on_the_head_window() {
+    val service = serviceWith("https://a.example").get()
+    val headWindow = service.overlayWindows.first()
+    val heads = service.controller!!
+    val head = heads["https://a.example"]!!
+    val downX = head.windowX + heads.headWindowPx / 2f
+    val downY = head.windowY + heads.headWindowPx / 2f
+    heads.onTouchDown(head, downX, downY)
+    heads.onTouchMove(head, downX - 150f, downY + 150f)
+    shadowOf(Looper.getMainLooper()).idle()
+    heads.onTouchMove(head, heads.trashX + heads.trashWindowPx / 2f, heads.trashY + heads.trashWindowPx / 2f)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(shadowOf(headWindow.view).lastHapticFeedbackPerformed()).isEqualTo(HapticFeedbackConstants.CONFIRM)
+
+    val middleX = heads.dispWidth / 2f
+    val middleY = heads.dispHeight / 2f
+    heads.onTouchMove(head, middleX, middleY)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(shadowOf(headWindow.view).lastHapticFeedbackPerformed()).isEqualTo(HapticFeedbackConstants.CLOCK_TICK)
+
+    heads.onTouchUp(head, 0f, 0f, middleX, middleY)
+    shadowOf(Looper.getMainLooper()).idle()
+    assertThat(shadowOf(headWindow.view).lastHapticFeedbackPerformed()).isEqualTo(HapticFeedbackConstants.CLOCK_TICK)
   }
 }

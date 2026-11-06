@@ -273,7 +273,8 @@ internal fun ListRow(
   val current = values.values[key]
   SettingsRow(
     title = stringResource(title),
-    summary = choices.firstOrNull { it.value == current }?.label?.let(::AnnotatedString),
+    summary = SettingsRules.summaryOverride(key, values)?.let { stringResource(it) }?.let(::AnnotatedString)
+      ?: choices.firstOrNull { it.value == current }?.label?.let(::AnnotatedString),
     icon = icon?.let { RowIcon(it) },
     enabled = SettingsRules.isEnabled(key, values),
     modifier = Modifier.testTag("row-$key"),

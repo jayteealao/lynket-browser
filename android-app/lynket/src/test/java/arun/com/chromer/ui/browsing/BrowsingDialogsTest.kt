@@ -33,6 +33,7 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.home.ModernHomeViewModel.Suggestions
 import arun.com.chromer.search.suggestion.items.SuggestionItem
 import arun.com.chromer.shortcuts.ShortcutState
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.settings.components.AppPickerSheet
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
@@ -44,11 +45,14 @@ import org.robolectric.annotation.Config
 
 /** The browsing dialogs: controls, order, enablement and callbacks. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class BrowsingDialogsTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val url = "https://developer.android.com/guide/navigation/navigation-3"
 

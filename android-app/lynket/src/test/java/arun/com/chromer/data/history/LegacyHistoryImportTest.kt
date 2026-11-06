@@ -28,13 +28,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import timber.log.Timber
 import kotlin.random.Random
 
 /** The history file of release 2.1.3 comes into the Room database once, merged by URL. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class LegacyHistoryImportTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

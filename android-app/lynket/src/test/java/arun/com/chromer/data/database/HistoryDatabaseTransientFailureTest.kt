@@ -22,12 +22,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import java.io.File
 
 /** A history file that cannot be opened for a passing reason stays where it is for the next try. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class HistoryDatabaseTransientFailureTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

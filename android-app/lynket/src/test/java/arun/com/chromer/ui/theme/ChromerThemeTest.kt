@@ -22,6 +22,7 @@ import androidx.datastore.preferences.core.preferencesOf
 import arun.com.chromer.data.preferences.SettingsSchema
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -30,10 +31,13 @@ import org.robolectric.annotation.Config
 
 /** The seed schemes, the black variant and the person's colour as primary. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class ChromerThemeTest {
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val context: Application get() = ApplicationProvider.getApplicationContext()
 
