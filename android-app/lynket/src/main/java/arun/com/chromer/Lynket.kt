@@ -24,6 +24,7 @@ import android.app.Application
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import arun.com.chromer.bubbles.system.BubbleReconciler
+import arun.com.chromer.bubbles.system.BubbleStackWatcher
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.util.debug.DebugHooks
@@ -58,6 +59,9 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
   @Inject
   lateinit var bubbleReconciler: Lazy<BubbleReconciler>
 
+  @Inject
+  lateinit var bubbleStackWatcher: Lazy<BubbleStackWatcher>
+
   override fun onCreate() {
     DebugHooks.from(this).installStrictModeIfRequested(this)
     super.onCreate()
@@ -75,7 +79,10 @@ open class Lynket : Application(), SingletonImageLoader.Factory {
     // Links now name their source app when they open, so the old app-detection service and its
     // notification channel are gone; remove the channel earlier versions created.
     NotificationManagerCompat.from(this).deleteNotificationChannel(OLD_APP_DETECTION_CHANNEL)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) bubbleReconciler.get().attach(this)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      bubbleReconciler.get().attach(this)
+      bubbleStackWatcher.get().attach(this)
+    }
   }
 
   /**

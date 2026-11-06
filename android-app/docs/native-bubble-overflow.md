@@ -93,14 +93,16 @@ A page opened by its bubble reads its place and the total from the list, and sho
 
 On the Android 14 emulator, `overflow-probe.sh count` read 3 of 7 with 2 in the overflow, 5 of 8 with 3, and 5 of 7 after a close with that page on screen. `overflow-probe.sh count-long` read 12 of 12 whole beside a shortened address at the largest font. Both modes read the same on the Android 11 emulator.
 
-A person closes a bubble in three ways: a drag to the dismiss target, Dismiss bubble in the Manage menu, and the X of the page's top bar. `BubbleCloser` does the same for each: the notification, the summary when no bubble is left, and the shortcut go, the bubble leaves the list marked as closed, and a close in the stack brings one bubble back.
+A person closes a bubble in three ways: a drag to the dismiss target, Dismiss bubble in the Manage menu, and the X of the page's top bar. `BubbleCloser` does the same for each: the notification, the summary when no bubble is left, and the shortcut go, the bubble leaves the list marked as closed, and a close in the stack leaves a place for one bubble to come back to.
 
 - Android sends a delete intent for the drag and for Dismiss bubble.
 - It sends none when a page finishes, so the page calls `BubbleCloser` from `finish()`. Every finish of a page in a bubble goes that way, also a page with no WebView and a page whose renderer stopped too often: Android would take the bubble away in any case, and the list must not keep it.
 - A page in a tab, and a page opened from the conversation shortcut, finish as usual.
 - Back on a page with no history folds the stack and keeps the bubble. A bubble that ages out ends its page with no call to `finish()`, so it stays open.
 
-A close in the stack posts the newest overflow bubble again, from the data that bubble last posted. From Android 12 the post is a new notification: the app cancels that bubble's notification and posts it, with the check that the bubble is still posted before the cancel. The summary and the shortcut stay. An update with the same text can leave the bubble in the overflow, and the [Samsung phone](#a-samsung-phone-on-android-17) does, while Android sets the flag on it all the same. On Android 11 and older the post is an update: Android takes the bubble out of the overflow on any update, and there a new notification sets `showFlyout`. Android 12 and 13 were not measured, so their side of this line comes from the Android 11 and Android 14 results.
+A close in an open stack returns nothing while the stack is open: a bubble that returns there takes the selection and replaces the page on screen, as the [Samsung phone](#a-samsung-phone-on-android-17) showed. See [The return waits for the fold](#the-return-waits-for-the-fold). A close in a folded stack returns at once.
+
+A return posts the newest overflow bubble again, from the data that bubble last posted. From Android 12 the post is a new notification: the app cancels that bubble's notification and posts it, with the check that the bubble is still posted before the cancel. The summary and the shortcut stay. An update with the same text can leave the bubble in the overflow, and the [Samsung phone](#a-samsung-phone-on-android-17) does, while Android sets the flag on it all the same. On Android 11 and older the post is an update: Android takes the bubble out of the overflow on any update, and there a new notification sets `showFlyout`. Android 12 and 13 were not measured, so their side of this line comes from the Android 11 and Android 14 results.
 
 - Newest means last in open order. A link sent again keeps its first place, although Android moves it to the front, so the two can differ for a link sent twice.
 - Every post with `withSummary = false`, a return or a late icon, carries `FLAG_ONLY_ALERT_ONCE`. That flag covers an update. A new notification is kept silent by the channel, which has no sound or vibration, and by the suppressed notification of the bubble; Android still marks it interruptive.
@@ -131,15 +133,39 @@ In a drag of the stack the first delete intent can still find every flag on. On 
 
 | `overflow-probe.sh` | Android 11 | Android 14 |
 |---|---|---|
-| `close`: closes 1 and 2 each return the newest overflow bubble; close 3 returns none | Yes | Yes |
+| `close`: closes 1 and 2 each return nothing with the stack open and the newest overflow bubble at the fold; close 3 returns none | Yes | Yes |
 | The return has a sound key or a flyout | No | No |
 | The return is interruptive | Not on an update | Yes, as any new notification, and with no effect the checks can read |
 | `close-stack`: 5 closes, 2 returns, newest first, total 2 | Yes | Yes |
 | `close-stack`: the stack expands, or a heads-up row shows | No | No |
 | `close-icon`: disc, then the icon in place | Yes | Yes |
-| `close-x`: Back keeps the bubble; closes 1 and 2 each return the newest overflow bubble; close 3 returns none; no alert, no shade row | Yes | Yes |
+| `close-x`: Back keeps the bubble and returns nothing; closes 1 and 2 each return nothing before a fold and the newest overflow bubble at it; close 3 returns none; no alert, no shade row | Yes | Yes |
 
 The check of a return on Android 11 fails on an interruptive mark, because that return is an update.
+
+## The return waits for the fold
+
+On the Samsung phone, an X with the stack open selects the next bubble at once and its page shows. About 480 ms later the returned bubble enters the row, the shell selects it, and its page replaces the page on the screen. So one X changed the page twice, in 3 of 3 returns, and no timing in the app can change that: a first post takes the same wait there. So a return waits until the stack folds.
+
+- With the stack open, a close of any kind returns nothing, and the count changes in place. `BubbleCloser` holds the close, and the hold lives as long as the process, as the list of open bubbles does.
+- When the stack folds, the bubbles come back one for each held close, newest first. Each post reads the free places from the list again, and stops at the fullest stack. The closes bound this, because a read just after a post can find a stack above the real limit, and a fold with no close must return nothing. The first build used the fullest stack alone: on the emulators a fold with no close then returned 2 bubbles, and a fold after one close returned up to 8.
+- A fold with the stack opened again before the last post stops there, and the next fold returns the rest. So does a return that fails.
+- A close of a folded stack is as before: one return at once, or the wait of a drag. A link sent again leaves the overflow at once, because the person asked for that bubble.
+- A bubble that comes back at a fold takes the selection on Android 14, so the next open of the stack shows that bubble's page and not the page last read. The same goes for the last of several. The app has no way to choose this.
+
+Android sends the app nothing when the stack folds, so `BubbleStackWatcher` reads the pages of bubbles. In `android14-release`, a hidden `TaskView` hides its task (`TaskViewTaskController.updateTaskVisibility`), so a fold stops the page. So does a switch to another bubble, with the next page starting around that stop. The rule is that the stack counts as open from a page start until 1 s after the last page stopped with no page starting. That the page stops on Android 11 too comes from the run below, not from a read of its source.
+
+| Time from a page stop to the next page's start, in ms | Android 14 | Android 11 |
+|---|---|---|
+| Switches and an X, in the runs of 2026-11-06 | 54 to 598 | 30 to 949 |
+
+- The longest of these are why the wait is 1 s; 300 ms read several switches as folds. A page slower than that on a phone reads as a fold, and the return then comes with the stack open, as it did before.
+- A delete intent can arrive after the page stopped and before the next page started, as Dismiss bubble does on Android 11, so the wait counts as open.
+- The X of the last page in the row leaves no page to start, so it reads as a fold, and the return runs.
+- The Android 14 emulator can fold the stack on an X, with no page starting next. The return then comes at once, which is right.
+- The overflow panel of an open stack shows no page, so opening it reads as a fold.
+
+From the check that reads a fold to the post of the first return, the log of `overflow-probe.sh` reads 3 to 14 ms on both versions, so a return posts about 1 s after a page stops. This was read with two emulators and a build running on one machine, so the gaps above are on the long side, and how a phone compares has not been read.
 
 ## What clears the stack and the overflow
 
@@ -161,10 +187,10 @@ Read with `overflow-probe.sh story` on 2026-11-04, one run through on one set of
 | Outcome | Android 14 | Android 11 | Cause of a difference |
 |---|---|---|---|
 | The count before and after a close, with the page on screen | 4 of 8, then 4 of 7 in place | The same | None |
-| One return per close, newest first, in the stack with its flag | Each of the first three closes returned one bubble, the newest in the overflow. The fourth returned none | The same | None |
+| One return per close, newest first, in the stack with its flag | The two closes with the stack open returned nothing, and the fold returned two, newest first. The next close returned the last overflow bubble at its fold, and the one after it returned none | The same | None |
 | No sound key or flyout on a return | None on any of the three returns | The same | None |
 | An interruptive mark on a return | Yes, a new notification | None, an update | The app posts differently on each |
-| A close from the Manage menu | Dismiss bubble sends one delete intent, closes the page's bubble and returns the next overflow bubble. The list reads 6 and the stack stays open | The same | None |
+| A close from the Manage menu | Dismiss bubble sends one delete intent and closes the page's bubble, and nothing returns. The list reads 6 and the stack stays open | The same | None |
 | A closed bubble stays gone | Neither closed bubble has a notification, a place in the list or a return, through to the last close | The same | None |
 | No Lynket row, and no count in any text | No row in the shade. 5 notification records, 7 shortcut labels and no line with a count | The same | None |
 | How the overflow can be read | The shell lists it | The shell does not list it; the app's own read stands in | The shell's dump on Android 11 prints the stack only, and the two versions dump different services |
@@ -215,7 +241,7 @@ A Samsung SM-F956B on Android 17, cover screen, 968 x 2376 at density 420, tried
 | `text` | Moves to the stack | `FLAG_BUBBLE` | None |
 | `fresh` | Moves to the stack | `FLAG_BUBBLE` | None |
 
-- About 500 ms pass from a post to the shell's add of the bubble.
+- About 500 ms pass from a post to the shell's add of the bubble. A post in an open stack then selects that bubble, which is why [a return waits for the fold](#the-return-waits-for-the-fold). The fold has not been read on this phone: the emulators do not show the selection in an open stack, so their passes say nothing of how it feels here.
 - The first builds posted `same`, logged `Returned` and left the stack at 0 and the overflow at 2. This is why a return is a new notification from Android 12. The emulators return the bubble on `same`, so their passes prove nothing about this build.
 - `dumpsys activity service SystemUIService WMShell bubbles`, with no further argument, crashed SystemUI on this phone with an `ArrayIndexOutOfBoundsException` in `BubbleShellCommandHandler`, so do not run it. A plain `WMShell` dump is safe, and it is what `overflow-probe.sh` runs.
 

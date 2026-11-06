@@ -105,9 +105,10 @@ is closed and at each activity start, because Android sends nothing when a bubbl
 overflow or a full overflow drops it.
 A person closes a bubble by a drag, by Dismiss bubble or by the X of its page. Android sends a delete
 intent only for the first two, so a page in a bubble calls `BubbleCloser` itself when it finishes.
-When the person closes a bubble in the stack, the newest overflow bubble posts again from the data
-its registry entry holds, with no alert (`NativeFloatingBubble.returnNewestOverflowBubble`);
-`docs/native-bubble-overflow.md` says how.
+When the person closes a bubble in a folded stack, the newest overflow bubble posts again from the
+data its registry entry holds, with no alert (`NativeFloatingBubble.returnNewestOverflowBubble`).
+A close in an open stack waits, and the places it left free fill when the stack folds
+(`BubbleStackWatcher`, `NativeFloatingBubble.fillFreePlaces`); `docs/native-bubble-overflow.md` says how.
 
 Browsing mode explains the choice "All conversations can bubble" and shows the current setting under
 the Native Bubbles row.

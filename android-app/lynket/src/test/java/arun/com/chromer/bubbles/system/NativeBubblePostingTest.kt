@@ -18,6 +18,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ShortcutManager
 import android.graphics.Bitmap
+import android.os.Looper
 import android.graphics.Color
 import android.os.Build
 import android.service.notification.StatusBarNotification
@@ -69,6 +70,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 import timber.log.Timber
+import java.time.Duration
 
 /**
  * A shared link posts its bubble with no fixed wait: with the site icon when it is ready within
@@ -173,6 +175,7 @@ class NativeBubblePostingTest {
 
   private val registry = BubbleRegistry()
   private lateinit var closer: BubbleCloser
+  private lateinit var watcher: BubbleStackWatcher
 
   @Before
   fun plant() = Timber.plant(tree)
@@ -186,7 +189,8 @@ class NativeBubblePostingTest {
     val dispatcher = StandardTestDispatcher(testScheduler)
     val reconciler = BubbleReconciler(notifications, registry, dispatcher)
     val bubble = NativeFloatingBubble(application, repo, notifications, icons, gate, registry, reconciler, dispatcher) { tabsManager }
-    closer = BubbleCloser(notifications, registry, reconciler, bubble)
+    watcher = BubbleStackWatcher { bubble }
+    closer = BubbleCloser(notifications, registry, reconciler, bubble, watcher)
     block(bubble)
     advanceUntilIdle()
   }
@@ -1382,6 +1386,243 @@ class NativeBubblePostingTest {
 
     assertThat(stored(incognito = true)?.incognito).isTrue()
     assertThat(stored(incognito = true)?.icon).isNull()
+  }
+
+  /** Past the check of a page stop, on the main thread of the test, and the returns it starts. */
+  private fun TestScope.afterTheFoldCheck() {
+    shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(BubbleStackWatcher.FOLD_CHECK_MS))
+    advanceUntilIdle()
+  }
+
+  /** The stack of a full row holds the rest, with [links] read in the overflow. */
+  private fun TestScope.fullStackWith(bubble: NativeFloatingBubble, open: List<String>, vararg links: String) {
+    opened(bubble, *open.toTypedArray())
+    places = listed().associate {
+      it.key.notificationId to if (it.url in links) BubblePlace.OVERFLOW else BubblePlace.STACK
+    }
+    registry.reconcile(BrowsingMode.NativeBubbles) { places }
+    posts.clear()
+    postedData.clear()
+  }
+
+  private fun id(url: String) = keyOf(url).notificationId
+
+  @Test
+  fun a_close_in_an_open_stack_returns_nothing_until_the_stack_folds() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    watcher.pageStarted()
+
+    closer.close(id(FOUR))
+    advanceUntilIdle()
+    assertThat(posts).isEmpty()
+
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(TWO)
+  }
+
+  @Test
+  fun a_fold_fills_every_free_place_newest_first() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    watcher.pageStarted()
+    closer.close(id(THREE))
+    closer.close(id(FOUR))
+
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(TWO, ONE).inOrder()
+    assertThat(overflow()).isEmpty()
+  }
+
+  @Test
+  fun a_fold_stops_at_the_fullest_stack() = posting { bubble ->
+    val eight = (1..8).map { "https://link$it.example/" }
+    fullStackWith(bubble, eight, eight[0], eight[1], eight[2])
+    watcher.pageStarted()
+    closer.close(id(eight[7]))
+
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(eight[2])
+    assertThat(overflow().size).isEqualTo(2)
+  }
+
+  @Test
+  fun a_fold_with_no_close_returns_nothing() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    watcher.pageStarted()
+
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(posts).isEmpty()
+  }
+
+  @Test
+  fun a_delete_intent_after_the_page_stopped_still_waits_for_the_fold() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    watcher.pageStarted()
+
+    watcher.pageStopped()
+    closer.close(id(FOUR))
+    advanceUntilIdle()
+    assertThat(posts).isEmpty()
+    watcher.pageStarted()
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(TWO)
+  }
+
+  @Test
+  fun a_switch_between_bubbles_is_not_a_fold() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    watcher.pageStarted()
+    closer.close(id(FOUR))
+
+    // The next page can start on either side of the stop.
+    watcher.pageStopped()
+    shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(BubbleStackWatcher.FOLD_CHECK_MS - 1))
+    watcher.pageStarted()
+    afterTheFoldCheck()
+    watcher.pageStarted()
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(posts).isEmpty()
+    assertThat(watcher.stackOpen).isTrue()
+  }
+
+  @Test
+  fun the_x_of_the_last_open_page_leaves_no_open_stack_and_the_return_runs() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
+    watcher.pageStarted()
+
+    closer.close(id(THREE))
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(TWO)
+  }
+
+  @Test
+  fun a_fold_returns_no_more_than_the_closes_when_a_read_found_a_fuller_stack() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR, FIVE), ONE)
+    // A read just after a post: the flag of the bubble Android is ageing out has not cleared yet.
+    registry.reconcile(BrowsingMode.NativeBubbles) { listed().associate { it.key.notificationId to BubblePlace.STACK } }
+    registry.reconcile(BrowsingMode.NativeBubbles) { places }
+    watcher.pageStarted()
+    watcher.pageStopped()
+    afterTheFoldCheck()
+    assertThat(returned).isEmpty()
+
+    watcher.pageStarted()
+    closer.close(id(FIVE))
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(ONE)
+  }
+
+  @Test
+  fun a_close_with_an_empty_overflow_holds_nothing_for_a_later_fold() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE)
+    watcher.pageStarted()
+    closer.close(id(ONE))
+    closer.close(id(THREE))
+    watcher.pageStopped()
+    afterTheFoldCheck()
+    assertThat(returned).isEmpty()
+
+    fullStackWith(bubble, listOf(FOUR, FIVE), FOUR)
+    watcher.pageStarted()
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).isEmpty()
+  }
+
+  @Test
+  fun a_close_of_a_folded_stack_after_a_fold_returns_at_once() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    watcher.pageStarted()
+    watcher.pageStopped()
+    afterTheFoldCheck()
+    val start = currentTime
+
+    closer.close(id(FOUR))
+    advanceUntilIdle()
+
+    assertThat(posts.single().url).isEqualTo(TWO)
+    assertThat(posts.single().at).isEqualTo(start)
+  }
+
+  @Test
+  fun a_bubble_closed_in_the_overflow_while_the_stack_is_open_stays_closed_at_the_fold() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    watcher.pageStarted()
+    closer.close(id(TWO))
+    closer.close(id(FOUR))
+
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(ONE)
+  }
+
+  @Test
+  fun a_stack_opened_again_during_a_fold_stops_the_returns_and_the_next_fold_counts_again() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    returnAfterMs = 1_000
+    watcher.pageStarted()
+    closer.close(id(THREE))
+    closer.close(id(FOUR))
+
+    watcher.pageStopped()
+    shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(BubbleStackWatcher.FOLD_CHECK_MS))
+    advanceTimeBy(100)
+    watcher.pageStarted()
+    advanceUntilIdle()
+    assertThat(returned).containsExactly(TWO)
+
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(TWO, ONE).inOrder()
+  }
+
+  @Test
+  fun a_failed_return_at_a_fold_ends_the_fill_and_the_next_fold_tries_again() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    returnAfterMs = null
+    watcher.pageStarted()
+    closer.close(id(THREE))
+    closer.close(id(FOUR))
+
+    watcher.pageStopped()
+    afterTheFoldCheck()
+    assertThat(returned).containsExactly(TWO)
+
+    returnAfterMs = 0
+    watcher.pageStarted()
+    watcher.pageStopped()
+    afterTheFoldCheck()
+
+    assertThat(returned).containsExactly(TWO, TWO, ONE).inOrder()
+  }
+
+  @Test
+  fun a_link_sent_again_from_the_overflow_comes_out_at_once_with_the_stack_open() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE, FOUR), ONE, TWO)
+    watcher.pageStarted()
+
+    bubble.open(ONE)
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.url }).contains(ONE)
   }
 
   private companion object {

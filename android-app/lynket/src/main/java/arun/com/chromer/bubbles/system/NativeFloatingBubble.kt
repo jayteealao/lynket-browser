@@ -86,6 +86,9 @@ constructor(
   private val returnLock = Mutex()
   private val waitingReturns = AtomicInteger()
 
+  /** Closes in the open stack that wait for the fold. */
+  private val heldReturns = AtomicInteger()
+
   /** A return failed, so the closes still waiting give up: they would post the same bubble again. */
   @Volatile
   private var returnFailed = false
@@ -185,7 +188,7 @@ constructor(
   }
 
   /**
-   * Posts the newest overflow bubble anew after the person closed a bubble in the stack, with no
+   * Posts the newest overflow bubble anew after the person closed a bubble in a folded stack, with no
    * alert. Returns run one at a time and each waits for Android's flag, so a close that follows reads
    * where this bubble went. A return that fails says nothing: the bubble stays in the overflow.
    *
@@ -196,13 +199,46 @@ constructor(
    * wait lets its delete intents arrive. sdlc-debt: a fixed wait; a delete intent later than it posts
    * its closed bubble for a moment. A read that tells a closing bubble from an aged one would replace it.
    */
-  fun returnNewestOverflowBubble(): Job {
+  fun returnNewestOverflowBubble(): Job = launchReturn {
+    val single = wasSingleClose()
+    if (!single) delay(CLOSES_SETTLE_MS)
+    returnLock.withLock { if (!returnFailed) returnNewest(reconciled = single) }
+  }
+
+  /** A close in the open stack left a place free, and it fills when the stack folds. */
+  fun holdReturn() {
+    heldReturns.incrementAndGet()
+  }
+
+  /**
+   * Fills the places that closes left free while the stack was open, newest overflow bubble first,
+   * one for each close and up to the fullest stack. Every post reads the free places from the list
+   * again, and a close with no place left to fill, or no bubble to return, drops out. The fullest
+   * stack alone cannot say that a place is free: a read just after a post can find the flag of a
+   * bubble Android is ageing out, so it can stand one or two above the real limit, and a fold with no
+   * close would then push bubbles round. The closes end with the process, as the list does.
+   *
+   * It stops when [stillFolded] says the person opened the stack again, or after a failed return:
+   * what is left waits for the next fold.
+   */
+  fun fillFreePlaces(stillFolded: () -> Boolean): Job = launchReturn {
+    returnLock.withLock {
+      while (heldReturns.get() > 0 && !returnFailed && stillFolded()) {
+        if (returnNewest(reconciled = false)) {
+          heldReturns.decrementAndGet()
+        } else {
+          if (!returnFailed) heldReturns.set(0)
+          break
+        }
+      }
+    }
+  }
+
+  private fun launchReturn(block: suspend () -> Unit): Job {
     waitingReturns.incrementAndGet()
     return scope.launch {
       try {
-        val single = wasSingleClose()
-        if (!single) delay(CLOSES_SETTLE_MS)
-        returnLock.withLock { if (!returnFailed) returnNewest(reconciled = single) }
+        block()
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -227,29 +263,29 @@ constructor(
     }
   }
 
-  private suspend fun returnNewest(reconciled: Boolean) {
+  /** Returns whether a bubble came back. */
+  private suspend fun returnNewest(reconciled: Boolean): Boolean {
     val fullest = bubbleRegistry.fullestStack()
     if (!reconciled) bubbleReconciler.reconcile()
     // A stack as full as it has been has no room: the close was in the overflow after all, and a post
     // would push another bubble out.
     val stack = bubbleRegistry.list(BrowsingMode.NativeBubbles).count { it.place == BubblePlace.STACK }
-    if (fullest > 0 && stack >= fullest) return
-    val bubble = bubbleRegistry.returnCandidates(BrowsingMode.NativeBubbles).lastOrNull() ?: return
-    val data = bubble.loadData ?: return
+    if (fullest > 0 && stack >= fullest) return false
+    val bubble = bubbleRegistry.returnCandidates(BrowsingMode.NativeBubbles).lastOrNull() ?: return false
+    val data = bubble.loadData ?: return false
     Timber.d("Returning: %d", bubble.key.notificationId)
     bubbleRegistry.posting(bubble.key)
-    try {
+    val shown = try {
       bubbleNotificationManager.returnBubble(data)
-      if (shownAsBubble(bubble.url, bubble.incognito)) {
-        Timber.d("Returned: %d", bubble.key.notificationId)
-      } else {
-        returnFailed = true
+      shownAsBubble(bubble.url, bubble.incognito).also { shown ->
+        if (shown) Timber.d("Returned: %d", bubble.key.notificationId) else returnFailed = true
       }
     } finally {
       bubbleRegistry.settled(bubble.key)
     }
     bubbleReconciler.reconcile()
     if (data.icon == null && !bubble.incognito) scope.launch { loadMissingIcon(bubble) }
+    return shown
   }
 
   /** Under the link's lock, so it follows a load in flight, and keeps the posted title and text. */

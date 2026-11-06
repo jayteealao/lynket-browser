@@ -13,8 +13,9 @@
 #   overflow-probe.sh <serial> <dir> registry  Opens 24 links and, at 7, 8 and past the overflow
 #                                              limit, compares the app's bubble list with the shell's
 #                                              stack and overflow. Writes registry.tsv.
-#   overflow-probe.sh <serial> <dir> close     Opens 7 links and closes 3 bubbles one at a time; each
-#                                              close must return the newest overflow bubble, with no
+#   overflow-probe.sh <serial> <dir> close     Opens 7 links and closes 3 bubbles one at a time in the
+#                                              open stack; each must return nothing until the stack
+#                                              folds, and then the newest overflow bubble, with no
 #                                              alert, until the overflow is empty. Writes close.tsv.
 #   overflow-probe.sh <serial> <dir> close-stack
 #                                              Opens 7 links and drags the collapsed stack away; each
@@ -22,9 +23,10 @@
 #                                              with no alert and no expansion. Writes close-stack.tsv.
 #   overflow-probe.sh <serial> <dir> close-x   Opens 7 links, checks that Back keeps a bubble, and closes
 #                                              3 pages with the X of their top bar; each X must close
-#                                              the page's bubble and return the newest overflow bubble,
-#                                              with no alert, no delete intent and no shade row, until
-#                                              the overflow is empty. Writes close-x.tsv.
+#                                              the page's bubble and show the next page, return nothing
+#                                              until the stack folds and then the newest overflow
+#                                              bubble, with no alert, no delete intent and no shade row,
+#                                              until the overflow is empty. Writes close-x.tsv.
 #   overflow-probe.sh <serial> <dir> close-icon
 #                                              Opens a link whose icon is held back (slow-icon-server.py),
 #                                              lets it age out and returns it with a close; it must show
@@ -47,14 +49,17 @@
 #   overflow-probe.sh <serial> <dir> story     The whole behaviour on one set of bubbles: opens 8 links and
 #                                              reads the count in a page, closes a bubble in the stack with
 #                                              that page on screen, closes the page's own bubble from its
-#                                              Manage menu, closes two more, and checks that each close
-#                                              returns one bubble with no alert and that a closed bubble
-#                                              stays gone. Writes story.tsv, close.tsv and shade.tsv.
+#                                              Manage menu, folds the stack, and checks that the two
+#                                              closes return nothing until the fold and two bubbles at
+#                                              it, newest first; closes two more, and checks that no
+#                                              return alerts and that a closed bubble stays gone. Writes
+#                                              story.tsv, close.tsv and shade.tsv.
 #   overflow-probe.sh <serial> <dir> dont-bubble
 #                                              Opens 7 links and turns one off from its Manage menu, and
 #                                              records what the app then reads. Writes dont-bubble.tsv.
 #
-# The close modes also write <mode>-times.tsv: the milliseconds from each close to the post of its return.
+# The close modes also write <mode>-times.tsv: the milliseconds to the post of each return from the
+# last close or fold before it.
 #
 # Needs adb and curl on PATH, python with Pillow, and the debug build (`assembleDebug`, or
 # APK=<path>); each mode
@@ -207,7 +212,7 @@ prepare() {
   sleep 1
   a logcat -c
   # adb itself, so the kill in finish reaches it: a subshell would leave it holding the log file.
-  adb -s "$SERIAL" logcat -v time BubbleProbe:V BubbleCloser:V BubbleDismissReceiver:V BubbleReconciler:V NativeFloatingBubble:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
+  adb -s "$SERIAL" logcat -v time BubbleProbe:V BubbleCloser:V BubbleDismissReceiver:V BubbleReconciler:V BubbleStackWatcher:V NativeFloatingBubble:V '*:S' > "$OUT/$MODE.logcat.txt" 2>/dev/null &
   LOGCAT_PID=$!
   a shell am broadcast -n "$PROBE" --es action clear >/dev/null
   sleep 2
@@ -558,7 +563,7 @@ no_interruption() {
 
 # Runs the close $1 of mode_close and adds its row to close.tsv.
 close_row() {
-  local close="$1" returnable=() expected="" lines closed returned overflow_ids=() returnable_ids=() flag="" expanded selected app id
+  local close="$1" returnable=() expected="" lines closed returned held overflow_ids=() returnable_ids=() flag="" expanded selected app id
   IFS=, read -r -a returnable <<< "$REC_RETURNABLE"
   [ "${#returnable[@]}" -eq 0 ] || expected="${returnable[-1]}"
   shell_bubbles "shell-close-$close-before.txt"
@@ -566,8 +571,10 @@ close_row() {
   shot "close-$close-before"
   drag_bubble_to_dismiss "shell-close-$close-before.txt"
   shot "close-$close-after"
+  held="$(new_ids 'Returning:' "$lines")"
+  [ -z "$held" ] || fail "close $close returned \"$held\" with the stack open"
   a shell input keyevent HOME
-  sleep 2
+  sleep 3
   closed="$(new_ids 'Bubble dismissed:' "$lines")"
   returned="$(new_ids 'Returned:' "$lines")"
   shell_bubbles "shell-close-$close-after.txt"
@@ -601,9 +608,7 @@ close_row() {
   [ -z "$returned" ] && return 0
   in_list "$returned" "${STACK_IDS[@]}" || fail "returned id $returned is not in the stack"
   [ "$flag" = true ] || fail "returned id $returned has no bubble flag"
-  [ "$selected" != "$returned" ] || fail "returned id $returned took the selection"
   [ -z "$SOUND_KEY" ] || fail "the return took the sound or the vibration: $SOUND_KEY"
-  # A collapsed stack would show it: with the stack open, Android holds it back.
   [ "$FLYOUT" = false ] || fail "the return showed a flyout: $FLYOUT"
   no_interruption "$INTERRUPTIVE"
   return 0
@@ -619,11 +624,13 @@ with open(sys.argv[2], "w") as out:
     out.write("closed_id\treturned_id\tms\n")
     for line in open(sys.argv[1], errors="replace"):
         at = re.match(r"(\d\d-\d\d \d\d:\d\d:\d\d\.\d{3})", line)
-        said = re.search(r"(Bubble dismissed|Returning): (-?\d+)\s*$", line)
+        said = re.search(r"(Bubble dismissed|Returning|Stack folded):? ?(-?\d*)\s*$", line)
         if not at or not said:
             continue
         time = datetime.strptime(at.group(1), "%m-%d %H:%M:%S.%f")
-        if said.group(1) == "Bubble dismissed":
+        if said.group(1) == "Stack folded":
+            closed = ("fold", time)
+        elif said.group(1) == "Bubble dismissed":
             closed = (said.group(2), time)
         elif closed:
             out.write(f"{closed[0]}\t{said.group(2)}\t{int((time - closed[1]).total_seconds() * 1000)}\n")
@@ -637,7 +644,7 @@ bubble_shortcuts() { a shell dumpsys shortcut | tr -d '\r' | grep -c 'ShortcutIn
 # Opens the page of the last bubble of the row, closes it with its X, and adds its row to close-x.tsv.
 # $1 names the close, and $2 is the newest overflow bubble, or empty when the overflow is empty.
 x_close() {
-  local name="$1" expected="$2" page lines closed returned shortcuts_before shortcuts flag="" notification overflow_ids=() returnable_ids=() id
+  local name="$1" expected="$2" page lines closed returned held folded shortcuts_before shortcuts flag="" notification overflow_ids=() returnable_ids=() id
   shell_bubbles "shell-x-$name-before.txt"
   expand_stack "shell-x-$name-before.txt"
   page="${STACK_IDS[-1]}"
@@ -648,8 +655,10 @@ x_close() {
   tap_window_tag webview-close
   sleep 3
   shot "x-$name-after"
+  held="$(new_ids 'Returning:' "$lines")"
+  folded="$(tail -n +"$((lines + 1))" "$OUT/$MODE.logcat.txt" | grep -c 'Stack folded' || true)"
   a shell input keyevent HOME
-  sleep 2
+  sleep 3
   closed="$(new_ids 'Bubble dismissed:' "$lines")"
   returned="$(new_ids 'Returned:' "$lines")"
   shell_bubbles "shell-x-$name-after.txt"
@@ -668,6 +677,8 @@ x_close() {
   log "x=$name page=$page closed=${closed:-none} expected=${expected:-none} returned=${returned:-none} total=$REC_TOTAL stack=${#STACK_IDS[@]} notification=$notification shortcuts=$shortcuts_before,$shortcuts"
 
   [ "$closed" = "$page" ] || fail "the X of $page closed \"$closed\""
+  # Android can fold the stack on an X, and then the return is due.
+  [ -z "$held" ] || [ "$folded" -gt 0 ] || fail "the X of $page returned \"$held\" with the stack open"
   [ "$returned" = "$expected" ] || fail "the X of $page returned \"$returned\", and the newest overflow bubble is \"$expected\""
   [ "$REC_TOTAL" -eq "$((TOTAL_BEFORE - 1))" ] || fail "the X of $page leaves a list of $REC_TOTAL after $TOTAL_BEFORE"
   TOTAL_BEFORE="$REC_TOTAL"
@@ -832,8 +843,13 @@ mode_close_icon() {
   shell_bubbles shell-icon-before.txt
   lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
   drag_bubble_to_dismiss shell-icon-before.txt
-  # The stack stays open: the row shows the returned bubble wherever Android puts it, and a collapsed
-  # stack shows only its front bubble.
+  a shell input keyevent HOME
+  sleep 3
+  # The open stack shows the returned bubble wherever Android puts it, and a collapsed stack shows only
+  # its front bubble.
+  shell_bubbles shell-icon-folded.txt
+  expand_stack shell-icon-folded.txt
+  sleep 1
   shot close-icon-disc
   curl -s -m 5 "localhost:$ICON_PORT/release" >/dev/null || fail "the icon server did not answer"
   sleep 8
@@ -1092,26 +1108,34 @@ story_row() {
   log "point=$1 total=$2 closed=${3:-none} expected_return=${4:-none} returned=${5:-none} page=\"$6\" dump=\"${PAGE_TEXT:-none}\""
 }
 
-# Reads the close named $1, made since line $2 of the log, which must return $3 and leave a list of $4:
-# one closed id in CLOSED, with no alert. Leaves the ids of the stack in STACK_IDS.
+# Reads the close named $1, made since line $2 of the log with the stack open, which must return nothing
+# and leave a list of $3: one closed id in CLOSED, its notification gone.
 story_close() {
   local total
   sleep 2
   CLOSED="$(new_ids 'Bubble dismissed:' "$2")"
-  RETURNED="$(new_ids 'Returned:' "$2")"
+  RETURNED="$(new_ids 'Returning:' "$2")"
   shell_bubbles "shell-story-$1.txt"
   read_state "state-story-$1.txt"
-  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/notification-story-$1.txt"
-  alert_fields "${RETURNED:-none}" "shell-story-$1.txt" "notification-story-$1.txt"
   total="$(reconciled_field total "$(tr -d '\r' < "$OUT/$MODE.logcat.txt" | grep 'Reconciled: ' | tail -1)")"
   [[ "$CLOSED" =~ ^-?[0-9]+$ ]] || fail "$1 has the Bubble dismissed lines \"$CLOSED\", not one"
-  [ "$RETURNED" = "$3" ] || fail "$1 returned \"$RETURNED\", and the newest overflow bubble is \"$3\""
-  [ "$total" -eq "$4" ] || fail "$1 leaves a list of $total, not $4"
-  in_list "$RETURNED" "${STACK_IDS[@]}" || fail "returned id $RETURNED is not in the stack after $1"
-  [ "$(bubble_flag "state-story-$1.txt" "$RETURNED")" = true ] || fail "returned id $RETURNED has no bubble flag after $1"
+  [ -z "$RETURNED" ] || fail "$1 returned \"$RETURNED\" with the stack open"
+  [ "$total" -eq "$3" ] || fail "$1 leaves a list of $total, not $3"
   [ "$(bubble_flag "state-story-$1.txt" "$CLOSED")" = gone ] || fail "closed id $CLOSED still has a notification after $1"
-  [ -z "$SOUND_KEY" ] || fail "the return of $1 took the sound or the vibration: $SOUND_KEY"
-  [ "$FLYOUT" = false ] || fail "the return of $1 showed a flyout: $FLYOUT"
+}
+
+# Reads the return $2 of the fold, with no alert. Leaves the ids of the stack
+# in STACK_IDS.
+story_return() {
+  local id="$2"
+  shell_bubbles "shell-story-fold-$id.txt"
+  read_state "state-story-fold-$id.txt"
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/notification-story-fold-$id.txt"
+  alert_fields "$id" "shell-story-fold-$id.txt" "notification-story-fold-$id.txt"
+  in_list "$id" "${STACK_IDS[@]}" || fail "returned id $id is not in the stack after the fold"
+  [ "$(bubble_flag "state-story-fold-$id.txt" "$id")" = true ] || fail "returned id $id has no bubble flag after the fold"
+  [ -z "$SOUND_KEY" ] || fail "the return of $id took the sound or the vibration: $SOUND_KEY"
+  [ "$FLYOUT" = false ] || fail "the return of $id showed a flyout: $FLYOUT"
   no_interruption "$INTERRUPTIVE"
 }
 
@@ -1141,21 +1165,21 @@ mode_story() {
   page_reads "$position of 8"
   story_row open 8 "" "" "" "$position of 8"
 
-  # One close in the stack with that page on screen: the count changes in place, and the newest
-  # overflow bubble returns.
+  # One close in the stack with that page on screen: the count changes in place, and nothing returns
+  # while the stack is open.
   [ "${STACK_IDS[0]}" != "$page" ] || fail "the page's own bubble is in the first slot"
   lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
   read -r w h < <(screen_size)
   shot story-close-before
   drag_to_dismiss "$((w / 12))" "$((h * 23 / 300))"
-  story_close close "$lines" "${returnable[-1]}" 7
+  story_close close "$lines" 7
   first="$CLOSED"
   [ "$first" != "$page" ] || fail "the close took the page's own bubble"
   [ "$(open_place "$first")" -lt "$position" ] && position=$((position - 1))
   grep -q 'expanded: true' "$OUT/shell-story-close.txt" || fail "the stack closed with the bubble"
   page_text story-7
   page_reads "$position of 7"
-  story_row close 7 "$first" "${returnable[-1]}" "$RETURNED" "$position of 7"
+  story_row close 7 "$first" "" "" "$position of 7"
 
   # One close on purpose, of the page on screen, through its Manage menu.
   lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
@@ -1164,13 +1188,21 @@ mode_story() {
   shot story-menu
   tap_window_text "Dismiss bubble"
   sleep 2
-  story_close purpose "$lines" "${returnable[-2]}" 6
+  story_close purpose "$lines" 6
   [ "$CLOSED" = "$page" ] || fail "the menu closed $CLOSED, not the page's bubble $page"
   shot story-purpose-after
-  a shell input keyevent HOME
-  sleep 2
   PAGE_TEXT=""
-  story_row purpose 6 "$CLOSED" "${returnable[-2]}" "$RETURNED" ""
+  story_row purpose 6 "$CLOSED" "" "" ""
+
+  # The fold fills the two free places, newest overflow bubble first.
+  lines="$(wc -l < "$OUT/$MODE.logcat.txt")"
+  a shell input keyevent HOME
+  sleep 4
+  RETURNED="$(new_ids 'Returned:' "$lines")"
+  [ "$RETURNED" = "${returnable[-1]},${returnable[-2]}" ] || fail "the fold returned \"$RETURNED\", not ${returnable[-1]} then ${returnable[-2]}"
+  story_return "$lines" "${returnable[-1]}"
+  story_return "$lines" "${returnable[-2]}"
+  story_row fold 6 "" "${returnable[-1]},${returnable[-2]}" "$RETURNED" ""
   front_reconcile
   [ "$REC_TOTAL" -eq 6 ] || fail "the two closes leave a list of $REC_TOTAL, not 6"
 

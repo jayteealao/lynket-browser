@@ -32,7 +32,8 @@ import javax.inject.Singleton
  * overflow, so the page calls this itself. A second signal for one bubble finds no entry, and so
  * asks for no return.
  *
- * A close of a bubble in the stack leaves room, so the newest overflow bubble comes back.
+ * A close of a bubble in the stack leaves room. With the stack folded the newest overflow bubble
+ * comes back at once. With the stack open it waits for the fold, see [BubbleStackWatcher].
  */
 @Singleton
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -43,6 +44,7 @@ constructor(
   private val bubbleRegistry: BubbleRegistry,
   private val bubbleReconciler: BubbleReconciler,
   private val nativeFloatingBubble: NativeFloatingBubble,
+  private val stackWatcher: BubbleStackWatcher,
 ) {
 
   fun close(notificationId: Int) {
@@ -52,13 +54,17 @@ constructor(
     val closed = bubbleRegistry.remove(key)
     bubbleNotificationManager.dismissed(notificationId)
     // A close in the overflow leaves the stack full, and a second signal finds no entry. A close in
-    // the stack leaves its read to the return, which can tell a drag: during a drag a read here would
-    // file the closing bubbles under the overflow, and their closes would ask for no return. The
-    // return runs off this thread, so a delete intent does not hold back the others of a drag.
-    if (closed?.place == BubblePlace.STACK) {
-      nativeFloatingBubble.returnNewestOverflowBubble()
-    } else {
-      bubbleReconciler.reconcileLater()
+    // an open stack waits for the fold, and only a folded stack can be dragged away. A close in a
+    // folded stack leaves its read to the return, which can tell a drag: during a drag a read here
+    // would file the closing bubbles under the overflow, and their closes would ask for no return.
+    // The return runs off this thread, so a delete intent does not hold back the others of a drag.
+    when {
+      closed?.place != BubblePlace.STACK -> bubbleReconciler.reconcileLater()
+      stackWatcher.stackOpen -> {
+        nativeFloatingBubble.holdReturn()
+        bubbleReconciler.reconcileLater()
+      }
+      else -> nativeFloatingBubble.returnNewestOverflowBubble()
     }
   }
 }
