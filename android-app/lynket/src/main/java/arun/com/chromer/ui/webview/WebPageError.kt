@@ -26,6 +26,8 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.WifiOff
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,30 +64,40 @@ internal fun siteOf(address: String): String = Uri.parse(address).host?.takeIf {
 /**
  * A page that did not load: the cause and Retry, centred in the page area. In a short window the
  * picture goes first, and the content scrolls when it is still too tall, so the title and Retry
- * stay reachable. Screen readers hear the cause when it replaces the page.
+ * stay reachable. Screen readers hear the cause when it replaces the page. A pull on the page does
+ * the same as Retry; while a retry runs, Retry is disabled and a pull does nothing.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WebPageError(failure: PageLoad.Failed, onRetry: () -> Unit, modifier: Modifier = Modifier) {
   val content = errorContentOf(failure.cause)
   val body = if (content.bodyNamesSite) stringResource(content.body, siteOf(failure.address)) else stringResource(content.body)
-  BoxWithConstraints(modifier.fillMaxSize().testTag("webview-error").semantics { liveRegion = LiveRegionMode.Polite }) {
-    val showBlob = maxHeight >= BLOB_MIN_PAGE_HEIGHT
-    Column(
-      Modifier
-        .fillMaxWidth()
-        .verticalScroll(rememberScrollState())
-        .heightIn(min = if (constraints.hasBoundedHeight) maxHeight else 0.dp),
-      verticalArrangement = Arrangement.Center,
-      horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-      ErrorState(
-        title = stringResource(content.title),
-        body = body,
-        icon = content.icon,
-        retryLabel = stringResource(R.string.retry),
-        onRetry = onRetry,
-        showBlob = showBlob,
-      )
+  // The progress bar under the top bar shows the retry, so the pull indicator springs back at once.
+  PullToRefreshBox(
+    isRefreshing = false,
+    onRefresh = { if (!failure.retrying) onRetry() },
+    modifier = modifier.fillMaxSize(),
+  ) {
+    BoxWithConstraints(Modifier.fillMaxSize().testTag("webview-error").semantics { liveRegion = LiveRegionMode.Polite }) {
+      val showBlob = maxHeight >= BLOB_MIN_PAGE_HEIGHT
+      Column(
+        Modifier
+          .fillMaxWidth()
+          .verticalScroll(rememberScrollState())
+          .heightIn(min = if (constraints.hasBoundedHeight) maxHeight else 0.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        ErrorState(
+          title = stringResource(content.title),
+          body = body,
+          icon = content.icon,
+          retryLabel = stringResource(R.string.retry),
+          onRetry = onRetry,
+          retryEnabled = !failure.retrying,
+          showBlob = showBlob,
+        )
+      }
     }
   }
 }
