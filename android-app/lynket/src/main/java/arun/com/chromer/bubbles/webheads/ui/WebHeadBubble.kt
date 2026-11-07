@@ -13,8 +13,14 @@ package arun.com.chromer.bubbles.webheads.ui
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -124,6 +130,26 @@ fun WebHeadBubble(
   )
   val xRotation by animateFloatAsState(if (head.closing) 180f else 0f, tween(250), label = "closeRotation")
 
+  // The animator duration scale of the window; 0 is the person's reduced motion setting.
+  val motionScale = rememberCoroutineScope().coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
+  val look = headLook(head.pageState, isFront = head.isMaster, reducedMotion = motionScale == 0f, closing = head.closing)
+  val sweep by animateFloatAsState(
+    targetValue = when (look.ring) {
+      Ring.Arc -> RING_ARC_SWEEP
+      Ring.Track -> 0f
+      Ring.Solid -> 360f
+    },
+    animationSpec = if (look.ring == Ring.Solid) tween(RING_CLOSE_MS, easing = RingEaseOut) else snap(),
+    label = "headRingSweep",
+  )
+  val fillAlpha by animateFloatAsState(
+    if (look.faded) LOADING_FILL_ALPHA else 1f,
+    tween(RING_CLOSE_MS, easing = RingEaseOut),
+    label = "headFillAlpha",
+  )
+  // The border of today draws the ring at rest; the ring layer draws it only while it shows a state.
+  val ringAtRest = look.ring == Ring.Solid && sweep == 360f
+
   Box(
     modifier = modifier
       .size(headSize + inset * 2)
@@ -153,32 +179,45 @@ fun WebHeadBubble(
         .size(headSize)
         .shadow(if (head.closing) 0.dp else 6.dp, CircleShape)
         .background(colours.surfaceContainerLowest, CircleShape)
-        .border(3.dp, if (head.closing) colours.error else colours.primary, CircleShape)
-        .padding(5.dp)
-        .clip(CircleShape)
-        .background(fill),
+        .then(if (ringAtRest) Modifier.border(RingStroke, if (head.closing) colours.error else colours.primary, CircleShape) else Modifier),
       contentAlignment = Alignment.Center,
     ) {
-      val favicon = head.favicon
-      when {
-        head.closing -> Icon(
-          Icons.Filled.Close,
-          contentDescription = null,
-          tint = colours.onError,
-          modifier = Modifier.size(18.dp).rotate(xRotation),
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(5.dp)
+          .graphicsLayer { this.alpha = fillAlpha }
+          .clip(CircleShape)
+          .background(fill),
+        contentAlignment = Alignment.Center,
+      ) {
+        HeadContent(head, headSize, fill, xRotation)
+      }
+      if (!ringAtRest) {
+        HeadRing(
+          look,
+          sweep = { sweep },
+          trackAlpha = { if (look.ring == Ring.Solid) ((360f - sweep) / (360f - RING_ARC_SWEEP)).coerceIn(0f, 1f) else 1f },
         )
-        favicon != null -> Image(
-          bitmap = favicon,
-          contentDescription = null,
-          contentScale = ContentScale.Crop,
-          modifier = Modifier.size(headSize - 10.dp).background(colours.surfaceContainerLowest),
-        )
-        else -> Text(
-          text = Utils.getFirstLetter(head.url),
-          color = fill.readableContentColor(),
-          fontSize = if (headSize >= WebHeadMotion.HEAD_DP.dp) 22.sp else 18.sp,
-          fontWeight = FontWeight.SemiBold,
-        )
+      }
+    }
+    if (look.warning) {
+      // The mark sits on the bottom corner of the head away from the badge, a little outside it.
+      val markOffset = headSize / 2 - WARNING_MARK_DP.dp / 2 + 2.dp
+      Surface(
+        color = colours.surfaceContainerLowest,
+        contentColor = colours.error,
+        shape = CircleShape,
+        shadowElevation = 1.dp,
+        modifier = Modifier
+          .align(Alignment.Center)
+          .offset(x = if (head.badgeOnLeft) markOffset else -markOffset, y = markOffset)
+          .graphicsLayer { scaleX = scale; scaleY = scale }
+          .size(WARNING_MARK_DP.dp),
+      ) {
+        Box(contentAlignment = Alignment.Center) {
+          Icon(Icons.Filled.Warning, contentDescription = null, modifier = Modifier.size(14.dp))
+        }
       }
     }
     if (head.isMaster && !head.lockedToTrash && !head.closing) {
@@ -197,6 +236,36 @@ fun WebHeadBubble(
         )
       }
     }
+  }
+}
+
+/** The size of the warning mark on a head whose page did not load. */
+private const val WARNING_MARK_DP = 20
+
+/** The favicon, the first letter of the site, or the close cross of a head closing to the trash. */
+@Composable
+private fun HeadContent(head: WebHeadState, headSize: Dp, fill: Color, xRotation: Float) {
+  val colours = MaterialTheme.colorScheme
+  val favicon = head.favicon
+  when {
+    head.closing -> Icon(
+      Icons.Filled.Close,
+      contentDescription = null,
+      tint = colours.onError,
+      modifier = Modifier.size(18.dp).rotate(xRotation),
+    )
+    favicon != null -> Image(
+      bitmap = favicon,
+      contentDescription = null,
+      contentScale = ContentScale.Crop,
+      modifier = Modifier.size(headSize - 10.dp).background(colours.surfaceContainerLowest),
+    )
+    else -> Text(
+      text = Utils.getFirstLetter(head.url),
+      color = fill.readableContentColor(),
+      fontSize = if (headSize >= WebHeadMotion.HEAD_DP.dp) 22.sp else 18.sp,
+      fontWeight = FontWeight.SemiBold,
+    )
   }
 }
 
