@@ -27,11 +27,15 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -213,6 +217,70 @@ class WebPageErrorTest {
     composeRule.runOnIdle { assertThat(bars.top.heightOffset).isLessThan(0f) }
     page.value = failedPage(LoadFailure.Offline)
     composeRule.runOnIdle { assertThat(bars.top.heightOffset).isEqualTo(0f) }
+  }
+
+  @Test
+  fun aRetryingPageKeepsTheCauseWithRetryDisabled() {
+    show(retryingPage())
+    composeRule.onNodeWithText("You are offline").assertIsDisplayed()
+    composeRule.onNodeWithText("Check your connection, then try again.").assertIsDisplayed()
+    composeRule.onNodeWithText("Retry").assertIsDisplayed().assertIsNotEnabled()
+  }
+
+  @Test
+  fun aRetryingPageShowsTheProgressBarBeforeAndDuringItsProgress() {
+    val page = show(retryingPage(progress = 40))
+    composeRule.onNodeWithTag("webview-progress").assertIsDisplayed()
+    page.value = retryingPage(progress = 0)
+    composeRule.onNodeWithTag("webview-progress").assertIsDisplayed()
+    page.value = retryingPage(progress = 100)
+    composeRule.onNodeWithTag("webview-progress").assertIsDisplayed()
+  }
+
+  @Test
+  fun aTapOnTheDisabledRetryDoesNothing() {
+    show(retryingPage())
+    composeRule.onNodeWithText("Retry").performClick()
+    composeRule.runOnIdle { assertThat(retries).isEqualTo(0) }
+  }
+
+  @Test
+  fun aRetryingPageKeepsTheTopBarAndShowsNoPageOrBottomBar() {
+    show(retryingPage())
+    composeRule.onNodeWithTag("page").assertDoesNotExist()
+    composeRule.onNodeWithTag("browsing-bottom-bar").assertDoesNotExist()
+    composeRule.onNodeWithTag("webview-close", useUnmergedTree = true).assertIsDisplayed()
+    composeRule.onNodeWithTag("webview-count", useUnmergedTree = true).assertIsDisplayed()
+  }
+
+  @Test
+  fun aFailedPageThatIsNotRetryingHasRetryEnabledAndNoProgressBar() {
+    show(failedPage(LoadFailure.Offline, progress = 40))
+    composeRule.onNodeWithText("Retry").assertIsEnabled()
+    composeRule.onNodeWithTag("webview-progress").assertDoesNotExist()
+  }
+
+  @Test
+  fun aPullOnTheErrorPageRetriesOnce() {
+    show(failedPage(LoadFailure.Offline))
+    composeRule.onNodeWithTag("webview-error").performTouchInput { swipeDown() }
+    composeRule.runOnIdle { assertThat(retries).isEqualTo(1) }
+  }
+
+  @Test
+  fun aPullDuringARetryDoesNothing() {
+    show(retryingPage())
+    composeRule.onNodeWithTag("webview-error").performTouchInput { swipeDown() }
+    composeRule.runOnIdle { assertThat(retries).isEqualTo(0) }
+  }
+
+  @Test
+  fun aRetryThatFailsAgainShowsTheNewCauseWithRetryEnabled() {
+    val page = show(retryingPage())
+    page.value = failedPage(LoadFailure.CannotReach)
+    composeRule.onNodeWithText("This site cannot be reached").assertIsDisplayed()
+    composeRule.onNodeWithText("Retry").assertIsEnabled()
+    composeRule.onNodeWithTag("webview-progress").assertDoesNotExist()
   }
 }
 

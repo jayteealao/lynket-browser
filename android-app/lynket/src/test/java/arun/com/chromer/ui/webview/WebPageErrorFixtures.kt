@@ -20,6 +20,10 @@ const val FAILED_ADDRESS = "https://lemire.me/blog/beating-the-compiler"
 fun failedPage(cause: LoadFailure, count: BubblePageCount? = BubblePageCount(3, 7), progress: Int = 100): WebViewPage =
   WebViewPage("lemire.me", FAILED_ADDRESS, progress, count, PageLoad.Failed(cause, FAILED_ADDRESS))
 
+/** A page that did not load for [cause] and is being retried, at [progress], in a bubble third of seven. */
+fun retryingPage(cause: LoadFailure = LoadFailure.Offline, count: BubblePageCount? = BubblePageCount(3, 7), progress: Int = 40): WebViewPage =
+  failedPage(cause, count, progress).copy(load = PageLoad.Failed(cause, FAILED_ADDRESS, retrying = true))
+
 /** The host of the worst page: many subdomains and a two-part ending, with nowhere to wrap. */
 const val WORST_HOST = "a-very-long-subdomain-name.of-a-site-with-many-parts.example.co.uk"
 
