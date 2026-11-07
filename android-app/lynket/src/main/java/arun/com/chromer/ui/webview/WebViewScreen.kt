@@ -117,7 +117,8 @@ class WebViewBarsState {
  * browsing actions; a progress bar while the page loads; the page; and the bottom bar over the
  * page's end. [page] draws the WebView (the host wraps it in an AndroidView). A page that did not
  * load shows its cause and Retry ([onRetry]) in place of the page, under the same top bar, with no
- * progress bar and no bottom bar.
+ * progress bar and no bottom bar. A retry keeps the cause on screen with the progress bar until the
+ * page loads or fails again.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -187,13 +188,18 @@ fun WebViewScreen(
           scrollBehavior = behavior,
           modifier = Modifier.testTag("webview-top-bar"),
         )
-        if (failure == null && page.progress in 0 until 100) {
+        val retrying = failure?.retrying == true
+        val progressModifier = Modifier.fillMaxWidth().testTag("webview-progress")
+        if ((failure == null && page.progress in 0 until 100) || (retrying && page.progress in 1 until 100)) {
           LinearProgressIndicator(
             progress = { page.progress / 100f },
             color = foreground,
             trackColor = toolbarColour,
-            modifier = Modifier.fillMaxWidth().testTag("webview-progress"),
+            modifier = progressModifier,
           )
+        } else if (retrying) {
+          // Before the first progress report, and at 100 until the load ends, a retry still shows.
+          LinearProgressIndicator(color = foreground, trackColor = toolbarColour, modifier = progressModifier)
         }
       }
     },
