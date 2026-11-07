@@ -42,11 +42,17 @@
 #         faded, and from 1 s after it finished (the server's answer and the head's "Head page ... Loaded"
 #         log line) the head is still with the full fill (needs python with Pillow; closes the heads,
 #         stops the server and removes the adb reverse on exit)
+#   page-state-worst  web heads chosen: five links to slow-page-server.py held 25 s; with the stack at rest,
+#         5 s of dumpsys gfxinfo framestats: only one head window draws (the others at most 2 frames;
+#         when the frame stats are not split by window, the app's total frames stay at most 1.2 x the
+#         refresh rate x 5 s), and on a phone the 95th percentile frame time of that window is at most
+#         one refresh interval (on an emulator it is written as a floor, not judged); writes the
+#         refresh rate and the host load (needs python; closes the heads and stops the server on exit)
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state|page-state-worst>   (from android-app/)
 set -euo pipefail
 
-USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state>"
+USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state|page-state-worst>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 WHICH="${3:?$USAGE}"
@@ -1303,6 +1309,101 @@ PY
   log "page-state passed"
 }
 
+check_page_state_worst() {
+  trap page_state_cleanup EXIT
+  start_page_server
+  # 1. Five slow links at once, the stack at rest.
+  web_heads_mode
+  a logcat -c
+  local i
+  for i in 1 2 3 4 5; do
+    open_link "http://localhost:$PAGE_PORT/slow?s=25&id=$i"
+    sleep 1
+  done
+  local windows
+  windows="$(wait_for_overlays 30 6)"
+  log "overlay windows: $windows"
+  [ "$windows" -ge 6 ] || fail "expected five head windows and the trash, found $windows"
+  sleep 3
+  shot page-state-worst
+  # 2. The device: its refresh rate, whether it is an emulator, and the host load.
+  local fps qemu
+  fps="$(a shell dumpsys display | tr -d '\r' | grep -oE 'renderFrameRate[= ][0-9.]+' | head -1 | grep -oE '[0-9.]+$' || true)"
+  [ -n "$fps" ] || fps="$(a shell dumpsys display | tr -d '\r' | grep -oE 'fps=[0-9.]+' | head -1 | grep -oE '[0-9.]+$' || true)"
+  [ -n "$fps" ] || fps=60
+  qemu="$(a shell getprop ro.kernel.qemu | tr -d '\r')"
+  log "refresh rate: $fps Hz; emulator: ${qemu:-0}; API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "host load: $(powershell -NoProfile -Command '(Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average).Average' 2>/dev/null | tr -d '\r' || uptime)"
+  # 3. Five seconds of frames at rest.
+  a shell dumpsys gfxinfo "$PKG" reset >/dev/null
+  sleep 5
+  a shell dumpsys gfxinfo "$PKG" framestats | tr -d '\r' > "$OUT/page-state-worst-gfxinfo.txt"
+  # 4. Only the front head's window draws, and on a phone its frames fit one refresh interval.
+  if ! python - "$OUT/page-state-worst-gfxinfo.txt" "$fps" "${qemu:-0}" <<'PY' | tee -a "$OUT/page-state-worst.txt"; then
+import sys
+
+path, fps, qemu = sys.argv[1], float(sys.argv[2]), sys.argv[3].strip() == "1"
+windows, current, header, inside = {}, None, None, False
+total = None
+for line in open(path):
+    line = line.rstrip("\n")
+    if line.startswith("Total frames rendered:") and total is None:
+        total = int(line.split(":")[1])
+    if line.startswith("Window: "):
+        current = line[len("Window: "):] + f" #{len(windows) + 1}"
+        windows[current] = []
+    elif line.strip() == "---PROFILEDATA---":
+        inside = not inside
+        header = None
+    elif inside and line.startswith("Flags,"):
+        header = line.rstrip(",").split(",")
+    elif inside and header and current is not None and line and line[0].isdigit():
+        row = dict(zip(header, line.rstrip(",").split(",")))
+        if row.get("Flags") == "0":
+            windows[current].append(row)
+
+ok = True
+budget_frames = 1.2 * fps * 5
+if windows:
+    counts = {name: len(rows) for name, rows in windows.items()}
+    for name, n in counts.items():
+        print(f"window {name}: {n} frames")
+    drawing = [name for name, n in counts.items() if n > 2]
+    if len(drawing) == 1:
+        print(f"PASS only one window draws ({drawing[0]}); every other window drew at most 2 frames")
+    else:
+        print(f"FAIL {len(drawing)} windows drew more than 2 frames: {drawing}"); ok = False
+    rows = windows[drawing[0]] if drawing else []
+else:
+    print(f"frame stats are not split by window; total frames {total}")
+    if total is not None and total <= budget_frames:
+        print(f"PASS total frames {total} <= {budget_frames:.0f} (1.2 x {fps:g} Hz x 5 s)")
+    else:
+        print(f"FAIL total frames {total} > {budget_frames:.0f}"); ok = False
+    rows = []
+
+if rows:
+    times = sorted((int(r["FrameCompleted"]) - int(r["IntendedVsync"])) / 1e6 for r in rows)
+    p95 = times[min(len(times) - 1, int(round(0.95 * (len(times) - 1))))]
+    interval = 1000 / fps
+    line = f"95th percentile frame time {p95:.2f} ms over {len(times)} frames, refresh interval {interval:.2f} ms"
+    if qemu:
+        print(f"floor {line} (emulator: recorded, not judged)")
+    elif p95 <= interval:
+        print("PASS " + line)
+    else:
+        print("FAIL " + line); ok = False
+else:
+    print("no drawing window frames to time")
+sys.exit(0 if ok else 1)
+PY
+    fail "five loading heads drew more than the front head's frames (see page-state-worst.txt)"
+  fi
+  app_logcat page-state-worst
+  [ ! -s "$OUT/page-state-worst.crash.txt" ] || fail "crash with five heads loading (see page-state-worst.crash.txt)"
+  log "page-state-worst passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
@@ -1317,5 +1418,6 @@ case "$WHICH" in
   aggressive) check_aggressive ;;
   bubble-minimize) check_bubble_minimize ;;
   page-state) check_page_state ;;
+  page-state-worst) check_page_state_worst ;;
   *) echo "unknown check: $WHICH; $USAGE" >&2; exit 2 ;;
 esac
