@@ -54,6 +54,8 @@ import arun.com.chromer.browsing.customtabs.CustomTabManager
 import arun.com.chromer.browsing.newtab.NewTabDialogActivity
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.bubbles.webheads.motion.HeadPageTracker
+import arun.com.chromer.bubbles.webheads.motion.PageSignal
 import arun.com.chromer.bubbles.webheads.motion.TrashTick
 import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
@@ -90,7 +92,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -119,6 +120,9 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   lateinit var bubbleRegistry: BubbleRegistry
 
   private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+  /** The page state of each head; its limits run on [serviceScope], so they end with the service. */
+  private val pageTracker = HeadPageTracker(serviceScope)
   private var motionScope: CoroutineScope? = null
 
   private val headWindows = HashMap<String, OverlayWindow>()
@@ -347,13 +351,14 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   private fun addWebHead(controller: WebHeadsController, url: String, isFromAmp: Boolean, isIncognito: Boolean) {
     val head = controller.add(url, isFromAmp, isIncognito)
+    pageTracker.start(head)
     bubbleRegistry.add(BrowsingMode.WebHeads, url, isIncognito)
     val userColour = Preferences.get(this).webHeadColor()
     if (userColour != ContextCompat.getColor(this, R.color.web_head_color)) {
       head.colour = Color(userColour)
     }
     preLoadForArticle(url)
-    doExtraction(url, isIncognito)
+    doExtraction(head, isIncognito)
   }
 
   // region Windows
@@ -374,6 +379,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   override fun removeHeadWindow(head: WebHeadState) {
+    pageTracker.drop(head)
     headWindows.remove(head.url)?.remove()
   }
 
@@ -442,31 +448,40 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   // endregion
 
-  private fun doExtraction(webHeadUrl: String, isIncognito: Boolean) {
-    val websiteFlow = if (!isIncognito) {
-      websiteRepository.getWebsite(webHeadUrl)
-    } else {
-      websiteRepository.getWebsiteWithoutSaving(webHeadUrl)
-    }
+  /**
+   * Reads the details of the site of [head]: its title, icon and colour. The end of the page fetch
+   * also finishes the head's page state: a fetched page is loaded, a fetch that failed is failed.
+   */
+  private fun doExtraction(head: WebHeadState, isIncognito: Boolean) {
+    val webHeadUrl = head.url
+    val lookups = websiteRepository.lookUpWebsite(webHeadUrl, isIncognito)
     serviceScope.launch {
       try {
-        websiteFlow
-          .filter { it != null }
+        lookups
           .flowOn(Dispatchers.IO)
           // The heads and their map belong to the main thread.
-          .onEach { website -> withContext(Dispatchers.Main) { onSiteLoaded(webHeadUrl, website) } }
-          .map { website -> websiteRepository.getWebsiteRoundIconAndColor(website) }
+          .onEach { lookup ->
+            withContext(Dispatchers.Main) {
+              onSiteLoaded(webHeadUrl, lookup.website)
+              pageTracker.finish(head, PageSignal.SiteDetails, lookup.fetchFailed)
+            }
+          }
+          .map { lookup -> websiteRepository.getWebsiteRoundIconAndColor(lookup.website) }
           .flowOn(Dispatchers.IO)
-          .catch { error -> Timber.e(error) }
+          .catch { error ->
+            Timber.e(error)
+            pageTracker.finish(head, PageSignal.SiteDetails, failed = true)
+          }
           .collect { iconAndColor ->
-            controller?.get(webHeadUrl)?.let { head ->
+            controller?.get(webHeadUrl)?.let { shown ->
               // A site without an icon gives no drawable; the head keeps the first letter.
-              iconAndColor.first?.let { head.favicon = it.toBitmap().asImageBitmap() }
-              if (iconAndColor.second != Constants.NO_COLOR) head.colour = Color(iconAndColor.second)
+              iconAndColor.first?.let { shown.favicon = it.toBitmap().asImageBitmap() }
+              if (iconAndColor.second != Constants.NO_COLOR) shown.colour = Color(iconAndColor.second)
             }
           }
       } catch (e: Exception) {
         Timber.e(e)
+        pageTracker.finish(head, PageSignal.SiteDetails, failed = true)
       }
     }
   }
