@@ -282,6 +282,11 @@
           "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
           "at": "2026-11-03T21:07:40Z",
           "workflow": "bubble-registry-overflow"
+        },
+        {
+          "commit": "d7d9d71791417225fcb84241d72646aabf858651",
+          "at": "2026-11-07T10:12:48Z",
+          "workflow": "bubble-page-state"
         }
       ]
     },
@@ -317,7 +322,13 @@
       "slices": [],
       "created-at": "2026-11-07T08:41:22Z",
       "updated-at": "2026-11-07T08:41:22Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "d7d9d71791417225fcb84241d72646aabf858651",
+          "at": "2026-11-07T10:12:48Z",
+          "workflow": "bubble-page-state"
+        }
+      ]
     },
     "web-head-page-state": {
       "title": "Web head page state",
@@ -330,7 +341,13 @@
       "slices": [],
       "created-at": "2026-11-07T08:41:22Z",
       "updated-at": "2026-11-07T08:41:22Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "d7d9d71791417225fcb84241d72646aabf858651",
+          "at": "2026-11-07T10:12:48Z",
+          "workflow": "bubble-page-state"
+        }
+      ]
     }
   },
   "explore": {}
