@@ -25,7 +25,8 @@
 #         points to, both ways (restores the size, the density, the rotation settings and the
 #         navigation mode)
 #   speech  web heads chosen: three links open three heads; a dump of every window shows the front
-#         head described as "Web head: <title>, 1 of 3" and the other two as 2 of 3 and 3 of 3
+#         head described as "Web head: <title>, 1 of 3" and the other two as 2 of 3 and 3 of 3; each
+#         description may end in the page state ("loading", "loaded" or "page did not load")
 #   trash  web heads chosen: one head held in a drag (input motionevent); a dump of every window shows
 #         the shown trash as "Close target", "Release to close" while the head is on it, nothing after
 #         it leaves, and again after it returns; the trash window takes touches only while it shows;
@@ -48,11 +49,19 @@
 #         refresh rate x 5 s), and on a phone the 95th percentile frame time of that window is at most
 #         one refresh interval (on an emulator it is written as a floor, not judged); writes the
 #         refresh rate and the host load (needs python; closes the heads and stops the server on exit)
+#   page-state-speech  web heads chosen: a link to slow-page-server.py held 40 s; a dump of every window
+#         shows the head described as "Web head: <title>, 1 of 1, loading" while it loads and ", loaded"
+#         after its "Head page ... Loaded" log line; an accessibility events capture around the finish
+#         counts the head's content-description change events (logged, never failing); a link to a
+#         local port with no server gives ", page did not load"; with TalkBack installed it is turned on
+#         by adb, a tap on a new slow head moves its focus there, and TalkBack's log is kept while the
+#         page loads and after it finished (closes the heads, stops the server, removes the adb
+#         reverses and restores the accessibility services on exit)
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state|page-state-worst>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state|page-state-worst|page-state-speech>   (from android-app/)
 set -euo pipefail
 
-USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state|page-state-worst>"
+USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state|page-state-worst|page-state-speech>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 WHICH="${3:?$USAGE}"
@@ -864,16 +873,40 @@ move_in_steps() {
   done
 }
 
-TRASH_TALKBACK_BEFORE=""
-trash_restore() {
-  nav_restore
-  if [ "$TRASH_TALKBACK_BEFORE" = "none" ]; then
+TALKBACK_PKG="com.google.android.marvin.talkback"
+TALKBACK_BEFORE=""
+
+# Turns TalkBack on by adb and waits up to 10 s for it to bind. Returns 0 when bound, 1 when it is
+# not installed, 2 when it is installed but did not bind; $OUT/$1-accessibility.txt keeps the last
+# dumpsys. talkback_restore puts the accessibility services back as they were.
+talkback_on() {
+  local talkback
+  talkback="$(a shell pm list packages | tr -d '\r' | grep -x "package:$TALKBACK_PKG" | sed 's/package://' | head -1 || true)"
+  [ -n "$talkback" ] || return 1
+  TALKBACK_BEFORE="none$(a shell settings get secure enabled_accessibility_services | tr -d '\r' | sed 's/^null$//')"
+  a shell settings put secure enabled_accessibility_services "$talkback/$TALKBACK_PKG.TalkBackService"
+  a shell settings put secure accessibility_enabled 1
+  for _ in $(seq 1 10); do
+    a shell dumpsys accessibility | tr -d '\r' > "$OUT/$1-accessibility.txt"
+    if grep -q "Bound services:{Service\[label=TalkBack" "$OUT/$1-accessibility.txt"; then return 0; fi
+    sleep 1
+  done
+  return 2
+}
+
+talkback_restore() {
+  if [ "$TALKBACK_BEFORE" = "none" ]; then
     a shell settings delete secure enabled_accessibility_services >/dev/null 2>&1 || true
     a shell settings put secure accessibility_enabled 0 >/dev/null 2>&1 || true
-  elif [ -n "$TRASH_TALKBACK_BEFORE" ]; then
-    a shell settings put secure enabled_accessibility_services "${TRASH_TALKBACK_BEFORE#none}" >/dev/null 2>&1 || true
+  elif [ -n "$TALKBACK_BEFORE" ]; then
+    a shell settings put secure enabled_accessibility_services "${TALKBACK_BEFORE#none}" >/dev/null 2>&1 || true
   fi
-  TRASH_TALKBACK_BEFORE=""
+  TALKBACK_BEFORE=""
+}
+
+trash_restore() {
+  nav_restore
+  talkback_restore
 }
 
 check_trash() {
@@ -1000,21 +1033,12 @@ check_trash() {
     log "content-change events carry no text here; the dumps and the JVM tests carry the words"
   fi
   # 9. TalkBack probe: it records what happens and never fails the check.
-  local talkback
-  talkback="$(a shell pm list packages | tr -d '\r' | grep -x 'package:com.google.android.marvin.talkback' | sed 's/package://' | head -1 || true)"
-  if [ -z "$talkback" ]; then
+  local talkback=0
+  talkback_on trash || talkback=$?
+  if [ "$talkback" -eq 1 ]; then
     log "talkback: not installed"
   else
-    TRASH_TALKBACK_BEFORE="none$(a shell settings get secure enabled_accessibility_services | tr -d '\r' | sed 's/^null$//')"
-    a shell settings put secure enabled_accessibility_services "$talkback/com.google.android.marvin.talkback.TalkBackService"
-    a shell settings put secure accessibility_enabled 1
-    local bound=0
-    for _ in $(seq 1 10); do
-      a shell dumpsys accessibility | tr -d '\r' > "$OUT/trash-accessibility.txt"
-      if grep -q "Bound services:{Service\[label=TalkBack" "$OUT/trash-accessibility.txt"; then bound=1; break; fi
-      sleep 1
-    done
-    if [ "$bound" -eq 0 ]; then
+    if [ "$talkback" -eq 2 ]; then
       log "talkback: installed but not bound (see trash-accessibility.txt)"
     else
       a logcat -c
@@ -1404,6 +1428,132 @@ PY
   log "page-state-worst passed"
 }
 
+
+# The page state in words, for screen readers. Waits up to $1 s for a "Head page ...: $2 by" line
+# in the device log and prints it (empty when none came).
+wait_for_page_line() {
+  local line=""
+  for _ in $(seq 1 "$1"); do
+    line="$(a logcat -d | tr -d '\r' | grep -E "Head page .*: $2 by" | head -1 || true)"
+    [ -n "$line" ] && break
+    sleep 1
+  done
+  echo "$line"
+}
+
+SPEECH_EXTRA_PORT=""
+page_state_speech_cleanup() {
+  page_state_cleanup
+  [ -n "$SPEECH_EXTRA_PORT" ] && a reverse --remove "tcp:$SPEECH_EXTRA_PORT" >/dev/null 2>&1 || true
+  talkback_restore
+}
+
+# Keeps the TalkBack process's log lines since the last logcat -c in $OUT/$1.
+talkback_log() {
+  local pid
+  pid="$(a shell pidof "$TALKBACK_PKG" | tr -d '\r' || true)"
+  if [ -n "$pid" ]; then a logcat -d --pid="$pid" | tr -d '\r' > "$OUT/$1"; else a logcat -d | tr -d '\r' | grep -iF talkback > "$OUT/$1" || true; fi
+}
+
+check_page_state_speech() {
+  trap page_state_speech_cleanup EXIT
+  # 1. Web heads mode with a clean log; one link that the local server holds 40 s.
+  start_page_server
+  web_heads_mode
+  a logcat -c
+  open_link "http://localhost:$PAGE_PORT/slow?s=40&id=1"
+  local windows
+  windows="$(wait_for_overlays 60 2)"
+  [ "$windows" -ge 2 ] || fail "no head window for the slow link (found $windows overlay windows)"
+  # 2. While it loads, the head says "loading". The dump comes before the events capture: while a
+  # capture holds the UI automation connection, uiautomator dump writes nothing.
+  head_descriptions > "$OUT/page-state-speech-loading.txt"
+  cp "$OUT/speech-ui.xml" "$OUT/page-state-speech-loading-ui.xml" 2>/dev/null || true
+  sed 's/^/  loading: /' "$OUT/page-state-speech-loading.txt" | tee -a "$OUT/page-state-speech.txt"
+  grep -qE '^Web head: .+, 1 of 1, loading$' "$OUT/page-state-speech-loading.txt" ||
+    fail "the loading head does not say \", 1 of 1, loading\" (see page-state-speech-loading.txt)"
+  log "PASS loading: the head says loading"
+  # 3. An accessibility events capture over the finish, then the finish itself.
+  a shell "timeout 75 uiautomator events" > "$OUT/page-state-speech-events.txt" 2>&1 &
+  local events=$!
+  local loaded_line
+  loaded_line="$(wait_for_page_line 70 Loaded)"
+  [ -n "$loaded_line" ] || fail "no \"Head page ... Loaded\" log line for the slow link"
+  log "head log line: $loaded_line"
+  sleep 3
+  a shell pkill -f "uiautomator events" >/dev/null 2>&1 || true
+  kill "$events" >/dev/null 2>&1 || true
+  wait "$events" 2>/dev/null || true
+  sleep 1
+  # 4. After the finish, the head says "loaded".
+  head_descriptions > "$OUT/page-state-speech-loaded.txt"
+  cp "$OUT/speech-ui.xml" "$OUT/page-state-speech-loaded-ui.xml" 2>/dev/null || true
+  sed 's/^/  loaded: /' "$OUT/page-state-speech-loaded.txt" | tee -a "$OUT/page-state-speech.txt"
+  grep -qE '^Web head: .+, 1 of 1, loaded$' "$OUT/page-state-speech-loaded.txt" ||
+    fail "the loaded head does not say \", 1 of 1, loaded\" (see page-state-speech-loaded.txt)"
+  log "PASS loaded: the head says loaded"
+  # 5. The description change at the finish, as the events capture saw it (logged, never failing:
+  # what an event line carries differs between Android versions).
+  tr -d '\r' < "$OUT/page-state-speech-events.txt" > "$OUT/page-state-speech-events.clean.txt"
+  local changes spoken
+  changes="$(grep -F "PackageName: $PKG" "$OUT/page-state-speech-events.clean.txt" | grep -F TYPE_WINDOW_CONTENT_CHANGED | grep -cF CONTENT_CHANGE_TYPE_CONTENT_DESCRIPTION || true)"
+  log "content-description change events from the app around the finish: $changes"
+  spoken="$(grep -cF ", loaded" "$OUT/page-state-speech-events.clean.txt" || true)"
+  log "event lines with \", loaded\": $spoken"
+  # 6. A page that does not load: a local port reversed to the host with nothing listening on it.
+  close_all_heads
+  a logcat -c
+  SPEECH_EXTRA_PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
+  a reverse "tcp:$SPEECH_EXTRA_PORT" "tcp:$SPEECH_EXTRA_PORT" >/dev/null
+  open_link "http://localhost:$SPEECH_EXTRA_PORT/"
+  windows="$(wait_for_overlays 60 2)"
+  [ "$windows" -ge 2 ] || fail "no head window for the link to a closed port (found $windows overlay windows)"
+  local failed_line
+  failed_line="$(wait_for_page_line 40 Failed)"
+  [ -n "$failed_line" ] || fail "no \"Head page ... Failed\" log line for the link to a closed port"
+  log "head log line: $failed_line"
+  sleep 1
+  head_descriptions > "$OUT/page-state-speech-failed.txt"
+  cp "$OUT/speech-ui.xml" "$OUT/page-state-speech-failed-ui.xml" 2>/dev/null || true
+  sed 's/^/  failed: /' "$OUT/page-state-speech-failed.txt" | tee -a "$OUT/page-state-speech.txt"
+  grep -qE '^Web head: .+, 1 of 1, page did not load$' "$OUT/page-state-speech-failed.txt" ||
+    fail "the failed head does not say \", 1 of 1, page did not load\" (see page-state-speech-failed.txt)"
+  log "PASS failed: the head says page did not load"
+  close_all_heads
+  # 7. TalkBack, when installed: a tap moves its focus to a loading head, then the page finishes.
+  # It keeps what TalkBack logged and never fails the check.
+  local talkback=0
+  talkback_on page-state-speech || talkback=$?
+  if [ "$talkback" -eq 1 ]; then
+    log "talkback: not installed"
+  elif [ "$talkback" -eq 2 ]; then
+    log "talkback: installed but not bound (see page-state-speech-accessibility.txt)"
+  else
+    log "talkback: bound"
+    a logcat -c
+    open_link "http://localhost:$PAGE_PORT/slow?s=40&id=2"
+    wait_for_overlays 60 2 >/dev/null
+    sleep 2
+    local hx hy
+    read -r hx hy < <(head_centre)
+    a shell input tap "$hx" "$hy"  # touch exploration moves the focus to the head
+    sleep 3
+    talkback_log page-state-speech-talkback-loading.txt
+    if grep -qF "loading" "$OUT/page-state-speech-talkback-loading.txt"; then log "talkback: its log has loading"; else log "talkback: its log has no loading"; fi
+    loaded_line="$(wait_for_page_line 70 Loaded)"
+    log "talkback run, head log line: ${loaded_line:-none}"
+    sleep 4
+    talkback_log page-state-speech-talkback-loaded.txt
+    if grep -qF "loaded" "$OUT/page-state-speech-talkback-loaded.txt"; then log "talkback: its log has loaded"; else log "talkback: its log has no loaded"; fi
+    talkback_restore
+  fi
+  # 8. No crash.
+  app_logcat page-state-speech
+  [ ! -s "$OUT/page-state-speech.crash.txt" ] || fail "crash while a head's page loaded (see page-state-speech.crash.txt)"
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "page-state-speech passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
@@ -1419,5 +1569,6 @@ case "$WHICH" in
   bubble-minimize) check_bubble_minimize ;;
   page-state) check_page_state ;;
   page-state-worst) check_page_state_worst ;;
+  page-state-speech) check_page_state_speech ;;
   *) echo "unknown check: $WHICH; $USAGE" >&2; exit 2 ;;
 esac
