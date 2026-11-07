@@ -16,6 +16,23 @@
 #                    opens https://httpbin.org/status/404
 #   worst            Web View mode, airplane mode on, a short window (wm size 1080x1000) and a very
 #                    long address: the cause and Retry are on screen and the picture is gone
+#   retry-bubble     run after webheads-check.sh <serial> <dir> bubble; airplane mode on, a link in
+#                    a native bubble shows "You are offline"; then the network comes back, Retry
+#                    loads the page (RETRY_TITLE) in the same bubble with the same count
+#   retry-webview    Web View mode: the same with no count
+#   retry-offline    Web View mode, airplane mode on: Retry shows "You are offline" again, with
+#                    Retry enabled
+#   retry-certificate  Web View mode: the local site with a self-signed certificate (CERT_URL set
+#                    uses that site instead); Retry shows "This connection is not secure" again,
+#                    with nothing that proceeds past it
+#   retry-local      Web View mode, no external site: a local port with no server behind it shows
+#                    the error page; then the fixture server starts on that port and Retry (PULL=1:
+#                    a pull down on the page instead) loads the fixture article
+#
+# RETRY_URL (https://example.com/?retry=<time> by default) and RETRY_TITLE (Example Domain) pick
+# the page of retry-bubble and retry-webview, which needs internet from the emulator once airplane
+# mode is off. Each retry mode also saves <mode>-retrying.xml, a dump taken just after the tap, and
+# logs whether Retry showed disabled in it (a retry can end before the dump).
 #
 # Each mode writes <mode>.png, <mode>.xml (the UI dump), <mode>-crash.txt (the crash buffer; a
 # crash of the app fails the mode) and a PASS or FAIL line in error-page.txt. On exit it restores
@@ -23,15 +40,15 @@
 # Web View modes first choose the Slide over browsing mode, so a link opens in a window; every error
 # page check also fails when the bar shows the web view's own error page title.
 #
-# Usage: maestro/browsing/error-page-check.sh <serial> <evidence-dir> <offline-bubble|offline-webview|certificate|subframe|worst>
+# Usage: maestro/browsing/error-page-check.sh <serial> <evidence-dir> <offline-bubble|offline-webview|certificate|subframe|worst|retry-bubble|retry-webview|retry-offline|retry-certificate|retry-local>
 #        (run from android-app/)
 set -euo pipefail
 
-USAGE="usage: error-page-check.sh <serial> <evidence-dir> <offline-bubble|offline-webview|certificate|subframe|worst>"
+USAGE="usage: error-page-check.sh <serial> <evidence-dir> <offline-bubble|offline-webview|certificate|subframe|worst|retry-bubble|retry-webview|retry-offline|retry-certificate|retry-local>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 MODE="${3:?$USAGE}"
-case "$MODE" in offline-bubble|offline-webview|certificate|subframe|worst) ;; *) echo "$USAGE" >&2; exit 2 ;; esac
+case "$MODE" in offline-bubble|offline-webview|certificate|subframe|worst|retry-bubble|retry-webview|retry-offline|retry-certificate|retry-local) ;; *) echo "$USAGE" >&2; exit 2 ;; esac
 source "$(dirname "$0")/../webheads/lib.sh"
 EP_HERE="$(hostpath "$(cd "$(dirname "$0")" && pwd)")"
 FIXTURES="$EP_HERE/fixtures"
@@ -40,7 +57,10 @@ OUT="$(hostpath "$(cd "$OUT" && pwd)")"
 LOG_NAME="error-page-$MODE"
 CHECK_NAME="error page $MODE"
 : > "$OUT/$LOG_NAME.txt"
+CERT_URL_GIVEN="${CERT_URL:+1}"
 CERT_URL="${CERT_URL:-https://expired.badssl.com/}"
+RETRY_URL="${RETRY_URL:-https://example.com/?retry=$(date +%s)}"
+RETRY_TITLE="${RETRY_TITLE:-Example Domain}"
 
 # ---------------------------------------------------------------------------------------------
 # Fixture server: plain HTTP, or HTTPS with a self-signed certificate (the same shape as
@@ -56,7 +76,8 @@ SIZE_CHANGED=""
 
 start_server() {
   local scheme=http
-  PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
+  # retry-local picks its port before the server starts, so a load first fails on it.
+  [ -n "$PORT" ] || PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
   if [ "${1:-}" = https ]; then
     scheme=https
     openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost \
@@ -79,7 +100,7 @@ PY
   a reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
   local _
   for _ in $(seq 1 20); do
-    python -c "import ssl, urllib.request; urllib.request.urlopen('$scheme://127.0.0.1:$PORT/broken-frame.html', context=ssl._create_unverified_context())" 2>/dev/null && break
+    python -c "import ssl, urllib.request; urllib.request.urlopen('$scheme://127.0.0.1:$PORT/', context=ssl._create_unverified_context())" 2>/dev/null && break
     sleep 0.5
   done
   log "fixture server ($scheme) on port $PORT (adb reverse tcp:$PORT)"
@@ -286,6 +307,49 @@ assert_error_page() {
   absent 'text="Webpage not available"' "the title of the web view's own error page shows in the bar"
 }
 
+# Airplane mode off, then waits for the network: up to 30 s for a ping of example.com, or 10 s
+# when the device has no ping.
+network_back() {
+  airplane disable
+  if a shell 'command -v ping' >/dev/null 2>&1; then
+    local _
+    for _ in $(seq 1 15); do
+      a shell ping -c 1 -W 2 example.com >/dev/null 2>&1 && { log "network back"; return 0; }
+      sleep 1
+    done
+    log "no ping answer from example.com after 30 s; going on"
+  else
+    sleep 10
+  fi
+}
+
+# Taps Retry, or with PULL=1 pulls down on the error page, then saves one dump as
+# <mode>-retrying.xml and logs whether Retry showed disabled in it.
+tap_retry() {
+  if [ "${PULL:-}" = 1 ]; then
+    local x1 y1 x2 y2
+    read -r x1 y1 x2 y2 < <({ ui_dump | tr '>' '\n' | grep -F 'resource-id="webview-error"' || true; } | head -1 |
+      sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/')
+    [ -n "${y2:-}" ] || fail "no error page to pull"
+    a shell input swipe $(((x1 + x2) / 2)) $((y1 + (y2 - y1) / 4)) $(((x1 + x2) / 2)) $((y1 + (y2 - y1) * 3 / 4)) 400
+    log "pulled down on the error page"
+  else
+    tap_on 'text="Retry"' || fail "no Retry to tap"
+  fi
+  ui_dump > "$OUT/$MODE-retrying.xml"
+  if tr '>' '\n' < "$OUT/$MODE-retrying.xml" | grep -F 'text="Retry"' | grep -qF 'enabled="false"'; then
+    log "Retry showed disabled during the retry"
+  else
+    log "Retry was not caught disabled (the retry can end before the dump)"
+  fi
+}
+
+# The page that Retry loaded: its title, no error page, the web view in front.
+assert_retry_loaded() {
+  wait_for "text=\"$1\"" || fail "the page \"$1\" did not load after Retry"
+  absent 'resource-id="webview-error"' "the error page still shows after Retry"
+}
+
 # ---------------------------------------------------------------------------------------------
 
 a shell input keyevent KEYCODE_WAKEUP
@@ -363,6 +427,84 @@ worst)
   capture worst
   a shell wm size reset
   SIZE_CHANGED=""
+  ;;
+
+retry-bubble)
+  airplane enable
+  a shell input keyevent KEYCODE_HOME
+  open_link "$RETRY_URL"
+  expand_bubble || fail "no bubble to expand (run webheads-check.sh <serial> <dir> bubble first)"
+  assert_error_page "You are offline"
+  COUNT="$({ ui_dump | tr '>' '\n' | grep -F 'resource-id="webview-count"' || true; } | head -1 | sed -nE 's/.*text="([^"]*)".*/\1/p')"
+  [ -n "$COUNT" ] || fail "no count in the bubble's top bar"
+  log "count before Retry: $COUNT"
+  capture retry-bubble-error
+  network_back
+  tap_retry
+  assert_retry_loaded "$RETRY_TITLE"
+  top_activity | grep -q "EmbeddableWebViewActivity" || fail "the page did not load in the bubble (front: $(top_activity))"
+  wait_for "text=\"$COUNT\"" || fail "the count changed after Retry (was $COUNT)"
+  capture retry-bubble
+  ;;
+
+retry-webview)
+  webview_on
+  airplane enable
+  open_link "$RETRY_URL"
+  assert_error_page "You are offline"
+  absent 'resource-id="webview-count"' "a count shows in Web View mode"
+  capture retry-webview-error
+  network_back
+  tap_retry
+  assert_retry_loaded "$RETRY_TITLE"
+  top_activity | grep -q "WebViewActivity" || fail "the page did not load in the web view (front: $(top_activity))"
+  capture retry-webview
+  ;;
+
+retry-offline)
+  webview_on
+  airplane enable
+  open_link "https://example.com/?offline=$(date +%s)"
+  assert_error_page "You are offline"
+  tap_retry
+  sleep 4
+  assert_error_page "You are offline"
+  ui_dump | tr '>' '\n' | grep -F 'text="Retry"' | grep -qF 'enabled="true"' || fail "Retry is not enabled after the retry failed"
+  capture retry-offline
+  ;;
+
+retry-certificate)
+  webview_on
+  if [ "$CERT_URL_GIVEN" = 1 ]; then
+    open_link "$CERT_URL"
+  else
+    start_server https
+    open_link "https://localhost:$PORT/broken-frame.html"
+  fi
+  assert_error_page "This connection is not secure"
+  tap_retry
+  sleep 4
+  assert_error_page "This connection is not secure"
+  no_way_past
+  absent 'text="A page with a broken frame"' "the page of the untrusted site loaded after Retry"
+  capture retry-certificate
+  ;;
+
+retry-local)
+  webview_on
+  FIXTURES="$(hostpath "$(cd "$(dirname "$0")/../reader/fixtures" && pwd)")"
+  PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
+  a reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
+  log "port $PORT reversed with no server behind it"
+  open_link "http://localhost:$PORT/article.html"
+  wait_for 'resource-id="webview-error"' || fail "no error page for a port with no server"
+  wait_for 'text="Retry"' || fail "no Retry on screen"
+  absent 'text="Webpage not available"' "the title of the web view's own error page shows in the bar"
+  capture retry-local-error
+  start_server
+  tap_retry
+  assert_retry_loaded "Android 17 brings resizable apps everywhere"
+  capture retry-local
   ;;
 
 esac
