@@ -90,7 +90,9 @@ open class WebViewActivity : BrowsingActivity() {
   private var swipeRefresh: SwipeRefreshLayout? = null
   private val bars = WebViewBarsState()
   private var page by mutableStateOf(WebViewPage(title = "", address = "", progress = 0))
-  private var toolbarColour by mutableIntStateOf(0)
+  /** The bar's colour now: the site's once its details load. */
+  protected var toolbarColour by mutableIntStateOf(0)
+    private set
   private var firstPageFinishLogged = false
 
   /** Follows the page from its load start to loaded or failed, for both the tab and the bubble. */
