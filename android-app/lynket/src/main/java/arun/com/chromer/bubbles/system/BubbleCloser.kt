@@ -99,10 +99,14 @@ constructor(
    * returned. A return that fails ends as any close in an open stack does.
    * sdlc-debt: a fixed wait; a shell slower than it to add the bubble empties the stack and folds it,
    * and a signal that a bubble entered the stack would replace it.
+   *
+   * A page that leaves the bubbles for a full window ([leavingTheStack]) closes as an ordinary close,
+   * so no bubble is brought into an open stack in front of the new window, and its place fills at the
+   * fold.
    */
-  fun closePage(notificationId: Int, finishPage: () -> Unit) {
+  fun closePage(notificationId: Int, leavingTheStack: Boolean = false, finishPage: () -> Unit) {
     if (notificationId in pagesClosing) return
-    if (!isLastInOpenStack(notificationId)) {
+    if (leavingTheStack || !isLastInOpenStack(notificationId)) {
       close(notificationId)
       finishPage()
       return
