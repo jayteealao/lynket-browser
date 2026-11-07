@@ -37,6 +37,7 @@ import arun.com.chromer.ui.webview.WebViewBarsState
 import arun.com.chromer.ui.webview.WebViewPage
 import arun.com.chromer.ui.webview.WebViewScreen
 import arun.com.chromer.ui.webview.failedPage
+import arun.com.chromer.ui.webview.retryingPage
 import arun.com.chromer.ui.webview.worstFailedPage
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
@@ -47,7 +48,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Goldens of a page that did not load: each cause in a bubble, offline in Web View mode, the worst
- * content at the largest font, and a split-screen height, in the light and the dark theme. Record
+ * content at the largest font, a split-screen height, and a retry in progress, in the light and the
+ * dark theme. Record
  * with `./gradlew :lynket:recordRoborazziDebug`.
  */
 @RunWith(AndroidJUnit4::class)
@@ -132,4 +134,11 @@ class WebPageErrorGoldenTest {
   @Test
   @Config(qualifiers = "w411dp-h360dp-xxhdpi")
   fun splitScreen_dark() = capture(ThemeMode.Dark, failedPage(LoadFailure.Offline, count = null))
+
+  /** A retry in progress: the offline cause, Retry disabled, the progress bar at 40 %, in a bubble. */
+  @Test
+  fun retrying_bubble_light() = capture(ThemeMode.Light, retryingPage())
+
+  @Test
+  fun retrying_bubble_dark() = capture(ThemeMode.Dark, retryingPage())
 }
