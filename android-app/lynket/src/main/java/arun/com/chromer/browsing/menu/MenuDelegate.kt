@@ -38,6 +38,7 @@ import arun.com.chromer.browsing.customtabs.callbacks.CopyToClipboardReceiver
 import arun.com.chromer.browsing.customtabs.callbacks.FavShareBroadcastReceiver
 import arun.com.chromer.browsing.customtabs.callbacks.SecondaryBrowserReceiver
 import arun.com.chromer.browsing.openwith.OpenIntentWithActivity
+import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.history.HistoryActivity
 import arun.com.chromer.settings.Preferences
@@ -76,7 +77,8 @@ enum class BrowsingScreen { Article, WebView }
  * The menu in the old order and with the old rules: Open full page (article, always), the
  * preferred-action button (always, left out when its app is gone), Text size (article, if room),
  * then Copy link, Open with, Share, Share with <app> (only with a favourite share app), History,
- * Add to Home Screen, and with the bottom bar off Tabs and (web view) Article mode.
+ * Add to Home Screen, and with the bottom bar off Tabs and (web view) Article mode. A page in a
+ * bubble starts with Open in full window.
  */
 fun browsingMenuItems(
   screen: BrowsingScreen,
@@ -84,8 +86,12 @@ fun browsingMenuItems(
   actionButton: ActionButton?,
   shareWithApp: String?,
   text: (Int) -> String,
+  inBubble: Boolean = false,
 ): List<BrowsingMenuItem> = buildList {
   val article = screen == BrowsingScreen.Article
+  if (inBubble) {
+    add(BrowsingMenuItem(R.id.menu_open_in_full_window, text(R.string.open_in_full_window)))
+  }
   if (article) {
     add(BrowsingMenuItem(R.id.menu_open_full_page, text(R.string.open_full_page), MenuPlacement.Always, R.drawable.ic_open_in_browser_24dp))
   }
@@ -185,7 +191,8 @@ class MenuDelegate @Inject constructor(
       text = text,
     )
     val shareWith = preferences.favSharePackage()?.let { Utils.getAppNameWithPackage(activity, it) }
-    return browsingMenuItems(screen, preferences.bottomBar(), action, shareWith, text)
+    val inBubble = (activity as? EmbeddableWebViewActivity)?.inBubble == true
+    return browsingMenuItems(screen, preferences.bottomBar(), action, shareWith, text, inBubble)
   }
 
   /** The bottom-bar items, empty when the bottom bar setting is off. */
