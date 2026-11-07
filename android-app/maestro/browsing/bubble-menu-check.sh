@@ -4,8 +4,9 @@
 #   full-window  run after webheads-check.sh <serial> <dir> bubble; two fixture pages open as
 #                bubbles, the expanded one shows its count, Open in full window is the first item
 #                of its menu, and a tap on it shows the same page in a full-screen task of its own
-#                (not a bubble's task) with its address and no count; one bubble is left, the other
-#                page's, and that page shows no count
+#                (not a bubble's task) with its address and no count; one bubble fewer is left, each
+#                open before the tap, and a page left shows no count when it is the only bubble (else
+#                a count of the bubbles left); bubbles of an earlier run, such as the setup's, stay open
 #
 # The pages come from maestro/reader/fixtures/, served from this host on a free port through adb
 # reverse, so the run needs no external site. FULL_URL replaces the first page with any address,
@@ -164,7 +165,12 @@ check_full_window() {
   second="http://localhost:$PORT/article.html?b=$stamp"
   a logcat -c
 
-  # (a) Two pages as bubbles.
+  # (a) Two pages as bubbles. Bubbles of an earlier run (the setup leaves one) stay open and are
+  # counted: the checks below compare with the count before the tap.
+  notifications full-window-start-notifications.txt
+  local earlier
+  earlier="$(bubble_ids "$OUT/full-window-start-notifications.txt" | grep -c . || true)"
+  log "bubbles already open: $earlier"
   open_link "$first"
   sleep 3
   open_link "$second"
@@ -173,10 +179,10 @@ check_full_window() {
     sleep 2
     notifications full-window-before-notifications.txt
     count="$(bubble_ids "$OUT/full-window-before-notifications.txt" | grep -c . || true)"
-    [ "$count" -ge 2 ] && break
+    [ "$count" -ge $((earlier + 2)) ] && break
   done
   log "bubbles before: $count"
-  [ "$count" -ge 2 ] || fail "two bubbles did not post (found $count)"
+  [ "$count" -ge $((earlier + 2)) ] || fail "two bubbles did not post (found $count, $earlier before)"
   local before; before="$(bubble_ids "$OUT/full-window-before-notifications.txt")"
 
   # (b) The expanded page and its count.
@@ -239,19 +245,23 @@ check_full_window() {
   grep -qF 'resource-id="webview-count"' <<< "$dump" && fail "the full window shows a count"
   capture full-window
 
-  # (f) One bubble left, one of the two before.
-  local after=""
+  # (f) One bubble fewer than before the tap, and every bubble left was open before it.
+  local after="" left=0 id
   for _ in $(seq 1 20); do
     notifications full-window-after-notifications.txt
     after="$(bubble_ids "$OUT/full-window-after-notifications.txt")"
-    [ "$(grep -c . <<< "$after" || true)" = 1 ] && break
+    left="$(grep -c . <<< "$after" || true)"
+    [ "$left" = $((count - 1)) ] && break
     sleep 0.5
   done
-  log "bubbles after: $(tr '\n' ' ' <<< "$after")"
-  [ "$(grep -c . <<< "$after" || true)" = 1 ] || fail "not one bubble left"
-  grep -qxF "$after" <<< "$before" || fail "the bubble left is not one of the two"
+  log "bubbles after: $(tr '\n' ' ' <<< "$after")($left of $count before)"
+  [ "$left" = $((count - 1)) ] || fail "not one bubble fewer ($left left of $count)"
+  while read -r id; do
+    [ -z "$id" ] || grep -qxF "$id" <<< "$before" || fail "the bubble $id was not open before"
+  done <<< "$after"
 
-  # (g) The other page, with no count.
+  # (g) A page left in the stack: with one bubble left it shows no count, with more its count
+  # names the bubbles left.
   a shell input keyevent KEYCODE_HOME
   sleep 1
   expand_bubble || fail "no bubble left to expand"
@@ -261,7 +271,13 @@ check_full_window() {
   local other; other="$(text_of webview-address <<< "$dump")"
   log "other page: $other"
   [ -z "$closed_address" ] || [ "$other" != "$closed_address" ] || fail "the bubble left shows the closed page"
-  grep -qF 'resource-id="webview-count"' <<< "$dump" && fail "the one bubble left shows a count"
+  local other_count; other_count="$(text_of webview-count <<< "$dump")"
+  log "other page count: ${other_count:-none}"
+  if [ "$left" = 1 ]; then
+    [ -z "$other_count" ] || fail "the one bubble left shows a count ($other_count)"
+  else
+    case "$other_count" in *" of $left") ;; *) fail "the count of a bubble left is ${other_count:-none}, not of $left" ;; esac
+  fi
   capture full-window-other
   a shell input keyevent KEYCODE_HOME
 
