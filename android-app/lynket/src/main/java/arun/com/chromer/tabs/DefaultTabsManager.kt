@@ -49,6 +49,7 @@ import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.browsing.customtabs.CustomTabs
 import arun.com.chromer.browsing.newtab.NewTabDialogActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
+import arun.com.chromer.browsing.webview.WebViewWarmUp
 import arun.com.chromer.bubbles.FloatingBubble
 import arun.com.chromer.bubbles.bubbleConversationId
 import arun.com.chromer.bubbles.system.BubbleGate
@@ -99,6 +100,7 @@ constructor(
   private val nativeFloatingBubble: Provider<NativeFloatingBubble>,
   private val webHeadsFloatingBubble: Provider<WebHeadsFloatingBubble>,
   private val bubbleGate: BubbleGate,
+  private val webViewWarmUp: WebViewWarmUp,
 ) : TabsManager {
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -291,6 +293,7 @@ constructor(
           Timber.w("Refused a link with scheme %s", Uri.parse(url).scheme)
           return@withContext
         }
+        if (opensInWebView()) webViewWarmUp.warmUp()
         var proceed = true
         // Find the app this link came from, for per-app rules and the app-based toolbar colour.
         val linkSource = if (preferences.perAppSettings() || preferences.isAppBasedToolbar()) {
@@ -454,6 +457,10 @@ constructor(
       context.startActivity(BubbleRefusedActivity.intent(context, refusal, newTask = true))
     }
   }
+
+  // The page engine starts early only for a link that will show in a web view: a bubble or a Web View tab.
+  private fun opensInWebView(): Boolean =
+    preferences.browsingMode() == BrowsingMode.NativeBubbles || shouldUseWebView(incognito = false)
 
   override fun shouldUseWebView(incognito: Boolean): Boolean {
     val canSafelyOpenCCT =
