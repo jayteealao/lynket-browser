@@ -12,6 +12,7 @@
 package arun.com.chromer.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +36,8 @@ import androidx.compose.ui.unit.dp
 /**
  * The one error state of the app: a blob in errorContainer, a title, a body, an outlined Retry
  * (only where retrying can help) and a filled primary action. [compact] fits it inside a card.
+ * [showBlob] false drops the picture: a short window loses it first, so the title and the actions
+ * stay.
  */
 @Composable
 fun ErrorState(
@@ -46,6 +49,7 @@ fun ErrorState(
   onRetry: (() -> Unit)? = null,
   actionLabel: String? = null,
   onAction: (() -> Unit)? = null,
+  showBlob: Boolean = true,
   compact: Boolean = false,
 ) {
   Column(
@@ -56,12 +60,16 @@ fun ErrorState(
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
-    StateBlob(
-      icon = icon,
-      container = MaterialTheme.colorScheme.errorContainer,
-      content = MaterialTheme.colorScheme.onErrorContainer,
-      size = if (compact) 64.dp else 96.dp,
-    )
+    if (showBlob) {
+      Box(Modifier.testTag("error-state-blob")) {
+        StateBlob(
+          icon = icon,
+          container = MaterialTheme.colorScheme.errorContainer,
+          content = MaterialTheme.colorScheme.onErrorContainer,
+          size = if (compact) 64.dp else 96.dp,
+        )
+      }
+    }
     Text(
       text = title,
       style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
