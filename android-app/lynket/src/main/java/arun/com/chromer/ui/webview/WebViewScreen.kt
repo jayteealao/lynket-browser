@@ -115,7 +115,9 @@ class WebViewBarsState {
 /**
  * The web view: a top bar in the website colour with Close, the page title and address and the
  * browsing actions; a progress bar while the page loads; the page; and the bottom bar over the
- * page's end. [page] draws the WebView (the host wraps it in an AndroidView).
+ * page's end. [page] draws the WebView (the host wraps it in an AndroidView). A page that did not
+ * load shows its cause and Retry ([onRetry]) in place of the page, under the same top bar, with no
+ * progress bar and no bottom bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,6 +129,7 @@ fun WebViewScreen(
   bars: WebViewBarsState,
   onClose: () -> Unit,
   onMenuItem: (BrowsingMenuItem) -> Unit,
+  onRetry: () -> Unit = {},
   modifier: Modifier = Modifier,
   content: @Composable (Modifier) -> Unit,
 ) {
@@ -139,6 +142,9 @@ fun WebViewScreen(
       bars.bottom.animateSettle()
     }
   }
+  val failure = page.load as? PageLoad.Failed
+  // A bar that collapsed while the page scrolled shows again with the error, so Close is in reach.
+  LaunchedEffect(failure != null) { if (failure != null) bars.top.heightOffset = 0f }
   Scaffold(
     modifier = modifier.fillMaxSize().testTag("webview-screen"),
     contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top).union(WindowInsets.ime),
@@ -181,7 +187,7 @@ fun WebViewScreen(
           scrollBehavior = behavior,
           modifier = Modifier.testTag("webview-top-bar"),
         )
-        if (page.progress in 0 until 100) {
+        if (failure == null && page.progress in 0 until 100) {
           LinearProgressIndicator(
             progress = { page.progress / 100f },
             color = foreground,
@@ -193,17 +199,22 @@ fun WebViewScreen(
     },
   ) { padding ->
     Box(Modifier.fillMaxSize().padding(padding)) {
-      content(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)))
-      BrowsingBottomBar(
-        bottomBarItems,
-        containerColour = toolbarColour,
-        contentColour = foreground,
-        onItem = onMenuItem,
-        modifier = Modifier
-          .align(Alignment.BottomCenter)
-          .onSizeChanged { bars.bottom.limit = it.height.toFloat() }
-          .graphicsLayer { translationY = -bars.bottom.offset },
-      )
+      val pageArea = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+      if (failure != null) {
+        WebPageError(failure, onRetry, pageArea)
+      } else {
+        content(pageArea)
+        BrowsingBottomBar(
+          bottomBarItems,
+          containerColour = toolbarColour,
+          contentColour = foreground,
+          onItem = onMenuItem,
+          modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .onSizeChanged { bars.bottom.limit = it.height.toFloat() }
+            .graphicsLayer { translationY = -bars.bottom.offset },
+        )
+      }
     }
   }
 }
