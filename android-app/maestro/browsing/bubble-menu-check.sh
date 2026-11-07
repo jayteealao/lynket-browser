@@ -368,6 +368,242 @@ audit_setup() {
   log "setting $SETTING stored"
 }
 
+# The items: name, resource entry name, where it is tapped (menu, bar or button) and the label
+# that finds it in the menu window when that window has no resource ids.
+ITEMS="copy-link menu_copy_link menu Copy link
+open-with menu_open_with menu Open with…
+share menu_share menu Share
+share-with menu_share_with menu Share with
+history menu_history menu History
+add-to-home-screen menu_add_to_home_screen menu Add to Home Screen
+menu-tabs tabs menu Tabs
+menu-article bottom_bar_article_view menu Article mode
+button menu_action_button button Menu button
+bar-new-tab bottom_bar_open_in_new_tab bar New tab
+bar-share bottom_bar_share bar Share
+bar-tabs bottom_bar_tabs bar Tabs
+bar-minimize bottom_bar_minimize_tab bar Minimize
+bar-article bottom_bar_article_view bar Article mode"
+item_names() { cut -d' ' -f1 <<< "$ITEMS" | tr '\n' ' '; }
+item_line() { awk -v n="$1" '$1 == n' <<< "$ITEMS"; }
+
+# Full app screens: one of them inside the bubble's small window misbehaves. The reader of the
+# same page (ArticleActivity), translucent dialogs and the system share sheet are not full app
+# screens.
+FULL_SCREENS='[./](HistoryActivity|TabsActivity|MainActivity|CustomTabActivity|WebViewActivity)$'
+# Packages a clean-up never stops.
+SYSTEM_PACKAGES='^(android|com\.android\.systemui|com\.android\.intentresolver|.*launcher.*)$'
+
+# The resumed activity in front, "package/class t<task>", from a saved activities dump $1.
+front_of() {
+  awk '/topResumedActivity/ { print; exit }' "$1" | grep -oE '[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+ t-?[0-9]+' | head -1 || true
+}
+# The windowing mode ("multi-window", "fullscreen", ...) of task $2 in the activities dump $1.
+task_mode() {
+  grep -m1 -E "\* Task\{[0-9a-f]+ #$2 " "$1" | grep -oE 'mode=[a-z-]+' | head -1 | cut -d= -f2 || true
+}
+# The titles of the windows on screen, one per line, from a saved window dump $1.
+window_titles() {
+  grep -oE 'Window\{[0-9a-f]+ u0 [^}]+\}' "$1" | sed -E 's/Window\{[0-9a-f]+ u0 //; s/\}$//' | sort -u || true
+}
+# The keys of the app's notifications, from a saved notification dump $1.
+app_notification_keys() {
+  grep -F "pkg=$PKG" "$1" | grep -oE 'key=[^ ]+' | sort -u || true
+}
+short_name() { sed -E 's/ t-?[0-9]+$//; s/.*[./]//' <<< "$1"; }
+
+ANDROID_VERSION=""
+DEVICE_NAME=""
+ROWS_OK=1
+
+# One row of the table: $1 item label, $2 id, $3 where, $4 outcome, $5 reason, $6 evidence.
+audit_row() {
+  [ -s "$OUT/bubble-menu-audit.tsv" ] ||
+    printf 'item\tid\twhere\tsetting\tandroid\tdevice\toutcome\treason\tevidence\n' > "$OUT/bubble-menu-audit.tsv"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$SETTING" "$ANDROID_VERSION" "$DEVICE_NAME" "$4" "$5" "$6" \
+    >> "$OUT/bubble-menu-audit.tsv"
+  log "row: $1 ($2, $3, $SETTING): $4 - $5"
+  case "$4" in works|misbehaves|not-tested) ;; *) ROWS_OK=0 ;; esac
+}
+
+# Is the page with the item's address in front, in the bubble's task? $1 = address tag, $2 = task.
+page_in_front() {
+  local front dump
+  a shell dumpsys activity activities | tr -d '\r' > "$OUT/.front.txt"
+  front="$(front_of "$OUT/.front.txt")"
+  case "$front" in *EmbeddableWebViewActivity" t$2") ;; *) return 1 ;; esac
+  dump="$(ui_dump)"
+  grep -qF -- "$1" <<< "$(text_of webview-address <<< "$dump")"
+}
+
+# Taps one item in a page in an expanded bubble, then judges what happened. $1 = item name,
+# $2 = label for the table (the item's label by default).
+audit_item() {
+  local name="$1" line id where label
+  line="$(item_line "$name")"
+  [ -n "$line" ] || { echo "unknown item $name; items: $(item_names)" >&2; exit 2; }
+  read -r _ id where label <<< "$line"
+  label="${2:-$label}"
+  local ev; ev="$(basename "$OUT")/item-$name"
+  [ -n "$PORT" ] || start_server
+  [ -n "$ANDROID_VERSION" ] || ANDROID_VERSION="$(a shell getprop ro.build.version.release | tr -d '\r')"
+  [ -n "$DEVICE_NAME" ] || DEVICE_NAME="$(a shell getprop ro.product.model | tr -d '\r') ($(a emu avd name 2>/dev/null | tr -d '\r' | head -1))"
+  log "--- $name ($id, $where)"
+  local tag; tag="item=$name-$(date +%s)"
+  a logcat -b all -c || true
+
+  # The page as a bubble, expanded.
+  notifications "item-$name-start-notifications.txt"
+  local before_ids after_ids bubble_id="" _
+  before_ids="$(bubble_ids "$OUT/item-$name-start-notifications.txt")"
+  open_link "http://localhost:$PORT/article.html?$tag"
+  for _ in $(seq 1 15); do
+    sleep 2
+    notifications "item-$name-open-notifications.txt"
+    after_ids="$(bubble_ids "$OUT/item-$name-open-notifications.txt")"
+    bubble_id="$(comm -13 <(echo "$before_ids") <(echo "$after_ids") | grep . | head -1 || true)"
+    [ -n "$bubble_id" ] && break
+  done
+  [ -n "$bubble_id" ] || { audit_row "$label" "$id" "$where" undecided "the page did not post a bubble" "$ev-open-notifications.txt"; return 1; }
+  expand_bubble || { audit_row "$label" "$id" "$where" undecided "the bubble did not expand" "$ev-open-notifications.txt"; return 1; }
+  wait_for "$tag" || { audit_row "$label" "$id" "$where" undecided "the expanded bubble does not show the page" "$ev-open-notifications.txt"; return 1; }
+  a shell dumpsys activity activities | tr -d '\r' > "$OUT/item-$name-start-activities.txt"
+  local start_front task
+  start_front="$(front_of "$OUT/item-$name-start-activities.txt")"
+  task="$(grep -oE 't-?[0-9]+$' <<< "$start_front" | tr -d t)"
+  log "bubble $bubble_id, page task $task ($(task_mode "$OUT/item-$name-start-activities.txt" "$task"))"
+
+  # The tap.
+  local ref
+  case "$where" in
+    menu)
+      tap_on 'resource-id="browsing-overflow"' || { audit_row "$label" "$id" "$where" undecided "no menu button" "$ev-start-activities.txt"; return 1; }
+      wait_for "text=\"$label" || { capture "item-$name-before"; audit_row "$label" "$id" "$where" undecided "the menu has no $label item" "$ev-before.xml"; return 1; }
+      ;;
+  esac
+  capture "item-$name-before"
+  a shell dumpsys window windows | tr -d '\r' > "$OUT/item-$name-before-windows.txt"
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/item-$name-before-notifications.txt"
+  if grep -qF "resource-id=\"menu-$id\"" "$OUT/item-$name-before.xml"; then
+    ref="resource-id=\"menu-$id\""
+  elif [ "$where" = menu ] && [ "$name" = share-with ]; then
+    ref="text=\"$label"
+  elif [ "$where" = menu ]; then
+    ref="text=\"$label\""
+  else
+    audit_row "$label" "$id" "$where" undecided "no menu-$id on screen" "$ev-before.xml"; return 1
+  fi
+  # The topmost node that matches: the menu window opens at the top, the bottom bar has a Share too.
+  local xy
+  xy="$(tr '>' '\n' < "$OUT/item-$name-before.xml" | grep -F -- "$ref" |
+    sed -nE 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\2 \1 \3 \4/p' | sort -n | head -1 |
+    awk 'NF == 4 { print int(($2 + $3) / 2), int(($1 + $4) / 2) }')"
+  [ -n "$xy" ] || { audit_row "$label" "$id" "$where" undecided "nothing matching $ref on screen" "$ev-before.xml"; return 1; }
+  log "tap $ref at $xy"
+  # shellcheck disable=SC2086
+  a shell input tap $xy
+  local tapped=$SECONDS
+
+  # Ten seconds of the device's state after the tap.
+  local front fronts="" added="" seen_inside="" foreign="" titles
+  window_titles "$OUT/item-$name-before-windows.txt" > "$OUT/.before-titles.txt"
+  local shot_taken=""
+  while [ $((SECONDS - tapped)) -lt 10 ]; do
+    a shell dumpsys activity activities | tr -d '\r' > "$OUT/.poll-activities.txt"
+    a shell dumpsys window windows | tr -d '\r' > "$OUT/.poll-windows.txt"
+    front="$(front_of "$OUT/.poll-activities.txt")"
+    if [ -n "$front" ]; then
+      grep -qxF -- "$front" <<< "$fronts" || fronts="$fronts${fronts:+$'\n'}$front"
+      if [ "$front" != "$start_front" ]; then
+        cp "$OUT/.poll-activities.txt" "$OUT/item-$name-activities.txt"
+        cp "$OUT/.poll-windows.txt" "$OUT/item-$name-windows.txt"
+      fi
+      local fpkg="${front%%/*}" ftask; ftask="$(grep -oE 't-?[0-9]+$' <<< "$front" | tr -d t)"
+      if [ "$fpkg" = "$PKG" ] && grep -qE "$FULL_SCREENS" <<< "${front% t*}"; then
+        if [ "$ftask" = "$task" ] || [ "$(task_mode "$OUT/.poll-activities.txt" "$ftask")" = multi-window ]; then
+          seen_inside="$(short_name "$front")"
+          cp "$OUT/.poll-activities.txt" "$OUT/item-$name-activities.txt"
+        fi
+      fi
+      [ "$fpkg" = "$PKG" ] || grep -qE "$SYSTEM_PACKAGES" <<< "$fpkg" || foreign="$fpkg"
+    fi
+    titles="$(window_titles "$OUT/.poll-windows.txt" | comm -13 "$OUT/.before-titles.txt" - || true)"
+    if [ -n "$titles" ]; then
+      while IFS= read -r t; do grep -qxF -- "$t" <<< "$added" || added="$added${added:+$'\n'}$t"; done <<< "$titles"
+      [ -s "$OUT/item-$name-windows.txt" ] || cp "$OUT/.poll-windows.txt" "$OUT/item-$name-windows.txt"
+    fi
+    if [ -z "$shot_taken" ] && [ $((SECONDS - tapped)) -ge 2 ]; then capture "item-$name-after"; shot_taken=1; fi
+  done
+  [ -n "$shot_taken" ] || capture "item-$name-after"
+  [ -s "$OUT/item-$name-activities.txt" ] || cp "$OUT/.poll-activities.txt" "$OUT/item-$name-activities.txt"
+  [ -s "$OUT/item-$name-windows.txt" ] || cp "$OUT/.poll-windows.txt" "$OUT/item-$name-windows.txt"
+  notifications "item-$name-notifications.txt"
+  log "fronts after the tap: $(tr '\n' ';' <<< "$fronts")"
+  log "windows added: $(tr '\n' ';' <<< "$added")"
+
+  # The way back to the page.
+  local way="" gone=""
+  bubble_ids "$OUT/item-$name-notifications.txt" | grep -qxF -- "$bubble_id" || gone=1
+  if page_in_front "$tag" "$task"; then
+    way="the page stays in front in the bubble"
+  else
+    for _ in 1 2; do
+      a shell input keyevent KEYCODE_BACK
+      sleep 2
+      if page_in_front "$tag" "$task"; then way="Back returns to the page in the bubble"; break; fi
+    done
+    if [ -z "$way" ]; then
+      a shell input keyevent KEYCODE_HOME
+      sleep 1
+      if expand_bubble && wait_for "$tag"; then way="Home and a tap on the bubble bring the page back"; fi
+    fi
+  fi
+  log "way back: ${way:-none}${gone:+ (the bubble is gone)}"
+
+  app_logcat "item-$name"
+  local app_lines; app_lines="$(app_notification_keys "$OUT/item-$name-before-notifications.txt")"
+  local changed=""
+  [ "$app_lines" = "$(app_notification_keys "$OUT/item-$name-notifications.txt")" ] || changed=1
+
+  # The judge, first match wins.
+  local effect="" outcome reason
+  local others; others="$(grep -vxF -- "$start_front" <<< "$fronts" || true)"
+  if [ -n "$others" ]; then
+    local o d=""
+    while IFS= read -r o; do
+      [ -n "$o" ] || continue
+      local ot; ot="$(grep -oE 't-?[0-9]+$' <<< "$o" | tr -d t)"
+      local place="in a $(task_mode "$OUT/item-$name-activities.txt" "$ot") task of its own"
+      [ "$ot" = "$task" ] && place="inside the bubble"
+      d="$d${d:+, }$(short_name "$o") of ${o%%/*} $place"
+    done <<< "$others"
+    effect="opens $d"
+  fi
+  [ -z "$added" ] || effect="$effect${effect:+; }shows the window $(tr '\n' ',' <<< "$added" | sed 's/,$//; s/,/, /g')"
+  [ -z "$changed" ] || effect="$effect${effect:+; }changes the app's notifications"
+
+  if [ ! -s "$OUT/item-$name-activities.txt" ] || [ -z "$start_front" ] || [ ! -s "$OUT/item-$name-notifications.txt" ]; then
+    outcome=undecided; reason="the device state could not be read after the tap"
+  elif grep -qF "$PKG" "$OUT/item-$name.crash.txt" || grep -qiE "Application Not Responding: $PKG" <<< "$added"; then
+    outcome=misbehaves; reason="the app crashed or stopped responding after the tap"
+  elif [ -n "$seen_inside" ]; then
+    outcome=misbehaves; reason="opens a full app screen ($seen_inside) inside the bubble's small window; ${way:-no way back to the page}"
+  elif [ -z "$way" ] || [ -n "$gone" ]; then
+    outcome=misbehaves; reason="${effect:-nothing shows}; no way back to the page${gone:+ (its bubble is gone)}"
+  elif [ -z "$effect" ]; then
+    outcome=misbehaves; reason="nothing happens: no screen, window or notification change in 10 s"
+  else
+    outcome=works; reason="$effect; $way"
+  fi
+  audit_row "$label" "$id" "$where" "$outcome" "$reason" "$ev-{before,after}.png, $ev-activities.txt, $ev-windows.txt, $ev-notifications.txt"
+  LAST_FOREIGN="$foreign"
+  [ "$outcome" != undecided ]
+}
+
+case "$MODE" in
+  item) [ -n "$(item_line "$ITEM_NAME")" ] || { echo "usage: bubble-menu-check.sh <serial> <evidence-dir> item <name>; items: $(item_names)" >&2; exit 2; } ;;
+esac
+
 case "$MODE" in
   full-window) check_full_window ;;
 esac
