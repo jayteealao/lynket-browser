@@ -12,6 +12,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -20,6 +21,7 @@ import java.util.Collections
 
 /**
  * An incognito read leaves no history row and no cache entry; a normal read still writes both.
+ * A lookup also tells a fetched page from one that no store and no network fetch gave.
  */
 class DefaultWebsiteRepositoryTest {
 
@@ -107,12 +109,79 @@ class DefaultWebsiteRepositoryTest {
     assertThat(history.inserts).isEmpty()
   }
 
+  @Test
+  fun a_lookup_from_the_network_is_fetched() = runBlocking<Unit> {
+    network.website = site
+
+    val lookup = repository.lookUpWebsite(url, incognito = false).first()
+
+    assertThat(lookup.fetchFailed).isFalse()
+    assertThat(lookup.website.title).isEqualTo("Example page")
+  }
+
+  @Test
+  fun a_lookup_that_nothing_answers_is_failed_with_the_bare_address() = runBlocking<Unit> {
+    val lookup = repository.lookUpWebsite(url, incognito = false).first()
+
+    assertThat(lookup.fetchFailed).isTrue()
+    assertThat(lookup.website.url).isEqualTo(url)
+    assertThat(lookup.website.title).isNull()
+  }
+
+  @Test
+  fun a_lookup_whose_network_store_throws_is_failed() = runBlocking<Unit> {
+    network.failure = IllegalStateException("offline")
+
+    val lookup = repository.lookUpWebsite(url, incognito = true).first()
+
+    assertThat(lookup.fetchFailed).isTrue()
+    assertThat(lookup.website.url).isEqualTo(url)
+  }
+
+  @Test
+  fun a_lookup_from_the_cache_or_history_is_fetched() = runBlocking<Unit> {
+    cache.website = site
+    assertThat(repository.lookUpWebsite(url, incognito = false).first().fetchFailed).isFalse()
+
+    cache.website = null
+    history.stored = site
+    assertThat(repository.lookUpWebsite(url, incognito = false).first().fetchFailed).isFalse()
+  }
+
+  @Test
+  fun an_incognito_lookup_from_the_network_writes_no_history_and_no_cache() = runBlocking<Unit> {
+    network.website = site
+
+    val lookup = repository.lookUpWebsite(url, incognito = true).first()
+
+    assertThat(lookup.fetchFailed).isFalse()
+    delay(SETTLE_MS)
+    assertThat(history.inserts).isEmpty()
+    assertThat(cache.saves).isEmpty()
+  }
+
+  @Test
+  fun a_normal_lookup_from_the_network_writes_history_and_the_cache() = runBlocking<Unit> {
+    network.website = site
+
+    val lookup = repository.lookUpWebsite(url, incognito = false).first()
+
+    assertThat(lookup.fetchFailed).isFalse()
+    withTimeout(5_000) {
+      history.firstInsert.await()
+      cache.firstSave.await()
+    }
+    assertThat(history.inserts.map { it.url }).containsExactly(url)
+    assertThat(cache.saves.map { it.url }).containsExactly(url)
+  }
+
   private class CountingStore : WebsiteStore {
     @Volatile var website: Website? = null
+    @Volatile var failure: Throwable? = null
     val saves: MutableList<Website> = Collections.synchronizedList(mutableListOf())
     val firstSave = CompletableDeferred<Unit>()
 
-    override fun getWebsite(url: String): Flow<Website?> = flowOf(website)
+    override fun getWebsite(url: String): Flow<Website?> = failure?.let { error -> flow { throw error } } ?: flowOf(website)
 
     override suspend fun saveWebsite(website: Website): Website {
       saves += website
