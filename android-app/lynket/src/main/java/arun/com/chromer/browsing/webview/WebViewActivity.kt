@@ -22,13 +22,17 @@ package arun.com.chromer.browsing.webview
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.net.http.SslError
 import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.RenderProcessGoneDetail
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -60,6 +64,7 @@ import arun.com.chromer.ui.webview.WebViewBarsState
 import arun.com.chromer.ui.webview.WebViewPage
 import arun.com.chromer.ui.webview.WebViewScreen
 import arun.com.chromer.util.ColorUtil
+import arun.com.chromer.util.network.NetworkMonitor
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -76,11 +81,19 @@ open class WebViewActivity : BrowsingActivity() {
   @Inject
   lateinit var menuDelegate: MenuDelegate
 
+  @Inject
+  lateinit var networkMonitor: NetworkMonitor
+
   private var webView: WebView? = null
   private var swipeRefresh: SwipeRefreshLayout? = null
   private val bars = WebViewBarsState()
   private var page by mutableStateOf(WebViewPage(title = "", address = "", progress = 0))
   private var toolbarColour by mutableIntStateOf(0)
+
+  /** Follows the page from its load start to loaded or failed, for both the tab and the bubble. */
+  private val loadTracker by lazy {
+    PageLoadTracker(isOnline = { networkMonitor.isOnlineNow() }, onChange = { page = page.copy(load = it) })
+  }
 
   // Back goes through the page history first; with predictive back (targetSdk 36) the system no
   // longer calls onBackPressed, so the callback is enabled only while the page can go back.
@@ -166,6 +179,7 @@ open class WebViewActivity : BrowsingActivity() {
         super.onPageStarted(view, url, favicon)
         url?.let {
           page = page.copy(address = it)
+          loadTracker.started(it)
           loadWebsiteDetails(it)
         }
       }
@@ -173,6 +187,22 @@ open class WebViewActivity : BrowsingActivity() {
       override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
         swipeRefresh?.isRefreshing = false
+        loadTracker.finished(url.orEmpty())
+      }
+
+      // Only the page itself can fail the page: an image, a frame or a script that does not load
+      // leaves the page as it is. An HTTP error, such as a site's own 404 page, is the site's page.
+      override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+        super.onReceivedError(view, request, error)
+        if (request?.isForMainFrame != true) return
+        loadTracker.mainFrameError(error?.errorCode ?: ERROR_UNKNOWN, request.url.toString())
+      }
+
+      // A page whose certificate is not trusted never loads, and there is no way to continue past
+      // it: the load is cancelled and the page fails.
+      override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+        handler?.cancel()
+        loadTracker.certificateError(error?.url ?: page.address)
       }
 
       override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
