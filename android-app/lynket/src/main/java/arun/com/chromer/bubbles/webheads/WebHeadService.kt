@@ -38,6 +38,7 @@ import android.text.TextUtils
 import android.view.ViewConfiguration
 import android.widget.Toast
 import androidx.annotation.VisibleForTesting
+import androidx.browser.customtabs.CustomTabsCallback
 import androidx.browser.customtabs.CustomTabsSession
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
@@ -152,6 +153,12 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   private var customTabConnected = false
+
+  /**
+   * The head whose page the Custom Tab shows last: a navigation event of the shared tab session
+   * names no address, so it belongs to the head opened last.
+   */
+  private var lastOpenedHeadUrl: String? = null
 
   override fun onBind(intent: Intent): IBinder? = null
 
@@ -414,6 +421,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   override fun onHeadClick(head: WebHeadState) {
+    lastOpenedHeadUrl = head.url
     tabsManager.openUrl(this, head.website, true, true, false, head.fromAmp, head.incognito)
     if (Preferences.get(this).webHeadsCloseOnOpen()) {
       controller?.destroy(head, receiveCallback = true)
@@ -583,12 +591,25 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     }
   }
 
-  private class WebHeadNavigationCallback : CustomTabManager.NavigationCallback() {
+  /**
+   * The Custom Tab opened from a head finished or failed its navigation: that head's page is loaded
+   * or failed, unless another signal finished it first. Other events change nothing.
+   */
+  @VisibleForTesting
+  internal fun onTabNavigation(navigationEvent: Int) {
+    val failed = when (navigationEvent) {
+      CustomTabsCallback.NAVIGATION_FINISHED -> false
+      CustomTabsCallback.NAVIGATION_FAILED -> true
+      else -> return
+    }
+    val head = lastOpenedHeadUrl?.let { controller?.get(it) } ?: return
+    pageTracker.finish(head, PageSignal.Navigation, failed)
+  }
+
+  /** The tab session calls it on the main thread. */
+  private inner class WebHeadNavigationCallback : CustomTabManager.NavigationCallback() {
     override fun onNavigationEvent(navigationEvent: Int, extras: Bundle?) {
-      when (navigationEvent) {
-        TAB_SHOWN -> {}
-        TAB_HIDDEN -> {}
-      }
+      onTabNavigation(navigationEvent)
     }
   }
 
