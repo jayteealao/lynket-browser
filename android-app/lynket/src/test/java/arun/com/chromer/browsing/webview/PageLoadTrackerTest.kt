@@ -130,4 +130,111 @@ class PageLoadTrackerTest {
       .containsExactly(PageLoad.Loaded, PageLoad.Loading, PageLoad.Failed(LoadFailure.General, address))
       .inOrder()
   }
+
+  private fun failOffline(url: String = address) {
+    online = false
+    tracker.started(url)
+    tracker.mainFrameError(ERROR_HOST_LOOKUP, url)
+  }
+
+  @Test
+  fun aRetryOfAPageThatHasNotFailedDoesNothing() {
+    assertThat(tracker.retry()).isNull()
+    assertThat(tracker.state).isEqualTo(PageLoad.Loading)
+
+    tracker.started(address)
+    tracker.finished(address)
+    changes.clear()
+
+    assertThat(tracker.retry()).isNull()
+    assertThat(tracker.state).isEqualTo(PageLoad.Loaded)
+    assertThat(changes).isEmpty()
+  }
+
+  @Test
+  fun aRetryReturnsTheFailedAddressAndKeepsTheCause() {
+    failOffline()
+
+    assertThat(tracker.retry()).isEqualTo(address)
+    assertThat(tracker.state).isEqualTo(PageLoad.Failed(LoadFailure.Offline, address, retrying = true))
+  }
+
+  @Test
+  fun aSecondRetryWhileOneRunsDoesNothing() {
+    failOffline()
+    tracker.retry()
+    changes.clear()
+
+    assertThat(tracker.retry()).isNull()
+    assertThat(changes).isEmpty()
+    assertThat(tracker.state).isEqualTo(PageLoad.Failed(LoadFailure.Offline, address, retrying = true))
+  }
+
+  @Test
+  fun aStartDuringARetryKeepsTheRetry() {
+    failOffline()
+    tracker.retry()
+    tracker.started(address)
+
+    assertThat(tracker.state).isEqualTo(PageLoad.Failed(LoadFailure.Offline, address, retrying = true))
+  }
+
+  @Test
+  fun aRetryThatFinishesLoadsThePage() {
+    failOffline()
+    tracker.retry()
+    online = true
+    tracker.started(address)
+    tracker.finished(address)
+
+    assertThat(tracker.state).isEqualTo(PageLoad.Loaded)
+  }
+
+  @Test
+  fun aRetryThatFailsOfflineShowsTheCauseAgainWithRetryReady() {
+    failOffline()
+    tracker.retry()
+    tracker.started(address)
+    tracker.mainFrameError(ERROR_HOST_LOOKUP, address)
+    tracker.finished(address)
+
+    assertThat(tracker.state).isEqualTo(PageLoad.Failed(LoadFailure.Offline, address))
+  }
+
+  @Test
+  fun aRetryThatFailsOnlineShowsTheNewCause() {
+    failOffline()
+    tracker.retry()
+    online = true
+    tracker.mainFrameError(ERROR_CONNECT, address)
+
+    assertThat(tracker.state).isEqualTo(PageLoad.Failed(LoadFailure.CannotReach, address))
+  }
+
+  @Test
+  fun aRetryThatMeetsACertificateErrorShowsTheCertificateCause() {
+    failOffline()
+    tracker.retry()
+    tracker.certificateError(address)
+
+    assertThat(tracker.state).isEqualTo(PageLoad.Failed(LoadFailure.Certificate, address))
+  }
+
+  @Test
+  fun aFailedRetryCanBeRetriedAgain() {
+    failOffline()
+    repeat(3) {
+      assertThat(tracker.retry()).isEqualTo(address)
+      tracker.mainFrameError(ERROR_HOST_LOOKUP, address)
+      assertThat(tracker.state).isEqualTo(PageLoad.Failed(LoadFailure.Offline, address))
+    }
+  }
+
+  @Test
+  fun aStartAfterAFailureWithNoRetryStillLoads() {
+    failOffline()
+    tracker.started(address)
+
+    assertThat(tracker.state).isEqualTo(PageLoad.Loading)
+  }
 }
