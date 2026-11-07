@@ -51,6 +51,10 @@ class WebHeadState(val url: String, val fromAmp: Boolean = false, val incognito:
   var closing by mutableStateOf(false)
   var queued by mutableStateOf(false)
 
+  /** Whether the head's page is ready; [HeadPageTracker] sets it from the open until the page finishes. */
+  var pageState by mutableStateOf(PageState.Unknown)
+    internal set
+
   internal var destroyed = false
   internal var chainIndex = 0
   internal lateinit var x: Animatable<Float, AnimationVector1D>
