@@ -22,6 +22,7 @@ package arun.com.chromer.browsing.webview
 
 import android.os.Build
 import android.os.Bundle
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.lifecycle.lifecycleScope
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubbleRegistry
@@ -55,6 +56,11 @@ class EmbeddableWebViewActivity : WebViewActivity() {
   @Inject
   lateinit var bubbleCloser: Lazy<BubbleCloser>
 
+  /** True only for the page its bubble opened, on Android 10 and later. */
+  @get:ChecksSdkIntAtLeast(api = Build.VERSION_CODES.Q)
+  val inBubble: Boolean
+    get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     if (isFinishing || !intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)) return
@@ -66,7 +72,7 @@ class EmbeddableWebViewActivity : WebViewActivity() {
   }
 
   override fun finish() {
-    if (!isFinishing && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)) {
+    if (!isFinishing && inBubble) {
       bubbleCloser.get().closePage(intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)) { super.finish() }
     } else {
       super.finish()
