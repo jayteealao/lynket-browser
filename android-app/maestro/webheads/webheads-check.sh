@@ -49,7 +49,7 @@
 #         refresh rate x 5 s), and on a phone the 95th percentile frame time of that window is at most
 #         one refresh interval (on an emulator it is written as a floor, not judged); writes the
 #         refresh rate and the host load (needs python; closes the heads and stops the server on exit)
-#   page-state-speech  web heads chosen: a link to slow-page-server.py held 40 s; a dump of every window
+#   page-state-speech  web heads chosen: a link to slow-page-server.py held 20 s; a dump of every window
 #         shows the head described as "Web head: <title>, 1 of 1, loading" while it loads and ", loaded"
 #         after its "Head page ... Loaded" log line; an accessibility events capture around the finish
 #         counts the head's content-description change events (logged, never failing); a link to a
@@ -1458,11 +1458,12 @@ talkback_log() {
 
 check_page_state_speech() {
   trap page_state_speech_cleanup EXIT
-  # 1. Web heads mode with a clean log; one link that the local server holds 40 s.
+  # 1. Web heads mode with a clean log; one link that the local server holds 20 s, under the 30 s limit after
+  # which a head that heard nothing turns unknown.
   start_page_server
   web_heads_mode
   a logcat -c
-  open_link "http://localhost:$PAGE_PORT/slow?s=40&id=1"
+  open_link "http://localhost:$PAGE_PORT/slow?s=20&id=1"
   local windows
   windows="$(wait_for_overlays 60 2)"
   [ "$windows" -ge 2 ] || fail "no head window for the slow link (found $windows overlay windows)"
@@ -1532,7 +1533,7 @@ check_page_state_speech() {
   else
     log "talkback: bound"
     a logcat -c
-    open_link "http://localhost:$PAGE_PORT/slow?s=40&id=2"
+    open_link "http://localhost:$PAGE_PORT/slow?s=20&id=2"
     wait_for_overlays 60 2 >/dev/null
     sleep 2
     local hx hy
