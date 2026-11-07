@@ -19,8 +19,16 @@ sealed interface PageLoad {
   /** The page finished loading. A site's own error page, such as its 404 page, is loaded too. */
   data object Loaded : PageLoad
 
-  /** The page itself did not load, for [cause]; [address] is the address that failed. */
-  data class Failed(val cause: LoadFailure, val address: String) : PageLoad
+  /**
+   * The page itself did not load, for [cause]; [address] is the address that failed. While
+   * [retrying] the cause stays on screen, Retry is disabled and the progress bar shows, until the
+   * page loads or fails again.
+   */
+  data class Failed(
+    val cause: LoadFailure,
+    val address: String,
+    val retrying: Boolean = false,
+  ) : PageLoad
 }
 
 /** Why a page did not load. The cause is a hint for the words a person reads, not a diagnosis. */
