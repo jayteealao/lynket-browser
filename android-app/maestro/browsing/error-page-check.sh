@@ -19,7 +19,9 @@
 #
 # Each mode writes <mode>.png, <mode>.xml (the UI dump), <mode>-crash.txt (the crash buffer; a
 # crash of the app fails the mode) and a PASS or FAIL line in error-page.txt. On exit it restores
-# airplane mode off, the screen size and the Web View mode setting it found.
+# airplane mode off, the screen size, the browsing mode and the Web View mode setting it found. The
+# Web View modes first choose the Slide over browsing mode, so a link opens in a window; every error
+# page check also fails when the bar shows the web view's own error page title.
 #
 # Usage: maestro/browsing/error-page-check.sh <serial> <evidence-dir> <offline-bubble|offline-webview|certificate|subframe|worst>
 #        (run from android-app/)
@@ -47,6 +49,8 @@ CERT_URL="${CERT_URL:-https://expired.badssl.com/}"
 PORT=""
 SERVER_PID=""
 WEBVIEW_BEFORE=""
+WEBHEADS_BEFORE=""
+BUBBLES_BEFORE=""
 AIRPLANE_ON=""
 SIZE_CHANGED=""
 
@@ -91,6 +95,10 @@ cleanup() {
   [ -n "$AIRPLANE_ON" ] && a shell cmd connectivity airplane-mode disable >/dev/null 2>&1 || true
   [ -n "$SIZE_CHANGED" ] && a shell wm size reset >/dev/null 2>&1 || true
   if [ "$WEBVIEW_BEFORE" = false ]; then webview_mode off || true; fi
+  if [ -n "$WEBHEADS_BEFORE$BUBBLES_BEFORE" ]; then
+    choose_mode "$(mode_title "$WEBHEADS_BEFORE" "$BUBBLES_BEFORE")" || true
+    a shell input keyevent KEYCODE_HOME
+  fi
   [ -n "$PORT" ] && a reverse --remove "tcp:$PORT" >/dev/null 2>&1 || true
   [ -n "$SERVER_PID" ] && kill "$SERVER_PID" >/dev/null 2>&1 || true
 }
@@ -195,10 +203,21 @@ webview_mode() {
   return 0
 }
 
-# Web View mode on for this run; the setting found at the start comes back on exit.
+mode_title() {  # the browsing mode row title for the stored keys
+  if [ "$1" = true ]; then echo "Web heads"; elif [ "$2" = true ]; then echo "Native Bubbles (Beta)"; else echo "Slide over"; fi
+}
+
+# Web View mode on for this run, in the Slide over browsing mode, so a link opens in a window and
+# not in a bubble or a web head; the browsing mode and the setting found at the start come back on
+# exit.
 webview_on() {
   WEBVIEW_BEFORE="$(stored use_webview_pref)"
   [ -n "$WEBVIEW_BEFORE" ] || WEBVIEW_BEFORE=false
+  WEBHEADS_BEFORE="$(stored webhead_enabled_pref)"
+  BUBBLES_BEFORE="$(stored native_bubbles_preference)"
+  log "before: webhead_enabled_pref=$WEBHEADS_BEFORE native_bubbles_preference=$BUBBLES_BEFORE use_webview_pref=$WEBVIEW_BEFORE"
+  choose_mode "Slide over"
+  a shell input keyevent KEYCODE_HOME
   webview_mode on
 }
 
@@ -264,6 +283,7 @@ assert_error_page() {
   wait_for 'text="Retry"' || fail "no Retry on screen"
   wait_for 'resource-id="webview-close"' || fail "no Close in the top bar"
   absent 'resource-id="browsing-bottom-bar"' "the bottom bar shows over the error"
+  absent 'text="Webpage not available"' "the title of the web view's own error page shows in the bar"
 }
 
 # ---------------------------------------------------------------------------------------------
