@@ -37,7 +37,8 @@ import androidx.compose.ui.unit.dp
  * The one error state of the app: a blob in errorContainer, a title, a body, an outlined Retry
  * (only where retrying can help) and a filled primary action. [compact] fits it inside a card.
  * [showBlob] false drops the picture: a short window loses it first, so the title and the actions
- * stay.
+ * stay. [retryEnabled] false draws Retry disabled while a retry is in progress, so a second tap
+ * does nothing.
  */
 @Composable
 fun ErrorState(
@@ -47,6 +48,7 @@ fun ErrorState(
   icon: ImageVector = Icons.Outlined.ErrorOutline,
   retryLabel: String? = null,
   onRetry: (() -> Unit)? = null,
+  retryEnabled: Boolean = true,
   actionLabel: String? = null,
   onAction: (() -> Unit)? = null,
   showBlob: Boolean = true,
@@ -85,7 +87,7 @@ fun ErrorState(
     )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
       if (retryLabel != null && onRetry != null) {
-        OutlinedButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) { Text(retryLabel) }
+        OutlinedButton(onClick = onRetry, enabled = retryEnabled, modifier = Modifier.heightIn(min = 48.dp)) { Text(retryLabel) }
       }
       if (actionLabel != null && onAction != null) {
         Button(onClick = onAction, modifier = Modifier.heightIn(min = 48.dp)) { Text(actionLabel) }
