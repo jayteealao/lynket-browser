@@ -1660,6 +1660,28 @@ class NativeBubblePostingTest {
   }
 
   @Test
+  fun leaving_the_last_bubble_for_a_full_window_returns_nothing_into_the_open_stack() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
+    watcher.pageStarted(id(THREE))
+    val finished = mutableListOf<String>()
+
+    closer.closePage(id(THREE), leavingTheStack = true) { finished += THREE }
+    runCurrent()
+    mainRuns()
+
+    assertThat(finished).containsExactly(THREE)
+    verify(exactly = 1) { notifications.dismissed(id(THREE)) }
+    assertThat(returned).isEmpty()
+    assertThat(registry.isClosedOnPurpose(keyOf(THREE))).isTrue()
+    assertThat(listed().map { it.url }).containsExactly(ONE, TWO).inOrder()
+
+    // The new window folds the stack, and the place fills at the fold.
+    watcher.pageStopped()
+    afterTheFoldCheck()
+    assertThat(returned).containsExactly(TWO)
+  }
+
+  @Test
   fun with_no_selection_of_a_returned_bubble_the_closed_one_goes_after_the_wait_for_the_shell() = posting { bubble ->
     fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE, TWO)
     watcher.pageStarted(id(THREE))
