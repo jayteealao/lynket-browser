@@ -78,6 +78,8 @@ data class WebViewPage(
   val progress: Int,
   /** Only a native bubble page has one. */
   val count: BubblePageCount? = null,
+  /** Whether the page is loading, loaded, or failed to load and why. */
+  val load: PageLoad = PageLoad.Loading,
 )
 
 /**
