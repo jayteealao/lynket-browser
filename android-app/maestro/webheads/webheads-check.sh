@@ -37,11 +37,16 @@
 #         (Custom Tab or Web View), with no crash (turns the setting off and closes the heads on exit)
 #   bubble-minimize  native bubbles mode: with bubbles off for the app a link opens in a tab; bubbles
 #         on again, Minimize in the tab's bottom bar posts a bubble and starts no web head service
+#   page-state  web heads chosen: a link to slow-page-server.py held 6 s (HTTPBIN=1: https://httpbin.org/delay/5);
+#         a screenshot every 500 ms for 12 s; while the page loads the head's ring turns and its fill is
+#         faded, and from 1 s after it finished (the server's answer and the head's "Head page ... Loaded"
+#         log line) the head is still with the full fill (needs python with Pillow; closes the heads,
+#         stops the server and removes the adb reverse on exit)
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state>   (from android-app/)
 set -euo pipefail
 
-USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize>"
+USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 WHICH="${3:?$USAGE}"
@@ -1145,6 +1150,159 @@ check_bubble_minimize() {
   log "bubble-minimize passed"
 }
 
+# ---------------------------------------------------------------------------------------------
+# Page state of a head: the turning ring and the faded head while its page loads, the solid ring
+# and the full head once it finished. The pages come from slow-page-server.py on this host,
+# through adb reverse, so no outside site is needed; HTTPBIN=1 opens https://httpbin.org/delay/5.
+
+PAGE_PORT=""
+PAGE_SERVER_PID=""
+
+# Starts slow-page-server.py on a free port and reverses it to the device.
+start_page_server() {
+  PAGE_PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
+  python "$HERE/slow-page-server.py" "$PAGE_PORT" > "$OUT/$WHICH-server.log" 2>&1 &
+  PAGE_SERVER_PID=$!
+  a reverse "tcp:$PAGE_PORT" "tcp:$PAGE_PORT" >/dev/null
+  local _
+  for _ in $(seq 1 20); do
+    python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$PAGE_PORT/slow?s=0&id=0')" 2>/dev/null && break
+    sleep 0.5
+  done
+  log "slow page server on port $PAGE_PORT (adb reverse tcp:$PAGE_PORT)"
+}
+
+page_state_cleanup() {
+  close_all_heads
+  [ -n "$PAGE_PORT" ] && a reverse --remove "tcp:$PAGE_PORT" >/dev/null 2>&1 || true
+  [ -n "$PAGE_SERVER_PID" ] && kill "$PAGE_SERVER_PID" >/dev/null 2>&1 || true
+}
+
+now_ms() { python -c 'import time; print(int(time.time() * 1000))'; }
+
+check_page_state() {
+  trap page_state_cleanup EXIT
+  local url finish_source
+  if [ "${HTTPBIN:-0}" = 1 ]; then
+    url="https://httpbin.org/delay/5"
+    finish_source="log"
+  else
+    start_page_server
+    url="http://localhost:$PAGE_PORT/slow?s=6&id=1"
+    finish_source="server"
+  fi
+  # 1. Web heads mode with a clean log; one slow link.
+  web_heads_mode
+  a logcat -c
+  open_link "$url"
+  local windows
+  windows="$(wait_for_overlays 30 2)"
+  [ "$windows" -ge 2 ] || fail "no head window for the slow link (found $windows overlay windows)"
+  local frame
+  frame="$(overlay_windows | awk '$1 == 1 { print $2, $3, $4, $5; exit }')"
+  [ -n "$frame" ] || fail "no front head window"
+  log "head window frame: $frame"
+  # 2. A screenshot every 500 ms for 12 s, each with its host time.
+  : > "$OUT/page-state-times.tsv"
+  local n t
+  for n in $(seq -w 1 24); do
+    t="$(now_ms)"
+    shot "page-state-$n"
+    printf '%s\t%s\n' "$n" "$t" >> "$OUT/page-state-times.tsv"
+    sleep 0.5
+  done
+  # 3. When the page finished: the server's end line (host time) and the head's log line.
+  app_logcat page-state
+  cp "$OUT/page-state.crash.txt" "$OUT/page-state-crash.txt"
+  local loaded_line
+  loaded_line="$(grep -E "Head page .*: Loaded by" "$OUT/page-state.logcat.txt" | head -1 || true)"
+  log "head log line: ${loaded_line:-none}"
+  [ -n "$loaded_line" ] || fail "no \"Head page ... Loaded\" log line for the slow link"
+  # 4. Judge the crops: turning and faded before the finish, still and full from 1 s after it.
+  if ! python - "$OUT" "$frame" "$finish_source" <<'PY' | tee -a "$OUT/page-state.txt"; then
+import datetime, glob, os, sys
+from PIL import Image, ImageChops
+
+out, frame, source = sys.argv[1], [int(v) for v in sys.argv[2].split()], sys.argv[3]
+times = dict(line.split("\t") for line in open(os.path.join(out, "page-state-times.tsv")).read().split("\n") if line)
+shots = []
+for name, t in sorted(times.items()):
+    img = Image.open(os.path.join(out, f"page-state-{name}.png")).convert("RGB")
+    l, t0, r, b = frame
+    l, t0, r, b = max(l, 0), max(t0, 0), min(r, img.width), min(b, img.height)
+    shots.append((int(t), img.crop((l, t0, r, b))))
+
+if source == "server":
+    ends = [line for line in open(os.path.join(out, "page-state-server.log")) if " end id=1" in line]
+    if not ends:
+        print("FAIL the server never answered the slow page"); sys.exit(1)
+    clock = ends[0].split()[0]
+    today = datetime.date.today()
+    finish = int(datetime.datetime.combine(today, datetime.time.fromisoformat(clock)).timestamp() * 1000)
+else:
+    # httpbin answers after 5 s; the head's log line follows the site details fetch.
+    finish = shots[0][0] + 5_000
+
+def changed(a, b):
+    diff = ImageChops.difference(a, b).convert("L").point(lambda v: 255 if v > 8 else 0)
+    return sum(1 for v in diff.getdata() if v) / (a.width * a.height)
+
+def centre(img):
+    w, h = img.size
+    box = img.crop((int(w * 0.4), int(h * 0.4), int(w * 0.6), int(h * 0.6)))
+    px = list(box.getdata())
+    return tuple(sum(p[i] for p in px) / len(px) for i in range(3))
+
+def corner(img):
+    return img.getpixel((1, 1))
+
+def dist(a, b):
+    return sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
+
+before = [s for s in shots if s[0] < finish - 300]
+after = [s for s in shots if s[0] >= finish + 1_000]
+print(f"shots: {len(shots)}, before the finish: {len(before)}, from 1 s after: {len(after)}")
+ok = True
+if len(before) < 3 or len(after) < 3:
+    print("FAIL too few shots on one side of the finish"); sys.exit(1)
+
+turning = [changed(a[1], b[1]) > 0.002 for a, b in zip(before, before[1:])]
+line = f"turning while loading: {sum(turning)} of {len(turning)} consecutive pairs differ"
+if sum(turning) >= 0.8 * len(turning):
+    print("PASS " + line)
+else:
+    print("FAIL " + line); ok = False
+
+still = [changed(a[1], b[1]) <= 0.002 for a, b in zip(after, after[1:])]
+line = f"still after the finish: {sum(still)} of {len(still)} consecutive pairs are the same"
+if all(still):
+    print("PASS " + line)
+else:
+    print("FAIL " + line); ok = False
+
+bg = corner(after[-1][1])
+full = centre(after[-1][1])
+faded = [dist(centre(s[1]), bg) < dist(full, bg) - 10 for s in before]
+line = f"faded while loading: {sum(faded)} of {len(faded)} shots have the fill nearer the background than the full head"
+if all(faded):
+    print("PASS " + line)
+else:
+    print("FAIL " + line); ok = False
+
+full_after = [dist(centre(s[1]), full) < 6 for s in after]
+line = f"full after the finish: {sum(full_after)} of {len(full_after)} shots match the full fill"
+if all(full_after):
+    print("PASS " + line)
+else:
+    print("FAIL " + line); ok = False
+sys.exit(0 if ok else 1)
+PY
+    fail "the head did not show its page state (see page-state.txt)"
+  fi
+  [ ! -s "$OUT/page-state-crash.txt" ] || fail "crash while the head loaded (see page-state-crash.txt)"
+  log "page-state passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
@@ -1158,5 +1316,6 @@ case "$WHICH" in
   trash) check_trash ;;
   aggressive) check_aggressive ;;
   bubble-minimize) check_bubble_minimize ;;
+  page-state) check_page_state ;;
   *) echo "unknown check: $WHICH; $USAGE" >&2; exit 2 ;;
 esac
