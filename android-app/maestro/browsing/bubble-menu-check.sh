@@ -8,6 +8,30 @@
 #                open before the tap, and a page left shows no count when it is the only bubble (else
 #                a count of the bubbles left); bubbles of an earlier run, such as the setup's, stay open
 #
+# The menu audit modes tap each item of the menu and the bottom bar of a page in an expanded
+# native bubble and write one row per item to bubble-menu-audit.tsv: works or misbehaves, and why.
+# Each mode seeds its own settings (maestro/seed/bubble-menu-audit.xml, which clears the app's
+# data: never run it on a device with a person's data) and runs the native bubble setup of
+# maestro/webheads/webheads-check.sh itself, so it needs no setup run before it:
+#
+#   item <name>    one item, with the bottom bar on and Share as the menu button (the names are
+#                  listed by "item" with an unknown name)
+#   audit-menu     Copy link, Open with, Share, History and Add to Home Screen in the menu
+#   audit-action   Share with <app> and the menu button for each preferred action (a secondary
+#                  browser, a favourite share app, Share); an action whose app the device lacks
+#                  gets a not-tested row
+#   audit-bar      New tab, Share, Tabs, Minimize and Article mode in the bottom bar
+#   audit-bar-off  Tabs and Article mode in the menu, with the bottom bar off
+#   hidden         with the bottom bar on, then off, the menu and the bar of a page in a bubble
+#                  show no item that the committed table (lynket/src/test/resources/
+#                  bubble-menu-audit.tsv) says misbehaves, show every item it says works, and
+#                  start with Open in full window
+#
+# An item misbehaves when, after the tap, the app crashed, a full app screen opened inside the
+# bubble's small window, the page could not be reached again (by Back, or by Home and a tap on
+# the bubble), or nothing happened at all. A judge that cannot read the device writes undecided
+# and fails the mode; it never writes works.
+#
 # The pages come from maestro/reader/fixtures/, served from this host on a free port through adb
 # reverse, so the run needs no external site. FULL_URL replaces the first page with any address,
 # for example an https site (the second page stays a fixture).
@@ -17,20 +41,29 @@
 # (the task and windowing mode of the full window), full-window.png/.xml (the full window),
 # full-window-other.png/.xml (the bubble that is left), full-window.logcat.txt and
 # full-window.crash.txt, and a PASS or FAIL line in bubble-menu.txt. On exit it stops the server
-# and removes the reverse.
+# and removes the reverse. The audit modes write, per item, item-<name>-before.png/.xml (the menu
+# open, before the tap), item-<name>-after.png/.xml (2 s after it), item-<name>-activities.txt,
+# item-<name>-windows.txt, item-<name>-notifications.txt, item-<name>.logcat.txt and
+# item-<name>.crash.txt; per setting settings-<setting>.xml and the setup folder
+# setup-<setting>/; and a DONE or FAIL line per mode in bubble-menu.txt (DONE: every item has a
+# works or misbehaves row, whatever the outcomes). hidden writes hidden-<setting>-menu.png/.xml
+# and PASS or FAIL.
 #
-# Usage: maestro/browsing/bubble-menu-check.sh <serial> <evidence-dir> <full-window>
+# Usage: maestro/browsing/bubble-menu-check.sh <serial> <evidence-dir> <mode>
 #        (run from android-app/)
 set -euo pipefail
 
-USAGE="usage: bubble-menu-check.sh <serial> <evidence-dir> <full-window>"
+USAGE="usage: bubble-menu-check.sh <serial> <evidence-dir> <full-window|item <name>|audit-menu|audit-bar|audit-bar-off|audit-action|hidden>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 MODE="${3:?$USAGE}"
-case "$MODE" in full-window) ;; *) echo "$USAGE" >&2; exit 2 ;; esac
+ITEM_NAME="${4:-}"
+case "$MODE" in full-window|item|audit-menu|audit-bar|audit-bar-off|audit-action|hidden) ;; *) echo "$USAGE" >&2; exit 2 ;; esac
 source "$(dirname "$0")/../webheads/lib.sh"
 BM_HERE="$(hostpath "$(cd "$(dirname "$0")" && pwd)")"
 FIXTURES="$BM_HERE/../reader/fixtures"
+SEED_FILE="$BM_HERE/../seed/bubble-menu-audit.xml"
+TABLE="$BM_HERE/../../lynket/src/test/resources/bubble-menu-audit.tsv"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
 LOG_NAME="bubble-menu-$MODE"
@@ -42,7 +75,8 @@ SERVER_PID=""
 RESULT=FAIL
 
 cleanup() {
-  echo "$MODE $RESULT" >> "$OUT/bubble-menu.txt"
+  case "$MODE" in full-window|hidden) ;; *) [ "$RESULT" = PASS ] && RESULT=DONE ;; esac
+  echo "$MODE${ITEM_NAME:+ $ITEM_NAME} $RESULT" >> "$OUT/bubble-menu.txt"
   [ -n "$PORT" ] && a reverse --remove "tcp:$PORT" >/dev/null 2>&1 || true
   [ -n "$SERVER_PID" ] && kill "$SERVER_PID" >/dev/null 2>&1 || true
 }
@@ -286,6 +320,52 @@ check_full_window() {
   grep -q "$PKG" "$OUT/full-window.crash.txt" && fail "the app crashed (full-window.crash.txt)"
   RESULT=PASS
   log "PASS"
+}
+
+# ---------------------------------------------------------------------------------------------
+# The menu audit
+
+# The first activity of another app that takes the intent "$@", as package/activity; empty when
+# the device has none. $PREFER names packages to pick first, in order.
+other_app_for() {
+  local found pkg
+  found="$(a shell cmd package query-activities --brief "$@" | tr -d '\r' |
+    grep -oE '^ *[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+$' | tr -d ' ' | grep -v "^$PKG/" || true)"
+  for pkg in ${PREFER:-}; do
+    grep -m1 "^$pkg/" <<< "$found" && return 0
+  done
+  head -1 <<< "$found"
+}
+
+BROWSER=""
+SHARE_APP=""
+SETTING=""
+
+# Seeds the settings of one audit setting and sets up native bubbles. $1 = bar-on or bar-off,
+# $2 = the preferred action of the menu button (1 secondary browser, 2 favourite share app,
+# 3 Share), $3 = the setting's name in the table (bar-on, bar-off, action=browser, ...).
+audit_setup() {
+  local bar="$1" action="$2" bar_value=true
+  SETTING="$3"
+  [ "$bar" = bar-off ] && bar_value=false
+  BROWSER="$(other_app_for -a android.intent.action.VIEW -d https://example.com)"
+  SHARE_APP="$(PREFER="com.google.android.apps.messaging com.google.android.gm" other_app_for -a android.intent.action.SEND -t text/plain)"
+  log "setting $SETTING: bottom bar $bar_value, preferred action $action, browser ${BROWSER:-none}, share app ${SHARE_APP:-none}"
+  sed -e "s|@BOTTOM_BAR@|$bar_value|" -e "s|@ACTION@|$action|" -e "s|@BROWSER@|$BROWSER|" -e "s|@FAV_SHARE@|$SHARE_APP|" \
+    "$SEED_FILE" > "$OUT/settings-$SETTING.xml"
+  seed_settings "$OUT/settings-$SETTING.xml"
+  # The setup's own last test can fail on another app's line after the bubble posted, so the
+  # bubble itself is the pass.
+  bash "$BM_HERE/../webheads/webheads-check.sh" "$SERIAL" "$OUT/setup-$SETTING" bubble > "$OUT/setup-$SETTING.log" 2>&1 || true
+  notifications "setup-$SETTING-notifications.txt"
+  [ -n "$(bubble_flag_lines "$OUT/setup-$SETTING-notifications.txt")" ] ||
+    fail "the native bubble setup posted no bubble (see setup-$SETTING.log)"
+  local stored
+  stored="$(stored_setting bottombar_enabled_preference "settings-$SETTING-stored.tsv")"
+  [ "$stored" = "$bar_value" ] || fail "the stored bottom bar setting is ${stored:-none}, not $bar_value"
+  stored="$(awk -F'\t' '$1 == "preferred_action_preference" { print $3 }' "$OUT/settings-$SETTING-stored.tsv")"
+  [ "$stored" = "$action" ] || fail "the stored preferred action is ${stored:-none}, not $action"
+  log "setting $SETTING stored"
 }
 
 case "$MODE" in
