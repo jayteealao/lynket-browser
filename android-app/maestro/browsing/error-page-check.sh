@@ -118,6 +118,7 @@ cleanup() {
   if [ "$WEBVIEW_BEFORE" = false ]; then webview_mode off || true; fi
   if [ -n "$WEBHEADS_BEFORE$BUBBLES_BEFORE" ]; then
     choose_mode "$(mode_title "$WEBHEADS_BEFORE" "$BUBBLES_BEFORE")" || true
+    tap_text "OK" || true  # Native Bubbles opens its beta notice; left open, it covers the next run's rows
     a shell input keyevent KEYCODE_HOME
   fi
   [ -n "$PORT" ] && a reverse --remove "tcp:$PORT" >/dev/null 2>&1 || true
@@ -323,6 +324,12 @@ network_back() {
   fi
 }
 
+# The node of the Retry button in a UI dump on stdin: the clickable parent of the Retry text, which
+# carries the button's enabled state.
+retry_button() {
+  tr '>' '\n' | grep -B1 -F 'text="Retry"' | head -1
+}
+
 # Taps Retry, or with PULL=1 pulls down on the error page, then saves one dump as
 # <mode>-retrying.xml and logs whether Retry showed disabled in it.
 tap_retry() {
@@ -337,7 +344,7 @@ tap_retry() {
     tap_on 'text="Retry"' || fail "no Retry to tap"
   fi
   ui_dump > "$OUT/$MODE-retrying.xml"
-  if tr '>' '\n' < "$OUT/$MODE-retrying.xml" | grep -F 'text="Retry"' | grep -qF 'enabled="false"'; then
+  if retry_button < "$OUT/$MODE-retrying.xml" | grep -qF 'enabled="false"'; then
     log "Retry showed disabled during the retry"
   else
     log "Retry was not caught disabled (the retry can end before the dump)"
@@ -469,7 +476,7 @@ retry-offline)
   tap_retry
   sleep 4
   assert_error_page "You are offline"
-  ui_dump | tr '>' '\n' | grep -F 'text="Retry"' | grep -qF 'enabled="true"' || fail "Retry is not enabled after the retry failed"
+  ui_dump | retry_button | grep -qF 'enabled="true"' || fail "Retry is not enabled after the retry failed"
   capture retry-offline
   ;;
 

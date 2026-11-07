@@ -37,6 +37,7 @@ import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.bubbleNotificationId
 import arun.com.chromer.bubbles.system.EXTRA_BUBBLE_NOTIFICATION_ID
 import arun.com.chromer.data.preferences.BrowsingMode.NativeBubbles
+import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.webview.LoadFailure
 import arun.com.chromer.ui.webview.PageLoad
@@ -300,6 +301,30 @@ class WebViewRetryTest {
     activity.start(failed)
     activity.finishLoad()
     activity.title("Example Domain")
+
+    tag("webview-title").assertTextEquals("Example Domain")
+  }
+
+  /** The site details lookup ends with no title for a page that failed, or that a retry loaded. */
+  @Test
+  fun siteDetailsWithNoTitleKeepTheSiteOfAFailedPageAndThePageTitleAfterARetry() {
+    val activity = openBubble()
+    fakeNetwork.online = false
+    activity.start()
+    activity.fail(ERROR_HOST_LOOKUP)
+
+    activity.onWebsiteLoaded(Website(failed))
+    composeRule.waitForIdle()
+
+    tag("webview-title").assertTextEquals("example.com")
+
+    fakeNetwork.online = true
+    tapRetry()
+    activity.start(failed)
+    activity.title("Example Domain")
+    activity.finishLoad()
+    activity.onWebsiteLoaded(Website(failed))
+    composeRule.waitForIdle()
 
     tag("webview-title").assertTextEquals("Example Domain")
   }

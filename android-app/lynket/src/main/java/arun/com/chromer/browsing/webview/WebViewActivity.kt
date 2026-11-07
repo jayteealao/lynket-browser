@@ -295,7 +295,10 @@ open class WebViewActivity : BrowsingActivity() {
   }
 
   override fun onWebsiteLoaded(website: Website) {
-    page = page.copy(title = website.safeLabel(), address = website.url)
+    // Site details with no title, as for a page that did not load, keep the title the bar has: the
+    // page's own, or the site of a failed page. Only a page with no title yet takes the address.
+    val title = website.title?.takeIf { it.isNotEmpty() && !showsFailure } ?: page.title.ifEmpty { website.safeLabel() }
+    page = page.copy(title = title, address = website.url)
   }
 
   override fun onToolbarColorSet(websiteThemeColor: Int) {
