@@ -89,6 +89,7 @@ open class WebViewActivity : BrowsingActivity() {
   private val bars = WebViewBarsState()
   private var page by mutableStateOf(WebViewPage(title = "", address = "", progress = 0))
   private var toolbarColour by mutableIntStateOf(0)
+  private var firstPageFinishLogged = false
 
   /** Follows the page from its load start to loaded or failed, for both the tab and the bubble. */
   private val loadTracker by lazy {
@@ -188,6 +189,11 @@ open class WebViewActivity : BrowsingActivity() {
         super.onPageFinished(view, url)
         swipeRefresh?.isRefreshing = false
         loadTracker.finished(url.orEmpty())
+        // The link-open timing check on a device reads this line; it names no address.
+        if (!firstPageFinishLogged) {
+          firstPageFinishLogged = true
+          Timber.d("Page finished first")
+        }
       }
 
       // Only the page itself can fail the page: an image, a frame or a script that does not load
