@@ -65,6 +65,41 @@ class BrowsingMenuTest {
   }
 
   @Test
+  fun aPageInABubbleStartsWithOpenInFullWindow() {
+    val items = browsingMenuItems(BrowsingScreen.WebView, bottomBar = true, actionButton = share, shareWithApp = null, text = text, inBubble = true)
+    assertThat(ids(items)).containsExactly(
+      "menu_open_in_full_window", "menu_action_button", "menu_copy_link", "menu_open_with", "menu_share",
+      "menu_history", "menu_add_to_home_screen",
+    ).inOrder()
+    val full = items.first()
+    assertThat(full.title).isEqualTo("Open in full window")
+    assertThat(full.placement).isEqualTo(MenuPlacement.Overflow)
+    assertThat(full.iconRes).isNull()
+    assertThat(full.appIcon).isNull()
+    assertThat(items.first { it.placement == MenuPlacement.Overflow }).isSameInstanceAs(full)
+  }
+
+  @Test
+  fun aPageInABubbleWithTheBottomBarOffStillStartsWithOpenInFullWindow() {
+    val items = browsingMenuItems(BrowsingScreen.WebView, bottomBar = false, actionButton = share, shareWithApp = null, text = text, inBubble = true)
+    assertThat(ids(items)).containsExactly(
+      "menu_open_in_full_window", "menu_action_button", "menu_copy_link", "menu_open_with", "menu_share",
+      "menu_history", "menu_add_to_home_screen", "tabs", "bottom_bar_article_view",
+    ).inOrder()
+    assertThat(items.first { it.placement == MenuPlacement.Overflow }.id).isEqualTo(R.id.menu_open_in_full_window)
+  }
+
+  @Test
+  fun aPageOutsideABubbleHasNoOpenInFullWindow() {
+    for (screen in BrowsingScreen.entries) {
+      for (bottomBar in listOf(true, false)) {
+        val items = browsingMenuItems(screen, bottomBar, actionButton = share, shareWithApp = "Messages", text = text)
+        assertThat(ids(items)).doesNotContain("menu_open_in_full_window")
+      }
+    }
+  }
+
+  @Test
   fun bottomBarsInTheOldOrder() {
     assertThat(ids(browsingBottomBarItems(BrowsingScreen.Article, true, text))).containsExactly(
       "bottom_bar_open_in_new_tab", "bottom_bar_share", "bottom_bar_tabs", "bottom_bar_minimize_tab",

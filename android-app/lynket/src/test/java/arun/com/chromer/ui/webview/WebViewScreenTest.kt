@@ -26,7 +26,10 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -46,6 +49,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -70,6 +74,7 @@ class WebViewScreenTest {
     bottomBar: Boolean = true,
     bars: WebViewBarsState = WebViewBarsState(),
     fontScale: Float = 1f,
+    inBubble: Boolean = false,
   ) {
     composeRule.setContent {
       val density = LocalDensity.current.density
@@ -78,7 +83,7 @@ class WebViewScreenTest {
           WebViewScreen(
             page = page,
             toolbarColour = Color(0xFF3F51B5),
-            menuItems = browsingMenuItems(BrowsingScreen.WebView, bottomBar, ActionButton("Share", iconRes = R.drawable.ic_share_24dp), null, text),
+            menuItems = browsingMenuItems(BrowsingScreen.WebView, bottomBar, ActionButton("Share", iconRes = R.drawable.ic_share_24dp), null, text, inBubble),
             bottomBarItems = browsingBottomBarItems(BrowsingScreen.WebView, bottomBar, text),
             bars = bars,
             onClose = { events += "close" },
@@ -134,6 +139,56 @@ class WebViewScreenTest {
     composeRule.onNodeWithTag("menu-tabs").assertIsDisplayed()
     composeRule.onNodeWithTag("menu-bottom_bar_article_view").performClick()
     assertThat(events).containsExactly("bottom_bar_article_view")
+  }
+
+  @Test
+  fun inABubbleOpenInFullWindowIsTheFirstItemOfTheMenu() {
+    show(WebViewPage("Fixture", "http://localhost:8000/a.html", 100, BubblePageCount(2, 3)), inBubble = true)
+    composeRule.onNodeWithTag("browsing-overflow").performClick()
+
+    val full = composeRule.onNodeWithTag("menu-menu_open_in_full_window")
+    full.assertIsDisplayed()
+    val items = composeRule.onAllNodes(hasAnyAncestor(hasTestTag("browsing-overflow-menu")))
+      .fetchSemanticsNodes()
+      .filter { SemanticsProperties.TestTag in it.config && it.config[SemanticsProperties.TestTag].startsWith("menu-") }
+    assertThat(items.size).isGreaterThan(1)
+    val fullTop = full.fetchSemanticsNode().boundsInRoot.top
+    items.filter { it.config[SemanticsProperties.TestTag] != "menu-menu_open_in_full_window" }
+      .forEach { assertThat(fullTop).isLessThan(it.boundsInRoot.top) }
+
+    full.performClick()
+    assertThat(events).containsExactly("menu_open_in_full_window")
+  }
+
+  @Test
+  fun outsideABubbleTheMenuHasNoOpenInFullWindow() {
+    show(WebViewPage("Fixture", "http://localhost:8000/a.html", 100))
+    composeRule.onNodeWithTag("browsing-overflow").performClick()
+
+    composeRule.onNodeWithTag("menu-menu_copy_link").assertIsDisplayed()
+    assertThat(composeRule.onAllNodesWithTag("menu-menu_open_in_full_window").fetchSemanticsNodes()).isEmpty()
+  }
+
+  // Real text measurement: the legacy graphics mode does not break lines. The font scale is the
+  // device's, so the menu's own window takes it too.
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun atDoubleTextSizeOpenInFullWindowStaysWhole() {
+    RuntimeEnvironment.setFontScale(2f)
+    show(WebViewPage("Fixture", "http://localhost:8000/a.html", 100, BubblePageCount(2, 3)), inBubble = true)
+    composeRule.onNodeWithTag("browsing-overflow").performClick()
+
+    val label = composeRule.onNodeWithText("Open in full window", useUnmergedTree = true)
+    label.assertIsDisplayed()
+    val layout = label.textLayout()
+    assertThat(layout.layoutInput.density.fontScale).isEqualTo(2f)
+    assertThat(layout.didOverflowHeight).isFalse()
+    assertThat(layout.getLineEnd(layout.lineCount - 1)).isEqualTo("Open in full window".length)
+    val item = composeRule.onNodeWithTag("menu-menu_open_in_full_window").fetchSemanticsNode().boundsInRoot
+    val text = label.fetchSemanticsNode().boundsInRoot
+    assertThat(text.top).isAtLeast(item.top)
+    assertThat(text.bottom).isAtMost(item.bottom)
+    assertThat(text.right).isAtMost(item.right)
   }
 
   @Test
