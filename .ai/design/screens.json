@@ -24,10 +24,11 @@
       "slices": [
         "bubble-dismiss-cleanup",
         "bubble-parallel-fast-posting",
-        "bubble-conversation-features"
+        "bubble-conversation-features",
+        "bubble-notification-guard"
       ],
       "created-at": "2026-10-31T20:41:39Z",
-      "updated-at": "2026-11-03T21:03:23Z",
+      "updated-at": "2026-11-03T21:28:50Z",
       "approvals": [
         {
           "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
@@ -268,11 +269,14 @@
       "flow": "open-link",
       "order": 15,
       "workflows": [
-        "bubble-registry-overflow"
+        "bubble-registry-overflow",
+        "bubble-page-state"
       ],
-      "slices": [],
+      "slices": [
+        "bubble-page-count"
+      ],
       "created-at": "2026-11-03T21:03:23Z",
-      "updated-at": "2026-11-03T21:03:23Z",
+      "updated-at": "2026-11-07T08:41:22Z",
       "approvals": [
         {
           "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
@@ -289,9 +293,11 @@
       "workflows": [
         "bubble-registry-overflow"
       ],
-      "slices": [],
+      "slices": [
+        "bubble-overflow-return"
+      ],
       "created-at": "2026-11-03T21:03:23Z",
-      "updated-at": "2026-11-03T21:03:23Z",
+      "updated-at": "2026-11-03T21:28:50Z",
       "approvals": [
         {
           "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
@@ -299,6 +305,32 @@
           "workflow": "bubble-registry-overflow"
         }
       ]
+    },
+    "web-page-error": {
+      "title": "Page that did not load",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 17,
+      "workflows": [
+        "bubble-page-state"
+      ],
+      "slices": [],
+      "created-at": "2026-11-07T08:41:22Z",
+      "updated-at": "2026-11-07T08:41:22Z",
+      "approvals": []
+    },
+    "web-head-page-state": {
+      "title": "Web head page state",
+      "area": "web-heads",
+      "flow": "open-link",
+      "order": 15,
+      "workflows": [
+        "bubble-page-state"
+      ],
+      "slices": [],
+      "created-at": "2026-11-07T08:41:22Z",
+      "updated-at": "2026-11-07T08:41:22Z",
+      "approvals": []
     }
   },
   "explore": {}

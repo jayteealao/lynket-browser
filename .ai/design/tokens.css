@@ -30,4 +30,14 @@
   --surface-container-highest-dark: #34343A;
   --error-dark: #FFB4AB;
   --on-error-dark: #690005;
+  --error-container: #FFDAD6;
+  --on-error-container: #410002;
+  --error-container-dark: #93000A;
+  --on-error-container-dark: #FFDAD6;
+  --tertiary: #9A4059;
+  --on-tertiary: #FFFBFF;
+  --tertiary-dark: #FFB1C1;
+  --on-tertiary-dark: #5F112C;
+  --surface-container-lowest: #FEFBFF;
+  --surface-container-lowest-dark: #0D0E13;
 }
