@@ -443,6 +443,7 @@ audit_item() {
   line="$(item_line "$name")"
   [ -n "$line" ] || { echo "unknown item $name; items: $(item_names)" >&2; exit 2; }
   read -r _ id where label <<< "$line"
+  local find="$label"
   label="${2:-$label}"
   local ev; ev="$(basename "$OUT")/item-$name"
   [ -n "$PORT" ] || start_server
@@ -478,7 +479,7 @@ audit_item() {
   case "$where" in
     menu)
       tap_on 'resource-id="browsing-overflow"' || { audit_row "$label" "$id" "$where" undecided "no menu button" "$ev-start-activities.txt"; return 1; }
-      wait_for "text=\"$label" || { capture "item-$name-before"; audit_row "$label" "$id" "$where" undecided "the menu has no $label item" "$ev-before.xml"; return 1; }
+      wait_for "text=\"$find" || { capture "item-$name-before"; audit_row "$label" "$id" "$where" undecided "the menu has no $find item" "$ev-before.xml"; return 1; }
       ;;
   esac
   capture "item-$name-before"
@@ -487,9 +488,9 @@ audit_item() {
   if grep -qF "resource-id=\"menu-$id\"" "$OUT/item-$name-before.xml"; then
     ref="resource-id=\"menu-$id\""
   elif [ "$where" = menu ] && [ "$name" = share-with ]; then
-    ref="text=\"$label"
+    ref="text=\"$find"
   elif [ "$where" = menu ]; then
-    ref="text=\"$label\""
+    ref="text=\"$find\""
   else
     audit_row "$label" "$id" "$where" undecided "no menu-$id on screen" "$ev-before.xml"; return 1
   fi
@@ -600,10 +601,83 @@ audit_item() {
   [ "$outcome" != undecided ]
 }
 
+# After each item: Home, stop the other app the item opened, then stop the app, which removes its
+# bubbles, so the next item starts from no bubble and no stack grows past the shell's limit.
+clean_up_item() {
+  a shell input keyevent KEYCODE_HOME
+  [ -z "${LAST_FOREIGN:-}" ] || a shell am force-stop "$LAST_FOREIGN" || true
+  LAST_FOREIGN=""
+  a shell am force-stop "$PKG" || true
+  sleep 2
+}
+
+ITEMS_OK=1
+run_items() {  # $@ = item names, or name=label pairs
+  local n
+  for n in "$@"; do
+    if [[ "$n" == *=* ]]; then audit_item "${n%%=*}" "${n#*=}" || ITEMS_OK=0; else audit_item "$n" || ITEMS_OK=0; fi
+    clean_up_item
+  done
+}
+not_tested() {  # $1 item name, $2 label, $3 reason
+  local line id where
+  line="$(item_line "$1")"; read -r _ id where _ <<< "$line"
+  [ -n "$ANDROID_VERSION" ] || ANDROID_VERSION="$(a shell getprop ro.build.version.release | tr -d '\r')"
+  [ -n "$DEVICE_NAME" ] || DEVICE_NAME="$(a shell getprop ro.product.model | tr -d '\r') ($(a emu avd name 2>/dev/null | tr -d '\r' | head -1))"
+  audit_row "$2" "$id" "$where" not-tested "$3" "$(basename "$OUT")/settings-$SETTING.xml"
+}
+audit_finish() {
+  if [ "$ITEMS_OK" = 1 ] && [ "$ROWS_OK" = 1 ]; then RESULT=PASS; log "every item has a row"; else log "an item has no works or misbehaves row"; fi
+}
+
+audit_menu() {
+  audit_setup bar-on 3 bar-on
+  run_items copy-link open-with share history add-to-home-screen
+  audit_finish
+}
+audit_bar() {
+  audit_setup bar-on 3 bar-on
+  run_items bar-new-tab bar-share bar-tabs bar-minimize bar-article
+  audit_finish
+}
+audit_bar_off() {
+  audit_setup bar-off 3 bar-off
+  run_items menu-tabs menu-article
+  audit_finish
+}
+audit_action() {
+  audit_setup bar-on 2 action=fav-share
+  if [ -n "$SHARE_APP" ]; then
+    run_items "share-with=Share with <app>" "button=Menu button (favourite share app)"
+  else
+    not_tested share-with "Share with <app>" "the device has no app that takes shared text"
+    not_tested button "Menu button (favourite share app)" "the device has no app that takes shared text"
+  fi
+  audit_setup bar-on 1 action=browser
+  if [ -n "$BROWSER" ]; then
+    run_items "button=Menu button (secondary browser)"
+  else
+    not_tested button "Menu button (secondary browser)" "the device has no other browser"
+  fi
+  audit_setup bar-on 3 action=share
+  run_items "button=Menu button (Share)"
+  audit_finish
+}
+audit_one() {
+  audit_setup bar-on 3 bar-on
+  run_items "$ITEM_NAME"
+  audit_finish
+}
+
 case "$MODE" in
   item) [ -n "$(item_line "$ITEM_NAME")" ] || { echo "usage: bubble-menu-check.sh <serial> <evidence-dir> item <name>; items: $(item_names)" >&2; exit 2; } ;;
 esac
 
 case "$MODE" in
   full-window) check_full_window ;;
+  item) audit_one ;;
+  audit-menu) audit_menu ;;
+  audit-bar) audit_bar ;;
+  audit-bar-off) audit_bar_off ;;
+  audit-action) audit_action ;;
 esac
