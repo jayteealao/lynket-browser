@@ -22,6 +22,7 @@
   <item name="menu_history" type="id" />
   <item name="menu_add_to_home_screen" type="id" />
   <item name="menu_open_full_page" type="id" />
+  <item name="menu_open_in_full_window" type="id" />
   <item name="menu_action_button" type="id" />
   <item name="menu_copy_link" type="id" />
   <item name="menu_open_with" type="id" />

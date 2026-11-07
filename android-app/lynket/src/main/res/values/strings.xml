@@ -238,6 +238,7 @@
   <string name="link_not_found">AMP link not found</string>
   <string name="open">Open</string>
   <string name="open_full_page">Open full page</string>
+  <string name="open_in_full_window">Open in full window</string>
   <string name="more">More</string>
   <string name="title_history">History</string>
   <string name="deleted_items">%1$d items deleted.</string>
