@@ -215,3 +215,34 @@ class WebPageErrorTest {
     composeRule.runOnIdle { assertThat(bars.top.heightOffset).isEqualTo(0f) }
   }
 }
+
+/** Each reason a page did not load has its own icon and title, so a new one cannot fall through. */
+@RunWith(AndroidJUnit4::class)
+@Config(application = Application::class)
+class WebPageErrorContentTest {
+
+  @Test
+  fun everyCauseHasADistinctIconAndTitle() {
+    val contents = LoadFailure.entries.map(::errorContentOf)
+    assertThat(contents.map { it.icon }.toSet()).hasSize(LoadFailure.entries.size)
+    assertThat(contents.map { it.title }.toSet()).hasSize(LoadFailure.entries.size)
+    assertThat(contents.map { it.body }.toSet()).hasSize(LoadFailure.entries.size)
+  }
+
+  @Test
+  fun onlyTheOfflineBodyLeavesTheSiteOut() {
+    assertThat(LoadFailure.entries.filterNot { errorContentOf(it).bodyNamesSite }).containsExactly(LoadFailure.Offline)
+  }
+
+  @Test
+  fun theSiteIsTheHostOfTheAddress() {
+    assertThat(siteOf("https://lemire.me/blog")).isEqualTo("lemire.me")
+    assertThat(siteOf("http://$WORST_HOST/some/deep/path")).isEqualTo(WORST_HOST)
+  }
+
+  @Test
+  fun anAddressWithNoHostIsItsOwnSite() {
+    assertThat(siteOf("not a url")).isEqualTo("not a url")
+    assertThat(siteOf("about:blank")).isEqualTo("about:blank")
+  }
+}
