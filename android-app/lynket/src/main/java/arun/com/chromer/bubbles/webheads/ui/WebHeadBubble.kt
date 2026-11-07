@@ -38,7 +38,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -57,8 +61,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
@@ -74,6 +80,7 @@ import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadState
 import arun.com.chromer.util.Utils
 import arun.com.chromer.ui.theme.readableContentColor
+import kotlinx.coroutines.delay
 
 /** What a head forwards from the finger; positions are raw screen coordinates. */
 interface WebHeadGestures {
@@ -90,6 +97,12 @@ interface WebHeadGestures {
 }
 
 const val WEB_HEAD_TEST_TAG = "web_head"
+
+/** How long a head stays a live region after its page finishes, so a screen reader says the finish once. */
+internal const val PAGE_CHANGE_ANNOUNCE_MS = 2_000L
+
+/** The page state a head showed last, to tell a finish from any other change. */
+private class ShownPageState(var value: PageState)
 
 /**
  * A web head: a circle with a primary ring, the favicon or the first letter of the site on the
@@ -118,6 +131,21 @@ fun WebHeadBubble(
     stringResource(R.string.web_head_content_description_with_state, label, head.stackPosition, head.badgeCount, stringResource(stateWord))
   } else {
     stringResource(R.string.web_head_content_description, label, head.stackPosition, head.badgeCount)
+  }
+  // A finish is a move from loading to loaded or failed; running out of time, a start, a new title
+  // or a new place in the stack is not one.
+  val shown = remember(head) { ShownPageState(head.pageState) }
+  val finished = remember(head, head.pageState) {
+    val from = shown.value
+    shown.value = head.pageState
+    from == PageState.Loading && (head.pageState == PageState.Loaded || head.pageState == PageState.Failed)
+  }
+  var announcing by remember(head, head.pageState) { mutableStateOf(finished && !head.closing) }
+  LaunchedEffect(head, head.pageState, announcing) {
+    if (announcing) {
+      delay(PAGE_CHANGE_ANNOUNCE_MS)
+      announcing = false
+    }
   }
   val openLabel = stringResource(R.string.web_head_action_open)
   val listLabel = stringResource(R.string.web_head_action_list)
@@ -170,6 +198,9 @@ fun WebHeadBubble(
       .semantics {
         testTagsAsResourceId = true
         contentDescription = description
+        // The head is a live region only just after its page finishes, so a screen reader says the
+        // finish once; always on, it would also say every new title and every renumbering of the stack.
+        if (announcing && !head.closing) liveRegion = LiveRegionMode.Polite
         // Every gesture has a non-drag way in: open, the list of heads, and close.
         if (gestures != null) {
           role = Role.Button
