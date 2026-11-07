@@ -60,7 +60,9 @@ import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.WebUrl
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
+import arun.com.chromer.ui.webview.PageLoad
 import arun.com.chromer.ui.webview.WebViewBarsState
+import arun.com.chromer.ui.webview.siteOf
 import arun.com.chromer.ui.webview.WebViewPage
 import arun.com.chromer.ui.webview.WebViewScreen
 import arun.com.chromer.util.ColorUtil
@@ -93,7 +95,21 @@ open class WebViewActivity : BrowsingActivity() {
 
   /** Follows the page from its load start to loaded or failed, for both the tab and the bubble. */
   private val loadTracker by lazy {
-    PageLoadTracker(isOnline = { networkMonitor.isOnlineNow() }, onChange = { page = page.copy(load = it) })
+    PageLoadTracker(isOnline = { networkMonitor.isOnlineNow() }, onChange = {
+      // A failed page is titled with its site, as the WebView's own error page has no real title.
+      page = page.copy(load = it, title = if (it is PageLoad.Failed && !it.retrying) siteOf(it.address) else page.title)
+    })
+  }
+
+  /** Whether the page failed and no retry runs, so what the WebView shows is its own error page. */
+  private val showsFailure: Boolean
+    get() = (loadTracker.state as? PageLoad.Failed)?.retrying == false
+
+  // Retry loads the address that failed again, so the WebView's own error page is never reloaded.
+  private fun retryFailedPage() {
+    val address = loadTracker.retry() ?: return
+    page = page.copy(progress = 0)
+    webView?.loadUrl(address)
   }
 
   // Back goes through the page history first; with predictive back (targetSdk 36) the system no
@@ -144,6 +160,7 @@ open class WebViewActivity : BrowsingActivity() {
           bars = bars,
           onClose = ::finish,
           onMenuItem = { menuDelegate.handleItemSelected(it.id) },
+          onRetry = ::retryFailedPage,
           modifier = Modifier.semantics { testTagsAsResourceId = true },
         ) { modifier ->
           AndroidView(
@@ -230,6 +247,8 @@ open class WebViewActivity : BrowsingActivity() {
     view.webChromeClient = object : WebChromeClient() {
       override fun onReceivedTitle(view: WebView?, title: String?) {
         super.onReceivedTitle(view, title)
+        // The title of the WebView's own error page never reaches the bar.
+        if (showsFailure) return
         if (!title.isNullOrEmpty()) page = page.copy(title = title)
       }
 
