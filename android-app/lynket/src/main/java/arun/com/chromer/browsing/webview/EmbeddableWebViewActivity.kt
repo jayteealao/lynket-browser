@@ -20,6 +20,9 @@
 
 package arun.com.chromer.browsing.webview
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.annotation.ChecksSdkIntAtLeast
@@ -30,6 +33,8 @@ import arun.com.chromer.bubbles.pageCount
 import arun.com.chromer.bubbles.system.BubbleCloser
 import arun.com.chromer.bubbles.system.EXTRA_BUBBLE_NOTIFICATION_ID
 import arun.com.chromer.data.preferences.BrowsingMode
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
+import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -46,6 +51,9 @@ import javax.inject.Inject
  * delete intent. So every finish of a page in a bubble closes the bubble, the X of the top bar and a
  * page that gave up alike, and the newest overflow bubble can take its place. Back folds the stack
  * and Android ends a page whose bubble has left without either of them reaching [finish].
+ *
+ * Open in full window, the first item of the menu in a bubble, is the way out to a full window: it
+ * opens the same page in a task of its own and closes the bubble, see [openInFullWindow].
  */
 @AndroidEntryPoint
 class EmbeddableWebViewActivity : WebViewActivity() {
@@ -61,6 +69,9 @@ class EmbeddableWebViewActivity : WebViewActivity() {
   val inBubble: Boolean
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)
 
+  /** Set by [openInFullWindow], so the close of the bubble does not keep its stack open. */
+  private var leavingForFullWindow = false
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     if (isFinishing || !intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)) return
@@ -73,9 +84,34 @@ class EmbeddableWebViewActivity : WebViewActivity() {
 
   override fun finish() {
     if (!isFinishing && inBubble) {
-      bubbleCloser.get().closePage(intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)) { super.finish() }
+      val id = intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)
+      bubbleCloser.get().closePage(id, leavingTheStack = leavingForFullWindow) { super.finish() }
     } else {
       super.finish()
     }
   }
+
+  /**
+   * Opens the page on screen in a full window, with its colour and its incognito state, then closes
+   * the bubble. The window starts first, so the page is never gone with nothing in its place. Does
+   * nothing for a page that is not in a bubble or that is already closing.
+   */
+  fun openInFullWindow() {
+    if (!inBubble || isFinishing) return
+    startActivity(fullWindowIntent(this, getCurrentUrl(), incognito, toolbarColour))
+    leavingForFullWindow = true
+    finish()
+  }
 }
+
+/**
+ * The intent of the full window for a page that leaves its bubble: [WebViewActivity] in a task of
+ * its own, so Android opens it full screen and not in the bubble. Only the page on screen moves, not
+ * its history.
+ */
+internal fun fullWindowIntent(context: Context, address: String, incognito: Boolean, toolbarColour: Int): Intent =
+  Intent(context, WebViewActivity::class.java)
+    .setData(Uri.parse(address))
+    .putExtra(EXTRA_KEY_INCOGNITO, incognito)
+    .putExtra(EXTRA_KEY_TOOLBAR_COLOR, toolbarColour)
+    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NEW_DOCUMENT or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)

@@ -220,6 +220,7 @@ class MenuDelegate @Inject constructor(
         activityNames = listOf(CustomTabActivity::class.java.name),
         incognito = incognito
       )
+      R.id.menu_open_in_full_window -> (activity as? EmbeddableWebViewActivity)?.openInFullWindow()
       android.R.id.home -> activity.finish()
       R.id.bottom_bar_open_in_new_tab -> tabsManager.openNewTab(activity, currentUrl)
       R.id.bottom_bar_share -> shareUrl()
