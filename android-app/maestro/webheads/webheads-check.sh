@@ -834,12 +834,13 @@ check_speech() {
   log "descriptions:"
   sed 's/^/  /' "$OUT/speech-descriptions.txt" | tee -a "$OUT/speech.txt"
   [ -s "$OUT/speech-descriptions.txt" ] || fail "no head description in any UI dump"
-  local front
-  front="$(grep -cE '^Web head: .+, 1 of 3$' "$OUT/speech-descriptions.txt" || true)"
+  # Each description may end in the page state of its head.
+  local front state='(, (loading|loaded|page did not load))?$'
+  front="$(grep -cE "^Web head: .+, 1 of 3$state" "$OUT/speech-descriptions.txt" || true)"
   [ "$front" -eq 1 ] || fail "the front head does not say 1 of 3"
-  grep -qE ', 2 of 3$' "$OUT/speech-descriptions.txt" || fail "no head says 2 of 3"
-  grep -qE ', 3 of 3$' "$OUT/speech-descriptions.txt" || fail "no head says 3 of 3"
-  log "front title: $(grep -E ', 1 of 3$' "$OUT/speech-descriptions.txt" | sed -E 's/^Web head: (.*), 1 of 3$/\1/') (\"Example Domain\" online, else the address)"
+  grep -qE ", 2 of 3$state" "$OUT/speech-descriptions.txt" || fail "no head says 2 of 3"
+  grep -qE ", 3 of 3$state" "$OUT/speech-descriptions.txt" || fail "no head says 3 of 3"
+  log "front title: $(grep -E ", 1 of 3$state" "$OUT/speech-descriptions.txt" | sed -E 's/^Web head: (.*), 1 of 3(, (loading|loaded|page did not load))?$/\1/') (\"Example Domain\" online, else the address)"
   log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
   # 4. No crash; close the heads.
   app_logcat speech
