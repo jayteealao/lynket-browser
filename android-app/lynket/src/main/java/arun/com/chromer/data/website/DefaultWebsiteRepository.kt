@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -63,62 +63,50 @@ internal constructor(
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-  override fun getWebsite(url: String): Flow<Website> = flow {
-    // Try cache first
-    val cacheResult = cacheStore.getWebsite(url)
-      .onEach { webSite ->
-        if (webSite != null) {
-          scope.launch {
-            historyRepository.insert(webSite)
-          }
-        }
-      }
-      .filterNotNull()
-      .firstOrNull()
+  override fun getWebsite(url: String): Flow<Website> = lookUpWebsite(url, incognito = false).map { it.website }
 
+  override fun lookUpWebsite(url: String, incognito: Boolean): Flow<WebsiteLookup> = flow {
+    // Try cache first
+    val cacheResult = cacheStore.getWebsite(url).filterNotNull().firstOrNull()
     if (cacheResult != null) {
-      emit(cacheResult)
+      if (!incognito) scope.launch { historyRepository.insert(cacheResult) }
+      emit(WebsiteLookup(cacheResult, fetchFailed = false))
       return@flow
     }
 
     // Try history
     val historyResult = historyRepository.get(Website(url))
-
     if (historyResult != null) {
-      scope.launch {
-        historyRepository.insert(historyResult)
-      }
-      emit(historyResult)
+      if (!incognito) scope.launch { historyRepository.insert(historyResult) }
+      emit(WebsiteLookup(historyResult, fetchFailed = false))
       return@flow
     }
 
     // Try remote
-    val remoteResult = webNetworkStore.getWebsite(url)
-      .filterNotNull()
-      .onEach { webSite ->
+    val remoteResult = webNetworkStore.getWebsite(url).filterNotNull().firstOrNull()
+    if (remoteResult != null) {
+      if (!incognito) {
         scope.launch {
-          cacheStore.saveWebsite(webSite)
-          historyRepository.insert(webSite)
+          cacheStore.saveWebsite(remoteResult)
+          historyRepository.insert(remoteResult)
         }
       }
-      .firstOrNull()
-
-    if (remoteResult != null) {
-      emit(remoteResult)
+      emit(WebsiteLookup(remoteResult, fetchFailed = false))
       return@flow
     }
 
-    // If nothing found, emit default
-    emit(Website(url))
+    // Nothing found: the page could not be fetched.
+    emit(WebsiteLookup(Website(url), fetchFailed = true))
   }.catch { throwable ->
     Timber.e(throwable)
-    emit(Website(url))
+    emit(WebsiteLookup(Website(url), fetchFailed = true))
   }.flowOn(Dispatchers.IO)
 
   override fun getWebsiteWithoutHistory(url: String): Flow<Website> =
     lookup(url) { webSite -> scope.launch { cacheStore.saveWebsite(webSite) } }
 
-  override fun getWebsiteWithoutSaving(url: String): Flow<Website> = lookup(url) {}
+  override fun getWebsiteWithoutSaving(url: String): Flow<Website> =
+    lookUpWebsite(url, incognito = true).map { it.website }
 
   /**
    * Reads the website from the cache, then history, then the network, falling back to a bare
