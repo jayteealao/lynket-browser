@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import arun.com.chromer.R
+import arun.com.chromer.bubbles.webheads.motion.PageState
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadState
 import arun.com.chromer.util.Utils
@@ -93,7 +94,9 @@ const val WEB_HEAD_TEST_TAG = "web_head"
 /**
  * A web head: a circle with a primary ring, the favicon or the first letter of the site on the
  * site colour, and a count badge on the side towards the screen. [headSize] is 56 dp, or 48 dp for
- * the small size setting; the window around it has room for the badge and the shadow.
+ * the small size setting; the window around it has room for the badge and the shadow. Screen
+ * readers hear the page state in words too ("loading", "loaded", "page did not load"), so the ring
+ * and the fade are never the only sign of it.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -104,7 +107,18 @@ fun WebHeadBubble(
   modifier: Modifier = Modifier,
 ) {
   val inset = WebHeadMotion.HEAD_WINDOW_INSET_DP.dp
-  val description = stringResource(R.string.web_head_content_description, head.website.safeLabel(), head.stackPosition, head.badgeCount)
+  val stateWord = when (head.pageState) {
+    PageState.Loading -> R.string.web_head_state_loading
+    PageState.Loaded -> R.string.web_head_state_loaded
+    PageState.Failed -> R.string.web_head_state_failed
+    PageState.Unknown -> null
+  }
+  val label = head.website.safeLabel()
+  val description = if (stateWord != null) {
+    stringResource(R.string.web_head_content_description_with_state, label, head.stackPosition, head.badgeCount, stringResource(stateWord))
+  } else {
+    stringResource(R.string.web_head_content_description, label, head.stackPosition, head.badgeCount)
+  }
   val openLabel = stringResource(R.string.web_head_action_open)
   val listLabel = stringResource(R.string.web_head_action_list)
   val closeLabel = stringResource(R.string.web_head_action_close)
