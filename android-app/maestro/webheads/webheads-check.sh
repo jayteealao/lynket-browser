@@ -1167,7 +1167,7 @@ PAGE_SERVER_PID=""
 # Starts slow-page-server.py on a free port and reverses it to the device.
 start_page_server() {
   PAGE_PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
-  python "$HERE/slow-page-server.py" "$PAGE_PORT" > "$OUT/$WHICH-server.log" 2>&1 &
+  python "$(hostpath "$HERE/slow-page-server.py")" "$PAGE_PORT" > "$OUT/$WHICH-server.log" 2>&1 &
   PAGE_SERVER_PID=$!
   a reverse "tcp:$PAGE_PORT" "tcp:$PAGE_PORT" >/dev/null
   local _
