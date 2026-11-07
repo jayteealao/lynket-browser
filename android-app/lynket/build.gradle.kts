@@ -120,6 +120,7 @@ dependencies {
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.webkit)
 
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime)

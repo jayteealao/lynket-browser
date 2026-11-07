@@ -157,6 +157,7 @@ androidx.tracing:tracing:1.1.0=benchmarkCompileClasspath,benchmarkLintChecksClas
 androidx.tracing:tracing:1.2.0=benchmarkTestedApks
 androidx.versionedparcelable:versionedparcelable:1.1.1=benchmarkLintChecksClasspath,benchmarkRuntimeClasspath,benchmarkTestedApks
 androidx.viewpager:viewpager:1.0.0=benchmarkTestedApks
+androidx.webkit:webkit:1.18.0=benchmarkTestedApks
 com.android.tools.analytics-library:protos:32.4.1=androidLintTool
 com.android.tools.analytics-library:shared:32.4.1=androidLintTool
 com.android.tools.analytics-library:tracker:32.4.1=androidLintTool

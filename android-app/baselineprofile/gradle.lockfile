@@ -157,6 +157,7 @@ androidx.tracing:tracing:1.1.0=benchmarkReleaseCompileClasspath,benchmarkRelease
 androidx.tracing:tracing:1.2.0=benchmarkReleaseTestedApks,nonMinifiedReleaseTestedApks
 androidx.versionedparcelable:versionedparcelable:1.1.1=benchmarkReleaseLintChecksClasspath,benchmarkReleaseRuntimeClasspath,benchmarkReleaseTestedApks,nonMinifiedReleaseLintChecksClasspath,nonMinifiedReleaseRuntimeClasspath,nonMinifiedReleaseTestedApks
 androidx.viewpager:viewpager:1.0.0=benchmarkReleaseTestedApks,nonMinifiedReleaseTestedApks
+androidx.webkit:webkit:1.18.0=benchmarkReleaseTestedApks,nonMinifiedReleaseTestedApks
 com.android.tools.analytics-library:protos:32.4.1=androidLintTool
 com.android.tools.analytics-library:shared:32.4.1=androidLintTool
 com.android.tools.analytics-library:tracker:32.4.1=androidLintTool

@@ -14,6 +14,7 @@ kotlinxSerialization = "1.11.0"
 # AndroidX Core
 coreKtx = "1.19.1"
 browser = "1.10.0"
+webkit = "1.18.0"
 
 # Dependency Injection - Hilt
 hilt = "2.60.1"
@@ -58,6 +59,7 @@ palette = "1.1.0"
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 
 # Lifecycle
 androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime", version.ref = "lifecycle" }
