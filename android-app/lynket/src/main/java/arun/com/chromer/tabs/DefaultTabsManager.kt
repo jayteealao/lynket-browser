@@ -465,12 +465,24 @@ constructor(
   private fun opensInWebView(): Boolean =
     preferences.browsingMode() == BrowsingMode.NativeBubbles || shouldUseWebView(incognito = false)
 
-  override fun shouldUseWebView(incognito: Boolean): Boolean {
-    val canSafelyOpenCCT =
-      !preferences.useWebView() && CustomTabs.getCustomTabSupportingPackages(application)
-        .isNotEmpty()
-    val isIncognito = preferences.fullIncognitoMode() || incognito
-    return !(!isIncognito && canSafelyOpenCCT)
+  override fun shouldUseWebView(incognito: Boolean): Boolean = shouldUseWebView(incognito, fromWebHead = false)
+
+  /**
+   * Where a link that opens in a tab shows:
+   * - the app's web view when the person chose it, or when no browser supports Custom Tabs;
+   * - a normal Custom Tab for a normal link;
+   * - for an incognito link (or any link in full incognito mode), an ephemeral Custom Tab when the
+   *   person's browser can open one, else the app's web view;
+   * - the app's web view for an incognito link a web head opened, as web heads keep their web view.
+   */
+  private fun shouldUseWebView(incognito: Boolean, fromWebHead: Boolean): Boolean {
+    if (preferences.useWebView() || CustomTabs.getCustomTabSupportingPackages(application).isEmpty()) {
+      return true
+    }
+    if (!preferences.fullIncognitoMode() && !incognito) {
+      return false
+    }
+    return fromWebHead || !CustomTabs.isEphemeralSupported(application, CustomTabs.customTabPackage(application))
   }
 
   override fun openWebHeads(
