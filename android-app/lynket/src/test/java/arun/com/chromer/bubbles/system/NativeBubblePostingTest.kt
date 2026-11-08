@@ -36,6 +36,7 @@ import arun.com.chromer.bubbles.bubbleNotificationId
 import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.shared.Constants
 import arun.com.chromer.tabs.TabsManager
 import com.google.common.truth.Truth.assertThat
 import io.mockk.Runs
@@ -196,8 +197,12 @@ class NativeBubblePostingTest {
     advanceUntilIdle()
   }
 
-  private fun NativeFloatingBubble.open(url: String, incognito: Boolean = false, color: Int = 0) =
-    openBubble(Website(url), false, false, incognito, null, color)
+  private fun NativeFloatingBubble.open(
+    url: String,
+    incognito: Boolean = false,
+    color: Int = 0,
+    siteColor: Int = Constants.NO_COLOR,
+  ) = openBubble(Website(url), false, false, incognito, null, color, siteColor)
 
   private fun listed() = registry.list(BrowsingMode.NativeBubbles)
 
@@ -1266,6 +1271,59 @@ class NativeBubblePostingTest {
       .allNotifications.single { it.shortcutId == bubbleConversationId(url, incognito) }
       .let { shadowOf(it.bubbleMetadata!!.intent).savedIntent }
 
+  /** The page intent Android would get for [data]: what a real post of it builds. */
+  private fun pageIntentOf(data: BubbleLoadData): Intent {
+    runBlocking { BubbleNotificationManager(application).showBubbles(data) }
+    return bubbleIntentOf(data.website.url, data.incognito)
+  }
+
+  private fun Intent.toolbarColour(): Int? =
+    if (hasExtra(Constants.EXTRA_KEY_TOOLBAR_COLOR)) getIntExtra(Constants.EXTRA_KEY_TOOLBAR_COLOR, 0) else null
+
+  @Test
+  fun a_bubble_opens_its_page_in_the_site_colour() = posting { bubble ->
+    bubble.open(URL, siteColor = SITE_COLOUR)
+    advanceUntilIdle()
+
+    assertThat(postedData.first().siteColor).isEqualTo(SITE_COLOUR)
+    assertThat(pageIntentOf(postedData.first()).toolbarColour()).isEqualTo(SITE_COLOUR)
+  }
+
+  @Test
+  fun a_late_icon_keeps_the_site_colour_of_the_page() = posting { bubble ->
+    iconDelayMs = 500
+    bubble.open(URL, siteColor = SITE_COLOUR)
+    advanceUntilIdle()
+
+    assertThat(posts.map { it.withIcon }).containsExactly(false, true).inOrder()
+    assertThat(postedData.last().siteColor).isEqualTo(SITE_COLOUR)
+    assertThat(pageIntentOf(postedData.last()).toolbarColour()).isEqualTo(SITE_COLOUR)
+  }
+
+  @Test
+  fun a_returned_bubble_keeps_the_site_colour_of_the_page() = posting { bubble ->
+    bubble.open(ONE, siteColor = SITE_COLOUR)
+    advanceUntilIdle()
+    opened(bubble, TWO)
+    inOverflow(ONE)
+
+    bubble.returnNewestOverflowBubble()
+    advanceUntilIdle()
+
+    assertThat(returned).containsExactly(ONE)
+    val back = postedData.first { it.website.url == ONE }
+    assertThat(back.siteColor).isEqualTo(SITE_COLOUR)
+    assertThat(pageIntentOf(back).toolbarColour()).isEqualTo(SITE_COLOUR)
+  }
+
+  @Test
+  fun an_incognito_bubble_opens_its_page_with_no_site_colour() = posting { bubble ->
+    bubble.open(URL, incognito = true, siteColor = SITE_COLOUR)
+    advanceUntilIdle()
+
+    assertThat(pageIntentOf(postedData.first()).hasExtra(Constants.EXTRA_KEY_TOOLBAR_COLOR)).isFalse()
+  }
+
   @Test
   fun a_bubble_intent_names_its_bubble_by_id() {
     runBlocking { BubbleNotificationManager(application).showBubbles(loadData()) }
@@ -1864,6 +1922,7 @@ class NativeBubblePostingTest {
     /** How long a return waits for the delete intents of one drag. */
     const val SETTLE_MS = 500L
     const val ICON_AND_POST_MS = 400L
+    val SITE_COLOUR = 0xFF0B6E4F.toInt()
     const val ONE = "https://one.example/"
     const val TWO = "https://two.example/"
     const val THREE = "https://three.example/"
