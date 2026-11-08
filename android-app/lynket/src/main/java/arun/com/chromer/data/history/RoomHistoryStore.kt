@@ -14,7 +14,6 @@ package arun.com.chromer.data.history
 import androidx.paging.PagingConfig
 import arun.com.chromer.data.database.HistoryDatabase
 import arun.com.chromer.data.database.entity.WebsiteEntity
-import arun.com.chromer.data.database.entity.toEntity
 import arun.com.chromer.data.database.entity.toWebsite
 import arun.com.chromer.data.website.model.Website
 import timber.log.Timber
@@ -30,9 +29,11 @@ constructor(private val historyDatabase: HistoryDatabase) : HistoryStore {
     historyDatabase.dao().getByUrl(website.url)?.toWebsite()
 
   override suspend fun insert(website: Website): Website {
-    val visited = historyDatabase.dao().recordVisit(website.toEntity(), System.currentTimeMillis())
-    Timber.d("Recorded a visit to %s", visited.url)
-    return visited.toWebsite()
+    with(website) {
+      historyDatabase.dao().recordVisit(url, title, faviconUrl, canonicalUrl, themeColor, ampUrl, bookmarked, System.currentTimeMillis())
+    }
+    Timber.d("Recorded a visit to %s", website.url)
+    return get(website) ?: website
   }
 
   override suspend fun search(text: String): List<Website> =
