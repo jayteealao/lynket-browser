@@ -20,6 +20,8 @@ import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_TYPE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_THEME
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SHEET
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SIDE_SHEET
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_APP
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_WEB
@@ -239,5 +241,40 @@ class SettingsRulesTest {
       assertThat(SettingsRules.selectedMode(values(WEB_HEAD_ENABLED to webHeads, NATIVE_BUBBLES to nativeBubbles)))
         .isEqualTo(mode)
     }
+  }
+
+  @Test
+  fun theSheetOptionShowsOnlyUnderSlideOver() {
+    assertThat(SettingsRules.isVisible(CUSTOM_TAB_SHEET, none)).isTrue()
+    assertThat(SettingsRules.isVisible(CUSTOM_TAB_SHEET, values(WEB_HEAD_ENABLED to true))).isFalse()
+    assertThat(SettingsRules.isVisible(CUSTOM_TAB_SHEET, values(NATIVE_BUBBLES to true))).isFalse()
+  }
+
+  @Test
+  fun theSideSheetOptionShowsOnlyUnderSlideOverWhileTheSheetIsOn() {
+    assertThat(SettingsRules.isVisible(CUSTOM_TAB_SIDE_SHEET, values(CUSTOM_TAB_SHEET to false))).isFalse()
+    assertThat(SettingsRules.isVisible(CUSTOM_TAB_SIDE_SHEET, values(CUSTOM_TAB_SHEET to true))).isTrue()
+    assertThat(SettingsRules.isVisible(CUSTOM_TAB_SIDE_SHEET, values(CUSTOM_TAB_SHEET to true, WEB_HEAD_ENABLED to true))).isFalse()
+    assertThat(SettingsRules.isVisible(CUSTOM_TAB_SIDE_SHEET, values(CUSTOM_TAB_SHEET to true, NATIVE_BUBBLES to true))).isFalse()
+  }
+
+  @Test
+  fun turningTheSheetOnStoresTheSideSheetOptionToo() {
+    val result = SettingsRules.change(CUSTOM_TAB_SHEET, true, values(CUSTOM_TAB_SIDE_SHEET to true), true)
+    assertThat(result.writes).containsExactly(CUSTOM_TAB_SHEET, true, CUSTOM_TAB_SIDE_SHEET, true)
+    assertThat(result.dialogs).isEmpty()
+  }
+
+  @Test
+  fun turningTheSheetOnKeepsAnEarlierSideSheetChoice() {
+    val result = SettingsRules.change(CUSTOM_TAB_SHEET, true, values(CUSTOM_TAB_SIDE_SHEET to false), true)
+    assertThat(result.writes).containsExactly(CUSTOM_TAB_SHEET, true, CUSTOM_TAB_SIDE_SHEET, false)
+  }
+
+  @Test
+  fun turningTheSheetOffWritesOnlyItself() {
+    val result = SettingsRules.change(CUSTOM_TAB_SHEET, false, values(CUSTOM_TAB_SHEET to true, CUSTOM_TAB_SIDE_SHEET to true), true)
+    assertThat(result.writes).containsExactly(CUSTOM_TAB_SHEET, false)
+    assertThat(result.dialogs).isEmpty()
   }
 }
