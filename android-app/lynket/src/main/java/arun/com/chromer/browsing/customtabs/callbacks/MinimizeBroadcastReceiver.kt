@@ -39,7 +39,8 @@ class MinimizeBroadcastReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     val url = intent.getStringExtra(Constants.EXTRA_KEY_ORIGINAL_URL)
     if (url != null) {
-      tabsManager.minimizeTabByUrl(url, CustomTabActivity::class.java.name)
+      val incognito = intent.getBooleanExtra(Constants.EXTRA_KEY_INCOGNITO, false)
+      tabsManager.minimizeTabByUrl(url, CustomTabActivity::class.java.name, incognito)
     } else {
       Timber.e("Error minimizing")
     }

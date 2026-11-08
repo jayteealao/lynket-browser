@@ -353,6 +353,8 @@ class CustomTabs @Inject constructor(
         moreMenuActivity.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
         moreMenuActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
         moreMenuActivity.putExtra(EXTRA_KEY_ORIGINAL_URL, url)
+        // The options of an incognito tab keep the page incognito (article view).
+        moreMenuActivity.putExtra(EXTRA_KEY_INCOGNITO, incognito)
         val moreMenuPending = callbackActivity(act, 0, moreMenuActivity)
         builder!!.addMenuItem(act.getString(R.string.chromer_options), moreMenuPending)
     }
@@ -365,7 +367,10 @@ class CustomTabs @Inject constructor(
         val act = activity ?: return
         if (!Preferences.get(act).bottomBar() && Utils.ANDROID_LOLLIPOP) {
             val minimizeIntent = Intent(act, MinimizeBroadcastReceiver::class.java)
-            val pendingMin = callbackBroadcast(act, Random().nextInt(), minimizeIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
+            minimizeIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url)
+            // A minimized incognito tab stays incognito: no normal web head preloads it.
+            minimizeIntent.putExtra(EXTRA_KEY_INCOGNITO, incognito)
+            val pendingMin = callbackBroadcast(act, Random().nextInt(), minimizeIntent)
             builder!!.addMenuItem(act.getString(R.string.minimize), pendingMin)
         }
     }
@@ -452,7 +457,7 @@ class CustomTabs @Inject constructor(
         builder!!.setSecondaryToolbarViews(
             createBottomBarRemoteViews(act),
             getClickableIDs(),
-            getOnClickPendingIntent(act, url!!)
+            getOnClickPendingIntent(act, url!!, incognito)
         )
     }
 

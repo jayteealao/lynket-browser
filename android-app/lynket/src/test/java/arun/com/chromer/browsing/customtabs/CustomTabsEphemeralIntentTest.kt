@@ -19,7 +19,11 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.CustomTabsIntent.EXTRA_ENABLE_EPHEMERAL_BROWSING
 import androidx.browser.customtabs.CustomTabsIntent.EXTRA_INITIAL_ACTIVITY_HEIGHT_PX
 import androidx.browser.customtabs.CustomTabsSession
+import android.app.PendingIntent
+import android.os.Bundle
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.R
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.data.preferences.BrowsingMode
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -144,5 +148,40 @@ class CustomTabsEphemeralIntentTest : LynketRobolectricSuite() {
   private companion object {
     const val CUSTOM_TABS_SERVICE = "android.support.customtabs.action.CustomTabsService"
     const val EPHEMERAL_CATEGORY = "androidx.browser.customtabs.category.EphemeralBrowsing"
+  }
+
+  private fun menuIntent(built: CustomTabsIntent, titleRes: Int): android.content.Intent {
+    @Suppress("DEPRECATION")
+    val items = built.intent.getParcelableArrayListExtra<Bundle>(CustomTabsIntent.EXTRA_MENU_ITEMS)!!
+    val title = application.getString(titleRes)
+    val item = items.first { it.getString(CustomTabsIntent.KEY_MENU_ITEM_TITLE) == title }
+    @Suppress("DEPRECATION")
+    val pending = item.getParcelable<PendingIntent>(CustomTabsIntent.KEY_PENDING_INTENT)!!
+    return shadowOf(pending).savedIntent
+  }
+
+  @Test
+  fun theMenuOfAnIncognitoTabKeepsThePageIncognito() {
+    val activity = openActivityWithProvider()
+    preferences.bottomBar(false)
+
+    val incognito = tabs(activity).incognito(true).buildIntent()
+    assertThat(menuIntent(incognito, R.string.minimize).getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+    assertThat(menuIntent(incognito, R.string.chromer_options).getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+
+    val normal = tabs(activity).buildIntent()
+    assertThat(menuIntent(normal, R.string.minimize).getBooleanExtra(EXTRA_KEY_INCOGNITO, true)).isFalse()
+    assertThat(menuIntent(normal, R.string.chromer_options).getBooleanExtra(EXTRA_KEY_INCOGNITO, true)).isFalse()
+  }
+
+  @Test
+  fun theBottomBarOfAnIncognitoTabKeepsThePageIncognito() {
+    val activity = openActivityWithProvider()
+    preferences.bottomBar(true)
+
+    val built = tabs(activity).incognito(true).buildIntent()
+    @Suppress("DEPRECATION")
+    val pending = built.intent.getParcelableExtra<PendingIntent>(CustomTabsIntent.EXTRA_REMOTEVIEWS_PENDINGINTENT)!!
+    assertThat(shadowOf(pending).savedIntent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
   }
 }
