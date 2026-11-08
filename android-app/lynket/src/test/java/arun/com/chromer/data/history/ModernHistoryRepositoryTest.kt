@@ -11,6 +11,7 @@
 
 package arun.com.chromer.data.history
 
+import arun.com.chromer.util.TestClock
 import android.content.Context
 import androidx.paging.PagingSource
 import androidx.room3.Room
@@ -64,7 +65,7 @@ class ModernHistoryRepositoryTest {
             .build()
         websiteDao = database.websiteDao()
         repository = ModernHistoryRepository(
-            historyDatabase = HistoryDatabase(context, legacyImport = null) { database },
+            historyDatabase = HistoryDatabase(context, legacyImport = null, clock = TestClock()) { database },
             ioDispatcher = testDispatcher
         )
     }

@@ -11,6 +11,7 @@
 
 package arun.com.chromer.data.history
 
+import arun.com.chromer.util.TestClock
 import android.content.Context
 import arun.com.chromer.data.database.ChromerDatabase
 import arun.com.chromer.data.database.HistoryDatabase
@@ -49,7 +50,7 @@ class LegacyHistoryImportTest {
   }
 
   private fun historyDatabase() =
-    HistoryDatabase(context, LegacyHistoryImport(context)) { ChromerDatabase.create(context).also { opened += it } }
+    HistoryDatabase(context, LegacyHistoryImport(context), TestClock()) { ChromerDatabase.create(context).also { opened += it } }
 
   @Test
   fun theReleaseFileComesInWithItsTimesAndVisitsAndIsKept() = runTest {

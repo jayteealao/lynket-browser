@@ -11,6 +11,7 @@
 
 package arun.com.chromer.data.database
 
+import arun.com.chromer.util.TestClock
 import android.content.Context
 import android.database.sqlite.SQLiteDiskIOException
 import com.google.common.truth.Truth.assertThat
@@ -43,7 +44,7 @@ class HistoryDatabaseTransientFailureTest {
   @Test
   fun anInputOutputErrorKeepsTheFileAndIsRethrown() {
     var opens = 0
-    val history = HistoryDatabase(context, legacyImport = null) {
+    val history = HistoryDatabase(context, legacyImport = null, clock = TestClock()) {
       opens++
       throw SQLiteDiskIOException("disk I/O error")
     }
@@ -58,7 +59,7 @@ class HistoryDatabaseTransientFailureTest {
   @Test
   fun anIllegalStateThatIsNotASchemaErrorKeepsTheFile() {
     var opens = 0
-    val history = HistoryDatabase(context, legacyImport = null) {
+    val history = HistoryDatabase(context, legacyImport = null, clock = TestClock()) {
       opens++
       throw IllegalStateException("Cannot perform this operation because the connection pool has been closed.")
     }
@@ -73,7 +74,7 @@ class HistoryDatabaseTransientFailureTest {
   @Test
   fun aMissingMigrationMovesTheFileAside() {
     var opens = 0
-    val history = HistoryDatabase(context, legacyImport = null) {
+    val history = HistoryDatabase(context, legacyImport = null, clock = TestClock()) {
       opens++
       throw IllegalStateException("A migration from 9 to 3 was required but not found.")
     }
@@ -87,7 +88,7 @@ class HistoryDatabaseTransientFailureTest {
 
   @Test
   fun aCancelledOpenKeepsTheFile() {
-    val history = HistoryDatabase(context, legacyImport = null) { throw CancellationException("left") }
+    val history = HistoryDatabase(context, legacyImport = null, clock = TestClock()) { throw CancellationException("left") }
 
     assertThrows(CancellationException::class.java) { runBlocking { history.get() } }
 
@@ -101,7 +102,7 @@ class HistoryDatabaseTransientFailureTest {
     val migrated = File(context.filesDir, "history-migration/History-1").apply { parentFile?.mkdirs(); writeText("x") }
     val legacy = context.getDatabasePath("History").apply { writeText("x") }
 
-    HistoryDatabase(context, legacyImport = null) { error("not opened") }.deleteKeptCopies()
+    HistoryDatabase(context, legacyImport = null, clock = TestClock()) { error("not opened") }.deleteKeptCopies()
 
     assertThat(broken.exists()).isFalse()
     assertThat(migrated.exists()).isFalse()

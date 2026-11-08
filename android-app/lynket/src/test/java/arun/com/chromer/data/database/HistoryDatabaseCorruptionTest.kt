@@ -40,7 +40,8 @@ class HistoryDatabaseCorruptionTest {
   private val context: Context = RuntimeEnvironment.getApplication()
   private val dbFile = context.getDatabasePath(ChromerDatabase.DATABASE_NAME)
   private val tree = RecordingTree()
-  private val historyDatabase = HistoryDatabase(context, LegacyHistoryImport(context))
+  private val clock = TestClock(1_234_567L)
+  private val historyDatabase = HistoryDatabase(context, LegacyHistoryImport(context), clock)
 
   @Before
   fun plant() {
@@ -86,7 +87,7 @@ class HistoryDatabaseCorruptionTest {
     assertBrokenFileHandled { kept -> assertThat(kept.readBytes()).isEqualTo(original) }
 
   private suspend fun assertBrokenFileHandled(checkKept: (File) -> Unit) {
-    val store = RoomHistoryStore(historyDatabase, TestClock(1_000L))
+    val store = RoomHistoryStore(historyDatabase, clock)
     val history = ModernHistoryRepository(historyDatabase, Dispatchers.Unconfined)
 
     assertThat(history.getRecents().first()).isEmpty()
@@ -94,6 +95,7 @@ class HistoryDatabaseCorruptionTest {
     val kept = File(context.filesDir, HistoryDatabase.BROKEN_FOLDER).walk()
       .filter { it.name == ChromerDatabase.DATABASE_NAME }.toList()
     assertThat(kept).hasSize(1)
+    assertThat(kept[0].parentFile).isEqualTo(File(context.filesDir, "${HistoryDatabase.BROKEN_FOLDER}/1234567"))
     checkKept(kept[0])
 
     store.insert(Website("https://after.example/"))

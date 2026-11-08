@@ -46,7 +46,7 @@ class RoomHistoryStoreTest {
     .setDriver(AndroidSQLiteDriver())
     .build()
   private val dao = database.websiteDao()
-  private val historyDatabase = HistoryDatabase(context, legacyImport = null) { database }
+  private val historyDatabase = HistoryDatabase(context, legacyImport = null, clock = TestClock()) { database }
   private val clock = TestClock(1_000L)
   private val store = RoomHistoryStore(historyDatabase, clock)
 
