@@ -284,7 +284,8 @@ fun WebHeadBubble(
       ) {
         Text(
           text = head.badgeCount.toString(),
-          style = MaterialTheme.typography.labelSmall,
+          // Figures of one width, so the badge keeps its size as the count changes.
+          style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
           modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
         )
       }
