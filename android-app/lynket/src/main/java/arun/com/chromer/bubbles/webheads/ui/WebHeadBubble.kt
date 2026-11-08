@@ -103,9 +103,6 @@ const val WEB_HEAD_TEST_TAG = "web_head"
 /** How long a head stays a live region after its page finishes, so a screen reader says the finish once. */
 internal const val PAGE_CHANGE_ANNOUNCE_MS = 2_000L
 
-/** The page state a head showed last, to tell a finish from any other change. */
-private class ShownPageState(var value: PageState)
-
 /**
  * A web head: a circle with a primary ring, the favicon or the first letter of the site on the
  * site colour, and a count badge on the side towards the screen. [headSize] is 56 dp, or 48 dp for
@@ -134,21 +131,14 @@ fun WebHeadBubble(
   } else {
     stringResource(R.string.web_head_content_description, label, head.stackPosition, head.badgeCount)
   }
-  // A finish is a move from loading to loaded or failed; running out of time, a start, a new title
-  // or a new place in the stack is not one.
-  val shown = remember(head) { ShownPageState(head.pageState) }
-  val finished = remember(head, head.pageState) {
-    val from = shown.value
-    shown.value = head.pageState
-    from == PageState.Loading && (head.pageState == PageState.Loaded || head.pageState == PageState.Failed)
-  }
-  var announcing by remember(head, head.pageState) { mutableStateOf(finished && !head.closing) }
-  LaunchedEffect(head, head.pageState, announcing) {
-    if (announcing) {
+  // The model marks a finish; the head is a live region until it has said it once.
+  LaunchedEffect(head, head.announcingFinish) {
+    if (head.announcingFinish) {
       delay(PAGE_CHANGE_ANNOUNCE_MS)
-      announcing = false
+      head.announcingFinish = false
     }
   }
+  val announcing = head.announcingFinish
   val openLabel = stringResource(R.string.web_head_action_open)
   val listLabel = stringResource(R.string.web_head_action_list)
   val closeLabel = stringResource(R.string.web_head_action_close)

@@ -51,8 +51,24 @@ class WebHeadState(val url: String, val fromAmp: Boolean = false, val incognito:
   var closing by mutableStateOf(false)
   var queued by mutableStateOf(false)
 
-  /** Whether the head's page is ready; [HeadPageTracker] sets it from the open until the page finishes. */
-  var pageState by mutableStateOf(PageState.Unknown)
+  private var shownPageState by mutableStateOf(PageState.Unknown)
+
+  /**
+   * Whether the head's page is ready; [HeadPageTracker] sets it from the open until the page
+   * finishes. A move from loading to loaded or failed is a finish, and sets [announcingFinish].
+   */
+  var pageState: PageState
+    get() = shownPageState
+    internal set(value) {
+      announcingFinish = shownPageState == PageState.Loading && (value == PageState.Loaded || value == PageState.Failed)
+      shownPageState = value
+    }
+
+  /**
+   * True from a finish of the head's page until the head has told screen readers once; running out
+   * of time, a start or a new title is not a finish. The head clears it after it spoke.
+   */
+  var announcingFinish by mutableStateOf(false)
     internal set
 
   internal var destroyed = false
