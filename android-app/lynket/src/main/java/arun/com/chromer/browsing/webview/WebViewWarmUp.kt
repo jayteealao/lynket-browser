@@ -67,6 +67,10 @@ class WebViewWarmUp @Inject constructor(
 ) {
   private val started = AtomicBoolean(false)
 
+  /** Whether [warmUp] already ran in this process; a later call does nothing. */
+  val isStarted: Boolean
+    get() = started.get()
+
   private val backgroundExecutor = Executor { task ->
     Dispatchers.IO.asExecutor().execute {
       runCatching { task.run() }.onFailure { Timber.w(it, "WebView warm-up failed") }

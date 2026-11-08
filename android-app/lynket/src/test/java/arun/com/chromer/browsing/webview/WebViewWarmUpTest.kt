@@ -74,6 +74,15 @@ class WebViewWarmUpTest {
   }
 
   @Test
+  fun itSaysWhenItHasStarted() {
+    assertThat(warmUp.isStarted).isFalse()
+
+    warmUp.warmUp()
+
+    assertThat(warmUp.isStarted).isTrue()
+  }
+
+  @Test
   fun aStarterThatThrowsDoesNotReachTheCaller() {
     starter.throwOnStart = true
 

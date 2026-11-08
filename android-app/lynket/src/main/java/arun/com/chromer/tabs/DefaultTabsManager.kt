@@ -293,7 +293,6 @@ constructor(
           Timber.w("Refused a link with scheme %s", Uri.parse(url).scheme)
           return@withContext
         }
-        if (opensInWebView()) webViewWarmUp.warmUp()
         var proceed = true
         // Find the app this link came from, for per-app rules and the app-based toolbar colour.
         val linkSource = if (preferences.perAppSettings() || preferences.isAppBasedToolbar()) {
@@ -325,6 +324,10 @@ constructor(
         if (proceed) {
           openUrlInternal(activity, Website(url), fromApp = false, linkSource = linkSource)
         }
+        // The page engine starts after the link has opened, so its start does not compete with the
+        // open of the bubble or the window. It starts once per process, so the check of the mode,
+        // which reads the installed browsers, runs only until then.
+        if (!webViewWarmUp.isStarted && opensInWebView()) webViewWarmUp.warmUp()
       }
     } catch (e: Exception) {
       Timber.e(e, "Critical error when processing incoming intent")
