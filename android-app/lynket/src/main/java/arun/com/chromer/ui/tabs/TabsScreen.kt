@@ -57,7 +57,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -80,6 +84,8 @@ import arun.com.chromer.ui.components.LoadingList
 import arun.com.chromer.ui.components.SiteAvatar
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.ui.components.ScreenTitle
+import arun.com.chromer.util.displayAddress
+import arun.com.chromer.util.rowTitle
 
 /** What a person can do on the Tabs screen. */
 class TabsActions(
@@ -233,13 +239,13 @@ private fun typeLabel(tab: Tab): String = stringResource(
   },
 )
 
-/** One open tab: favicon or first letter, title, "type · address" and a close icon. */
+/** One open tab: favicon or first letter, title, the type label and the address, and a close icon. */
 @Composable
 private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions) {
   val top = if (first) 16.dp else 0.dp
   val bottom = if (last) 16.dp else 0.dp
   val shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
-  val title = tab.website?.safeLabel() ?: tab.url
+  val title = rowTitle(tab.website?.title, tab.url)
   val dismissState = rememberSwipeToDismissBoxState()
   SwipeToDismissBox(
     state = dismissState,
@@ -269,18 +275,61 @@ private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions
           SiteAvatar(title, tab.website?.faviconUrl)
           Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-              "${typeLabel(tab)} · ${tab.url}",
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-            )
+            TabAddressLine(typeLabel(tab), displayAddress(tab.url))
           }
           IconButton(onClick = { actions.onClose(tab) }, modifier = Modifier.testTag("tab-close")) {
             Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close_website, title))
           }
         }
+      }
+    }
+  }
+}
+
+/**
+ * True when the address would get under a third of the line after the type label and its dot:
+ * then the address goes under the label (the largest font sizes).
+ */
+internal fun stackTabAddress(lineWidth: Int, labelWidth: Int): Boolean = lineWidth - labelWidth < lineWidth / 3
+
+/**
+ * The second line of a tab row: the type label and " · " whole, then the address cut in the middle,
+ * so the host and the end of the path show. When the address would get under a third of the line,
+ * it goes under the label at the full width and the dot is not drawn. The dot is decoration: screen
+ * readers read the label, then the address.
+ */
+@Composable
+private fun TabAddressLine(label: String, address: String) {
+  val style = MaterialTheme.typography.bodyMedium
+  val color = MaterialTheme.colorScheme.onSurfaceVariant
+  Layout(
+    content = {
+      Text(label, style = style, color = color, maxLines = 1, softWrap = false, modifier = Modifier.testTag("tab-type"))
+      Text(" · ", style = style, color = color, maxLines = 1, softWrap = false, modifier = Modifier.clearAndSetSemantics { testTag = "tab-dot" })
+      Text(address, style = style, color = color, maxLines = 1, overflow = TextOverflow.MiddleEllipsis, modifier = Modifier.testTag("tab-address"))
+    },
+  ) { measurables, constraints ->
+    val loose = constraints.copy(minWidth = 0, minHeight = 0)
+    val labelPlaceable = measurables[0].measure(loose)
+    val dotPlaceable = measurables[1].measure(loose)
+    val bounded = constraints.hasBoundedWidth
+    val stacked = bounded && stackTabAddress(constraints.maxWidth, labelPlaceable.width + dotPlaceable.width)
+    if (stacked) {
+      val addressPlaceable = measurables[2].measure(Constraints.fixedWidth(constraints.maxWidth))
+      layout(constraints.maxWidth, labelPlaceable.height + addressPlaceable.height) {
+        labelPlaceable.placeRelative(0, 0)
+        addressPlaceable.placeRelative(0, labelPlaceable.height)
+      }
+    } else {
+      val inline = labelPlaceable.width + dotPlaceable.width
+      val addressMax = if (bounded) (constraints.maxWidth - inline).coerceAtLeast(0) else Constraints.Infinity
+      val addressPlaceable = measurables[2].measure(loose.copy(maxWidth = addressMax))
+      val width = if (bounded) constraints.maxWidth else inline + addressPlaceable.width
+      val height = maxOf(labelPlaceable.height, dotPlaceable.height, addressPlaceable.height)
+      layout(width, height) {
+        labelPlaceable.placeRelative(0, 0)
+        dotPlaceable.placeRelative(labelPlaceable.width, 0)
+        addressPlaceable.placeRelative(inline, 0)
       }
     }
   }
