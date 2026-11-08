@@ -727,6 +727,62 @@ audit_one() {
   audit_finish
 }
 
+# The rebuilt menu and bar of a page in a bubble against the committed table, for one setting
+# ($1 bar-on or bar-off): no item with a misbehaves row shows (by its id or its label), every item
+# that works with that setting shows, and Open in full window is the first item of the menu.
+hidden_check() {
+  local setting="$1" bar=bar-on problems=""
+  [ "$setting" = bar-off ] && bar=bar-off
+  audit_setup "$bar" 3 "$setting"
+  [ -n "$PORT" ] || start_server
+  local bubble_id="" tag; tag="hidden=$setting-$(date +%s)"
+  open_bubble "hidden-$setting" "$tag" || fail "$OPEN_PROBLEM"
+  sleep 2
+  capture "hidden-$setting-page"
+  tap_on 'resource-id="browsing-overflow"' || fail "no menu button"
+  wait_for 'text="Open in full window"' || fail "no Open in full window item"
+  capture "hidden-$setting-menu"
+  local both; both="$(cat "$OUT/hidden-$setting-page.xml" "$OUT/hidden-$setting-menu.xml")"
+
+  local id label where
+  while IFS=$'\t' read -r label id where; do
+    [ -n "$id" ] || continue
+    grep -qF "resource-id=\"menu-$id\"" <<< "$both" && problems="$problems; $id shows"
+    grep -qF "text=\"$label\"" <<< "$both" && problems="$problems; $label shows"
+  done < <(awk -F'\t' 'NR > 1 && $7 == "misbehaves" { print $1 "\t" $2 "\t" $3 }' "$TABLE" | sort -u)
+  log "hidden ids: $(awk -F'\t' 'NR > 1 && $7 == "misbehaves" { print $2 }' "$TABLE" | sort -u | tr '\n' ' ')"
+
+  while IFS=$'\t' read -r label id where; do
+    [ -n "$id" ] || continue
+    grep -qF "resource-id=\"menu-$id\"" <<< "$both" || grep -qF "text=\"$label\"" <<< "$both" ||
+      problems="$problems; $label ($id) is missing"
+  done < <(awk -F'\t' -v s="$setting" 'NR > 1 && $4 == s && $7 == "works" { print $1 "\t" $2 "\t" $3 }' "$TABLE" | sort -u)
+
+  local first_item
+  if grep -qF 'resource-id="browsing-overflow-menu"' "$OUT/hidden-$setting-menu.xml"; then
+    first_item="$(tr '>' '\n' < "$OUT/hidden-$setting-menu.xml" | sed -n '/resource-id="browsing-overflow-menu"/,$p' |
+      grep -oE 'resource-id="menu-[^"]*"' | head -1 | sed -E 's/resource-id="menu-(.*)"/\1/')"
+  else
+    first_item="$(tr '>' '\n' < "$OUT/hidden-$setting-menu.xml" |
+      grep -E 'text="(Open in full window|Copy link|Open with…|Share|Share with [^"]*|History|Add to Home Screen|Tabs|Article mode)"' |
+      sed -nE 's/.* text="([^"]*)".*bounds="\[[0-9]+,([0-9]+)\].*/\2\t\1/p' | sort -n | head -1 | cut -f2)"
+  fi
+  log "$setting: first menu item $first_item"
+  case "$first_item" in menu_open_in_full_window|"Open in full window") ;; *) problems="$problems; the first menu item is $first_item" ;; esac
+  a shell input keyevent KEYCODE_BACK
+  clean_up_item
+  [ -z "$problems" ] || fail "$setting:${problems}"
+  log "$setting: no hidden item, every working item, Open in full window first"
+}
+
+check_hidden() {
+  [ -f "$TABLE" ] || fail "no table at $TABLE"
+  hidden_check bar-on
+  hidden_check bar-off
+  RESULT=PASS
+  log "PASS"
+}
+
 case "$MODE" in
   item) [ -n "$(item_line "$ITEM_NAME")" ] || { echo "usage: bubble-menu-check.sh <serial> <evidence-dir> item <name>; items: $(item_names)" >&2; exit 2; } ;;
 esac
@@ -738,4 +794,5 @@ case "$MODE" in
   audit-bar) audit_bar ;;
   audit-bar-off) audit_bar_off ;;
   audit-action) audit_action ;;
+  hidden) check_hidden ;;
 esac
