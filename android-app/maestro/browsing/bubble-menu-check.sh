@@ -137,13 +137,25 @@ wait_for() {
   done
   return 1
 }
+# The line of the resumed activity in front from an activities dump on stdin: topResumedActivity
+# from Android 12 on, the top-level ResumedActivity on Android 11.
+resumed_line() {
+  awk '/topResumedActivity/ && !top { top = $0 } /^ *ResumedActivity:/ && !res { res = $0 } END { print (top != "" ? top : res) }'
+}
 top_activity() {
-  a shell dumpsys activity activities | tr -d '\r' | awk '!done && /topResumedActivity/ { for (i = 1; i <= NF; i++) if ($i ~ /\//) { print $i; done = 1; break } }'
+  a shell dumpsys activity activities | tr -d '\r' | resumed_line | awk '{ for (i = 1; i <= NF; i++) if ($i ~ /\//) { print $i; break } }'
 }
 
-# The shell's bubble stack position as a tap point "X Y", empty while no bubble shows.
+# The shell's bubble stack position as a tap point "X Y", empty while no bubble shows. Android 12
+# and later report it in the WMShell dump, Android 11 in SystemUI's own dump.
 bubble_point() {
-  a shell dumpsys activity service com.android.systemui/.SystemUIService WMShell | tr -d '\r' |
+  local xy
+  xy="$(stack_point WMShell)"
+  [ -n "$xy" ] || xy="$(stack_point)"
+  echo "$xy"
+}
+stack_point() {
+  a shell dumpsys activity service com.android.systemui/.SystemUIService "$@" | tr -d '\r' |
     awk -v pkg="$PKG" '/currentStackPos/ { pos = $0 } index($0, pkg) { seen = 1 } END { if (seen) print pos }' |
     sed -nE 's/.*currentStackPos: *PointF\((-?[0-9.]+), *(-?[0-9.]+)\).*/\1 \2/p' | head -1 |
     awk 'NF == 2 { x = $1 < 0 ? 0 : $1; print int(x + 70), int($2 + 70) }' || true
@@ -158,10 +170,12 @@ expand_bubble() {
     sleep 0.25
   done
   [ -n "$xy" ] || return 1
+  # A tap while the page is still starting in an expanded bubble would fold it again, so each tap
+  # waits up to 10 s for the page (a cold start on Android 11 takes several seconds).
   for _ in 1 2 3; do
     # shellcheck disable=SC2086
     a shell input tap $xy
-    for _ in $(seq 1 16); do
+    for _ in $(seq 1 40); do
       top_activity | grep -q "EmbeddableWebViewActivity" && return 0
       sleep 0.25
     done
@@ -396,7 +410,7 @@ SYSTEM_PACKAGES='^(android|com\.android\.systemui|com\.android\.intentresolver|.
 
 # The resumed activity in front, "package/class t<task>", from a saved activities dump $1.
 front_of() {
-  awk '/topResumedActivity/ { print; exit }' "$1" | grep -oE '[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+ t-?[0-9]+' | head -1 || true
+  resumed_line < "$1" | grep -oE '[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+ t-?[0-9]+' | head -1 || true
 }
 # The windowing mode ("multi-window", "fullscreen", ...) of task $2 in the activities dump $1.
 task_mode() {
@@ -436,6 +450,26 @@ page_in_front() {
   grep -qF -- "$1" <<< "$(text_of webview-address <<< "$dump")"
 }
 
+# Opens the fixture page with address tag $2 as a bubble and expands it; sets bubble_id (the new
+# bubble's notification id) or OPEN_PROBLEM.
+open_bubble() {
+  local name="$1" tag="$2" before_ids after_ids _
+  OPEN_PROBLEM=""
+  notifications "item-$name-start-notifications.txt"
+  before_ids="$(bubble_ids "$OUT/item-$name-start-notifications.txt")"
+  open_link "http://localhost:$PORT/article.html?$tag"
+  for _ in $(seq 1 15); do
+    sleep 2
+    notifications "item-$name-open-notifications.txt"
+    after_ids="$(bubble_ids "$OUT/item-$name-open-notifications.txt")"
+    bubble_id="$(comm -13 <(echo "$before_ids") <(echo "$after_ids") | grep . | head -1 || true)"
+    [ -n "$bubble_id" ] && break
+  done
+  [ -n "$bubble_id" ] || { OPEN_PROBLEM="the page did not post a bubble"; return 1; }
+  expand_bubble || { OPEN_PROBLEM="the bubble did not expand"; return 1; }
+  wait_for "$tag" || { OPEN_PROBLEM="the expanded bubble does not show the page"; return 1; }
+}
+
 # Taps one item in a page in an expanded bubble, then judges what happened. $1 = item name,
 # $2 = label for the table (the item's label by default).
 audit_item() {
@@ -453,20 +487,23 @@ audit_item() {
   local tag; tag="item=$name-$(date +%s)"
   a logcat -b all -c || true
 
-  # The page as a bubble, expanded.
-  notifications "item-$name-start-notifications.txt"
-  local before_ids after_ids bubble_id="" _
-  before_ids="$(bubble_ids "$OUT/item-$name-start-notifications.txt")"
-  open_link "http://localhost:$PORT/article.html?$tag"
-  for _ in $(seq 1 15); do
-    sleep 2
-    notifications "item-$name-open-notifications.txt"
-    after_ids="$(bubble_ids "$OUT/item-$name-open-notifications.txt")"
-    bubble_id="$(comm -13 <(echo "$before_ids") <(echo "$after_ids") | grep . | head -1 || true)"
-    [ -n "$bubble_id" ] && break
+  # The page as a bubble, expanded. Android 11's shell sometimes draws no bubble for a flagged
+  # notification posted soon after the app was stopped: then the app is stopped again and the
+  # page opened once more.
+  local bubble_id="" attempt
+  for attempt in 1 2; do
+    if open_bubble "$name" "$tag-$attempt"; then break; fi
+    capture "item-$name-not-expanded-$attempt"
+    a shell dumpsys activity activities | tr -d '\r' > "$OUT/item-$name-not-expanded-$attempt-activities.txt"
+    a shell dumpsys activity service com.android.systemui/.SystemUIService | tr -d '\r' > "$OUT/item-$name-not-expanded-$attempt-systemui.txt"
+    log "attempt $attempt: ${OPEN_PROBLEM:-}"
+    bubble_id=""
+    a shell input keyevent KEYCODE_HOME
+    a shell am force-stop "$PKG"
+    sleep 3
   done
-  [ -n "$bubble_id" ] || { audit_row "$label" "$id" "$where" undecided "the page did not post a bubble" "$ev-open-notifications.txt"; return 1; }
-  expand_bubble || { audit_row "$label" "$id" "$where" undecided "the bubble did not expand" "$ev-open-notifications.txt"; return 1; }
+  [ "$attempt" = 2 ] && [ -z "$bubble_id" ] && { audit_row "$label" "$id" "$where" undecided "$OPEN_PROBLEM" "$ev-not-expanded-2.png"; return 1; }
+  tag="$tag-$attempt"
   wait_for "$tag" || { audit_row "$label" "$id" "$where" undecided "the expanded bubble does not show the page" "$ev-open-notifications.txt"; return 1; }
   a shell dumpsys activity activities | tr -d '\r' > "$OUT/item-$name-start-activities.txt"
   local start_front task
@@ -601,13 +638,29 @@ audit_item() {
   [ "$outcome" != undecided ]
 }
 
-# After each item: Home, stop the other app the item opened, then stop the app, which removes its
-# bubbles, so the next item starts from no bubble and no stack grows past the shell's limit.
+# After each item: Home, stop the other app the item opened, then close each bubble of the app
+# with the page's own close button, so no stack grows past the shell's limit. Stopping the app
+# also removes its bubbles, but Android 11's shell then sometimes draws no bubble for the next
+# page, so it is only the fallback.
 clean_up_item() {
+  local _ ids
   a shell input keyevent KEYCODE_HOME
   [ -z "${LAST_FOREIGN:-}" ] || a shell am force-stop "$LAST_FOREIGN" || true
   LAST_FOREIGN=""
-  a shell am force-stop "$PKG" || true
+  for _ in 1 2 3; do
+    notifications .clean-up-notifications.txt
+    ids="$(bubble_ids "$OUT/.clean-up-notifications.txt" || true)"
+    [ -n "$ids" ] || break
+    expand_bubble && tap_on 'resource-id="webview-close"' || break
+    sleep 2
+  done
+  notifications .clean-up-notifications.txt
+  if [ -n "$(bubble_ids "$OUT/.clean-up-notifications.txt" || true)" ]; then
+    log "a bubble stayed open; stopping the app"
+    a shell input keyevent KEYCODE_HOME
+    a shell am force-stop "$PKG" || true
+  fi
+  a shell input keyevent KEYCODE_HOME
   sleep 2
 }
 
@@ -627,7 +680,9 @@ not_tested() {  # $1 item name, $2 label, $3 reason
   audit_row "$2" "$id" "$where" not-tested "$3" "$(basename "$OUT")/settings-$SETTING.xml"
 }
 audit_finish() {
-  if [ "$ITEMS_OK" = 1 ] && [ "$ROWS_OK" = 1 ]; then RESULT=PASS; log "every item has a row"; else log "an item has no works or misbehaves row"; fi
+  [ "$ITEMS_OK" = 1 ] && [ "$ROWS_OK" = 1 ] || fail "an item has no works or misbehaves row"
+  RESULT=PASS
+  log "every item has a row"
 }
 
 audit_menu() {
