@@ -224,6 +224,10 @@ interface TabsManager {
    * the person chose the web view or no browser supports Custom Tabs; and for an incognito link
    * (or any link in full incognito mode) when the person's browser cannot open an ephemeral tab,
    * one that keeps no cookies or history. A browser that can opens the incognito link itself.
+   *
+   * The answer is for a link the person opened in a tab. An incognito link that a web head opens
+   * keeps the web view whatever the browser can do, as web heads keep their web view; that case is
+   * decided inside the tabs manager, not by this method.
    */
   fun shouldUseWebView(incognito: Boolean): Boolean
 }
