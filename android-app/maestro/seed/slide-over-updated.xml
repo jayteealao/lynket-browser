@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  A settings file of an older release in slide over (no floating mode on) with the intro already
+  passed. It holds no sheet option, as for a person who updates and has never seen the sheet
+  options: "Open as a sheet" shows off under Slide over and "Side sheet on wide screens" does not
+  show until the sheet is turned on.
+-->
+<map>
+    <boolean name="webhead_enabled_pref" value="false" />
+    <boolean name="firstrun_3" value="false" />
+</map>
