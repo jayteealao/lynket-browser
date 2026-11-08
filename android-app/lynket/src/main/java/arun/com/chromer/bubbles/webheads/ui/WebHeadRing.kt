@@ -52,10 +52,10 @@ internal enum class Ring {
   /** The full ring of a head at rest. */
   Solid,
 
-  /** A short arc on a thin track: the page is loading. */
+  /** A short arc on the track: the page is loading. */
   Arc,
 
-  /** The thin track alone: the page failed, or it loads with reduced motion. */
+  /** The track alone: the page failed, and the warning mark says so. */
   Track,
 }
 
@@ -70,13 +70,12 @@ private val AtRest = HeadLook(Ring.Solid, turning = false, faded = false, warnin
 /**
  * The look of a head for its [pageState]. Only the head at the front of the stack ([isFront])
  * turns its arc, so the heads behind it draw no frames; with [reducedMotion] nothing turns and the
- * thin track and the faded fill carry the state. A head [closing] to the trash keeps its look of
+ * still arc, a shape, and the faded fill carry the state, as on a head behind the front. A head [closing] to the trash keeps its look of
  * today in every page state.
  */
 internal fun headLook(pageState: PageState, isFront: Boolean, reducedMotion: Boolean, closing: Boolean): HeadLook = when {
   closing -> AtRest
-  pageState == PageState.Loading && reducedMotion -> HeadLook(Ring.Track, turning = false, faded = true, warning = false)
-  pageState == PageState.Loading -> HeadLook(Ring.Arc, turning = isFront, faded = true, warning = false)
+  pageState == PageState.Loading -> HeadLook(Ring.Arc, turning = isFront && !reducedMotion, faded = true, warning = false)
   pageState == PageState.Failed -> HeadLook(Ring.Track, turning = false, faded = false, warning = true)
   else -> AtRest
 }
@@ -88,15 +87,15 @@ internal val RingStroke = 3.dp
 private class ArcAngle(var degrees: Float = 0f)
 
 /**
- * The ring of a head in place of its border, on its own layer: the thin `outline-variant` track
- * at [trackAlpha] and the `primary` arc of [sweep] degrees from the top. While [look] turns, one
+ * The ring of a head in place of its border, on its own layer: the `outline` track, which reads at
+ * 3:1 or more against the head's background so the edge of a failed head stays visible, at [trackAlpha] and the `primary` arc of [sweep] degrees from the top. While [look] turns, one
  * infinite rotation turns the layer; its value is read only by the layer, so a frame recomposes
  * and redraws nothing. A head that does not turn has no rotation running at all.
  */
 @Composable
 internal fun HeadRing(look: HeadLook, sweep: () -> Float, trackAlpha: () -> Float, modifier: Modifier = Modifier) {
   val colours = MaterialTheme.colorScheme
-  val track = colours.outlineVariant
+  val track = colours.outline
   val arc = colours.primary
   val angle = remember { ArcAngle() }
   val turn = if (look.turning) {

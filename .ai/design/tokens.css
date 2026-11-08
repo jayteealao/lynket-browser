@@ -10,12 +10,14 @@
   --on-surface-variant: #46464F;
   --surface-container: #EFEDF4;
   --surface-container-high: #E9E7EF;
+  --outline: #767680;
   --outline-variant: #C7C5D0;
   --inverse-surface: #303036;
   --inverse-on-surface: #F2EFF7;
   --inverse-primary: #BAC3FF;
   --scrim: #0D0E13;
   --primary-dark: #BAC3FF;
+  --outline-dark: #90909A;
   --surface-dark: #121318;
   --on-surface-dark: #E4E1E9;
   --on-surface-variant-dark: #C7C5D0;

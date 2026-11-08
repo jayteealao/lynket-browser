@@ -41,8 +41,8 @@ class WebHeadRingTest {
   }
 
   @Test
-  fun withReducedMotionALoadingHeadShowsTheTrackAndAFadedFillAndNothingTurns() {
-    val expected = HeadLook(Ring.Track, turning = false, faded = true, warning = false)
+  fun withReducedMotionALoadingHeadShowsAStillArcAndAFadedFillAndNothingTurns() {
+    val expected = HeadLook(Ring.Arc, turning = false, faded = true, warning = false)
     assertThat(look(PageState.Loading, reduced = true)).isEqualTo(expected)
     assertThat(look(PageState.Loading, front = false, reduced = true)).isEqualTo(expected)
   }
