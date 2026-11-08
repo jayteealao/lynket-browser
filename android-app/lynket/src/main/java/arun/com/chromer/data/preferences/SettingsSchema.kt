@@ -92,6 +92,15 @@ object SettingsSchema {
   /** Theme of the app: 0 Auto (follows the system), 1 Light, 2 Dark, 3 Black. */
   const val THEME_MODE = "theme_mode"
 
+  /**
+   * Whether a Slide over link opens as a sheet over the app it came from (a Partial Custom Tab)
+   * instead of full screen. A browser without sheets opens the link full screen.
+   */
+  const val CUSTOM_TAB_SHEET = "custom_tab_sheet"
+
+  /** Whether a sheet opens at the side of a window 600 dp wide or more, instead of at the bottom. */
+  const val CUSTOM_TAB_SIDE_SHEET = "custom_tab_side_sheet"
+
   private fun bool(name: String, default: Boolean) =
     SettingKey(name, SettingType.BOOLEAN) { default }
 
@@ -144,6 +153,9 @@ object SettingsSchema {
     bool(USE_WALLPAPER_COLOURS, false),
     // Theme chips. New in this release; Auto is what every earlier version did.
     SettingKey(THEME_MODE, SettingType.INT) { 0 },
+    // New in this release; off after an update.
+    bool(CUSTOM_TAB_SHEET, false),
+    bool(CUSTOM_TAB_SIDE_SHEET, true),
   )
 
   private val byName = keys.associateBy { it.name }
