@@ -34,7 +34,17 @@ import timber.log.Timber
 import java.io.File
 import kotlin.random.Random
 
-/** A broken history database opens as empty history, with a logged error, no crash and the file kept. */
+/**
+ * A broken history database opens as empty history, with a logged error, no crash and the file kept.
+ *
+ * Beside a file of random bytes, four real SQLite files fail Room's own schema checks, one for each
+ * text of [HistoryDatabase.ROOM_SCHEMA_ERRORS] as Room 3.0.3 words it:
+ * - "Migration didn't properly handle": the tables still do not match after a migration;
+ * - "Room cannot verify the data integrity": the identity hash differs from the schema's;
+ * - "A migration from 4 to 3 was required but not found": a newer version with no way back;
+ * - "Pre-packaged database has an invalid schema": no identity row and tables that do not match.
+ * A Room update that rewords one of them fails its case here.
+ */
 @RunWith(RobolectricTestRunner::class)
 class HistoryDatabaseCorruptionTest {
 
@@ -65,23 +75,51 @@ class HistoryDatabaseCorruptionTest {
   }
 
   @Test
-  fun aDatabaseWithAWrongHistoryTableOpensAsEmptyHistory() = runTest {
+  fun aMissingColumnIsRoomsMigrationErrorAndTheFileIsKept() = runTest {
     SQLiteDatabase.openOrCreateDatabase(dbFile, null).use { db ->
       db.execSQL("CREATE TABLE history (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, url TEXT NOT NULL)")
-      db.execSQL("INSERT INTO history (url) VALUES ('https://broken.example/')")
+      db.execSQL("INSERT INTO history (url) VALUES ('$BROKEN_URL')")
       db.version = 2
     }
 
     // Room opened the file in WAL mode before its check failed and rolled back, so the kept copy
     // differs in header bytes; what must hold is that the person's rows are still in it.
-    assertBrokenFileHandled { kept ->
-      SQLiteDatabase.openDatabase(kept.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
-        db.rawQuery("SELECT url FROM history", null).use {
-          assertThat(it.moveToFirst()).isTrue()
-          assertThat(it.getString(0)).isEqualTo("https://broken.example/")
-        }
-      }
+    assertRoomSchemaErrorHandled("Migration didn't properly handle", BROKEN_URL)
+  }
+
+  @Test
+  fun aWrongIdentityHashIsRoomsIntegrityErrorAndTheFileIsKept() = runTest {
+    SQLiteDatabase.openOrCreateDatabase(dbFile, null).use { db ->
+      createVersion3Tables(db)
+      db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
+      db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '$WRONG_HASH')")
+      insertVersion3Row(db)
+      db.version = 3
     }
+
+    assertRoomSchemaErrorHandled("Room cannot verify the data integrity", BROKEN_URL)
+  }
+
+  @Test
+  fun aNewerVersionWithNoMigrationIsRoomsMissingMigrationErrorAndTheFileIsKept() = runTest {
+    SQLiteDatabase.openOrCreateDatabase(dbFile, null).use { db ->
+      createVersion3Tables(db)
+      insertVersion3Row(db)
+      db.version = 4
+    }
+
+    assertRoomSchemaErrorHandled("was required but not found", BROKEN_URL)
+  }
+
+  @Test
+  fun tablesWithNoIdentityRowAreRoomsInvalidSchemaErrorAndTheFileIsKept() = runTest {
+    SQLiteDatabase.openOrCreateDatabase(dbFile, null).use { db ->
+      db.execSQL("CREATE TABLE history (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, url TEXT NOT NULL)")
+      db.execSQL("INSERT INTO history (url) VALUES ('$BROKEN_URL')")
+      db.version = 3
+    }
+
+    assertRoomSchemaErrorHandled("has an invalid schema", BROKEN_URL)
   }
 
   /**
@@ -128,6 +166,12 @@ class HistoryDatabaseCorruptionTest {
     db.execSQL("CREATE INDEX IF NOT EXISTS `index_history_created_at` ON `history` (`created_at`)")
   }
 
+  private fun insertVersion3Row(db: SQLiteDatabase) {
+    db.execSQL(
+      "INSERT INTO history (url, bookmarked, created_at, visit_count) VALUES ('$BROKEN_URL', 0, 1000, 1)",
+    )
+  }
+
   private suspend fun assertBrokenFileHandled(original: ByteArray) =
     assertBrokenFileHandled { kept -> assertThat(kept.readBytes()).isEqualTo(original) }
 
@@ -145,5 +189,10 @@ class HistoryDatabaseCorruptionTest {
 
     store.insert(Website("https://after.example/"))
     assertThat(history.getRecents().first().map { it.url }).containsExactly("https://after.example/")
+  }
+
+  private companion object {
+    const val BROKEN_URL = "https://broken.example/"
+    const val WRONG_HASH = "00000000000000000000000000000000"
   }
 }
