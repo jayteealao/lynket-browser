@@ -27,6 +27,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import timber.log.Timber
 import java.io.File
+import arun.com.chromer.util.TestClock
 
 /**
  * The settings migration on the settings file that store release 2.1.3 wrote on a device
@@ -42,7 +43,7 @@ class LegacySettingsMigrationTest {
   @Before
   fun setUp() {
     Timber.plant(tree)
-    migration = LegacySettingsMigration(context, clock = { 1000L })
+    migration = LegacySettingsMigration(context, clock = TestClock(1000L))
   }
 
   @After

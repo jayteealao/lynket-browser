@@ -34,6 +34,7 @@ import timber.log.Timber
 import java.io.File
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import kotlin.time.Clock
 
 /** Scope for work that lives as long as the process, such as the settings snapshots. */
 @Qualifier
@@ -85,10 +86,10 @@ object DataStoreModule {
     const val CORRUPT_FOLDER = "datastore-corrupt"
 
     fun settingsDataStore(context: Context, file: () -> File): DataStore<Preferences> =
-        create(context, USER_PREFERENCES_NAME, file, listOf(LegacySettingsMigration(context), BrowsingModeMigration))
+        create(context, USER_PREFERENCES_NAME, file, listOf(LegacySettingsMigration(context, Clock.System), BrowsingModeMigration))
 
     fun perAppRulesDataStore(context: Context, file: () -> File): DataStore<Preferences> =
-        create(context, PER_APP_RULES_NAME, file, listOf(PaperPerAppMigration(context)))
+        create(context, PER_APP_RULES_NAME, file, listOf(PaperPerAppMigration(context, Clock.System)))
 
     private fun create(
         context: Context,

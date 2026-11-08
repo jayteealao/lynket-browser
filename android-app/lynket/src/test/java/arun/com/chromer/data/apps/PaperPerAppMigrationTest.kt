@@ -29,6 +29,7 @@ import org.robolectric.annotation.Config
 import timber.log.Timber
 import java.io.File
 import kotlin.random.Random
+import arun.com.chromer.util.TestClock
 
 /**
  * The per-app migration on the PaperDB records that store release 2.1.3 wrote on a device
@@ -39,7 +40,7 @@ import kotlin.random.Random
 class PaperPerAppMigrationTest {
   private val context: Application get() = RuntimeEnvironment.getApplication()
   private val tree = RecordingTree()
-  private val migration by lazy { PaperPerAppMigration(context, clock = { 2000L }) }
+  private val migration by lazy { PaperPerAppMigration(context, clock = TestClock(2000L)) }
   private val book get() = File(context.filesDir, PaperPerAppMigration.BOOK)
 
   @Before

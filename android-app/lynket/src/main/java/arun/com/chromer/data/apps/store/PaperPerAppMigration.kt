@@ -21,6 +21,7 @@ import io.paperdb.Paper
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
+import kotlin.time.Clock
 
 /**
  * Reads, once, the per-app rules that release 2.1.3 saved with PaperDB (one `<package>.pt`
@@ -33,7 +34,7 @@ import java.io.IOException
  */
 class PaperPerAppMigration(
   private val context: Context,
-  private val clock: () -> Long = System::currentTimeMillis,
+  private val clock: Clock,
 ) : DataMigration<Preferences> {
 
   private val book: File get() = File(context.filesDir, BOOK)
@@ -44,7 +45,7 @@ class PaperPerAppMigration(
     currentData[MIGRATION_VERSION] == null && records(book).isNotEmpty()
 
   override suspend fun migrate(currentData: Preferences): Preferences {
-    val copy = File(migrationDir, "$BOOK-${clock()}")
+    val copy = File(migrationDir, "$BOOK-${clock.now().toEpochMilliseconds()}")
     // A failed copy throws; DataStore then writes nothing and runs the migration again on the
     // next read.
     if (!book.copyRecursively(copy, overwrite = true)) {
