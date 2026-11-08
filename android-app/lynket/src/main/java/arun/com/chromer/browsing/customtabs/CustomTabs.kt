@@ -95,6 +95,9 @@ class CustomTabs @Inject constructor(
     /** Whether the last [prepare] added the sheet options, so the tab opens as a sheet. */
     private var sheetLaunch = false
 
+    /** Whether the tab opens ephemeral: the browser keeps no cookies or history of it. */
+    private var incognito = false
+
     init {
         noAnimation = false
     }
@@ -112,7 +115,12 @@ class CustomTabs @Inject constructor(
             keepAliveIntent.setClassName(act.packageName, KeepAliveService::class.java.canonicalName!!)
             customTabsIntent.intent.putExtra(EXTRA_CUSTOM_TABS_KEEP_ALIVE, keepAliveIntent)
             // The form of the launch, without the address, for the device checks (debug builds log it).
-            Timber.d("Custom Tab launch: sheet=%s sideSheet=%s", sheetLaunch, SheetLaunch.options(Preferences.get(act)).sideSheet)
+            Timber.d(
+                "Custom Tab launch: sheet=%s sideSheet=%s ephemeral=%s",
+                sheetLaunch,
+                SheetLaunch.options(Preferences.get(act)).sideSheet,
+                incognito,
+            )
             try {
                 if (sheetLaunch) {
                     // A browser opens a sheet only for a launch with a session or for a result.
@@ -149,6 +157,15 @@ class CustomTabs @Inject constructor(
         return this
     }
 
+    /**
+     * Opens the page in an ephemeral tab, for an incognito link: the browser keeps no cookies or
+     * history of it, and the tab is not tied to a session that preloaded links.
+     */
+    fun incognito(on: Boolean): CustomTabs {
+        incognito = on
+        return this
+    }
+
     fun toolbarColor(@ColorInt overrideColor: Int): CustomTabs {
         toolbarColor = ColorUtils.setAlphaComponent(overrideColor, 0xFF)
         return this
@@ -160,7 +177,8 @@ class CustomTabs @Inject constructor(
      * @return Instance of this class
      */
     private fun prepare(): CustomTabs {
-        builder = CustomTabsIntent.Builder(getSession())
+        // An incognito tab gets no session: a session's preloaded links live in the normal profile.
+        builder = CustomTabsIntent.Builder(if (incognito) null else getSession())
         // set defaults
         builder!!.setShowTitle(true)
         builder!!.enableUrlBarHiding()
@@ -182,6 +200,9 @@ class CustomTabs @Inject constructor(
                 SheetLaunch.windowWidthPx(it),
             )
         } ?: false
+        if (incognito) {
+            builder!!.setEphemeralBrowsingEnabled(true)
+        }
         return this
     }
 
@@ -204,6 +225,7 @@ class CustomTabs @Inject constructor(
         // Dispose reference
         activity = null
         customTabsSession = null
+        incognito = false
         return sheet
     }
 
