@@ -199,7 +199,10 @@ private fun DefaultBrowserCard(onSetDefault: () -> Unit) {
   }
 }
 
-/** A switch row for [key], enabled as the rules say; a tap sets the opposite value. */
+/**
+ * A switch row for [key], enabled as the rules say; a tap sets the opposite value. [indent] for an
+ * option under the row it belongs to.
+ */
 @Composable
 internal fun SwitchRow(
   key: String,
@@ -208,6 +211,7 @@ internal fun SwitchRow(
   values: SettingsValues,
   onSet: (String, Any?) -> Unit,
   icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+  indent: Boolean = false,
 ) {
   val checked = values.bool(key)
   SettingsRow(
@@ -216,6 +220,7 @@ internal fun SwitchRow(
     icon = icon?.let { RowIcon(it) },
     control = RowControl.Switch(checked),
     enabled = SettingsRules.isEnabled(key, values),
+    indent = indent,
     modifier = Modifier.testTag("row-$key"),
     onClick = { onSet(key, !checked) },
   )
