@@ -536,11 +536,19 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     }
   }
 
+  /**
+   * Whether the head's page is hinted to the browser ahead of a tap. An incognito head never is:
+   * the hint would reach the browser's normal profile. With aggressive loading on, the page already
+   * loads in a background tab.
+   */
+  @VisibleForTesting
+  internal fun preloads(head: WebHeadState): Boolean =
+    !head.incognito && !Preferences.get(this).aggressiveLoading()
+
   private fun warmUp(head: WebHeadState) {
-    if (!Preferences.get(this).aggressiveLoading()) {
-      val url = head.website.preferredUrl()
-      if (customTabConnected) preLoadUrl(url) else deferPreload(url)
-    }
+    if (!preloads(head)) return
+    val url = head.website.preferredUrl()
+    if (customTabConnected) preLoadUrl(url) else deferPreload(url)
   }
 
   private fun preLoadUrl(url: String) {
