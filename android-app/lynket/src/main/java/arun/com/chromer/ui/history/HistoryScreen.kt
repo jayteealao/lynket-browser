@@ -272,12 +272,12 @@ fun HistoryContent(
               singleLine = true,
               label = { Text(stringResource(R.string.history_search_hint)) },
               leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-              modifier = Modifier.settingsColumn().padding(bottom = 16.dp).testTag("history-search"),
+              modifier = Modifier.animateItem().settingsColumn().padding(bottom = 16.dp).testTag("history-search"),
             )
           }
         }
         item(key = "switches", contentType = "switches") {
-          HistorySwitches(state, providerName, actions, Modifier.settingsColumn().padding(bottom = 8.dp))
+          HistorySwitches(state, providerName, actions, Modifier.animateItem().settingsColumn().padding(bottom = 8.dp))
         }
         when {
           refresh is LoadState.Error && !hasRows -> item(key = "error", contentType = "state") {
@@ -286,14 +286,14 @@ fun HistoryContent(
               body = stringResource(R.string.history_error_body),
               retryLabel = stringResource(R.string.retry),
               onRetry = { items.retry() },
-              modifier = Modifier.settingsColumn(),
+              modifier = Modifier.animateItem().settingsColumn(),
             )
           }
           refresh is LoadState.Loading && !hasRows -> item(key = "loading", contentType = "state") {
             Surface(
               shape = RoundedCornerShape(16.dp),
               color = MaterialTheme.colorScheme.surfaceContainer,
-              modifier = Modifier.settingsColumn().padding(top = 8.dp),
+              modifier = Modifier.animateItem().settingsColumn().padding(top = 8.dp),
             ) {
               LoadingList(modifier = Modifier.padding(vertical = 12.dp), rows = 8, loadingLabel = stringResource(R.string.loading))
             }
@@ -303,7 +303,7 @@ fun HistoryContent(
               icon = Icons.Outlined.SearchOff,
               title = stringResource(R.string.history_search_empty, state.query.trim()),
               body = stringResource(R.string.history_empty_body),
-              modifier = Modifier.settingsColumn().testTag("history-no-match"),
+              modifier = Modifier.animateItem().settingsColumn().testTag("history-no-match"),
             )
           }
           !hasRows -> item(key = "empty", contentType = "state") {
@@ -311,7 +311,7 @@ fun HistoryContent(
               icon = Icons.Outlined.History,
               title = stringResource(R.string.history_empty_title),
               body = stringResource(R.string.history_empty_body),
-              modifier = Modifier.settingsColumn(),
+              modifier = Modifier.animateItem().settingsColumn(),
             )
           }
           else -> items(
@@ -320,11 +320,12 @@ fun HistoryContent(
             contentType = { index -> if (items.peek(index) is HistoryListItem.DayHeader) "day" else "row" },
           ) { index ->
             when (val item = items[index]) {
-              is HistoryListItem.DayHeader -> DayLabel(dayLabel(context, item.dayStart, now, timeZone))
+              // Rows and day headers fade and slide into place (spring, no bounce) when rows go or come back.
+              is HistoryListItem.DayHeader -> DayLabel(dayLabel(context, item.dayStart, now, timeZone), Modifier.animateItem())
               is HistoryListItem.Row -> {
                 val first = index == 0 || items.peek(index - 1) !is HistoryListItem.Row
                 val last = index == items.itemCount - 1 || items.peek(index + 1) !is HistoryListItem.Row
-                HistoryRow(item.website, first, last, actions)
+                HistoryRow(item.website, first, last, actions, Modifier.animateItem())
               }
               null -> Unit
             }
@@ -398,12 +399,12 @@ private fun HistorySwitches(state: HistoryUiState, providerName: String?, action
 
 /** A day header: the section label of the board, in the primary colour. */
 @Composable
-private fun DayLabel(text: String) {
+private fun DayLabel(text: String, modifier: Modifier = Modifier) {
   Text(
     text = text,
     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
     color = MaterialTheme.colorScheme.primary,
-    modifier = Modifier
+    modifier = modifier
       .settingsColumn()
       .padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
       .semantics { heading() }
@@ -417,7 +418,7 @@ private fun DayLabel(text: String) {
  * in one rounded container; the first and last row carry its corners.
  */
 @Composable
-private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions: HistoryActions) {
+private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions: HistoryActions, modifier: Modifier = Modifier) {
   val top = if (first) 16.dp else 0.dp
   val bottom = if (last) 16.dp else 0.dp
   val shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
@@ -425,7 +426,7 @@ private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions:
   val dismissState = rememberSwipeToDismissBoxState()
   SwipeToDismissBox(
     state = dismissState,
-    modifier = Modifier.settingsColumn().testTag("history-row"),
+    modifier = modifier.settingsColumn().testTag("history-row"),
     backgroundContent = {
       Box(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer, shape).padding(horizontal = 24.dp),
