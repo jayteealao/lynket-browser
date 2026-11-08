@@ -24,6 +24,8 @@ import androidx.webkit.WebViewStartUpResult
 import androidx.webkit.WebViewStartupException
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.browsing.browserintercept.BrowserInterceptActivity
+import arun.com.chromer.browsing.customtabs.CustomTabActivity
+import arun.com.chromer.browsing.customtabs.CustomTabs
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.browsing.webview.WebViewStartModule
 import arun.com.chromer.browsing.webview.WebViewStarter
@@ -34,7 +36,10 @@ import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.UninstallModules
+import io.mockk.every
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
+import io.mockk.unmockkObject
 import io.mockk.unmockkStatic
 import io.mockk.verify
 import org.junit.After
@@ -82,6 +87,44 @@ class LinkWarmUpTest : LynketRobolectricSuite() {
   @After
   fun unmock() {
     unmockkStatic(WebViewCompat::class)
+    unmockkObject(CustomTabs.Companion)
+  }
+
+  /** Slide over in full incognito mode, with a browser that opens ephemeral tabs or not. */
+  private fun fullIncognitoModeWithAProvider(ephemeral: Boolean) {
+    clearPreferences()
+    preferences.browsingMode(BrowsingMode.SlideOver)
+    preferences.fullIncognitoMode(true)
+    mockkObject(CustomTabs.Companion)
+    every { CustomTabs.getCustomTabSupportingPackages(any()) } returns listOf("com.android.chrome")
+    every { CustomTabs.customTabPackage(any()) } returns "com.android.chrome"
+    every { CustomTabs.isEphemeralSupported(any(), any()) } returns ephemeral
+  }
+
+  @Test
+  fun anIncognitoLinkForAnEphemeralTabStartsNoPageEngine() {
+    fullIncognitoModeWithAProvider(ephemeral = true)
+
+    intercept(link)
+    val opened = awaitNextActivity()
+
+    assertThat(opened?.component?.className).isEqualTo(CustomTabActivity::class.java.name)
+    assertThat(opened?.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+    awaitStarts(1, timeoutMs = 500)
+    assertThat(fake.configs).isEmpty()
+  }
+
+  @Test
+  fun anIncognitoLinkForTheWebViewStartsThePageEngineOnce() {
+    fullIncognitoModeWithAProvider(ephemeral = false)
+
+    intercept(link)
+    val opened = awaitNextActivity()
+
+    assertThat(opened?.component?.className).isEqualTo(WebViewActivity::class.java.name)
+    assertThat(opened?.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+    awaitStarts(1)
+    assertThat(fake.configs).hasSize(1)
   }
 
   private fun viewIntent(link: String) =
