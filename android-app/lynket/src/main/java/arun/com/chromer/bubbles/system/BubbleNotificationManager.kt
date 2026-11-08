@@ -175,6 +175,10 @@ constructor(
         putExtra(Constants.EXTRA_KEY_INCOGNITO, bubbleData.incognito)
         // Only this intent names the bubble: the page opened from the shortcut is not in one.
         putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, notificationId)
+        // The page opens in the site's colour; an incognito bubble and a site with no colour open on the app colour.
+        if (!bubbleData.incognito && bubbleData.siteColor != Constants.NO_COLOR) {
+          putExtra(Constants.EXTRA_KEY_TOOLBAR_COLOR, bubbleData.siteColor)
+        }
       },
       flags
     )
