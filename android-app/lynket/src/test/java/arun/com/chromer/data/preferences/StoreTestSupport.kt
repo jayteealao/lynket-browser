@@ -40,12 +40,15 @@ class TestStore(
   suspend fun close() = job.cancelAndJoin()
 }
 
-/** Collects the error logs of a test. */
+/** Collects the error logs of a test, with the exception logged beside each one. */
 class RecordingTree : Timber.Tree() {
   val errors = mutableListOf<String>()
+  val throwables = mutableListOf<Throwable>()
 
   override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-    if (priority >= Log.ERROR) errors += message
+    if (priority < Log.ERROR) return
+    errors += message
+    if (t != null) throwables += t
   }
 }
 
