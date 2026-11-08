@@ -31,7 +31,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404)
             return
         query = parse_qs(url.query)
-        seconds = float(query.get("s", ["5"])[0])
+        try:
+            seconds = float(query.get("s", ["5"])[0])
+        except ValueError:
+            self.send_error(400, "s must be a number of seconds")
+            return
         page_id = query.get("id", ["1"])[0]
         end = (
             f"<title>Slow page {page_id}</title></head>"
@@ -62,4 +66,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2 or not sys.argv[1].isdigit():
+        print("usage: slow-page-server.py <port>", file=sys.stderr)
+        sys.exit(2)
     ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), Handler).serve_forever()
