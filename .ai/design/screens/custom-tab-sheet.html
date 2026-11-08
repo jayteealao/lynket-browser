@@ -35,11 +35,11 @@ nav.flow a[aria-current] { background: var(--primary-container); color: var(--on
 .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 16px 16px 0 0; box-shadow: 0 -2px 10px color-mix(in srgb, var(--scrim) 22%, transparent); display: flex; flex-direction: column; overflow: auto; }
 .sheet.half { top: 50%; }
 .sheet.full { top: 28px; border-radius: 0; box-shadow: none; }
-.side { overflow: auto; position: absolute; top: 28px; bottom: 0; right: 0; width: 44%; background: var(--surface); border-left: 1px solid var(--outline-variant); box-shadow: -2px 0 10px color-mix(in srgb, var(--scrim) 22%, transparent); display: flex; flex-direction: column; overflow: hidden; }
+.side { position: absolute; top: 28px; bottom: 0; right: 0; width: 44%; background: var(--surface); box-shadow: -2px 0 10px color-mix(in srgb, var(--scrim) 22%, transparent); display: flex; flex-direction: column; overflow: hidden; }
 .handle { width: 32px; height: 4px; border-radius: 2px; background: var(--on-surface-variant); opacity: .4; margin: 8px auto 4px; flex: none; }
 .ctbar { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 12px; background: var(--primary); color: var(--on-primary); flex: none; }
 .ctbar.incog { background: var(--inverse-surface); color: var(--inverse-on-surface); }
-.ctbar .x, .ctbar .dots { width: 24px; height: 24px; flex: none; display: grid; place-items: center; font-size: 18px; }
+.ctbar .x, .ctbar .dots { width: 24px; height: 24px; flex: none; display: grid; place-items: center; }
 .ctbar .t { flex: 1; min-width: 0; }
 .ctbar .t b { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ctbar .t span { display: block; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .85; }
