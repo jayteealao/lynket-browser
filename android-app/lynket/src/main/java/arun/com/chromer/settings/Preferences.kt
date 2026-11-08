@@ -361,6 +361,16 @@ class Preferences @Inject constructor(
 
   fun themeMode(mode: Int) = put(SettingsSchema.THEME_MODE, mode)
 
+  /** Whether a Slide over link opens as a sheet over the app it came from. Off by default. */
+  fun customTabSheet(): Boolean = bool(SettingsSchema.CUSTOM_TAB_SHEET)
+
+  fun customTabSheet(preference: Boolean) = put(SettingsSchema.CUSTOM_TAB_SHEET, preference)
+
+  /** Whether a sheet opens at the side on a window 600 dp wide or more. On by default. */
+  fun customTabSideSheet(): Boolean = bool(SettingsSchema.CUSTOM_TAB_SIDE_SHEET)
+
+  fun customTabSideSheet(preference: Boolean) = put(SettingsSchema.CUSTOM_TAB_SIDE_SHEET, preference)
+
   /** Whether the background write that turns native bubbles off beside web heads is running. */
   private val bothModesRepair = AtomicBoolean(false)
 

@@ -53,6 +53,22 @@ class PreferencesFacadeTest : LynketRobolectricSuite() {
   }
 
   @Test
+  fun theSheetOptionsStartOffAndOnAndReadBackEachWrite() {
+    assertThat(preferences.customTabSheet()).isFalse()
+    assertThat(preferences.customTabSideSheet()).isTrue()
+
+    preferences.customTabSheet(true)
+    preferences.customTabSideSheet(false)
+    assertThat(preferences.customTabSheet()).isTrue()
+    assertThat(preferences.customTabSideSheet()).isFalse()
+
+    preferences.customTabSheet(false)
+    preferences.customTabSideSheet(true)
+    assertThat(preferences.customTabSheet()).isFalse()
+    assertThat(preferences.customTabSideSheet()).isTrue()
+  }
+
+  @Test
   fun theStaticAccessorReturnsTheInjectedInstance() {
     assertThat(Preferences.get(application)).isSameInstanceAs(preferences)
   }
