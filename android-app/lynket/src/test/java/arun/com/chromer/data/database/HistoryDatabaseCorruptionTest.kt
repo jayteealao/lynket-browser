@@ -41,7 +41,7 @@ class HistoryDatabaseCorruptionTest {
   private val dbFile = context.getDatabasePath(ChromerDatabase.DATABASE_NAME)
   private val tree = RecordingTree()
   private val clock = TestClock(1_234_567L)
-  private val historyDatabase = HistoryDatabase(context, LegacyHistoryImport(context), clock)
+  private val historyDatabase = HistoryDatabase(context, LegacyHistoryImport(context, clock), clock)
 
   @Before
   fun plant() {

@@ -25,6 +25,7 @@ import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Clock
 
 /**
  * Brings the history file of release 2.1.3 and earlier (`databases/History`) into the Room
@@ -41,13 +42,16 @@ import javax.inject.Singleton
 @Singleton
 class LegacyHistoryImport
 @Inject
-constructor(@ApplicationContext private val context: Context) {
+constructor(
+  @ApplicationContext private val context: Context,
+  private val clock: Clock
+) {
 
   suspend fun runOnce(db: ChromerDatabase) {
     val legacy = context.getDatabasePath(HistoryTable.TABLE_NAME)
     if (!legacy.exists()) return
     val folder = File(context.filesDir, MIGRATION_FOLDER).apply { mkdirs() }
-    val now = System.currentTimeMillis()
+    val now = clock.now().toEpochMilliseconds()
 
     val rows = try {
       readRows(legacy)
