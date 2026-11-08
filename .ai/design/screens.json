@@ -207,14 +207,15 @@
       "order": 10,
       "workflows": [
         "one-browsing-mode",
-        "custom-tabs-modes"
+        "custom-tabs-modes",
+        "native-bubbles-beta-exit"
       ],
       "slices": [
         "mode-switch-flow",
         "sheet-settings"
       ],
       "created-at": "2026-11-02T19:45:13Z",
-      "updated-at": "2026-11-08T10:42:14Z",
+      "updated-at": "2026-11-08T17:40:56Z",
       "approvals": [
         {
           "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",

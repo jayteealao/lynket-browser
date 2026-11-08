@@ -118,3 +118,14 @@
 .dark .ts-card .track .fill, .dark .ts-card .track .thumb, .dark .ts-card .track .stops i { background: var(--primary-dark); }
 .dark .bbar { background: var(--surface-container-dark); }
 .dark .launcher-icon.mono { background: var(--surface-container-high-dark); color: var(--primary-dark); }
+/* Settings dialog: known-issues list and themes (native-bubbles-beta-exit) */
+.dialog .lead { color: var(--on-surface); }
+.dialog .issues-h { margin: 0 0 4px; font-weight: 600; color: var(--on-surface); }
+.dialog ul { margin: 0 0 16px; padding-left: 20px; color: var(--on-surface-variant); }
+.dialog li + li { margin-top: 4px; }
+.dialog.scroll { top: 48px; bottom: 48px; display: flex; flex-direction: column; }
+.dialog.scroll .body { flex: 1; min-height: 0; overflow-y: auto; }
+.dark .dialog { background: var(--surface-container-high-dark); color: var(--on-surface-dark); }
+.dark .dialog p, .dark .dialog ul { color: var(--on-surface-variant-dark); }
+.dark .dialog .lead, .dark .dialog .issues-h { color: var(--on-surface-dark); }
+.dark .dialog button { color: var(--primary-dark); }
