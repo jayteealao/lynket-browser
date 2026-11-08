@@ -21,6 +21,7 @@ import arun.com.chromer.data.database.entity.WebsiteEntity
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.util.TestClock
+import arun.com.chromer.util.setMillis
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
@@ -55,13 +56,13 @@ class RoomHistoryStoreTest {
   @Test
   fun aSecondVisitAddsOneAndKeepsTheStoredTitle() = runTest {
     store.insert(Website("https://example.com/").apply { title = "First" })
-    val firstTime = dao.getByUrl("https://example.com/")!!.createdAt
-    Thread.sleep(5)
+    assertThat(dao.getByUrl("https://example.com/")!!.createdAt).isEqualTo(1_000L)
+    clock.setMillis(61_000L)
     store.insert(Website("https://example.com/").apply { title = "Second" })
 
     val row = dao.getByUrl("https://example.com/")!!
     assertThat(row.visitCount).isEqualTo(2)
-    assertThat(row.createdAt).isGreaterThan(firstTime)
+    assertThat(row.createdAt).isEqualTo(61_000L)
     assertThat(row.title).isEqualTo("First")
     assertThat(dao.getCount()).isEqualTo(1)
   }
