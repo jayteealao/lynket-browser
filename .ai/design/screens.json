@@ -203,13 +203,14 @@
       "flow": "choose-mode",
       "order": 10,
       "workflows": [
-        "one-browsing-mode"
+        "one-browsing-mode",
+        "custom-tabs-modes"
       ],
       "slices": [
         "mode-switch-flow"
       ],
       "created-at": "2026-11-02T19:45:13Z",
-      "updated-at": "2026-11-02T22:35:33Z",
+      "updated-at": "2026-11-08T10:27:16Z",
       "approvals": [
         {
           "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
@@ -273,10 +274,13 @@
         "bubble-page-state"
       ],
       "slices": [
-        "bubble-page-count"
+        "bubble-page-count",
+        "bubble-site-colour",
+        "open-in-full-window",
+        "bubble-menu-audit"
       ],
       "created-at": "2026-11-03T21:03:23Z",
-      "updated-at": "2026-11-07T08:41:22Z",
+      "updated-at": "2026-11-07T10:26:50Z",
       "approvals": [
         {
           "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
@@ -319,9 +323,12 @@
       "workflows": [
         "bubble-page-state"
       ],
-      "slices": [],
+      "slices": [
+        "error-page",
+        "error-retry"
+      ],
       "created-at": "2026-11-07T08:41:22Z",
-      "updated-at": "2026-11-07T08:41:22Z",
+      "updated-at": "2026-11-07T10:26:50Z",
       "approvals": [
         {
           "commit": "d7d9d71791417225fcb84241d72646aabf858651",
@@ -338,9 +345,12 @@
       "workflows": [
         "bubble-page-state"
       ],
-      "slices": [],
+      "slices": [
+        "head-state-ring",
+        "head-state-talkback"
+      ],
       "created-at": "2026-11-07T08:41:22Z",
-      "updated-at": "2026-11-07T08:41:22Z",
+      "updated-at": "2026-11-07T10:26:50Z",
       "approvals": [
         {
           "commit": "d7d9d71791417225fcb84241d72646aabf858651",
@@ -348,7 +358,62 @@
           "workflow": "bubble-page-state"
         }
       ]
+    },
+    "custom-tab-sheet": {
+      "title": "Custom Tab as a sheet",
+      "area": "settings",
+      "flow": "choose-mode",
+      "order": 15,
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T10:27:16Z",
+      "updated-at": "2026-11-08T10:27:16Z",
+      "approvals": []
     }
   },
-  "explore": {}
+  "explore": {},
+  "components": {
+    "settings-row": {
+      "title": "Settings row",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/settings/components/SettingsRow.kt",
+      "name": "SettingsRow",
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "created-at": "2026-11-08T10:26:22Z",
+      "updated-at": "2026-11-08T10:26:22Z"
+    },
+    "settings-group": {
+      "title": "Settings group",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/settings/components/SettingsGroup.kt",
+      "name": "SettingsGroup",
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "created-at": "2026-11-08T10:26:22Z",
+      "updated-at": "2026-11-08T10:26:22Z"
+    },
+    "settings-top-bar": {
+      "title": "Settings top bar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/settings/components/SettingsGroup.kt",
+      "name": "SettingsScaffold",
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "created-at": "2026-11-08T10:26:22Z",
+      "updated-at": "2026-11-08T10:26:22Z"
+    },
+    "settings-dialog": {
+      "title": "Settings dialog",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/settings/SettingsDialogs.kt",
+      "name": "SettingsDialogContent",
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "created-at": "2026-11-08T10:28:00Z",
+      "updated-at": "2026-11-08T10:28:00Z"
+    }
+  }
 }

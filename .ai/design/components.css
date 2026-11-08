@@ -1,0 +1,29 @@
+/* The settings components of Lynket, drawn from ui/settings/components/. Tokens only. */
+.top { display: flex; align-items: center; gap: 16px; height: 64px; padding: 0 12px; font-size: 22px; flex: none; }
+.top .backico { width: 24px; height: 24px; padding: 12px; }
+.group { margin-bottom: 16px; }
+.group h3 { margin: 0; padding: 8px 0 8px 16px; font-size: 14px; font-weight: 600; color: var(--primary); }
+.group p.note { margin: 0; padding: 0 16px 8px; font-size: 14px; color: var(--on-surface-variant); }
+.box { background: var(--surface-container); border-radius: 16px; overflow: hidden; }
+.box > * + * { border-top: 1px solid var(--outline-variant); }
+.row { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 8px 16px; box-sizing: border-box; }
+.row.indent { padding-left: 56px; }
+.row.off { opacity: .38; }
+.disc { width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--primary-container); color: var(--on-primary-container); }
+.disc svg { width: 22px; height: 22px; }
+.txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.txt b { font-weight: 400; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.sum { font-size: 14px; color: var(--on-surface-variant); overflow-wrap: anywhere; }
+.chev { width: 24px; height: 24px; flex: none; }
+.switch { width: 52px; height: 32px; border-radius: 16px; flex: none; box-sizing: border-box; border: 2px solid var(--on-surface-variant); position: relative; }
+.switch i { position: absolute; left: 6px; top: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--on-surface-variant); }
+.switch.on { background: var(--primary); border-color: var(--primary); }
+.switch.on i { left: 24px; top: 2px; width: 24px; height: 24px; background: var(--on-primary); }
+.radio { width: 20px; height: 20px; margin: 2px; border-radius: 50%; border: 2px solid var(--on-surface-variant); flex: none; display: grid; place-items: center; box-sizing: border-box; }
+.radio.on { border-color: var(--primary); }
+.radio.on i { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+.dialog { position: absolute; left: 24px; right: 24px; top: 150px; background: var(--surface-container-high); border-radius: 28px; padding: 24px; }
+.dialog h4 { margin: 0 0 16px; font-size: 22px; font-weight: 400; }
+.dialog p { margin: 0 0 12px; color: var(--on-surface-variant); }
+.dialog .acts { display: flex; justify-content: flex-end; gap: 8px; }
+.dialog button { min-height: 48px; min-width: 48px; padding: 0 12px; border: 0; background: transparent; color: var(--primary); font: inherit; font-weight: 600; border-radius: 20px; }
