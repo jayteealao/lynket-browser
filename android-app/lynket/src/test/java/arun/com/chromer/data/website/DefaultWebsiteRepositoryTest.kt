@@ -129,6 +129,26 @@ class DefaultWebsiteRepositoryTest {
   }
 
   @Test
+  fun a_failed_normal_lookup_keeps_the_visit_in_history_but_caches_nothing() = runBlocking<Unit> {
+    val lookup = repository.lookUpWebsite(url, incognito = false).first()
+
+    assertThat(lookup.fetchFailed).isTrue()
+    withTimeout(5_000) { history.firstInsert.await() }
+    assertThat(history.inserts.map { it.url }).containsExactly(url)
+    assertThat(cache.saves).isEmpty()
+  }
+
+  @Test
+  fun a_failed_incognito_lookup_writes_no_history() = runBlocking<Unit> {
+    val lookup = repository.lookUpWebsite(url, incognito = true).first()
+
+    assertThat(lookup.fetchFailed).isTrue()
+    delay(SETTLE_MS)
+    assertThat(history.inserts).isEmpty()
+    assertThat(cache.saves).isEmpty()
+  }
+
+  @Test
   fun a_lookup_whose_network_store_throws_is_failed() = runBlocking<Unit> {
     network.failure = IllegalStateException("offline")
 

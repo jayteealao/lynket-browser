@@ -29,6 +29,7 @@ import arun.com.chromer.util.parser.extraction.PageUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import java.io.IOException
 import timber.log.Timber
 
 /**
@@ -51,6 +52,8 @@ object RxParser {
    *
    * @param url The URL to parse (can be null)
    * @return Pair of URL and extracted Article (Article may be null if extraction failed)
+   * @throws IOException when the page could not be read, so the caller can tell an unreachable
+   * page from a page that has no article
    */
   suspend fun parseUrl(url: String?): Pair<String, ExtractedArticle?> = withContext(Dispatchers.IO) {
     if (url == null) {
@@ -69,6 +72,9 @@ object RxParser {
           .extractMetadata()
           .article()
       }
+    } catch (e: IOException) {
+      Timber.e(e)
+      throw e
     } catch (e: Exception) {
       Timber.e(e)
     } catch (e: OutOfMemoryError) {

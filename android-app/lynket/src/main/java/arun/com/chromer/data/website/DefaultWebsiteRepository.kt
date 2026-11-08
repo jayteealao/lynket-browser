@@ -95,7 +95,9 @@ internal constructor(
       return@flow
     }
 
-    // Nothing found: the page could not be fetched.
+    // Nothing found: the page could not be fetched. The visit still goes to history, but the
+    // bare address is not cached, so a later lookup fetches the page again.
+    if (!incognito) scope.launch { historyRepository.insert(Website(url)) }
     emit(WebsiteLookup(Website(url), fetchFailed = true))
   }.catch { throwable ->
     Timber.e(throwable)
