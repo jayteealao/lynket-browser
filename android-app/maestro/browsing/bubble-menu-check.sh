@@ -27,6 +27,19 @@
 #                  bubble-menu-audit.tsv) says misbehaves, show every item it says works, and
 #                  start with Open in full window
 #
+# The site colour mode seeds its own settings too (maestro/seed/bubble-site-colour.xml: the toolbar
+# colour follows the site; this clears the app's data) and runs the native bubble setup itself:
+#
+#   site-colour    a first bubble of fixtures/site-colour.html (theme colour #0B6E4F) puts the
+#                  site's colour in the app's colour cache and is closed with its X, keeping the
+#                  app's process (the cache lives in it); then a page of the same host that
+#                  maestro/webheads/slow-page-server.py holds for HOLD_S seconds (40 by default)
+#                  opens as a bubble and is expanded: while the page and its site details are still
+#                  held, so only the bubble's own intent can have coloured it, the top bar and the
+#                  bottom bar are sampled on a raw screenshot and must be near #0B6E4F; a held page
+#                  of another host (127.0.0.1, no colour in the cache) must show both bars near the
+#                  app colour #3F51B5
+#
 # An item misbehaves when, after the tap, the app crashed, a full app screen opened inside the
 # bubble's small window, the page could not be reached again (by Back, or by Home and a tap on
 # the bubble), or nothing happened at all. A judge that cannot read the device writes undecided
@@ -40,7 +53,12 @@
 # bubble lines, then one), full-window-menu.png/.xml (the open menu), full-window-activities.txt
 # (the task and windowing mode of the full window), full-window.png/.xml (the full window),
 # full-window-other.png/.xml (the bubble that is left), full-window.logcat.txt and
-# full-window.crash.txt, and a PASS or FAIL line in bubble-menu.txt. On exit it stops the server
+# full-window.crash.txt, and a PASS or FAIL line in bubble-menu.txt. site-colour writes
+# settings-site-colour.xml and settings-site-colour-stored.tsv, the setup folder setup-site-colour/,
+# site-colour.png/.xml/.raw (the expanded bubble of the site with a colour), site-colour-none.png/
+# .xml/.raw (the host with no colour), the bar samples and the cache line in
+# bubble-menu-site-colour.txt, site-colour-server.log (the held pages' start and end lines),
+# site-colour.logcat.txt and site-colour.crash.txt, and PASS or FAIL in bubble-menu.txt. On exit it stops the server
 # and removes the reverse. The audit modes write, per item, item-<name>-before.png/.xml (the menu
 # open, before the tap), item-<name>-after.png/.xml (2 s after it), item-<name>-activities.txt,
 # item-<name>-windows.txt, item-<name>-notifications.txt, item-<name>.logcat.txt and
@@ -53,12 +71,12 @@
 #        (run from android-app/)
 set -euo pipefail
 
-USAGE="usage: bubble-menu-check.sh <serial> <evidence-dir> <full-window|item <name>|audit-menu|audit-bar|audit-bar-off|audit-action|hidden>"
+USAGE="usage: bubble-menu-check.sh <serial> <evidence-dir> <full-window|item <name>|audit-menu|audit-bar|audit-bar-off|audit-action|hidden|site-colour>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 MODE="${3:?$USAGE}"
 ITEM_NAME="${4:-}"
-case "$MODE" in full-window|item|audit-menu|audit-bar|audit-bar-off|audit-action|hidden) ;; *) echo "$USAGE" >&2; exit 2 ;; esac
+case "$MODE" in full-window|item|audit-menu|audit-bar|audit-bar-off|audit-action|hidden|site-colour) ;; *) echo "$USAGE" >&2; exit 2 ;; esac
 source "$(dirname "$0")/../webheads/lib.sh"
 BM_HERE="$(hostpath "$(cd "$(dirname "$0")" && pwd)")"
 FIXTURES="$BM_HERE/../reader/fixtures"
@@ -72,13 +90,17 @@ CHECK_NAME="bubble menu $MODE"
 
 PORT=""
 SERVER_PID=""
+PAGE_PORT=""
+PAGE_SERVER_PID=""
 RESULT=FAIL
 
 cleanup() {
-  case "$MODE" in full-window|hidden) ;; *) [ "$RESULT" = PASS ] && RESULT=DONE ;; esac
+  case "$MODE" in full-window|hidden|site-colour) ;; *) [ "$RESULT" = PASS ] && RESULT=DONE ;; esac
   echo "$MODE${ITEM_NAME:+ $ITEM_NAME} $RESULT" >> "$OUT/bubble-menu.txt"
   [ -n "$PORT" ] && a reverse --remove "tcp:$PORT" >/dev/null 2>&1 || true
   [ -n "$SERVER_PID" ] && kill "$SERVER_PID" >/dev/null 2>&1 || true
+  [ -n "$PAGE_PORT" ] && a reverse --remove "tcp:$PAGE_PORT" >/dev/null 2>&1 || true
+  [ -n "$PAGE_SERVER_PID" ] && kill "$PAGE_SERVER_PID" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -787,6 +809,158 @@ case "$MODE" in
   item) [ -n "$(item_line "$ITEM_NAME")" ] || { echo "usage: bubble-menu-check.sh <serial> <evidence-dir> item <name>; items: $(item_names)" >&2; exit 2; } ;;
 esac
 
+# ---------------------------------------------------------------------------------------------
+# The site colour of the bubble page
+
+# The slow page server (copied from maestro/webheads/webheads-check.sh): /slow?s=<seconds>&id=<n>
+# arrives after that many seconds, and its log names each page's start and end.
+start_page_server() {
+  PAGE_PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
+  python "$BM_HERE/../webheads/slow-page-server.py" "$PAGE_PORT" > "$OUT/$MODE-server.log" 2>&1 &
+  PAGE_SERVER_PID=$!
+  a reverse "tcp:$PAGE_PORT" "tcp:$PAGE_PORT" >/dev/null
+  local _
+  for _ in $(seq 1 20); do
+    python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$PAGE_PORT/slow?s=0&id=0')" 2>/dev/null && break
+    sleep 0.5
+  done
+  log "slow page server on port $PAGE_PORT (adb reverse tcp:$PAGE_PORT)"
+}
+
+# The colour "#RRGGBB" at x $2, y $3 of the raw screenshot $1 (adb exec-out screencap, no -p):
+# width, height and format words, on Android 9 and later a colour space word, then RGBA pixels.
+# The header size is the file size less the pixels, so it is not guessed.
+bar_pixel() {
+  python -c '
+import struct, sys
+data = open(sys.argv[1], "rb").read()
+w, h = struct.unpack_from("<II", data, 0)
+at = len(data) - w * h * 4 + (int(sys.argv[3]) * w + int(sys.argv[2])) * 4
+print("#%02X%02X%02X" % tuple(data[at:at + 3]))
+' "$1" "$2" "$3"
+}
+
+# Passes when each channel of the colours $1 and $2 ("#RRGGBB") differs by at most 8.
+colour_near() {
+  python -c '
+import sys
+a, b = (bytes.fromhex(c.lstrip("#")) for c in sys.argv[1:3])
+sys.exit(0 if all(abs(x - y) <= 8 for x, y in zip(a, b)) else 1)
+' "$1" "$2"
+}
+
+# The bounds "x1 y1 x2 y2" of the node with resource id $1 in the saved dump $2.
+bounds_of() {
+  tr '>' '\n' < "$2" | grep -F "resource-id=\"$1\"" | head -1 |
+    sed -nE 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/p'
+}
+
+# Waits, at most $1 polls of 1 s, for a bubble line of the app in a fresh notification dump.
+wait_bubble_line() {
+  local _
+  for _ in $(seq 1 "$1"); do
+    notifications "$MODE-notifications.txt"
+    [ -n "$(bubble_flag_lines "$OUT/$MODE-notifications.txt")" ] && return 0
+    sleep 1
+  done
+  return 1
+}
+wait_no_bubble_line() {
+  local _
+  for _ in $(seq 1 10); do
+    notifications "$MODE-notifications.txt"
+    [ -z "$(bubble_flag_lines "$OUT/$MODE-notifications.txt")" ] && return 0
+    sleep 1
+  done
+  return 1
+}
+
+# Opens the held page $1 (server id $2) as a bubble, expands it while the server still holds it,
+# and samples both bars into $3.png/.xml/.raw; sets SAMPLE_TOP and SAMPLE_BOTTOM.
+sample_held_page() {
+  local url="$1" id="$2" name="$3"
+  open_link "$url"
+  wait_bubble_line 30 || fail "no bubble for $url"
+  expand_bubble || fail "no bubble to expand for $url"
+  wait_for 'resource-id="webview-top-bar"' || fail "the expanded page of $url shows no top bar"
+  grep -q "end id=$id\$" "$OUT/$MODE-server.log" && fail "the page $id finished before the bars were sampled"
+  ui_dump > "$OUT/$name.xml"
+  a exec-out screencap > "$OUT/$name.raw"
+  shot "$name"
+  local top bottom tx ty bx by
+  read -r -a top <<< "$(bounds_of webview-top-bar "$OUT/$name.xml")"
+  read -r -a bottom <<< "$(bounds_of browsing-bottom-bar "$OUT/$name.xml")"
+  [ "${#top[@]}" = 4 ] || fail "no top bar bounds in $name.xml"
+  [ "${#bottom[@]}" = 4 ] || fail "no bottom bar bounds in $name.xml"
+  tx=$(( (top[0] + top[2]) / 2 )); ty=$(( top[3] - 3 ))
+  bx=$(( (bottom[0] + bottom[2]) / 2 )); by=$(( bottom[1] + 3 ))
+  SAMPLE_TOP="$(bar_pixel "$OUT/$name.raw" "$tx" "$ty")"
+  SAMPLE_BOTTOM="$(bar_pixel "$OUT/$name.raw" "$bx" "$by")"
+  log "$name: top bar $SAMPLE_TOP at $tx,$ty; bottom bar $SAMPLE_BOTTOM at $bx,$by"
+  grep -q "end id=$id\$" "$OUT/$MODE-server.log" && fail "the page $id finished while the bars were sampled"
+  log "$name: the page $id was still held when the bars were sampled"
+}
+
+check_site_colour() {
+  local hold="${HOLD_S:-40}" site="#0B6E4F" primary="#3F51B5"
+  # (a) The settings, the bubble setup (judged by its bubble: its own last test can fail on another
+  # app's line after the bubble posted), and one stop so the setup's bubble is gone. The colour
+  # cache lives in the app's process, so the app is never stopped after the warm-up below.
+  cp "$BM_HERE/../seed/bubble-site-colour.xml" "$OUT/settings-site-colour.xml"
+  seed_settings "$OUT/settings-site-colour.xml"
+  bash "$BM_HERE/../webheads/webheads-check.sh" "$SERIAL" "$OUT/setup-site-colour" bubble > "$OUT/setup-site-colour.log" 2>&1 || true
+  notifications setup-site-colour-notifications.txt
+  [ -n "$(bubble_flag_lines "$OUT/setup-site-colour-notifications.txt")" ] ||
+    fail "the native bubble setup posted no bubble (see setup-site-colour.log)"
+  local stored
+  stored="$(stored_setting dynamic_color settings-site-colour-stored.tsv)"
+  [ "$stored" = true ] || fail "the stored dynamic colour setting is ${stored:-none}, not true"
+  stored="$(awk -F'\t' '$1 == "dynamic_color_web" { print $3 }' "$OUT/settings-site-colour-stored.tsv")"
+  [ "$stored" = true ] || fail "the stored setting based on web is ${stored:-none}, not true"
+  a shell am force-stop "$PKG"
+  wait_no_bubble_line || fail "the setup's bubble is still open after the app stopped"
+
+  # (b) The warm-up: a bubble of the fixture page puts its colour in the cache, then closes with its X.
+  FIXTURES="$BM_HERE/fixtures"
+  start_server
+  a logcat -c
+  open_link "http://localhost:$PORT/site-colour.html?warm=$(date +%s)"
+  local _ cached=""
+  for _ in $(seq 1 30); do
+    cached="$(a logcat -d | tr -d '\r' | grep -E 'Saved color -?[0-9]+ for host localhost' | head -1 || true)"
+    [ -n "$cached" ] && break
+    sleep 1
+  done
+  [ -n "$cached" ] || fail "the site colour of the fixture page did not reach the cache"
+  log "cache: $cached"
+  wait_bubble_line 30 || fail "no bubble for the fixture page"
+  expand_bubble || fail "no fixture bubble to expand"
+  tap_on 'resource-id="webview-close"' || fail "no Close on the fixture page"
+  wait_no_bubble_line || fail "the fixture bubble did not close"
+  [ -n "$(a shell pidof "$PKG" | tr -d '\r' || true)" ] || fail "the app's process stopped after the warm-up, so its colour cache is gone"
+
+  # (c) The same host, held: both bars in the site colour while nothing but the bubble's intent can
+  # have coloured them.
+  start_page_server
+  sample_held_page "http://localhost:$PAGE_PORT/slow?s=$hold&id=1" 1 site-colour
+  colour_near "$SAMPLE_TOP" "$site" || fail "the top bar is $SAMPLE_TOP, not near $site"
+  colour_near "$SAMPLE_BOTTOM" "$site" || fail "the bottom bar is $SAMPLE_BOTTOM, not near $site"
+
+  # (d) Another host with no colour in the cache: both bars in the app colour.
+  tap_on 'resource-id="webview-close"' || fail "no Close on the site colour page"
+  wait_no_bubble_line || fail "the site colour bubble did not close"
+  sample_held_page "http://127.0.0.1:$PAGE_PORT/slow?s=$hold&id=2" 2 site-colour-none
+  colour_near "$SAMPLE_TOP" "$primary" || fail "the top bar of a site with no colour is $SAMPLE_TOP, not near $primary"
+  colour_near "$SAMPLE_BOTTOM" "$primary" || fail "the bottom bar of a site with no colour is $SAMPLE_BOTTOM, not near $primary"
+  tap_on 'resource-id="webview-close"' || true
+
+  # (e) No crash.
+  app_logcat site-colour
+  grep -q "$PKG" "$OUT/site-colour.crash.txt" && fail "the app crashed (site-colour.crash.txt)"
+  RESULT=PASS
+  log "PASS"
+}
+
 case "$MODE" in
   full-window) check_full_window ;;
   item) audit_one ;;
@@ -795,4 +969,5 @@ case "$MODE" in
   audit-bar-off) audit_bar_off ;;
   audit-action) audit_action ;;
   hidden) check_hidden ;;
+  site-colour) check_site_colour ;;
 esac
