@@ -169,6 +169,7 @@ constructor(
           activityNames = null,
           incognito = incognito,
           linkSource = linkSource,
+          fromWebHead = fromWebHeads,
         )
         return
       } else if (!fromWebHeads) {
@@ -198,7 +199,16 @@ constructor(
       return
     }
     // If everything failed then launch normally in browsing activity.
-    openBrowsingTab(context, website, smart = true, fromNewTab = fromNewTab, activityNames = null, incognito = incognito, linkSource = linkSource)
+    openBrowsingTab(
+      context,
+      website,
+      smart = true,
+      fromNewTab = fromNewTab,
+      activityNames = null,
+      incognito = incognito,
+      linkSource = linkSource,
+      fromWebHead = fromWebHeads,
+    )
   }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -381,7 +391,10 @@ constructor(
     openBrowsingTab(context, website, smart, fromNewTab, activityNames, incognito, linkSource, extras = null)
   }
 
-  /** Returns false when an existing tab of [website] came to the front instead of a new one. */
+  /**
+   * Returns false when an existing tab of [website] came to the front instead of a new one.
+   * [fromWebHead] is true for a link a web head opened, which keeps the web view when incognito.
+   */
   private fun openBrowsingTab(
     context: Context,
     website: Website,
@@ -391,13 +404,14 @@ constructor(
     incognito: Boolean,
     linkSource: LinkSource,
     extras: Bundle? = null,
+    fromWebHead: Boolean = false,
   ): Boolean {
     val reordered = smart && reOrderTabByUrl(context, website, activityNames)
 
     if (!reordered) {
       val isIncognito = preferences.fullIncognitoMode() || incognito
 
-      val browsingActivity = if (shouldUseWebView(incognito)) {
+      val browsingActivity = if (shouldUseWebView(incognito, fromWebHead)) {
         Intent(context, WebViewActivity::class.java)
       } else {
         Intent(context, CustomTabActivity::class.java)
@@ -565,7 +579,8 @@ constructor(
       return
     }
 
-    val shouldUseWebView = shouldUseWebView(isIncognito)
+    // The background tab of a web head follows the web head: an incognito one keeps the web view.
+    val shouldUseWebView = shouldUseWebView(isIncognito, fromWebHead = true)
 
     // If this command was not issued for minimizing, then attempt aggressive loading.
     if (preferences.aggressiveLoading() && !fromMinimize) {
@@ -585,6 +600,7 @@ constructor(
             activityNames = null,
             incognito = isIncognito,
             linkSource = linkSource,
+            fromWebHead = true,
           )
         }
       }
