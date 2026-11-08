@@ -60,6 +60,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 import java.util.concurrent.TimeUnit
+import arun.com.chromer.util.TestClock
 
 /**
  * The History screen with fakes: the old controls in their order, the empty, loading and error
@@ -211,7 +212,7 @@ class HistoryScreenTest {
       val q = firstArg<String>()
       flowOf(PagingData.from(testSites.filter { it.title!!.contains(q, ignoreCase = true) }))
     }
-    val viewModel = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager)
+    val viewModel = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager, TestClock(TEST_NOW))
     composeRule.setContent { ChromerTheme(themeMode = ThemeMode.Light) { HistoryScreen(onBack = {}, viewModel = viewModel) } }
     composeRule.waitForIdle()
     return viewModel

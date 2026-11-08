@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.time.Clock
 
 /** Dialogs of the History screen. */
 enum class HistoryDialog { None, ClearConfirm, IncognitoExplanation }
@@ -75,7 +76,11 @@ class ModernHistoryViewModel @Inject constructor(
   private val preferencesRepository: UserPreferencesRepository,
   private val eventBus: EventBus,
   private val tabsManager: TabsManager,
+  private val clock: Clock,
 ) : ViewModel() {
+
+  /** The current time of the app clock, in milliseconds; the day headers are named from it. */
+  fun now(): Long = clock.now().toEpochMilliseconds()
 
   private val _uiState = MutableStateFlow(settingsState(HistoryUiState()))
   val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
