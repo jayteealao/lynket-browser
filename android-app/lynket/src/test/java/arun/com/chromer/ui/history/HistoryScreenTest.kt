@@ -16,6 +16,8 @@ import android.app.Application
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -131,8 +133,17 @@ class HistoryScreenTest {
     composeRule.onNodeWithTag("history-clear-all").assertExists()
     composeRule.onNodeWithText("Today").assertExists()
     composeRule.onNodeWithText("Yesterday").assertExists()
-    composeRule.onNodeWithText("https://seed.example/page-001").assertExists()
+    composeRule.onNodeWithText("seed.example/page-001").assertExists()
+    composeRule.onNodeWithText("https://seed.example/page-001").assertDoesNotExist()
     composeRule.onAllNodesWithTag("history-amp").assertCountEquals(1)
+  }
+
+  @Test
+  fun anUntitledPageIsTitledByItsHostAndNeverShowsItsUrl() {
+    show(flowOf(loaded(listOf(Website(null, "https://github.com/", null, null, null, null, false, TEST_NOW - 3_600_000L, 1)))))
+    composeRule.onNodeWithTag("history-address", useUnmergedTree = true).assertTextEquals("github.com")
+    composeRule.onAllNodesWithText("github.com", useUnmergedTree = true).assertCountEquals(2)
+    composeRule.onNodeWithText("https://github.com/", substring = true, useUnmergedTree = true).assertDoesNotExist()
   }
 
   @Test
