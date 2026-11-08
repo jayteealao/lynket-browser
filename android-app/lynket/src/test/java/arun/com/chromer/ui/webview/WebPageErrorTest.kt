@@ -126,11 +126,11 @@ class WebPageErrorTest {
 
   @Test
   fun aCertificateErrorNamesTheSite() =
-    assertCause(LoadFailure.Certificate, "This connection is not secure", "The certificate of lemire.me cannot be trusted, so the page did not load.")
+    assertCause(LoadFailure.Certificate, "This connection is not secure", "lemire.me could not prove that it is the site it claims to be, so the page did not load, to keep you safe.")
 
   @Test
   fun anyOtherFailureNamesTheSite() =
-    assertCause(LoadFailure.General, "This page did not load", "Something went wrong while loading lemire.me.")
+    assertCause(LoadFailure.General, "This page did not load", "Something went wrong while loading lemire.me. Try again in a moment.")
 
   @Test
   fun theTopBarKeepsCloseTheTitleTheAddressAndTheCount() {
