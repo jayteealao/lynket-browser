@@ -36,6 +36,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -47,6 +49,8 @@ import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.navigation.LynketKey
 import arun.com.chromer.ui.providerselection.ProviderSelectionContent
 import arun.com.chromer.ui.settings.SettingsKeyTable.AGGRESSIVE_LOADING
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SHEET
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SIDE_SHEET
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_TYPE
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR
@@ -147,6 +151,86 @@ class SettingsScreensUiTest {
     row("row-${SettingsKeyTable.AMP_MODE}").assertIsOff().performClick()
     row("row-${SettingsKeyTable.ARTICLE_MODE}").performClick()
     assertThat(writes).containsExactly(SettingsKeyTable.AMP_MODE to true, SettingsKeyTable.ARTICLE_MODE to true).inOrder()
+  }
+
+  // Browsing mode: the sheet options of slide over
+
+  private val sheetRow = "row-$CUSTOM_TAB_SHEET"
+  private val sideSheetRow = "row-$CUSTOM_TAB_SIDE_SHEET"
+
+  private fun browsingMode(values: SettingsValues) = show {
+    BrowsingModeContent(values, showNativeBubbles = true, onBack = {}, onMode = {}, onSet = { k, v -> writes += k to v })
+  }
+
+  private fun top(tag: String) = row(tag).getUnclippedBoundsInRoot().top
+
+  @Test
+  fun slideOverShowsTheSheetOptionOffAndKeepsEveryModeInItsPlace() {
+    browsingMode(defaults)
+    row("mode-slide-over").assertIsSelected()
+    row(sheetRow).assertIsDisplayed().assertIsOff()
+    composeRule.onNodeWithTag(sideSheetRow).assertDoesNotExist()
+    val tops = listOf("mode-slide-over", sheetRow, "mode-web-heads", "mode-native-bubbles").map(::top)
+    assertThat(tops).isInStrictOrder()
+  }
+
+  @Test
+  fun theSheetOnShowsTheSideSheetOptionOnBetweenItAndWebHeads() {
+    browsingMode(slideOver.with(CUSTOM_TAB_SHEET to true))
+    row(sheetRow).assertIsOn()
+    row(sideSheetRow).assertIsDisplayed().assertIsOn()
+    assertThat(top(sideSheetRow)).isGreaterThan(top(sheetRow))
+    assertThat(top(sideSheetRow)).isLessThan(top("mode-web-heads"))
+  }
+
+  @Test
+  fun webHeadsHideBothSheetOptions() {
+    browsingMode(webHeads.with(CUSTOM_TAB_SHEET to true))
+    row("mode-web-heads").assertIsSelected()
+    composeRule.onNodeWithTag(sheetRow).assertDoesNotExist()
+    composeRule.onNodeWithTag(sideSheetRow).assertDoesNotExist()
+  }
+
+  @Test
+  fun nativeBubblesHideBothSheetOptions() {
+    browsingMode(nativeBubbles.with(CUSTOM_TAB_SHEET to true))
+    row("mode-native-bubbles").assertIsSelected()
+    composeRule.onNodeWithTag(sheetRow).assertDoesNotExist()
+    composeRule.onNodeWithTag(sideSheetRow).assertDoesNotExist()
+  }
+
+  @Test
+  fun aTapOnTheSheetOptionTurnsItOn() {
+    browsingMode(defaults)
+    row(sheetRow).performClick()
+    assertThat(writes).containsExactly(CUSTOM_TAB_SHEET to true)
+  }
+
+  @Test
+  fun bothSheetOptionsSitIndentedUnderSlideOver() {
+    browsingMode(slideOver.with(CUSTOM_TAB_SHEET to true))
+    val slideOverLeft = row("mode-slide-over").getUnclippedBoundsInRoot().left
+    listOf(
+      sheetRow to string(R.string.custom_tab_sheet_title),
+      sideSheetRow to string(R.string.custom_tab_side_sheet_title),
+    ).forEach { (tag, title) ->
+      val rowBounds = row(tag).getUnclippedBoundsInRoot()
+      assertThat(rowBounds.left).isEqualTo(slideOverLeft)
+      val titleLeft = composeRule.onNodeWithText(title, useUnmergedTree = true).getUnclippedBoundsInRoot().left
+      // The 40 dp indent comes before the list item's own start padding.
+      assertThat(titleLeft - rowBounds.left).isAtLeast(40.dp + 16.dp)
+    }
+  }
+
+  @Test
+  fun theSheetOptionsShowTheirTitlesAndSummaries() {
+    browsingMode(slideOver.with(CUSTOM_TAB_SHEET to true))
+    row(sheetRow)
+      .assertTextContains("Open as a sheet")
+      .assertTextContains("Pages open over the app you came from. Drag up for full screen.")
+    row(sideSheetRow)
+      .assertTextContains("Side sheet on wide screens")
+      .assertTextContains("On a screen 600 dp wide or more, pages open at the side.")
   }
 
   // Look and feel
