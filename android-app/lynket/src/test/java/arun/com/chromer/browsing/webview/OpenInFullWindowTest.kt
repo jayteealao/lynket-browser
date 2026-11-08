@@ -52,6 +52,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
+import org.robolectric.android.controller.ActivityController
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
@@ -124,7 +125,15 @@ class OpenInFullWindowTest {
       .putExtra(Constants.EXTRA_KEY_TOOLBAR_COLOR, BLUE)
       .putExtra(Constants.EXTRA_KEY_INCOGNITO, incognito)
     if (inBubble) intent.putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, bubbleNotificationId(url, incognito))
-    return Robolectric.buildActivity(EmbeddableWebViewActivity::class.java, intent).setup().get()
+    return Robolectric.buildActivity(EmbeddableWebViewActivity::class.java, intent).setup().also { controller = it }.get()
+  }
+
+  private var controller: ActivityController<EmbeddableWebViewActivity>? = null
+
+  /** The window in front folds the stack, and the bubble's page stops. */
+  private fun theNewWindowCoversThePage() {
+    controller!!.pause().stop()
+    composeRule.waitForIdle()
   }
 
   private fun tapOpenInFullWindow() {
@@ -160,6 +169,11 @@ class OpenInFullWindowTest {
     assertThat(intent.getBooleanExtra(Constants.EXTRA_KEY_INCOGNITO, true)).isFalse()
     assertThat(intent.getIntExtra(Constants.EXTRA_KEY_TOOLBAR_COLOR, 0)).isEqualTo(BLUE)
     assertThat(intent.hasExtra(EXTRA_BUBBLE_NOTIFICATION_ID)).isFalse()
+
+    // The bubble stays until the window in front has folded the stack and the page has stopped.
+    assertThat(page.isFinishing).isFalse()
+    assertThat(notificationOf(second)).isNotNull()
+    theNewWindowCoversThePage()
 
     assertThat(page.isFinishing).isTrue()
     assertThat(notificationOf(second)).isNull()

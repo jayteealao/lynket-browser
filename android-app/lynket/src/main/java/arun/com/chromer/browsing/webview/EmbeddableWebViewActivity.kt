@@ -37,6 +37,7 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -93,14 +94,30 @@ class EmbeddableWebViewActivity : WebViewActivity() {
 
   /**
    * Opens the page on screen in a full window, with its colour and its incognito state, then closes
-   * the bubble. The window starts first, so the page is never gone with nothing in its place. Does
-   * nothing for a page that is not in a bubble or that is already closing.
+   * the bubble. The window starts first, so the page is never gone with nothing in its place. The
+   * bubble closes once its page has stopped, which is when the window in front has folded the stack:
+   * closed while the stack was still open, the bubbles that stay were left drawn where the open
+   * stack was, over the new window. [FULL_WINDOW_CLOSE_LIMIT_MS] closes it if the page never stops.
+   * Does nothing for a page that is not in a bubble or that is already closing or leaving.
    */
   fun openInFullWindow() {
-    if (!inBubble || isFinishing) return
+    if (!inBubble || isFinishing || leavingForFullWindow) return
     startActivity(fullWindowIntent(this, getCurrentUrl(), incognito, toolbarColour))
     leavingForFullWindow = true
-    finish()
+    lifecycleScope.launch {
+      delay(FULL_WINDOW_CLOSE_LIMIT_MS)
+      if (!isFinishing) finish()
+    }
+  }
+
+  override fun onStop() {
+    super.onStop()
+    if (leavingForFullWindow && !isFinishing) finish()
+  }
+
+  private companion object {
+    /** How long a page that left for a full window can stay before its bubble closes anyway. */
+    const val FULL_WINDOW_CLOSE_LIMIT_MS = 2_000L
   }
 }
 
