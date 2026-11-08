@@ -4,8 +4,9 @@
 # link from another app arrives. One mode per run:
 #   phone     Bottom sheet on a phone: the browser's window starts between 45 % and 55 % of the
 #             screen height, Settings stays in view above it, a tap at 25 % of the height does not
-#             reach Settings; then a tap outside the sheet, and on a fresh open a drag down, each
-#             leave no sheet window (the browser decides both; a FAIL there is the browser's).
+#             reach Settings; on a fresh open a quick drag down leaves no sheet window. A tap
+#             outside the sheet is noted, not asserted: current Chrome keeps the sheet open on it,
+#             and the drag down, the close button and Back close it.
 #   wide      Side sheet on a window 600 dp wide or more (an unfolded fold or a tablet): the
 #             browser's window is narrower than the screen and touches its left or right edge.
 #   widths    The width at launch picks the form: at 1400 px (a side sheet), at 1000 px (a bottom
@@ -172,7 +173,7 @@ case "$WHICH" in
         && pass "the tap outside did not open anything in Settings" || nope "the tap outside reached Settings"
     else
       sheet_open && pass "the tap at 25 % did not reach Settings (the sheet kept the focus)" || nope "the focus left the sheet"
-      nope "a tap outside left the sheet open (browser behaviour)"
+      log "NOTE $WHICH: a tap outside left the sheet open; current Chrome does not close a sheet on it"
     fi
     a shell am force-stop com.android.chrome
     open_over_settings phone-drag
