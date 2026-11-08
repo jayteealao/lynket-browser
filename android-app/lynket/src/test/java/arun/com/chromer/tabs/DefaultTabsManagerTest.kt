@@ -205,6 +205,63 @@ class DefaultTabsManagerTest : LynketRobolectricSuite() {
     }
   }
 
+  /** A browser that opens ephemeral tabs, so only the web head rule keeps the web view. */
+  private fun withAnEphemeralProvider(block: () -> Unit) {
+    mockkObject(CustomTabs.Companion)
+    every { CustomTabs.getCustomTabSupportingPackages(any()) } returns listOf("com.android.chrome")
+    every { CustomTabs.customTabPackage(any()) } returns "com.android.chrome"
+    every { CustomTabs.isEphemeralSupported(any(), any()) } returns true
+    try {
+      block()
+    } finally {
+      unmockkObject(CustomTabs.Companion)
+    }
+  }
+
+  @Test
+  fun anIncognitoLinkAWebHeadOpensKeepsTheWebView() = withAnEphemeralProvider {
+    clearPreferences()
+    preferences.browsingMode(BrowsingMode.WebHeads)
+    val shadowApp = shadowOf(application)
+
+    tabs.openUrl(application, Website(url), fromApp = false, fromWebHeads = true, incognito = true)
+
+    val tab = awaitNextStartedActivity(shadowApp)
+    assertThat(tab.component?.className).isEqualTo(WebViewActivity::class.java.name)
+    assertThat(tab.getBooleanExtra(Constants.EXTRA_KEY_INCOGNITO, false)).isTrue()
+  }
+
+  @Test
+  fun anIncognitoWebHeadWithAggressiveLoadingLoadsItsPageInTheWebView() = withAnEphemeralProvider {
+    webHeadsWithAggressiveLoading(webView = false)
+    preferences.fullIncognitoMode(true)
+    val shadowApp = shadowOf(application)
+
+    tabs.openUrl(application, Website(url), fromApp = false)
+
+    assertThat(awaitNextStartedService(shadowApp).component?.className).isEqualTo(WebHeadService::class.java.name)
+    val tab = awaitNextStartedActivity(shadowApp)
+    assertThat(tab.component?.className).isEqualTo(WebViewActivity::class.java.name)
+    assertThat(tab.getBooleanExtra(Constants.EXTRA_KEY_INCOGNITO, false)).isTrue()
+    verify(exactly = 1) { webViewLoading.prepare(url) }
+    verify(exactly = 0) { customTabLoading.prepare(any()) }
+  }
+
+  @Test
+  fun anIncognitoLinkWhoseWebHeadCannotShowOpensAnEphemeralCustomTab() = withAnEphemeralProvider {
+    clearPreferences()
+    preferences.browsingMode(BrowsingMode.WebHeads)
+    ShadowSettings.setCanDrawOverlays(false)
+    val shadowApp = shadowOf(application)
+
+    tabs.openUrl(application, Website(url), fromApp = false, incognito = true)
+
+    val tab = awaitNextStartedActivity(shadowApp)
+    assertThat(tab.component?.className).isEqualTo(CustomTabActivity::class.java.name)
+    assertThat(tab.getBooleanExtra(Constants.EXTRA_KEY_INCOGNITO, false)).isTrue()
+    assertThat(shadowApp.nextStartedService).isNull()
+  }
+
   @Test
   fun minimizingInWebHeadsModeOpensAHeadAndLoadsNothingInTheBackground() {
     webHeadsWithAggressiveLoading(webView = true)
