@@ -219,5 +219,11 @@ interface TabsManager {
     incognito: Boolean = false
   )
 
+  /**
+   * Whether a link that opens in a tab shows in the app's web view rather than a Custom Tab: when
+   * the person chose the web view or no browser supports Custom Tabs; and for an incognito link
+   * (or any link in full incognito mode) when the person's browser cannot open an ephemeral tab,
+   * one that keeps no cookies or history. A browser that can opens the incognito link itself.
+   */
   fun shouldUseWebView(incognito: Boolean): Boolean
 }
