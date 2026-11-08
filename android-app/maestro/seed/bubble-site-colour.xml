@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  A settings file for the site colour check: native bubble mode with the intro already passed, the
+  toolbar colour following the site (coloured toolbar, dynamic colour and "based on web" on, "based
+  on app" off) and the bottom bar on, so both bars can be sampled.
+-->
+<map>
+    <boolean name="webhead_enabled_pref" value="false" />
+    <boolean name="native_bubbles_preference" value="true" />
+    <boolean name="firstrun_3" value="false" />
+    <boolean name="toolbar_color_pref" value="true" />
+    <boolean name="dynamic_color" value="true" />
+    <boolean name="dynamic_color_web" value="true" />
+    <boolean name="dynamic_color_app" value="false" />
+    <boolean name="bottombar_enabled_preference" value="true" />
+</map>
