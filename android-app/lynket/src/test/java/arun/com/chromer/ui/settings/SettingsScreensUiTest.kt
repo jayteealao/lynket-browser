@@ -230,7 +230,7 @@ class SettingsScreensUiTest {
       .assertTextContains("Pages open over the app you came from. Drag up for full screen.")
     row(sideSheetRow)
       .assertTextContains("Side sheet on wide screens")
-      .assertTextContains("On a screen 600 dp wide or more, pages open at the side.")
+      .assertTextContains("On a wide screen, such as a tablet or an unfolded phone, pages open at the side.")
   }
 
   // Look and feel

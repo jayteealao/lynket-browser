@@ -54,6 +54,6 @@ appId: arun.com.chromer.debug
     id: "row-custom_tab_side_sheet"
     checked: true
 - assertVisible: "Side sheet on wide screens"
-- assertVisible: "On a screen 600 dp wide or more, pages open at the side."
+- assertVisible: "On a wide screen, such as a tablet or an unfolded phone, pages open at the side."
 - takeScreenshot: ${OUT}/sheet-on
 - back

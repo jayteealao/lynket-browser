@@ -370,7 +370,7 @@
   <string name="custom_tab_sheet_title">Open as a sheet</string>
   <string name="custom_tab_sheet_summary">Pages open over the app you came from. Drag up for full screen.</string>
   <string name="custom_tab_side_sheet_title">Side sheet on wide screens</string>
-  <string name="custom_tab_side_sheet_summary">On a screen 600 dp wide or more, pages open at the side.</string>
+  <string name="custom_tab_side_sheet_summary">On a wide screen, such as a tablet or an unfolded phone, pages open at the side.</string>
   <string name="bubble_setting_all">All conversations can bubble</string>
   <string name="bubble_setting_selected">Selected conversations can bubble. Choose All conversations can bubble.</string>
   <string name="bubble_setting_none">Nothing can bubble. Choose All conversations can bubble.</string>
