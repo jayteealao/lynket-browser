@@ -18,18 +18,23 @@
 #            flows with their stored values; then a scan of the app source for a direct read of
 #            the two mode switches (when run from a checkout); last, no crash. Chrome's first-run
 #            screen is turned off for the run and turned back on at the end.
+#   sheet    From a slide over settings file of an older release with no sheet option stored
+#            (seed/slide-over-updated.xml): "Open as a sheet" shows off under Slide over and "Side
+#            sheet on wide screens" does not show; a tap turns the sheet on and the side sheet
+#            option shows, on (sheet-rows.yaml); the store then holds both options on; last, no
+#            crash.
 #
-# Usage: maestro/settings/mode-switch-check.sh <serial> <evidence-dir> <native|back|charter>
+# Usage: maestro/settings/mode-switch-check.sh <serial> <evidence-dir> <native|back|charter|sheet>
 #        (from android-app/, with maestro on PATH)
-# Installs the debug build over the current one; native, back and charter clear the app's data.
+# Installs the debug build over the current one; every mode clears the app's data.
 set -euo pipefail
 
-USAGE="usage: mode-switch-check.sh <serial> <evidence-dir> <native|back|charter>"
+USAGE="usage: mode-switch-check.sh <serial> <evidence-dir> <native|back|charter|sheet>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 WHICH="${3:?$USAGE}"
 case "$WHICH" in
-  native | back | charter) ;;
+  native | back | charter | sheet) ;;
   *) echo "unknown mode: $WHICH; $USAGE" >&2; exit 2 ;;
 esac
 source "$(dirname "$0")/../webheads/lib.sh"
@@ -176,6 +181,18 @@ run_back() {  # $1 = evidence folder
   log "back to web heads: every row on, no note, Minimize choice kept"
 }
 
+# The sheet options of slide over, for a person who updates with no sheet option stored.
+run_sheet() {
+  seed_settings "$(hostpath "$SEED/slide-over-updated.xml")"
+  open_settings
+  flow sheet-rows.yaml || fail "the sheet options flow failed (see maestro.txt)"
+  expect_setting custom_tab_sheet true sheet-settings.tsv
+  expect_setting custom_tab_side_sheet true sheet-settings.tsv
+  a logcat -d -b crash | tr -d '' > "$OUT/crash.txt"
+  if grep -qF "$PKG" "$OUT/crash.txt"; then fail "the crash buffer has an entry for $PKG (see crash.txt)"; fi
+  log "sheet options: off under slide over, the side sheet option shows on when the sheet turns on, both stored"
+}
+
 # A source line that reads one of the two mode switches outside the settings store and its rules.
 source_scan() {  # $1 = output file
   local repo
@@ -255,5 +272,6 @@ case "$WHICH" in
   native) run_native "$OUT" ;;
   back) run_back "$OUT" ;;
   charter) run_charter ;;
+  sheet) run_sheet ;;
 esac
 log "$CHECK_NAME passed"

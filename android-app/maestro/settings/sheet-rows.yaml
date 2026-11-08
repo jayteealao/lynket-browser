@@ -1,0 +1,59 @@
+# The sheet options of slide over for a person who updates: on the Browsing mode screen, Slide over
+# is chosen, "Open as a sheet" shows off under it and "Side sheet on wide screens" does not show;
+# a tap turns the sheet on and the side sheet option shows under it, on. The settings screen is in
+# front (mode-switch-check.sh opens it) on a slide over settings file with no sheet option stored.
+appId: arun.com.chromer.debug
+# A busy emulator can show an "isn't responding" dialog; Wait keeps the app running.
+---
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "row-browsing-mode"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    id: "row-browsing-mode"
+- extendedWaitUntil:
+    visible:
+      id: "mode-slide-over"
+    timeout: 10000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- assertVisible:
+    id: "mode-slide-over"
+    checked: true
+- assertVisible:
+    id: "row-custom_tab_sheet"
+    checked: false
+- assertVisible: "Open as a sheet"
+- assertVisible: "Pages open over the app you came from. Drag up for full screen."
+- assertNotVisible:
+    id: "row-custom_tab_side_sheet"
+- takeScreenshot: ${OUT}/sheet-off
+- tapOn:
+    id: "row-custom_tab_sheet"
+- extendedWaitUntil:
+    visible:
+      id: "row-custom_tab_side_sheet"
+    timeout: 10000
+- assertVisible:
+    id: "row-custom_tab_sheet"
+    checked: true
+- assertVisible:
+    id: "row-custom_tab_side_sheet"
+    checked: true
+- assertVisible: "Side sheet on wide screens"
+- assertVisible: "On a screen 600 dp wide or more, pages open at the side."
+- takeScreenshot: ${OUT}/sheet-on
+- back
