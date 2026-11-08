@@ -82,6 +82,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import arun.com.chromer.util.TestClock
 
 /**
  * A person switches between slide over, web heads and native bubbles on a settings file restored
@@ -136,7 +137,7 @@ class ModeSwitchFlowTest {
       }
       restored.close()
     }
-    val store = DataStoreModule.settingsDataStore(context) { restored.file }
+    val store = DataStoreModule.settingsDataStore(context, TestClock()) { restored.file }
     repository = UserPreferencesRepository(store, scope)
     val preferences = Preferences(context, repository, scope)
     shadowOf(context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)

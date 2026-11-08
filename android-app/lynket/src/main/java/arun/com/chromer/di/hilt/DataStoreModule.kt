@@ -70,29 +70,32 @@ object DataStoreModule {
     @Provides
     @Singleton
     fun provideDataStore(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        clock: Clock
     ): DataStore<Preferences> =
-        settingsDataStore(context) { context.preferencesDataStoreFile(USER_PREFERENCES_NAME) }
+        settingsDataStore(context, clock) { context.preferencesDataStoreFile(USER_PREFERENCES_NAME) }
 
     @Provides
     @Singleton
     @PerAppRules
     fun providePerAppRulesDataStore(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        clock: Clock
     ): DataStore<Preferences> =
-        perAppRulesDataStore(context) { context.preferencesDataStoreFile(PER_APP_RULES_NAME) }
+        perAppRulesDataStore(context, clock) { context.preferencesDataStoreFile(PER_APP_RULES_NAME) }
 
     /** Folder in the app files where a corrupt store file is kept before the store starts empty. */
     const val CORRUPT_FOLDER = "datastore-corrupt"
 
-    fun settingsDataStore(context: Context, file: () -> File): DataStore<Preferences> =
-        create(context, USER_PREFERENCES_NAME, file, listOf(LegacySettingsMigration(context, Clock.System), BrowsingModeMigration))
+    fun settingsDataStore(context: Context, clock: Clock, file: () -> File): DataStore<Preferences> =
+        create(context, clock, USER_PREFERENCES_NAME, file, listOf(LegacySettingsMigration(context, clock), BrowsingModeMigration))
 
-    fun perAppRulesDataStore(context: Context, file: () -> File): DataStore<Preferences> =
-        create(context, PER_APP_RULES_NAME, file, listOf(PaperPerAppMigration(context, Clock.System)))
+    fun perAppRulesDataStore(context: Context, clock: Clock, file: () -> File): DataStore<Preferences> =
+        create(context, clock, PER_APP_RULES_NAME, file, listOf(PaperPerAppMigration(context, clock)))
 
     private fun create(
         context: Context,
+        clock: Clock,
         name: String,
         file: () -> File,
         migrations: List<DataMigration<Preferences>>,
@@ -101,7 +104,7 @@ object DataStoreModule {
             corruptionHandler = ReplaceFileCorruptionHandler { exception ->
                 // The corrupt file is copied aside first, so the settings or rules in it are not
                 // lost for good when the store starts again empty.
-                val kept = keepCorruptCopy(context, name, file)
+                val kept = keepCorruptCopy(context, clock, name, file)
                 Timber.e(exception, "The %s store was corrupt and starts empty; copy kept: %s", name, kept != null)
                 emptyPreferences()
             },
@@ -110,12 +113,15 @@ object DataStoreModule {
             produceFile = file,
         )
 
-    /** Copies the store file of [name] to [CORRUPT_FOLDER]; returns the copy, or null when it fails. */
-    private fun keepCorruptCopy(context: Context, name: String, file: () -> File): File? =
+    /**
+     * Copies the store file of [name] to [CORRUPT_FOLDER] as `<name>-<clock time>.preferences_pb`;
+     * returns the copy, or null when it fails.
+     */
+    private fun keepCorruptCopy(context: Context, clock: Clock, name: String, file: () -> File): File? =
         runCatching {
             val source = file()
             if (!source.exists()) return@runCatching null
             val folder = File(context.filesDir, CORRUPT_FOLDER).apply { mkdirs() }
-            source.copyTo(File(folder, "$name-${System.currentTimeMillis()}.preferences_pb"), overwrite = true)
+            source.copyTo(File(folder, "$name-${clock.now().toEpochMilliseconds()}.preferences_pb"), overwrite = true)
         }.onFailure { Timber.e(it, "Could not keep a copy of the corrupt %s store", name) }.getOrNull()
 }

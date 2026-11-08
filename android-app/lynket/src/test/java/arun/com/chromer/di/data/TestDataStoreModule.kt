@@ -28,6 +28,7 @@ import kotlinx.coroutines.SupervisorJob
 import java.io.File
 import java.nio.file.Files
 import javax.inject.Singleton
+import kotlin.time.Clock
 
 /**
  * Each Hilt test component gets its own DataStore files, with the real migrations: DataStore
@@ -44,14 +45,14 @@ object TestDataStoreModule {
 
   @Provides
   @Singleton
-  fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
-    DataStoreModule.settingsDataStore(context) { tempStoreFile("user_preferences") }
+  fun provideDataStore(@ApplicationContext context: Context, clock: Clock): DataStore<Preferences> =
+    DataStoreModule.settingsDataStore(context, clock) { tempStoreFile("user_preferences") }
 
   @Provides
   @Singleton
   @PerAppRules
-  fun providePerAppRulesDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
-    DataStoreModule.perAppRulesDataStore(context) { tempStoreFile("per_app_rules") }
+  fun providePerAppRulesDataStore(@ApplicationContext context: Context, clock: Clock): DataStore<Preferences> =
+    DataStoreModule.perAppRulesDataStore(context, clock) { tempStoreFile("per_app_rules") }
 
   fun tempStoreFile(name: String): File =
     File(Files.createTempDirectory("datastore").toFile(), "$name.preferences_pb")

@@ -31,6 +31,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import arun.com.chromer.util.TestClock
 
 /** A stored set with both web heads and native bubbles on is repaired to one mode; any other set is left alone. */
 @RunWith(RobolectricTestRunner::class)
@@ -92,7 +93,7 @@ class BrowsingModeMigrationTest {
       it[unrelatedKey] = "com.android.chrome"
     }
     restored.close()
-    DataStoreModule.settingsDataStore(context) { restored.file }.data.first()
+    DataStoreModule.settingsDataStore(context, TestClock()) { restored.file }.data.first()
   }
 
   private val context: Application get() = RuntimeEnvironment.getApplication()
