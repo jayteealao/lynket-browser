@@ -149,6 +149,23 @@ class DefaultWebsiteRepositoryTest {
   }
 
   @Test
+  fun a_lookup_from_the_cache_says_it_did_not_read_the_network() = runBlocking<Unit> {
+    cache.website = site
+
+    assertThat(repository.lookUpWebsite(url, incognito = true).first().fromNetwork).isFalse()
+  }
+
+  @Test
+  fun a_fetch_skips_the_cache_and_reads_the_network() = runBlocking<Unit> {
+    cache.website = site
+
+    val fetch = repository.fetchWebsite(url, incognito = true).first()
+
+    assertThat(fetch.fromNetwork).isTrue()
+    assertThat(fetch.fetchFailed).isTrue()
+  }
+
+  @Test
   fun a_lookup_whose_network_store_throws_is_failed() = runBlocking<Unit> {
     network.failure = IllegalStateException("offline")
 

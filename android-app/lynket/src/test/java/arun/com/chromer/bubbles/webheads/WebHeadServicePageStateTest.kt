@@ -45,11 +45,18 @@ class WebHeadServicePageStateTest : LynketRobolectricSuite() {
 
   private val repository = mockk<WebsiteRepository>(relaxed = true) {
     every { lookUpWebsite(any(), any()) } answers { lookupOf(firstArg()) }
+    every { fetchWebsite(any(), any()) } answers { fetchOf(firstArg()) }
     every { getWebsiteRoundIconAndColor(any()) } returns Pair.create(mockk<Drawable>(), NO_COLOR)
   }
 
   @Synchronized
   private fun lookupOf(url: String) = lookups.getOrPut(url) { MutableSharedFlow(replay = 1) }
+
+  /** The network read of a head whose site was already known. */
+  private val fetches = HashMap<String, MutableSharedFlow<WebsiteLookup>>()
+
+  @Synchronized
+  private fun fetchOf(url: String) = fetches.getOrPut(url) { MutableSharedFlow(replay = 1) }
 
   private fun intentFor(url: String) = Intent(application, WebHeadService::class.java).setData(Uri.parse(url))
 
@@ -80,6 +87,29 @@ class WebHeadServicePageStateTest : LynketRobolectricSuite() {
       idle()
     }
     assertThat(service.head(url).pageState).isEqualTo(expected)
+  }
+
+  @Test
+  fun a_known_site_shows_its_details_but_loads_until_the_network_read_ends() {
+    val service = serviceWith(A).get()
+
+    lookupOf(A).tryEmit(WebsiteLookup(Website(A).apply { title = "Known" }, fetchFailed = false, fromNetwork = false))
+    Thread.sleep(200)
+    idle()
+    assertThat(service.head(A).pageState).isEqualTo(PageState.Loading)
+
+    fetchOf(A).tryEmit(WebsiteLookup(Website(A), fetchFailed = false))
+    awaitState(service, A, PageState.Loaded)
+  }
+
+  @Test
+  fun a_known_site_whose_page_cannot_be_read_turns_failed() {
+    val service = serviceWith(A).get()
+
+    lookupOf(A).tryEmit(WebsiteLookup(Website(A).apply { title = "Known" }, fetchFailed = false, fromNetwork = false))
+    fetchOf(A).tryEmit(WebsiteLookup(Website(A), fetchFailed = true))
+
+    awaitState(service, A, PageState.Failed)
   }
 
   @Test

@@ -68,6 +68,9 @@ internal constructor(
   override fun lookUpWebsite(url: String, incognito: Boolean): Flow<WebsiteLookup> =
     lookup(url, if (incognito) Saves.NOTHING else Saves.ALL)
 
+  override fun fetchWebsite(url: String, incognito: Boolean): Flow<WebsiteLookup> =
+    lookup(url, if (incognito) Saves.NOTHING else Saves.ALL, readsStores = false)
+
   override fun getWebsiteWithoutHistory(url: String): Flow<Website> =
     lookup(url, Saves.CACHE_ONLY).map { it.website }
 
@@ -88,13 +91,18 @@ internal constructor(
 
   /**
    * The one chain of a website read: the cache, then history, then the network, and the bare
-   * address when nothing answers, which is a failed fetch. [saves] says what the read stores.
+   * address when nothing answers, which is a failed fetch. [saves] says what the read stores;
+   * with [readsStores] false it skips the cache and history and reads the network only.
    */
-  private fun lookup(url: String, saves: Saves): Flow<WebsiteLookup> = flow {
-    val known = cacheStore.getWebsite(url).filterNotNull().firstOrNull() ?: historyRepository.get(Website(url))
+  private fun lookup(url: String, saves: Saves, readsStores: Boolean = true): Flow<WebsiteLookup> = flow {
+    val known = if (readsStores) {
+      cacheStore.getWebsite(url).filterNotNull().firstOrNull() ?: historyRepository.get(Website(url))
+    } else {
+      null
+    }
     if (known != null) {
       if (saves == Saves.ALL) scope.launch { historyRepository.insert(known) }
-      emit(WebsiteLookup(known, fetchFailed = false))
+      emit(WebsiteLookup(known, fetchFailed = false, fromNetwork = false))
       return@flow
     }
 

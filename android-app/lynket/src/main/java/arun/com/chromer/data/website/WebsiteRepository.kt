@@ -28,8 +28,11 @@ import arun.com.chromer.data.website.model.WebColor
 import arun.com.chromer.data.website.model.Website
 import kotlinx.coroutines.flow.Flow
 
-/** A website read, and whether its page could not be fetched. */
-data class WebsiteLookup(val website: Website, val fetchFailed: Boolean)
+/**
+ * A website read, whether its page could not be fetched, and whether the page was read from the
+ * network now ([fromNetwork] false: the details were already known, from the cache or history).
+ */
+data class WebsiteLookup(val website: Website, val fetchFailed: Boolean, val fromNetwork: Boolean = true)
 
 /**
  * Interface definition of Website repository which is responsible for providing
@@ -46,6 +49,12 @@ interface WebsiteRepository {
    * nothing or failed, and then [WebsiteLookup.website] holds only the address.
    */
   fun lookUpWebsite(url: String, incognito: Boolean): Flow<WebsiteLookup>
+
+  /**
+   * Reads the page of [url] from the network only, storing what [lookUpWebsite] would, and tells
+   * whether it could not be fetched. A web head whose site is already known reads its page this way.
+   */
+  fun fetchWebsite(url: String, incognito: Boolean): Flow<WebsiteLookup> = lookUpWebsite(url, incognito)
 
   /**
    * Reads the website from the cache, history and the network, and writes no history row; a

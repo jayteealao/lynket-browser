@@ -85,6 +85,7 @@ import arun.com.chromer.util.Utils
 import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.AndroidEntryPoint
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -93,6 +94,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -460,6 +462,20 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
    * Reads the details of the site of [head]: its title, icon and colour. The end of the page fetch
    * also finishes the head's page state: a fetched page is loaded, a fetch that failed is failed.
    */
+  private fun finishFromTheNetwork(head: WebHeadState, isIncognito: Boolean) {
+    serviceScope.launch {
+      val fetched = try {
+        websiteRepository.fetchWebsite(head.url, isIncognito).flowOn(Dispatchers.IO).first()
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e)
+        null
+      }
+      pageTracker.finish(head, PageSignal.SiteDetails, fetched?.fetchFailed ?: true)
+    }
+  }
+
   private fun doExtraction(head: WebHeadState, isIncognito: Boolean) {
     val webHeadUrl = head.url
     val lookups = websiteRepository.lookUpWebsite(webHeadUrl, isIncognito)
@@ -471,8 +487,11 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
           .onEach { lookup ->
             withContext(Dispatchers.Main) {
               onSiteLoaded(webHeadUrl, lookup.website)
-              pageTracker.finish(head, PageSignal.SiteDetails, lookup.fetchFailed)
+              if (lookup.fromNetwork) pageTracker.finish(head, PageSignal.SiteDetails, lookup.fetchFailed)
             }
+            // Details already known say nothing of the page: the head stays loading until the
+            // page is read from the network.
+            if (!lookup.fromNetwork) finishFromTheNetwork(head, isIncognito)
           }
           .map { lookup -> websiteRepository.getWebsiteRoundIconAndColor(lookup.website) }
           .flowOn(Dispatchers.IO)
