@@ -21,6 +21,7 @@ import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.compose.ui.graphics.Color
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
 import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
@@ -368,6 +369,29 @@ class WebHeadServiceOverlayTest : LynketRobolectricSuite() {
     assertThat(result).isEqualTo(Service.START_NOT_STICKY)
     assertThat(webHeadNotification(service)).isNull()
     assertThat(shadowOf(service).isStoppedBySelf).isTrue()
+  }
+
+  @Test
+  fun an_incognito_head_is_never_hinted_to_the_browser() {
+    clearPreferences()
+    ShadowSettings.setCanDrawOverlays(true)
+    val controller = Robolectric.buildService(
+      WebHeadService::class.java,
+      intentFor("https://a.example").putExtra(EXTRA_KEY_INCOGNITO, true),
+    ).create().startCommand(0, 1)
+    controller.withIntent(intentFor("https://b.example")).startCommand(0, 2)
+    shadowOf(Looper.getMainLooper()).idle()
+    val service = controller.get()
+    val heads = service.controller!!
+
+    assertThat(heads["https://a.example"]!!.incognito).isTrue()
+    assertThat(service.preloads(heads["https://a.example"]!!)).isFalse()
+    assertThat(service.preloads(heads["https://b.example"]!!)).isTrue()
+
+    // Aggressive loading applies in web heads mode, where the page loads in a background tab.
+    preferences.browsingMode(BrowsingMode.WebHeads)
+    preferences.aggressiveLoading(true)
+    assertThat(service.preloads(heads["https://b.example"]!!)).isFalse()
   }
 
   @Test
