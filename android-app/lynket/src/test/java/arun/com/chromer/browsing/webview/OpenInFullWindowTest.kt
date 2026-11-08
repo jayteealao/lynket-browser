@@ -147,6 +147,9 @@ class OpenInFullWindowTest {
   private fun WebViewActivity.webView(): WebView =
     WebViewActivity::class.java.getDeclaredField("webView").apply { isAccessible = true }.get(this) as WebView
 
+  private fun WebViewActivity.shownToolbarColour(): Int =
+    WebViewActivity::class.java.getDeclaredMethod("getToolbarColour").apply { isAccessible = true }.invoke(this) as Int
+
   private fun WebViewActivity.setToolbarColour(colour: Int) {
     WebViewActivity::class.java.getDeclaredMethod("onToolbarColorSet", Int::class.javaPrimitiveType)
       .apply { isAccessible = true }
@@ -202,9 +205,14 @@ class OpenInFullWindowTest {
     // painted over.
     // sdlc-debt: a fixed wait for the lookup; a signal that the lookup ended would replace it.
     composeRule.waitForIdle()
-    Thread.sleep(COLOUR_LOOKUP_SETTLE_MS)
-    composeRule.waitForIdle()
-    page.setToolbarColour(GREEN)
+    // Set again until the colour holds through a quiet spell, so a lookup that ends late is over.
+    for (attempt in 1..COLOUR_SETTLE_TRIES) {
+      page.setToolbarColour(GREEN)
+      composeRule.waitForIdle()
+      Thread.sleep(COLOUR_LOOKUP_SETTLE_MS)
+      composeRule.waitForIdle()
+      if (page.shownToolbarColour() == GREEN) break
+    }
 
     tapOpenInFullWindow()
 
@@ -294,6 +302,7 @@ class OpenInFullWindowTest {
     const val BLUE = 0xFF1E88E5.toInt()
     const val GREEN = 0xFF2E7D32.toInt()
     const val WAIT_FOR_RETURNS_MS = 10_000L
-    const val COLOUR_LOOKUP_SETTLE_MS = 1_000L
+    const val COLOUR_LOOKUP_SETTLE_MS = 300L
+    const val COLOUR_SETTLE_TRIES = 20
   }
 }

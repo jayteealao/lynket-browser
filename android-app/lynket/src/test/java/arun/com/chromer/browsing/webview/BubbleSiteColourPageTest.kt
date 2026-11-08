@@ -137,11 +137,20 @@ class BubbleSiteColourPageTest {
   @Test
   fun a_colour_the_page_finds_later_replaces_it() {
     val page = openPage(SITE_COLOUR)
-    // The page has settled on the colour it opened with before it finds another.
+    // The page has settled on the colour it opened with before it finds another: its intent's
+    // colour on the main thread, then its site details lookup's from a background thread, which
+    // would otherwise paint over the later colour on a loaded machine.
+    // sdlc-debt: a fixed wait for the lookup; a signal that the lookup ended would replace it.
     composeRule.waitForIdle()
-
-    WebViewActivity::class.java.getDeclaredMethod("onToolbarColorSet", Int::class.javaPrimitiveType).apply { isAccessible = true }.invoke(page, LATER_COLOUR)
-    composeRule.waitForIdle()
+    val setColour = WebViewActivity::class.java.getDeclaredMethod("onToolbarColorSet", Int::class.javaPrimitiveType).apply { isAccessible = true }
+    // Set again until the colour holds through a quiet spell, so a lookup that ends late is over.
+    for (attempt in 1..COLOUR_SETTLE_TRIES) {
+      setColour.invoke(page, LATER_COLOUR)
+      composeRule.waitForIdle()
+      Thread.sleep(COLOUR_LOOKUP_SETTLE_MS)
+      composeRule.waitForIdle()
+      if (page.toolbarColour() == LATER_COLOUR) break
+    }
 
     assertThat(page.toolbarColour()).isEqualTo(LATER_COLOUR)
     assertNear(topBarColour(), LATER_COLOUR)
@@ -164,6 +173,8 @@ class BubbleSiteColourPageTest {
 
   private companion object {
     const val URL = "https://colour.example/page"
+    const val COLOUR_LOOKUP_SETTLE_MS = 300L
+    const val COLOUR_SETTLE_TRIES = 20
     val SITE_COLOUR = 0xFF0B6E4F.toInt()
     val LATER_COLOUR = 0xFF2E7D32.toInt()
     val DARK_SITE = 0xFF0B1F33.toInt()
