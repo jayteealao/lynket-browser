@@ -34,6 +34,7 @@ import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.ColorInt
+import androidx.browser.customtabs.CustomTabsClient
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.CustomTabsSession
 import androidx.core.content.ContextCompat
@@ -103,7 +104,7 @@ class CustomTabs @Inject constructor(
      */
     private fun openCustomTab(customTabsIntent: CustomTabsIntent) {
         val act = activity ?: return
-        val packageName = getCustomTabPackage(act)
+        val packageName = customTabPackage(act)
         val uri = Uri.parse(url)
         if (packageName != null) {
             customTabsIntent.intent.setPackage(packageName)
@@ -496,11 +497,12 @@ class CustomTabs @Inject constructor(
 
 
         /**
-         * Attempts to find the custom the best custom tab package to use.
+         * The browser a Custom Tab opens in: the person's chosen provider, else Chrome, else the
+         * first installed browser that supports Custom Tabs.
          *
          * @return A package that supports custom tab, null if not present
          */
-        private fun getCustomTabPackage(context: Context): String? {
+        internal fun customTabPackage(context: Context): String? {
             val userPackage = Preferences.get(context).customTabPackage()
             if (!userPackage.isNullOrEmpty()) {
                 return userPackage
@@ -517,6 +519,13 @@ class CustomTabs @Inject constructor(
                 null
             }
         }
+
+        /**
+         * Whether the browser [packageName] can open a Custom Tab that keeps no cookies, history or
+         * other site data once it closes (an ephemeral tab). A local package query, no connection.
+         */
+        fun isEphemeralSupported(context: Context, packageName: String?): Boolean =
+            packageName != null && CustomTabsClient.isEphemeralBrowsingSupported(context, packageName)
 
         /**
          * Returns all valid custom tab supporting browser packages on the system. Does not respect if
