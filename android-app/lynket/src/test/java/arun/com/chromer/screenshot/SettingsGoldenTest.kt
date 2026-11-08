@@ -61,7 +61,10 @@ import org.robolectric.annotation.GraphicsMode
  * Goldens of the settings root, browsing mode, look and feel, browsing options, per app settings
  * and provider selection: a phone (w411dp) and a fold (w841dp, list in a 680 dp column), light and
  * black. The Look and feel and Browsing options goldens of each browsing mode are scrolled to the
- * Web heads group, and the Browsing options goldens of the Minimize behavior row to that row. Record with `./gradlew :lynket:recordRoborazziDebug`.
+ * Web heads group, and the Browsing options goldens of the Minimize behavior row to that row. The
+ * Browsing mode sheet goldens show slide over with "Open as a sheet" off, and on with "Side sheet on
+ * wide screens" under it, light and dark, at 200 % font on the phone and on a 320 dp window. Record
+ * with `./gradlew :lynket:recordRoborazziDebug`.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -155,6 +158,34 @@ class SettingsGoldenTest {
 
   @Test fun browsing_mode_default_phone() = capture {
     BrowsingModeContent(values, showNativeBubbles = true, onBack = {}, onMode = {}, onSet = { _, _ -> })
+  }
+
+  private fun browsingMode(values: SettingsValues, theme: ThemeMode = ThemeMode.Light) = capture(theme) {
+    BrowsingModeContent(values, showNativeBubbles = true, onBack = {}, onMode = {}, onSet = { _, _ -> })
+  }
+
+  private val sheetOn: SettingsValues get() = slideOver.with(SettingsKeyTable.CUSTOM_TAB_SHEET to true)
+
+  @Test fun browsing_mode_sheet_off_phone() = browsingMode(slideOver)
+
+  @Test fun browsing_mode_sheet_on_phone() = browsingMode(sheetOn)
+
+  @Test fun browsing_mode_sheet_on_dark_phone() = browsingMode(sheetOn, ThemeMode.Dark)
+
+  @Test fun browsing_mode_sheet_on_font_200_phone() {
+    RuntimeEnvironment.setFontScale(2f)
+    browsingMode(sheetOn)
+  }
+
+  @Test fun browsing_mode_sheet_on_font_200_dark_phone() {
+    RuntimeEnvironment.setFontScale(2f)
+    browsingMode(sheetOn, ThemeMode.Dark)
+  }
+
+  @Config(qualifiers = SETTINGS_NARROW)
+  @Test fun browsing_mode_sheet_on_font_200_narrow() {
+    RuntimeEnvironment.setFontScale(2f)
+    browsingMode(sheetOn)
   }
 
   @Test fun browsing_mode_permission_phone() = capture(dialog = true) {
@@ -282,3 +313,4 @@ class SettingsGoldenTest {
 
 private const val SETTINGS_PHONE = "w411dp-h891dp-xxhdpi"
 private const val SETTINGS_FOLD = "w841dp-h701dp-xxhdpi"
+private const val SETTINGS_NARROW = "w320dp-h640dp-xhdpi"
