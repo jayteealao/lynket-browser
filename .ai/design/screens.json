@@ -223,6 +223,12 @@
           "version": "v1",
           "at": "2026-11-08T10:33:21Z",
           "workflow": "custom-tabs-modes"
+        },
+        {
+          "commit": "39e1d43fc7aca7d3ef8644840fdaf5b902fbc7c6",
+          "version": "v2",
+          "at": "2026-11-08T15:54:18Z",
+          "workflow": "custom-tabs-modes"
         }
       ]
     },
@@ -385,6 +391,12 @@
           "commit": "a3eb206bb8175014eed06339425ed7ce8ca37433",
           "version": "v1",
           "at": "2026-11-08T10:33:21Z",
+          "workflow": "custom-tabs-modes"
+        },
+        {
+          "commit": "39e1d43fc7aca7d3ef8644840fdaf5b902fbc7c6",
+          "version": "v2",
+          "at": "2026-11-08T15:54:18Z",
           "workflow": "custom-tabs-modes"
         }
       ]
