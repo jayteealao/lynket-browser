@@ -61,6 +61,7 @@ class CustomTabActivity : BrowsingActivity() {
       sheetLaunch = customTabs
         .forUrl(intent.dataString!!)
         .toolbarColor(toolbarColor)
+        .incognito(incognito)
         .launch()
     } else finish()
   }
