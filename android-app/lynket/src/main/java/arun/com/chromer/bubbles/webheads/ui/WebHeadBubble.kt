@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -227,16 +228,18 @@ fun WebHeadBubble(
         .then(if (ringAtRest) Modifier.border(RingStroke, if (head.closing) colours.error else colours.primary, CircleShape) else Modifier),
       contentAlignment = Alignment.Center,
     ) {
+      // Only the fill fades while the page loads, and the favicon with it; the first letter stays
+      // whole, in the colour that reads on the faded fill, so a loading head still names its site.
+      val shownFill = fill.copy(alpha = fill.alpha * fillAlpha).compositeOver(colours.surfaceContainerLowest)
       Box(
         modifier = Modifier
           .fillMaxSize()
           .padding(5.dp)
-          .graphicsLayer { this.alpha = fillAlpha }
           .clip(CircleShape)
-          .background(fill),
+          .background(shownFill),
         contentAlignment = Alignment.Center,
       ) {
-        HeadContent(head, headSize, fill, xRotation)
+        HeadContent(head, headSize, shownFill, xRotation, faviconAlpha = { fillAlpha })
       }
       if (!ringAtRest) {
         HeadRing(
@@ -289,7 +292,7 @@ private const val WARNING_MARK_DP = 20
 
 /** The favicon, the first letter of the site, or the close cross of a head closing to the trash. */
 @Composable
-private fun HeadContent(head: WebHeadState, headSize: Dp, fill: Color, xRotation: Float) {
+private fun HeadContent(head: WebHeadState, headSize: Dp, fill: Color, xRotation: Float, faviconAlpha: () -> Float) {
   val colours = MaterialTheme.colorScheme
   val favicon = head.favicon
   when {
@@ -303,7 +306,10 @@ private fun HeadContent(head: WebHeadState, headSize: Dp, fill: Color, xRotation
       bitmap = favicon,
       contentDescription = null,
       contentScale = ContentScale.Crop,
-      modifier = Modifier.size(headSize - 10.dp).background(colours.surfaceContainerLowest),
+      modifier = Modifier
+        .size(headSize - 10.dp)
+        .graphicsLayer { alpha = faviconAlpha() }
+        .background(colours.surfaceContainerLowest),
     )
     else -> Text(
       text = Utils.getFirstLetter(head.url),
