@@ -207,10 +207,11 @@
         "custom-tabs-modes"
       ],
       "slices": [
-        "mode-switch-flow"
+        "mode-switch-flow",
+        "sheet-settings"
       ],
       "created-at": "2026-11-02T19:45:13Z",
-      "updated-at": "2026-11-08T10:27:16Z",
+      "updated-at": "2026-11-08T10:42:14Z",
       "approvals": [
         {
           "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
@@ -373,9 +374,12 @@
       "workflows": [
         "custom-tabs-modes"
       ],
-      "slices": [],
+      "slices": [
+        "sheet-launch",
+        "ephemeral-incognito"
+      ],
       "created-at": "2026-11-08T10:27:16Z",
-      "updated-at": "2026-11-08T10:27:16Z",
+      "updated-at": "2026-11-08T10:42:14Z",
       "approvals": [
         {
           "commit": "a3eb206bb8175014eed06339425ed7ce8ca37433",
