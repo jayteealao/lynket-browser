@@ -13,7 +13,6 @@ package arun.com.chromer.bubbles.webheads.ui
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,9 +38,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -182,7 +183,9 @@ fun WebHeadBubble(
       Ring.Track -> 0f
       Ring.Solid -> 360f
     },
-    animationSpec = if (look.ring == Ring.Solid) tween(RING_CLOSE_MS, easing = RingEaseOut) else snap(),
+    // One curve in every direction, on the fill's clock, so a change mid-way turns back smoothly;
+    // with reduced motion the window's scale of 0 makes it instant.
+    animationSpec = tween(RING_CLOSE_MS, easing = RingEaseOut),
     label = "headRingSweep",
   )
   val fillAlpha by animateFloatAsState(
@@ -191,7 +194,9 @@ fun WebHeadBubble(
     label = "headFillAlpha",
   )
   // The border of today draws the ring at rest; the ring layer draws it only while it shows a state.
-  val ringAtRest = look.ring == Ring.Solid && sweep == 360f
+  // Derived, so a frame of the ring's close changes nothing here until the ring is whole.
+  val currentLook by rememberUpdatedState(look)
+  val ringAtRest by remember { derivedStateOf { currentLook.ring == Ring.Solid && sweep == 360f } }
 
   Box(
     modifier = modifier
