@@ -204,6 +204,13 @@ class WebPageErrorTest {
   }
 
   @Test
+  fun atTwiceTheTextSizeAPageAreaThatKeptThePictureDropsIt() {
+    show(failedPage(LoadFailure.Offline, count = null), fontScale = 2f, height = 640.dp)
+    composeRule.onNodeWithTag("error-state-blob", useUnmergedTree = true).assertDoesNotExist()
+    composeRule.onNodeWithText("Retry").assertExists()
+  }
+
+  @Test
   fun aTallPageAreaKeepsThePicture() {
     show(failedPage(LoadFailure.Offline, count = null), height = 640.dp)
     composeRule.onNodeWithTag("error-state-blob", useUnmergedTree = true).assertIsDisplayed()

@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -79,7 +80,8 @@ fun WebPageError(failure: PageLoad.Failed, onRetry: () -> Unit, modifier: Modifi
     modifier = modifier.fillMaxSize(),
   ) {
     BoxWithConstraints(Modifier.fillMaxSize().testTag("webview-error").semantics { liveRegion = LiveRegionMode.Polite }) {
-      val showBlob = maxHeight >= BLOB_MIN_PAGE_HEIGHT
+      // The words grow with the text size and the picture does not, so the line grows with it.
+      val showBlob = maxHeight >= BLOB_MIN_PAGE_HEIGHT * LocalDensity.current.fontScale.coerceAtLeast(1f)
       Column(
         Modifier
           .fillMaxWidth()
@@ -105,7 +107,7 @@ fun WebPageError(failure: PageLoad.Failed, onRetry: () -> Unit, modifier: Modifi
 }
 
 /**
- * The page-area height below which the picture leaves: the picture, the title, two lines of body,
- * Retry and their gaps take about 330 dp at the default text size.
+ * The page-area height below which the picture leaves at the default text size: the picture, the
+ * title, two lines of body, Retry and their gaps take about 330 dp. A larger text size raises it.
  */
 private val BLOB_MIN_PAGE_HEIGHT = 360.dp
