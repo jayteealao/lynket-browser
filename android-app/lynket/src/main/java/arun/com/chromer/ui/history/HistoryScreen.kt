@@ -193,6 +193,8 @@ fun HistoryScreen(onBack: () -> Unit, viewModel: ModernHistoryViewModel = hiltVi
     providerName = providerName,
     snackbarHostState = snackbar,
     actions = actions,
+    // Read on each composition, so the day headers follow the app clock as the day changes.
+    now = viewModel.now(),
   )
 }
 
@@ -204,7 +206,7 @@ fun HistoryContent(
   providerName: String?,
   actions: HistoryActions,
   snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-  now: Long = System.currentTimeMillis(),
+  now: Long,
   timeZone: TimeZone = TimeZone.getDefault(),
 ) {
   val context = LocalContext.current
