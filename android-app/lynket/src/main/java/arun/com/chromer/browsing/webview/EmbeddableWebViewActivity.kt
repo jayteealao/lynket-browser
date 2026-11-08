@@ -83,13 +83,25 @@ class EmbeddableWebViewActivity : WebViewActivity() {
     }
   }
 
+  /** Set by the first [finish] of a page in a bubble, until the close of its bubble ends. */
+  private var closingBubble = false
+
+  /**
+   * In a bubble, a finish closes the bubble first, and the page finishes when that close ends,
+   * which for the X of the last bubble in an open stack can be about a second later; until then
+   * [isFinishing] is false. A finish while the bubble closes does nothing more: the page finishes
+   * once, at the end of the close. Any finish closes the bubble, because Android removes the bubble
+   * of a finished page without a delete intent, whoever finished it.
+   */
   override fun finish() {
-    if (!isFinishing && inBubble) {
-      val id = intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)
-      bubbleCloser.get().closePage(id, leavingTheStack = leavingForFullWindow) { super.finish() }
-    } else {
+    if (isFinishing || !inBubble) {
       super.finish()
+      return
     }
+    if (closingBubble) return
+    closingBubble = true
+    val id = intent.getIntExtra(EXTRA_BUBBLE_NOTIFICATION_ID, 0)
+    bubbleCloser.get().closePage(id, leavingTheStack = leavingForFullWindow) { super.finish() }
   }
 
   /**
