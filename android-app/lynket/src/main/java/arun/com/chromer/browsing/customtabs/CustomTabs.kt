@@ -96,6 +96,9 @@ class CustomTabs @Inject constructor(
     /** Whether the last [prepare] added the sheet options, so the tab opens as a sheet. */
     private var sheetLaunch = false
 
+    /** The sheet options the last [prepare] read, which the launch log names. */
+    private var sheetOptions: SheetOptions? = null
+
     /** Whether the tab opens ephemeral: the browser keeps no cookies or history of it. */
     private var incognito = false
 
@@ -125,7 +128,7 @@ class CustomTabs @Inject constructor(
             Timber.d(
                 "Custom Tab launch: sheet=%s sideSheet=%s ephemeral=%s",
                 sheetLaunch,
-                SheetLaunch.options(Preferences.get(act)).sideSheet,
+                sheetOptions?.sideSheet,
                 incognito,
             )
             try {
@@ -209,10 +212,11 @@ class CustomTabs @Inject constructor(
         prepareActionButton()
         prepareMenuItems()
         prepareBottomBar()
+        sheetOptions = activity?.let { SheetLaunch.options(Preferences.get(it)) }
         sheetLaunch = activity?.let {
             SheetLaunch.applyTo(
                 builder!!,
-                SheetLaunch.options(Preferences.get(it)),
+                sheetOptions!!,
                 SheetLaunch.windowHeightPx(it),
                 SheetLaunch.windowWidthPx(it),
             )
