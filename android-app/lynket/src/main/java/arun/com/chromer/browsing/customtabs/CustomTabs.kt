@@ -91,6 +91,9 @@ class CustomTabs @Inject constructor(
     private var toolbarColor = NO_COLOR
     private var noAnimation = false
 
+    /** Whether the last [prepare] added the sheet options, so the tab opens as a sheet. */
+    private var sheetLaunch = false
+
     init {
         noAnimation = false
     }
@@ -98,10 +101,9 @@ class CustomTabs @Inject constructor(
     /**
      * Opens the URL on a Custom Tab if possible. Otherwise fallsback to opening it on a WebView.
      */
-    private fun openCustomTab() {
+    private fun openCustomTab(customTabsIntent: CustomTabsIntent) {
         val act = activity ?: return
         val packageName = getCustomTabPackage(act)
-        val customTabsIntent = builder!!.build()
         val uri = Uri.parse(url)
         if (packageName != null) {
             customTabsIntent.intent.setPackage(packageName)
@@ -109,7 +111,13 @@ class CustomTabs @Inject constructor(
             keepAliveIntent.setClassName(act.packageName, KeepAliveService::class.java.canonicalName!!)
             customTabsIntent.intent.putExtra(EXTRA_CUSTOM_TABS_KEEP_ALIVE, keepAliveIntent)
             try {
-                customTabsIntent.launchUrl(act, uri)
+                if (sheetLaunch) {
+                    // A browser opens a sheet only for a launch with a session or for a result.
+                    customTabsIntent.intent.data = uri
+                    act.startActivityForResult(customTabsIntent.intent, SHEET_REQUEST, customTabsIntent.startAnimationBundle)
+                } else {
+                    customTabsIntent.launchUrl(act, uri)
+                }
                 Timber.d("Launched url: %s", uri.toString())
             } catch (e: Exception) {
                 CUSTOM_TABS_FALLBACK.openUri(act, uri)
@@ -163,20 +171,32 @@ class CustomTabs @Inject constructor(
         prepareActionButton()
         prepareMenuItems()
         prepareBottomBar()
+        sheetLaunch = activity?.let {
+            SheetLaunch.applyTo(builder!!, SheetLaunch.options(Preferences.get(it)), SheetLaunch.windowHeightPx(it))
+        } ?: false
         return this
+    }
+
+    /** Builds the Custom Tab intent from the person's settings, as [launch] opens it. */
+    internal fun buildIntent(): CustomTabsIntent {
+        prepare()
+        assertBuilderInitialized()
+        return builder!!.build()
     }
 
     /**
      * Builds custom tab intent from the builder we created so far and launches the custom tab.
+     *
+     * @return whether the tab was opened as a sheet over the app the link came from
      */
-    fun launch() {
-        prepare()
-        assertBuilderInitialized()
-        openCustomTab()
+    fun launch(): Boolean {
+        openCustomTab(buildIntent())
+        val sheet = sheetLaunch
 
         // Dispose reference
         activity = null
         customTabsSession = null
+        return sheet
     }
 
     /**
@@ -443,6 +463,8 @@ class CustomTabs @Inject constructor(
     }
 
     companion object {
+        /** The request code of a Custom Tab opened as a sheet. */
+        internal const val SHEET_REQUEST = 7101
         private const val ACTION_CUSTOM_TABS_CONNECTION = "android.support.customtabs.action.CustomTabsService"
         private const val EXTRA_CUSTOM_TABS_KEEP_ALIVE = "android.support.customtabs.extra.KEEP_ALIVE"
         private const val LOCAL_PACKAGE = "com.google.android.apps.chrome"
