@@ -233,6 +233,12 @@
           "version": "v2",
           "at": "2026-11-08T15:54:18Z",
           "workflow": "custom-tabs-modes"
+        },
+        {
+          "commit": "55fedfdb3752569ee1ef0e213fd5b9fce0e4054e",
+          "version": "v1",
+          "at": "2026-11-08T17:52:52Z",
+          "workflow": "native-bubbles-beta-exit"
         }
       ]
     },
