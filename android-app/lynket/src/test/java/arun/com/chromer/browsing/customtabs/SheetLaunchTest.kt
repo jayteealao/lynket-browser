@@ -16,6 +16,7 @@ import androidx.browser.customtabs.CustomTabsIntent.EXTRA_ACTIVITY_HEIGHT_RESIZE
 import androidx.browser.customtabs.CustomTabsIntent.EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP
 import androidx.browser.customtabs.CustomTabsIntent.EXTRA_DISABLE_BACKGROUND_INTERACTION
 import androidx.browser.customtabs.CustomTabsIntent.EXTRA_INITIAL_ACTIVITY_HEIGHT_PX
+import androidx.browser.customtabs.CustomTabsIntent.EXTRA_INITIAL_ACTIVITY_WIDTH_PX
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.data.preferences.BrowsingMode
 import com.google.common.truth.Truth.assertThat
@@ -26,9 +27,9 @@ import org.junit.Test
 @HiltAndroidTest
 class SheetLaunchTest : LynketRobolectricSuite() {
 
-  private fun built(options: SheetOptions, height: Int): Pair<Boolean, CustomTabsIntent> {
+  private fun built(options: SheetOptions, height: Int, width: Int = 1400): Pair<Boolean, CustomTabsIntent> {
     val builder = CustomTabsIntent.Builder()
-    val applied = SheetLaunch.applyTo(builder, options, height)
+    val applied = SheetLaunch.applyTo(builder, options, height, width)
     return applied to builder.build()
   }
 
@@ -39,6 +40,7 @@ class SheetLaunchTest : LynketRobolectricSuite() {
     assertThat(applied).isFalse()
     assertThat(intent.intent.hasExtra(EXTRA_INITIAL_ACTIVITY_HEIGHT_PX)).isFalse()
     assertThat(intent.intent.hasExtra(EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP)).isFalse()
+    assertThat(intent.intent.hasExtra(EXTRA_INITIAL_ACTIVITY_WIDTH_PX)).isFalse()
     assertThat(intent.intent.hasExtra(EXTRA_DISABLE_BACKGROUND_INTERACTION)).isFalse()
   }
 
@@ -52,6 +54,20 @@ class SheetLaunchTest : LynketRobolectricSuite() {
       .isEqualTo(CustomTabsIntent.ACTIVITY_HEIGHT_ADJUSTABLE)
     assertThat(intent.intent.getBooleanExtra(EXTRA_DISABLE_BACKGROUND_INTERACTION, false)).isTrue()
     assertThat(intent.intent.getIntExtra(EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP, -1)).isEqualTo(600)
+  }
+
+  @Test
+  fun theSideSheetOnSetsAnInitialWidthOfHalfTheWindowSoTheBrowserCanOpenASideSheet() {
+    val (_, intent) = built(SheetOptions(sheet = true, sideSheet = true), 2000, width = 1401)
+
+    assertThat(intent.intent.getIntExtra(EXTRA_INITIAL_ACTIVITY_WIDTH_PX, -1)).isEqualTo(701)
+  }
+
+  @Test
+  fun theSideSheetOffSetsNoInitialWidth() {
+    val (_, intent) = built(SheetOptions(sheet = true, sideSheet = false), 2000, width = 1400)
+
+    assertThat(intent.intent.hasExtra(EXTRA_INITIAL_ACTIVITY_WIDTH_PX)).isFalse()
   }
 
   @Test

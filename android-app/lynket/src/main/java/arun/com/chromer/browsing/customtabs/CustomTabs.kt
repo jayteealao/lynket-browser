@@ -174,7 +174,12 @@ class CustomTabs @Inject constructor(
         prepareMenuItems()
         prepareBottomBar()
         sheetLaunch = activity?.let {
-            SheetLaunch.applyTo(builder!!, SheetLaunch.options(Preferences.get(it)), SheetLaunch.windowHeightPx(it))
+            SheetLaunch.applyTo(
+                builder!!,
+                SheetLaunch.options(Preferences.get(it)),
+                SheetLaunch.windowHeightPx(it),
+                SheetLaunch.windowWidthPx(it),
+            )
         } ?: false
         return this
     }

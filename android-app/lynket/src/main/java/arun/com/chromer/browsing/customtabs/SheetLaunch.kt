@@ -48,12 +48,27 @@ object SheetLaunch {
       activity.resources.displayMetrics.heightPixels
     }
 
+  /** The width of the window [activity] shows in, in pixels. */
+  fun windowWidthPx(activity: Activity): Int =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      activity.windowManager.currentWindowMetrics.bounds.width()
+    } else {
+      activity.resources.displayMetrics.widthPixels
+    }
+
   /**
    * Adds the sheet options to [builder]: an initial height of half the window, resizable by a drag,
-   * the app behind kept in view but not tappable, and the side sheet breakpoint. Returns whether
+   * the app behind kept in view but not tappable, and the side sheet breakpoint. With the side sheet
+   * on, it also sets an initial width of half the window: the browser opens a side sheet only when a
+   * width is set. Returns whether
    * it did; with the sheet off, or no window height to halve, it leaves [builder] as it was.
    */
-  fun applyTo(builder: CustomTabsIntent.Builder, options: SheetOptions, windowHeightPx: Int): Boolean {
+  fun applyTo(
+    builder: CustomTabsIntent.Builder,
+    options: SheetOptions,
+    windowHeightPx: Int,
+    windowWidthPx: Int = 0,
+  ): Boolean {
     if (!options.sheet || windowHeightPx <= 1) return false
     // Rounded up: the browser treats half the height as the smallest sheet it opens.
     builder.setInitialActivityHeightPx((windowHeightPx + 1) / 2, CustomTabsIntent.ACTIVITY_HEIGHT_ADJUSTABLE)
@@ -61,6 +76,7 @@ object SheetLaunch {
     builder.setActivitySideSheetBreakpointDp(
       if (options.sideSheet) SIDE_SHEET_BREAKPOINT_DP else NO_SIDE_SHEET_BREAKPOINT_DP,
     )
+    if (options.sideSheet && windowWidthPx > 1) builder.setInitialActivityWidthPx((windowWidthPx + 1) / 2)
     return true
   }
 }
