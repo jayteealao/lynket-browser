@@ -124,8 +124,12 @@ class TabsScreenTest {
   @Test
   fun rowsShowTheOldTypeLabels() {
     show()
-    composeRule.onNodeWithText("Custom Tab · https://example.com/?t=a").assertExists()
-    composeRule.onNodeWithText("Article mode · https://example.org/?t=b").assertExists()
+    composeRule.onNodeWithText("Custom Tab", useUnmergedTree = true).assertExists()
+    composeRule.onNodeWithText("example.com/?t=a", useUnmergedTree = true).assertExists()
+    composeRule.onNodeWithText("Article mode", useUnmergedTree = true).assertExists()
+    composeRule.onNodeWithText("example.org/?t=b", useUnmergedTree = true).assertExists()
+    composeRule.onNodeWithText("Custom Tab · https://example.com/?t=a", substring = true, useUnmergedTree = true).assertDoesNotExist()
+    composeRule.onNodeWithText("https://", substring = true, useUnmergedTree = true).assertDoesNotExist()
   }
 
   @Test
