@@ -25,6 +25,8 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -54,6 +56,8 @@ import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.settings.SettingsKeyTable.AGGRESSIVE_LOADING
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SHEET
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SIDE_SHEET
 import arun.com.chromer.ui.settings.SettingsKeyTable.MINIMIZE_BEHAVIOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEADS_COLOR
@@ -332,5 +336,37 @@ class ModeSwitchFlowTest {
 
     assertWebHeadRowsTakeInput(string(R.string.minimize_to_web_head))
     assertThat(stored().text(MINIMIZE_BEHAVIOR)).isEqualTo(minimizeToWebHead)
+  }
+
+  @Test
+  fun turningTheSheetOnShowsTheSideSheetOptionAndStoresBoth() {
+    // An updated person in slide over: the file holds neither sheet key.
+    open(webHeads = false, nativeBubbles = false, minimize = minimizeNormally)
+    assertSelectedMode(BrowsingMode.SlideOver)
+    row("row-$CUSTOM_TAB_SHEET").assertIsOff()
+    composeRule.onNodeWithTag("row-$CUSTOM_TAB_SIDE_SHEET").assertDoesNotExist()
+    assertThat(stored().bool(CUSTOM_TAB_SHEET)).isNull()
+    assertThat(stored().bool(CUSTOM_TAB_SIDE_SHEET)).isNull()
+
+    row("row-$CUSTOM_TAB_SHEET").performClick()
+    awaitStore { it.bool(CUSTOM_TAB_SHEET) == true && it.bool(CUSTOM_TAB_SIDE_SHEET) == true }
+    row("row-$CUSTOM_TAB_SHEET").assertIsOn()
+    row("row-$CUSTOM_TAB_SIDE_SHEET").assertIsOn()
+
+    // Web heads hide both options and keep their stored values.
+    row("mode-web-heads").performClick()
+    awaitStore { it.bool(WEB_HEAD_ENABLED) == true }
+    assertSelectedMode(BrowsingMode.WebHeads)
+    composeRule.onNodeWithTag("row-$CUSTOM_TAB_SHEET").assertDoesNotExist()
+    composeRule.onNodeWithTag("row-$CUSTOM_TAB_SIDE_SHEET").assertDoesNotExist()
+    assertThat(stored().bool(CUSTOM_TAB_SHEET)).isTrue()
+    assertThat(stored().bool(CUSTOM_TAB_SIDE_SHEET)).isTrue()
+
+    // Back in slide over, both options show again, on.
+    row("mode-slide-over").performClick()
+    awaitStore { it.bool(WEB_HEAD_ENABLED) == false }
+    assertSelectedMode(BrowsingMode.SlideOver)
+    row("row-$CUSTOM_TAB_SHEET").assertIsOn()
+    row("row-$CUSTOM_TAB_SIDE_SHEET").assertIsOn()
   }
 }
