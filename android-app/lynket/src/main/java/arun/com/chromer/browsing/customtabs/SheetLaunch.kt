@@ -50,14 +50,14 @@ object SheetLaunch {
 
   /**
    * Adds the sheet options to [builder]: an initial height of half the window, resizable by a drag,
-   * the app behind kept usable, and the side sheet breakpoint. Returns whether it did; with the
-   * sheet off, or no window height to halve, it leaves [builder] as it was.
+   * the app behind kept in view but not tappable, and the side sheet breakpoint. Returns whether
+   * it did; with the sheet off, or no window height to halve, it leaves [builder] as it was.
    */
   fun applyTo(builder: CustomTabsIntent.Builder, options: SheetOptions, windowHeightPx: Int): Boolean {
     if (!options.sheet || windowHeightPx <= 1) return false
     // Rounded up: the browser treats half the height as the smallest sheet it opens.
     builder.setInitialActivityHeightPx((windowHeightPx + 1) / 2, CustomTabsIntent.ACTIVITY_HEIGHT_ADJUSTABLE)
-    builder.setBackgroundInteractionEnabled(true)
+    builder.setBackgroundInteractionEnabled(false)
     builder.setActivitySideSheetBreakpointDp(
       if (options.sideSheet) SIDE_SHEET_BREAKPOINT_DP else NO_SIDE_SHEET_BREAKPOINT_DP,
     )

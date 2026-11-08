@@ -41,7 +41,7 @@ class CustomTabActivity : BrowsingActivity() {
 
   /**
    * Whether the tab opened as a sheet. The sheet leaves the app the link came from in view behind
-   * it, so this activity must not stay between the two: it would cover that app and take its taps.
+   * it, so this activity must not stay between the two: it would cover that app.
    */
   private var sheetLaunch = false
 

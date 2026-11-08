@@ -75,7 +75,7 @@ class CustomTabsSheetIntentTest : LynketRobolectricSuite() {
 
     val intent = tabs().buildIntent().intent
     assertThat(intent.getIntExtra(EXTRA_INITIAL_ACTIVITY_HEIGHT_PX, -1)).isEqualTo((height + 1) / 2)
-    assertThat(intent.getBooleanExtra(EXTRA_DISABLE_BACKGROUND_INTERACTION, true)).isFalse()
+    assertThat(intent.getBooleanExtra(EXTRA_DISABLE_BACKGROUND_INTERACTION, false)).isTrue()
     assertThat(intent.getIntExtra(EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP, -1)).isEqualTo(600)
 
     assertThat(tabs().launch()).isTrue()

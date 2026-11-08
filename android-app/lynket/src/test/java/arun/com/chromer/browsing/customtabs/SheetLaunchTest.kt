@@ -43,14 +43,14 @@ class SheetLaunchTest : LynketRobolectricSuite() {
   }
 
   @Test
-  fun theSheetOnOpensAtHalfTheWindowResizableWithTheAppBehindUsableAndTheSideSheetAt600() {
+  fun theSheetOnOpensAtHalfTheWindowResizableWithTheAppBehindNotTappableAndTheSideSheetAt600() {
     val (applied, intent) = built(SheetOptions(sheet = true, sideSheet = true), 2000)
 
     assertThat(applied).isTrue()
     assertThat(intent.intent.getIntExtra(EXTRA_INITIAL_ACTIVITY_HEIGHT_PX, -1)).isEqualTo(1000)
     assertThat(intent.intent.getIntExtra(EXTRA_ACTIVITY_HEIGHT_RESIZE_BEHAVIOR, -1))
       .isEqualTo(CustomTabsIntent.ACTIVITY_HEIGHT_ADJUSTABLE)
-    assertThat(intent.intent.getBooleanExtra(EXTRA_DISABLE_BACKGROUND_INTERACTION, true)).isFalse()
+    assertThat(intent.intent.getBooleanExtra(EXTRA_DISABLE_BACKGROUND_INTERACTION, false)).isTrue()
     assertThat(intent.intent.getIntExtra(EXTRA_ACTIVITY_SIDE_SHEET_BREAKPOINT_DP, -1)).isEqualTo(600)
   }
 
