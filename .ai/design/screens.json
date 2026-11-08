@@ -415,7 +415,14 @@
       "slices": [],
       "created-at": "2026-11-08T16:46:35Z",
       "updated-at": "2026-11-08T16:46:35Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
     },
     "link-open-transition": {
       "title": "Link opens",
@@ -428,7 +435,14 @@
       "slices": [],
       "created-at": "2026-11-08T16:46:35Z",
       "updated-at": "2026-11-08T16:46:35Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
     },
     "reader-text-size": {
       "title": "Reader text size",
@@ -441,7 +455,14 @@
       "slices": [],
       "created-at": "2026-11-08T16:46:36Z",
       "updated-at": "2026-11-08T16:46:36Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
     },
     "history": {
       "title": "History",
@@ -454,7 +475,14 @@
       "slices": [],
       "created-at": "2026-11-08T16:46:36Z",
       "updated-at": "2026-11-08T16:46:36Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
     },
     "tabs": {
       "title": "Tabs",
@@ -467,7 +495,14 @@
       "slices": [],
       "created-at": "2026-11-08T16:46:36Z",
       "updated-at": "2026-11-08T16:46:36Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
     },
     "themed-icon": {
       "title": "Themed icon",
@@ -480,7 +515,14 @@
       "slices": [],
       "created-at": "2026-11-08T16:46:37Z",
       "updated-at": "2026-11-08T16:46:37Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
     }
   },
   "explore": {},
