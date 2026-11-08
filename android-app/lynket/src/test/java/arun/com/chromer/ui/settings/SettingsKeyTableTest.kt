@@ -84,8 +84,25 @@ class SettingsKeyTableTest {
   fun browsingModeKeepsTheModesThenLoadFaster() {
     val order = SettingsKeyTable.forScreen(SettingsScreenId.BrowsingMode).map { it.key }
     assertThat(order).containsExactly(
+      SettingsSchema.CUSTOM_TAB_SHEET, SettingsSchema.CUSTOM_TAB_SIDE_SHEET,
       SettingsKeyTable.WEB_HEAD_ENABLED, SettingsKeyTable.NATIVE_BUBBLES, *(legacyKeys("browse_faster_options") - notSettings).toTypedArray(),
     ).inOrder()
+  }
+
+  @Test
+  fun theSheetRowsSitInTheModesGroupAfterSlideOver() {
+    val sheet = SettingsKeyTable[SettingsSchema.CUSTOM_TAB_SHEET]!!
+    val sideSheet = SettingsKeyTable[SettingsSchema.CUSTOM_TAB_SIDE_SHEET]!!
+    listOf(sheet, sideSheet).forEach { entry ->
+      assertWithMessage(entry.key).that(entry.screen).isEqualTo(SettingsScreenId.BrowsingMode)
+      assertWithMessage(entry.key).that(entry.group).isEqualTo(0)
+      assertWithMessage(entry.key).that(entry.control).isEqualTo(ControlKind.Switch)
+    }
+    assertThat(sheet.position).isEqualTo(1)
+    assertThat(sideSheet.position).isEqualTo(2)
+    assertThat(sideSheet.dependsOn).isEqualTo(SettingsSchema.CUSTOM_TAB_SHEET)
+    // Slide over has no key and heads the list, so the first keyed mode comes after both options.
+    assertThat(SettingsKeyTable[SettingsKeyTable.WEB_HEAD_ENABLED]!!.position).isGreaterThan(sideSheet.position)
   }
 
   @Test
