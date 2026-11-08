@@ -61,6 +61,12 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 import java.util.concurrent.TimeUnit
 import arun.com.chromer.util.TestClock
+import arun.com.chromer.util.setMillis
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
+import java.util.TimeZone
 
 /**
  * The History screen with fakes: the old controls in their order, the empty, loading and error
@@ -274,5 +280,43 @@ class HistoryScreenTest {
       preferencesRepository.setValues(mapOf(Preferences.FULL_INCOGNITO_MODE to true, Preferences.INCOGNITO_MODE to true))
     }
     composeRule.onNodeWithTag("history-switch").assertIsOff()
+  }
+
+  @Test
+  fun theDayHeadersFollowTheAppClockNotTheDeviceTime() {
+    val zone = TimeZone.getDefault()
+    TimeZone.setDefault(TEST_ZONE)
+    try {
+      val dayStart = TEST_NOW - TEST_NOW % DAY_MS
+      val visit = Website("Late visit", "https://late.example/", null, null, null, null, false, dayStart + 23 * HOUR_MS + 58 * MINUTE_MS, 1)
+      every { preferences.historyDisabled() } returns false
+      every { preferences.fullIncognitoMode() } returns false
+      every { preferences.customTabPackage() } returns null
+      every { repository.getPagedHistory() } returns flowOf(PagingData.from(listOf(visit)))
+      val clock = TestClock(dayStart + 23 * HOUR_MS + 59 * MINUTE_MS)
+      val viewModel = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager, clock)
+      var composition by mutableIntStateOf(0)
+      composeRule.setContent {
+        ChromerTheme(themeMode = ThemeMode.Light) { key(composition) { HistoryScreen(onBack = {}, viewModel = viewModel) } }
+      }
+      composeRule.waitForIdle()
+      composeRule.onNodeWithText("Today").assertExists()
+      composeRule.onNodeWithText("Yesterday").assertDoesNotExist()
+
+      clock.setMillis(dayStart + DAY_MS + MINUTE_MS)
+      composition++
+      composeRule.waitForIdle()
+
+      composeRule.onNodeWithText("Yesterday").assertExists()
+      composeRule.onNodeWithText("Today").assertDoesNotExist()
+    } finally {
+      TimeZone.setDefault(zone)
+    }
+  }
+
+  private companion object {
+    const val MINUTE_MS = 60_000L
+    const val HOUR_MS = 60 * MINUTE_MS
+    const val DAY_MS = 24 * HOUR_MS
   }
 }
