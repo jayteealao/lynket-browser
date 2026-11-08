@@ -324,10 +324,10 @@ network_back() {
   fi
 }
 
-# The node of the Retry button in a UI dump on stdin: the clickable parent of the Retry text, which
-# carries the button's enabled state.
+# The node of the Retry button in a UI dump on stdin: the clickable parent of its text, which
+# carries the button's enabled state. During a retry the button says "Retrying…".
 retry_button() {
-  tr '>' '\n' | grep -B1 -F 'text="Retry"' | head -1
+  tr '>' '\n' | grep -B1 -E 'text="Retry(ing…)?"' | head -1
 }
 
 # Taps Retry, or with PULL=1 pulls down on the error page, then saves one dump as

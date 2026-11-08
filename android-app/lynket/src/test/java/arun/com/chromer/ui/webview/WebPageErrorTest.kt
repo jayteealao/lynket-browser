@@ -224,7 +224,7 @@ class WebPageErrorTest {
     show(retryingPage())
     composeRule.onNodeWithText("You are offline").assertIsDisplayed()
     composeRule.onNodeWithText("Check your connection, then try again.").assertIsDisplayed()
-    composeRule.onNodeWithText("Retry").assertIsDisplayed().assertIsNotEnabled()
+    composeRule.onNodeWithText("Retrying…").assertIsDisplayed().assertIsNotEnabled()
   }
 
   @Test
@@ -240,7 +240,7 @@ class WebPageErrorTest {
   @Test
   fun aTapOnTheDisabledRetryDoesNothing() {
     show(retryingPage())
-    composeRule.onNodeWithText("Retry").performClick()
+    composeRule.onNodeWithText("Retrying…").performClick()
     composeRule.runOnIdle { assertThat(retries).isEqualTo(0) }
   }
 

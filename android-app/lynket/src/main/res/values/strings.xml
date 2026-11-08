@@ -478,6 +478,7 @@
   <string name="web_page_error_certificate_body">The certificate of %1$s cannot be trusted, so the page did not load.</string>
   <string name="web_page_error_general_title">This page did not load</string>
   <string name="web_page_error_general_body">Something went wrong while loading %1$s.</string>
+  <string name="web_page_error_retrying">Retrying…</string>
   <string name="reader_open_image">Open image</string>
   <string name="pinch_to_zoom">Pinch to zoom</string>
   <string name="reader_article_image">Article image</string>

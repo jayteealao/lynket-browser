@@ -182,7 +182,7 @@ class WebViewRetryTest {
   private fun assertRetrying(activity: WebViewActivity) {
     assertThat(shadowOf(activity.webView()).lastLoadedUrl).isEqualTo(failed)
     assertThat(shadowOf(activity.webView()).reloadInvocations).isEqualTo(0)
-    composeRule.onNodeWithText("Retry").assertIsNotEnabled()
+    composeRule.onNodeWithText("Retrying…").assertIsNotEnabled()
     tag("webview-progress").assertExists()
     composeRule.onNodeWithText("You are offline").assertExists()
     tag("browsing-bottom-bar").assertDoesNotExist()
@@ -231,7 +231,8 @@ class WebViewRetryTest {
     failOfflineAndRetry(activity)
     activity.progress(40)
 
-    tapRetry()
+    composeRule.onNodeWithText("Retrying…").performClick()
+    composeRule.waitForIdle()
 
     assertThat(activity.page().progress).isEqualTo(40)
     assertThat((activity.page().load as PageLoad.Failed).retrying).isTrue()

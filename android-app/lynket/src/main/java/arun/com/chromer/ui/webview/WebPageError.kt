@@ -65,7 +65,7 @@ internal fun siteOf(address: String): String = Uri.parse(address).host?.takeIf {
  * A page that did not load: the cause and Retry, centred in the page area. In a short window the
  * picture goes first, and the content scrolls when it is still too tall, so the title and Retry
  * stay reachable. Screen readers hear the cause when it replaces the page. A pull on the page does
- * the same as Retry; while a retry runs, Retry is disabled and a pull does nothing.
+ * the same as Retry; while a retry runs, Retry is disabled, says "Retrying…", and a pull does nothing.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,7 +92,9 @@ fun WebPageError(failure: PageLoad.Failed, onRetry: () -> Unit, modifier: Modifi
           title = stringResource(content.title),
           body = body,
           icon = content.icon,
-          retryLabel = stringResource(R.string.retry),
+          // The words change with the retry, so the live region says that it began, and says the
+          // cause again when it fails with the same cause.
+          retryLabel = stringResource(if (failure.retrying) R.string.web_page_error_retrying else R.string.retry),
           onRetry = onRetry,
           retryEnabled = !failure.retrying,
           showBlob = showBlob,
