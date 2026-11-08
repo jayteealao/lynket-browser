@@ -169,7 +169,7 @@ fun TabsContent(state: TabsUiState, closeIcon: Boolean, actions: TabsActions) {
       ) {
         when (state) {
           TabsUiState.Loading -> item(key = "loading") {
-            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.settingsColumn()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.animateItem().settingsColumn()) {
               LoadingList(modifier = Modifier.padding(vertical = 12.dp), rows = 4, loadingLabel = stringResource(R.string.loading))
             }
           }
@@ -179,7 +179,7 @@ fun TabsContent(state: TabsUiState, closeIcon: Boolean, actions: TabsActions) {
               body = state.message,
               retryLabel = stringResource(R.string.retry),
               onRetry = actions.onRefresh,
-              modifier = Modifier.settingsColumn(),
+              modifier = Modifier.animateItem().settingsColumn(),
             )
           }
           is TabsUiState.Loaded -> if (tabs.isEmpty()) {
@@ -188,19 +188,20 @@ fun TabsContent(state: TabsUiState, closeIcon: Boolean, actions: TabsActions) {
                 icon = Icons.Outlined.Tab,
                 title = stringResource(R.string.tabs_empty_title),
                 body = stringResource(R.string.tabs_empty_body),
-                modifier = Modifier.settingsColumn(),
+                modifier = Modifier.animateItem().settingsColumn(),
               )
             }
           } else {
             itemsIndexed(tabs, key = { _, tab -> "${tab.type}-${tab.url}" }) { index, tab ->
-              TabRow(tab, first = index == 0, last = index == tabs.lastIndex, actions)
+              // Closed and reordered rows fade and slide into place (spring, no bounce).
+              TabRow(tab, first = index == 0, last = index == tabs.lastIndex, actions, Modifier.animateItem())
             }
             item(key = "hint") {
               Text(
                 stringResource(R.string.tabs_swipe_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.settingsColumn().padding(start = 4.dp, top = 16.dp),
+                modifier = Modifier.animateItem().settingsColumn().padding(start = 4.dp, top = 16.dp),
               )
             }
           }
@@ -241,7 +242,7 @@ private fun typeLabel(tab: Tab): String = stringResource(
 
 /** One open tab: favicon or first letter, title, the type label and the address, and a close icon. */
 @Composable
-private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions) {
+private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions, modifier: Modifier = Modifier) {
   val top = if (first) 16.dp else 0.dp
   val bottom = if (last) 16.dp else 0.dp
   val shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
@@ -249,7 +250,7 @@ private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions
   val dismissState = rememberSwipeToDismissBoxState()
   SwipeToDismissBox(
     state = dismissState,
-    modifier = Modifier.settingsColumn().testTag("tab-row"),
+    modifier = modifier.settingsColumn().testTag("tab-row"),
     backgroundContent = {
       Box(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer, shape).padding(horizontal = 24.dp),
