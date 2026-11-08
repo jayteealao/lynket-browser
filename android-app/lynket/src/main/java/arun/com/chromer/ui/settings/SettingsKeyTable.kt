@@ -148,6 +148,8 @@ object SettingsKeyTable {
     none("full_incognito_mode", "browsing in incognito"),
     none("article_text_size_pref", "article reader text size"),
     none("search_engine_preference", "home search bar"),
+    none(SettingsSchema.CUSTOM_TAB_SHEET, "CustomTabs.prepare"),
+    none(SettingsSchema.CUSTOM_TAB_SIDE_SHEET, "CustomTabs.prepare"),
   )
 
   private fun none(key: String, usedBy: String) =
