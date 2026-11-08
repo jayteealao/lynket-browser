@@ -20,6 +20,8 @@
 
 package arun.com.chromer.browsing.customtabs
 
+import android.app.Activity
+import android.os.Build
 import android.os.Bundle
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
@@ -37,6 +39,12 @@ class CustomTabActivity : BrowsingActivity() {
    */
   private var isLoaded = false
 
+  /**
+   * Whether the tab opened as a sheet. The sheet leaves the app the link came from in view behind
+   * it, so this activity must not stay between the two: it would cover that app and take its taps.
+   */
+  private var sheetLaunch = false
+
   @Inject
   lateinit var customTabs: CustomTabs
 
@@ -50,7 +58,7 @@ class CustomTabActivity : BrowsingActivity() {
     val toolbarColor = intent.getIntExtra(EXTRA_KEY_TOOLBAR_COLOR, 0)
 
     if (savedInstanceState == null) {
-      customTabs
+      sheetLaunch = customTabs
         .forUrl(intent.dataString!!)
         .toolbarColor(toolbarColor)
         .launch()
@@ -60,6 +68,20 @@ class CustomTabActivity : BrowsingActivity() {
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
     isLoaded = true
+  }
+
+  override fun onPause() {
+    super.onPause()
+    // The sheet is in front now; leave without an animation, so nothing moves behind the sheet.
+    if (sheetLaunch && !isFinishing) {
+      finish()
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
+      } else {
+        @Suppress("DEPRECATION") // sdlc-debt: the call API 34 replaced, kept for older Android; drop it with minSdk 34
+        overridePendingTransition(0, 0)
+      }
+    }
   }
 
   override fun onResume() {
