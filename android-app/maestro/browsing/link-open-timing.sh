@@ -3,7 +3,7 @@
 # the web view page, over N cold opens, in Web View mode or in a native bubble.
 #
 #   webview    Web View mode on (off again on exit); each run opens the link through the intercept
-#              activity and waits for the first "Page finished first" line of the page
+#              activity and waits for the first "Page finished" line of the page
 #   bubble     run after webheads-check.sh <serial> <dir> bubble; each run opens the link, taps the
 #              bubble as soon as it shows and waits for the same line (also records the tap time)
 #   compare    compare <before.tsv> <after.tsv>: prints the medians of both files and PASS when each
@@ -250,7 +250,7 @@ for i in $(seq 1 "$RUNS"); do
   fi
   finished=""
   for _ in $(seq 1 120); do
-    finished="$(stamp_of "Page finished first")"
+    finished="$(stamp_of "Page finished")"
     [ -n "$finished" ] && break
     sleep 0.25
   done

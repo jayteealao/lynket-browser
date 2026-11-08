@@ -93,7 +93,6 @@ open class WebViewActivity : BrowsingActivity() {
   /** The bar's colour now: the site's once its details load. */
   protected var toolbarColour by mutableIntStateOf(0)
     private set
-  private var firstPageFinishLogged = false
 
   // The address the page itself is loading, after redirects. A certificate error at any other
   // address belongs to an image, a script or a frame, and leaves the page as it is.
@@ -215,11 +214,8 @@ open class WebViewActivity : BrowsingActivity() {
         super.onPageFinished(view, url)
         swipeRefresh?.isRefreshing = false
         loadTracker.finished(url.orEmpty())
-        // The link-open timing check on a device reads this line; it names no address.
-        if (!firstPageFinishLogged) {
-          firstPageFinishLogged = true
-          Timber.d("Page finished first")
-        }
+        // A debug log line with no address; the link-open timing check reads the first one.
+        Timber.d("Page finished")
       }
 
       // Only the page itself can fail the page: an image, a frame or a script that does not load
