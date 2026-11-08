@@ -501,7 +501,8 @@ constructor(
       BrowsingMode.NativeBubbles -> nativeFloatingBubble.get()
       BrowsingMode.WebHeads, BrowsingMode.SlideOver -> webHeadsFloatingBubble.get()
     }
-    return bubble.openBubble(website, fromMinimize, fromAmp, incognito, context, color, siteColor)
+    // The two colours go by name: both are colour ints with the same "none" value.
+    return bubble.openBubble(website, fromMinimize, fromAmp, incognito, context, color = color, siteColor = siteColor)
   }
 
   private fun openWebHeads(
@@ -543,7 +544,7 @@ constructor(
       fromAmp,
       isIncognito,
       context,
-      customizedWebsiteColor(website, linkSource, site),
+      color = customizedWebsiteColor(website, linkSource, site),
       siteColor = if (isIncognito) NO_COLOR else site,
     )
     if (!opened) {

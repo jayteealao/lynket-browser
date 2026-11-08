@@ -30,7 +30,8 @@ interface FloatingBubble {
 
   /**
    * [color] tints the bubble's notification; [siteColor] is the site's own colour for the bars of its
-   * page, or none.
+   * page, or none. Pass both by name: they are colour ints with the same "none" value. Only a native
+   * bubble uses [siteColor]; a web head's page finds its colour when it opens.
    */
   fun openBubble(
     website: Website,
