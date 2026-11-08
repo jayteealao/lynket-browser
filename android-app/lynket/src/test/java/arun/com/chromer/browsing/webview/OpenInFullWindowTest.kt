@@ -183,6 +183,9 @@ class OpenInFullWindowTest {
   fun theFullWindowTakesTheColourTheBarShowsNow() {
     post(first)
     val page = page(first)
+    // The page sets the colour of its intent on the main thread after it starts; a colour set
+    // before that would be painted over.
+    composeRule.waitForIdle()
     page.setToolbarColour(GREEN)
 
     tapOpenInFullWindow()
