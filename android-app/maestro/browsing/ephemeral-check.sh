@@ -10,8 +10,8 @@
 #              "Ephemeral check"; then a control: /set and /read opened in Chrome itself carry the
 #              cookie, which shows the server sees a cookie the browser kept.
 #   webview    A browser without ephemeral tabs (an older Chrome, named the provider by the
-#              settings file): the link opens in Lynket's web view, no Chrome activity is resumed,
-#              and no toast, snackbar or dialog of Lynket shows.
+#              settings file; APK=<path> installs one first): the link opens in Lynket's web view,
+#              no Chrome activity is resumed, and no toast, snackbar or dialog of Lynket shows.
 # Each mode writes <mode>.png, <mode>-activities.txt, <mode>.xml, <mode>.logcat.txt, cookies.log
 # and PASS or FAIL per assertion to ephemeral.txt. It also records Chrome's version and whether its
 # Custom Tabs service declares ephemeral browsing. Chrome's first-run screen, the reverse port, the
@@ -132,10 +132,14 @@ dump_chrome_history() {
 
 [ -f "$APK_DEBUG" ] || fail "missing $APK_DEBUG; run ./gradlew :lynket:assembleDebug"
 a install -r "$(hostpath "$APK_DEBUG")" >/dev/null
+# A browser to check against, for example a Chrome older than ephemeral tabs for the webview mode.
+if [ -n "${APK:-}" ]; then a install -r -d "$(hostpath "$APK")" >/dev/null; fi
 chrome_without_first_run
 serve_cookie_probe
 log "Chrome $(a shell dumpsys package com.android.chrome | tr -d '\r' | grep -m1 versionName | sed 's/.*versionName=//')"
-if a shell dumpsys package com.android.chrome | tr -d '\r' | grep -q "EphemeralBrowsing"; then
+# Read the dump first: grep -q in the pipe would end it early, and pipefail would read that as no match.
+CHROME_DUMP="$(a shell dumpsys package com.android.chrome | tr -d '\r')"
+if printf '%s\n' "$CHROME_DUMP" | grep "EphemeralBrowsing" >/dev/null; then
   EPHEMERAL_DECLARED=1
   log "Chrome's Custom Tabs service declares ephemeral browsing"
 else
@@ -195,7 +199,7 @@ case "$WHICH" in
     esac
     ;;
   webview)
-    [ -z "$EPHEMERAL_DECLARED" ] && pass "Chrome does not declare ephemeral browsing" || nope "Chrome declares ephemeral browsing; this mode needs one that does not"
+    [ -z "$EPHEMERAL_DECLARED" ] && pass "Chrome does not declare ephemeral browsing" || nope "Chrome declares ephemeral browsing; this mode needs one that does not: install a Chrome older than ephemeral tabs with APK=<path>"
     seed_settings "$SEED/incognito-full-provider.xml"
     a shell am force-stop com.android.chrome
     a logcat -c
