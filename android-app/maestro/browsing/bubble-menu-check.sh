@@ -638,25 +638,28 @@ audit_item() {
   [ "$outcome" != undecided ]
 }
 
-# After each item: Home, stop the other app the item opened, then close each bubble of the app
-# with the page's own close button, so no stack grows past the shell's limit. Stopping the app
-# also removes its bubbles, but Android 11's shell then sometimes draws no bubble for the next
-# page, so it is only the fallback.
+# After each item: Home, stop the other app the item opened, then remove the app's bubbles, so the
+# next item starts from no bubble and no stack grows past the shell's limit. From Android 12 on,
+# stopping the app removes them. Android 11's shell then sometimes draws no bubble for the next
+# page, so there each bubble is closed with the page's own close button (stopping the app is the
+# fallback); from Android 12 on that button cannot be reached when a page left for a task of its
+# own leaves the stack drawn where its expanded row was.
 clean_up_item() {
   local _ ids
   a shell input keyevent KEYCODE_HOME
   [ -z "${LAST_FOREIGN:-}" ] || a shell am force-stop "$LAST_FOREIGN" || true
   LAST_FOREIGN=""
-  for _ in 1 2 3; do
-    notifications .clean-up-notifications.txt
-    ids="$(bubble_ids "$OUT/.clean-up-notifications.txt" || true)"
-    [ -n "$ids" ] || break
-    expand_bubble && tap_on 'resource-id="webview-close"' || break
-    sleep 2
-  done
+  if [ "$(a shell getprop ro.build.version.sdk | tr -d '\r')" -le 30 ]; then
+    for _ in 1 2 3; do
+      notifications .clean-up-notifications.txt
+      ids="$(bubble_ids "$OUT/.clean-up-notifications.txt" || true)"
+      [ -n "$ids" ] || break
+      expand_bubble && tap_on 'resource-id="webview-close"' || break
+      sleep 2
+    done
+  fi
   notifications .clean-up-notifications.txt
   if [ -n "$(bubble_ids "$OUT/.clean-up-notifications.txt" || true)" ]; then
-    log "a bubble stayed open; stopping the app"
     a shell input keyevent KEYCODE_HOME
     a shell am force-stop "$PKG" || true
   fi
