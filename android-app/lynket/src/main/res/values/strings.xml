@@ -367,6 +367,10 @@
   <string name="bubble_setting_explainer_title">Choose \"All conversations can bubble\"</string>
   <string name="bubble_setting_explainer_body">Android shows a link as a bubble only when Lynket\'s bubble setting allows it. On the next screen, choose All conversations can bubble.</string>
   <string name="bubble_setting_row_title">Android bubble setting</string>
+  <string name="custom_tab_sheet_title">Open as a sheet</string>
+  <string name="custom_tab_sheet_summary">Pages open over the app you came from. Drag up for full screen.</string>
+  <string name="custom_tab_side_sheet_title">Side sheet on wide screens</string>
+  <string name="custom_tab_side_sheet_summary">On a screen 600 dp wide or more, pages open at the side.</string>
   <string name="bubble_setting_all">All conversations can bubble</string>
   <string name="bubble_setting_selected">Selected conversations can bubble. Choose All conversations can bubble.</string>
   <string name="bubble_setting_none">Nothing can bubble. Choose All conversations can bubble.</string>
