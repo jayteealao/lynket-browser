@@ -22,7 +22,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -56,8 +55,8 @@ class ModernProviderSelectionViewModel @Inject constructor(
         data class Error(val message: String) : ProviderSelectionUiState
     }
 
-    private val _uiState = MutableStateFlow<ProviderSelectionUiState>(ProviderSelectionUiState.Loading)
-    val uiState: StateFlow<ProviderSelectionUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<ProviderSelectionUiState>
+        field = MutableStateFlow<ProviderSelectionUiState>(ProviderSelectionUiState.Loading)
 
     init {
         loadProviders()
@@ -66,10 +65,10 @@ class ModernProviderSelectionViewModel @Inject constructor(
     fun loadProviders() {
         viewModelScope.launch {
             try {
-                _uiState.value = ProviderSelectionUiState.Loading
+                uiState.value = ProviderSelectionUiState.Loading
                 val providers = appRepository.allProviders()
                 val preferences = preferencesRepository.userPreferencesFlow.first()
-                _uiState.value = if (providers.none { it.installed }) {
+                uiState.value = if (providers.none { it.installed }) {
                     ProviderSelectionUiState.NoProvider(providers, preferences.useWebView)
                 } else {
                     ProviderSelectionUiState.Success(
@@ -83,7 +82,7 @@ class ModernProviderSelectionViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Timber.e(e, "Error loading providers")
-                _uiState.value = ProviderSelectionUiState.Error(e.message ?: "Failed to load providers")
+                uiState.value = ProviderSelectionUiState.Error(e.message ?: "Failed to load providers")
             }
         }
     }
