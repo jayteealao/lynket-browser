@@ -98,6 +98,7 @@ class LinkWarmUpTest : LynketRobolectricSuite() {
     mockkObject(CustomTabs.Companion)
     every { CustomTabs.getCustomTabSupportingPackages(any()) } returns listOf("com.android.chrome")
     every { CustomTabs.customTabPackage(any()) } returns "com.android.chrome"
+    every { CustomTabs.customTabPackageAmong(any(), any()) } returns "com.android.chrome"
     every { CustomTabs.isEphemeralSupported(any(), any()) } returns ephemeral
   }
 

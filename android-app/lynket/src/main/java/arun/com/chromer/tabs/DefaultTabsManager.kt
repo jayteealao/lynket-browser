@@ -490,13 +490,13 @@ constructor(
    * - the app's web view for an incognito link a web head opened, as web heads keep their web view.
    */
   private fun shouldUseWebView(incognito: Boolean, fromWebHead: Boolean): Boolean {
-    if (preferences.useWebView() || CustomTabs.getCustomTabSupportingPackages(application).isEmpty()) {
-      return true
-    }
-    if (!preferences.fullIncognitoMode() && !incognito) {
-      return false
-    }
-    return fromWebHead || !CustomTabs.isEphemeralSupported(application, CustomTabs.customTabPackage(application))
+    if (preferences.useWebView()) return true
+    val supporting = CustomTabs.getCustomTabSupportingPackages(application)
+    if (supporting.isEmpty()) return true
+    if (!preferences.fullIncognitoMode() && !incognito) return false
+    if (fromWebHead) return true
+    // The browser is picked from the list above, so the installed browsers are listed once.
+    return !CustomTabs.isEphemeralSupported(application, CustomTabs.customTabPackageAmong(application, supporting))
   }
 
   override fun openWebHeads(

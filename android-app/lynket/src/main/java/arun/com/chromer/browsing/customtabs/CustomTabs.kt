@@ -552,7 +552,13 @@ class CustomTabs @Inject constructor(
          *
          * @return A package that supports custom tab, null if not present
          */
-        internal fun customTabPackage(context: Context): String? {
+        internal fun customTabPackage(context: Context): String? = customTabPackageAmong(context, null)
+
+        /**
+         * [customTabPackage], with the [supporting] browsers a caller already listed, so the
+         * installed browsers are not listed a second time.
+         */
+        internal fun customTabPackageAmong(context: Context, supporting: List<String>?): String? {
             val userPackage = Preferences.get(context).customTabPackage()
             if (!userPackage.isNullOrEmpty()) {
                 return userPackage
@@ -562,7 +568,7 @@ class CustomTabs @Inject constructor(
             if (isPackageSupportCustomTabs(context, LOCAL_PACKAGE))
                 return LOCAL_PACKAGE
 
-            val supportingPackages = getCustomTabSupportingPackages(context)
+            val supportingPackages = supporting ?: getCustomTabSupportingPackages(context)
             return if (supportingPackages.isNotEmpty()) {
                 supportingPackages[0]
             } else {

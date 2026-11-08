@@ -53,6 +53,7 @@ class EphemeralRoutingTest : LynketRobolectricSuite() {
     mockkObject(CustomTabs.Companion)
     every { CustomTabs.getCustomTabSupportingPackages(any()) } answers { if (providerInstalled) listOf(provider) else emptyList() }
     every { CustomTabs.customTabPackage(any()) } answers { if (providerInstalled) provider else null }
+    every { CustomTabs.customTabPackageAmong(any(), any()) } answers { if (providerInstalled) provider else null }
     every { CustomTabs.isEphemeralSupported(any(), any()) } answers { providerInstalled && ephemeral }
   }
 
