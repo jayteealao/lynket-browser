@@ -188,7 +188,7 @@ run_sheet() {
   flow sheet-rows.yaml || fail "the sheet options flow failed (see maestro.txt)"
   expect_setting custom_tab_sheet true sheet-settings.tsv
   expect_setting custom_tab_side_sheet true sheet-settings.tsv
-  a logcat -d -b crash | tr -d '' > "$OUT/crash.txt"
+  a logcat -d -b crash | tr -d '\r' > "$OUT/crash.txt"
   if grep -qF "$PKG" "$OUT/crash.txt"; then fail "the crash buffer has an entry for $PKG (see crash.txt)"; fi
   log "sheet options: off under slide over, the side sheet option shows on when the sheet turns on, both stored"
 }
