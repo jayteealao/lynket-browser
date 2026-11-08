@@ -95,6 +95,10 @@ open class WebViewActivity : BrowsingActivity() {
     private set
   private var firstPageFinishLogged = false
 
+  // The address the page itself is loading, after redirects. A certificate error at any other
+  // address belongs to an image, a script or a frame, and leaves the page as it is.
+  private var mainFrameAddress = ""
+
   /** Follows the page from its load start to loaded or failed, for both the tab and the bubble. */
   private val loadTracker by lazy {
     PageLoadTracker(isOnline = { networkMonitor.isOnlineNow() }, onChange = {
@@ -111,6 +115,7 @@ open class WebViewActivity : BrowsingActivity() {
   private fun retryFailedPage() {
     val address = loadTracker.retry() ?: return
     page = page.copy(progress = 0)
+    mainFrameAddress = address
     webView?.loadUrl(address)
   }
 
@@ -147,6 +152,7 @@ open class WebViewActivity : BrowsingActivity() {
     hideFromScreenShareWhenIncognito(view)
     setupWebView(view)
     val restored = savedInstanceState?.getBundle(KEY_WEB_VIEW_STATE)?.let { view.restoreState(it) } != null
+    mainFrameAddress = url
     if (!restored) view.loadUrl(url)
     onBackPressedDispatcher.addCallback(this, webBackCallback)
 
@@ -198,6 +204,7 @@ open class WebViewActivity : BrowsingActivity() {
       override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
         url?.let {
+          mainFrameAddress = it
           page = page.copy(address = it)
           loadTracker.started(it)
           loadWebsiteDetails(it)
@@ -223,11 +230,20 @@ open class WebViewActivity : BrowsingActivity() {
         loadTracker.mainFrameError(error?.errorCode ?: ERROR_UNKNOWN, request.url.toString())
       }
 
+      // A link the page follows, or a redirect of the page, is the page's own address from now on.
+      override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        if (request?.isForMainFrame == true) mainFrameAddress = request.url.toString()
+        return super.shouldOverrideUrlLoading(view, request)
+      }
+
       // A page whose certificate is not trusted never loads, and there is no way to continue past
-      // it: the load is cancelled and the page fails.
+      // it: the load is cancelled and the page fails. An image, a script or a frame with such a
+      // certificate is only not loaded; the page stays.
       override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
         handler?.cancel()
-        loadTracker.certificateError(error?.url ?: page.address)
+        val url = error?.url ?: mainFrameAddress
+        if (!sameAddress(url, mainFrameAddress)) return
+        loadTracker.certificateError(url)
       }
 
       override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
@@ -338,4 +354,17 @@ open class WebViewActivity : BrowsingActivity() {
     const val EXTRA_RENDERER_RECOVERIES = "arun.com.chromer.extra.RENDERER_RECOVERIES"
     const val MAX_RENDERER_RECOVERIES = 2
   }
+}
+
+/**
+ * Whether [a] and [b] name the same page: the fragment does not count, and an address with no path
+ * is the same as the one with the root path ("https://site" and "https://site/").
+ */
+internal fun sameAddress(a: String, b: String): Boolean {
+  fun normal(address: String): String {
+    val noFragment = address.substringBefore('#')
+    val afterScheme = noFragment.indexOf("://").takeIf { it >= 0 }?.plus(3) ?: return noFragment
+    return if (noFragment.indexOf('/', afterScheme) < 0) "$noFragment/" else noFragment
+  }
+  return normal(a) == normal(b)
 }

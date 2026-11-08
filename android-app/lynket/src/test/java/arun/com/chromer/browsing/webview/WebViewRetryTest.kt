@@ -265,6 +265,8 @@ class WebViewRetryTest {
   fun aRetryOfACertificateErrorIsCancelledAgainWithNoWayPastIt() {
     val activity = openWebView()
     activity.start()
+    // The redirect that moved the page reaches the client before the certificate error.
+    activity.client().shouldOverrideUrlLoading(activity.webView(), request(failed))
     val handler: SslErrorHandler = mockk(relaxed = true)
     val sslError: SslError = mockk { every { url } returns failed }
     activity.client().onReceivedSslError(activity.webView(), handler, sslError)

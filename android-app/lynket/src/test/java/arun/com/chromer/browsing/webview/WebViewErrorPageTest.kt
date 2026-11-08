@@ -191,6 +191,40 @@ class WebViewErrorPageTest {
   }
 
   @Test
+  fun aCertificateErrorOfAnImageOrFrameKeepsThePage() {
+    val activity = openWebView()
+    activity.start()
+    activity.finishLoad()
+    val handler: SslErrorHandler = mockk(relaxed = true)
+    val sslError: SslError = mockk { every { url } returns "https://ads.untrusted.invalid/pixel.png" }
+
+    activity.client().onReceivedSslError(activity.webView(), handler, sslError)
+    composeRule.waitForIdle()
+
+    verify { handler.cancel() }
+    tag("webview-error").assertDoesNotExist()
+    composeRule.onNodeWithText("This connection is not secure").assertDoesNotExist()
+    tag("browsing-bottom-bar").assertExists()
+  }
+
+  @Test
+  fun aCertificateErrorAfterARedirectOfThePageFailsThePage() {
+    val activity = openWebView()
+    val redirected = "https://www.untrusted.invalid/landing"
+    val redirect: WebResourceRequest = mockk(relaxed = true) {
+      every { isForMainFrame } returns true
+      every { url } returns android.net.Uri.parse(redirected)
+    }
+    activity.client().shouldOverrideUrlLoading(activity.webView(), redirect)
+    val sslError: SslError = mockk { every { url } returns redirected }
+
+    activity.client().onReceivedSslError(activity.webView(), mockk(relaxed = true), sslError)
+    composeRule.waitForIdle()
+
+    composeRule.onNodeWithText("This connection is not secure").assertExists()
+  }
+
+  @Test
   fun aFrameThatFailsKeepsThePage() {
     fakeNetwork.online = false
     val activity = openWebView()
