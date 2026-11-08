@@ -160,7 +160,8 @@ class SettingsGoldenTest {
     BrowsingModeContent(values, showNativeBubbles = true, onBack = {}, onMode = {}, onSet = { _, _ -> })
   }
 
-  private fun browsingMode(values: SettingsValues, theme: ThemeMode = ThemeMode.Light) = capture(theme) {
+  private fun browsingMode(values: SettingsValues, theme: ThemeMode = ThemeMode.Light, scrollToTag: String? = null) =
+    capture(theme, scrollToTag = scrollToTag) {
     BrowsingModeContent(values, showNativeBubbles = true, onBack = {}, onMode = {}, onSet = { _, _ -> })
   }
 
@@ -182,10 +183,11 @@ class SettingsGoldenTest {
     browsingMode(sheetOn, ThemeMode.Dark)
   }
 
+  /** Scrolled to the side sheet option, so both options show wrapped at the narrowest width. */
   @Config(qualifiers = SETTINGS_NARROW)
   @Test fun browsing_mode_sheet_on_font_200_narrow() {
     RuntimeEnvironment.setFontScale(2f)
-    browsingMode(sheetOn)
+    browsingMode(sheetOn, scrollToTag = "row-${SettingsKeyTable.CUSTOM_TAB_SIDE_SHEET}")
   }
 
   @Test fun browsing_mode_permission_phone() = capture(dialog = true) {
