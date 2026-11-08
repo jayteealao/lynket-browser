@@ -32,7 +32,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -82,8 +81,8 @@ class ModernHistoryViewModel @Inject constructor(
   /** The current time of the app clock, in milliseconds; the day headers are named from it. */
   fun now(): Long = clock.now().toEpochMilliseconds()
 
-  private val _uiState = MutableStateFlow(settingsState(HistoryUiState()))
-  val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
+  val uiState: StateFlow<HistoryUiState>
+    field = MutableStateFlow(settingsState(HistoryUiState()))
 
   private val _events = Channel<HistoryEvent>(Channel.BUFFERED)
   val events: Flow<HistoryEvent> = _events.receiveAsFlow()
@@ -106,15 +105,15 @@ class ModernHistoryViewModel @Inject constructor(
   )
 
   /** Reads the switches again, for example when the screen comes back from settings. */
-  fun syncSettings() = _uiState.update(::settingsState)
+  fun syncSettings() = uiState.update(::settingsState)
 
   fun setHistoryEnabled(enabled: Boolean) {
-    val incognitoWasOn = _uiState.value.incognito
+    val incognitoWasOn = uiState.value.incognito
     val changes = buildMap<String, Any?> {
       put(Preferences.INCOGNITO_MODE, !enabled)
       if (enabled && incognitoWasOn) put(Preferences.FULL_INCOGNITO_MODE, false)
     }
-    _uiState.update { it.copy(historyEnabled = enabled, incognito = if (enabled) false else it.incognito) }
+    uiState.update { it.copy(historyEnabled = enabled, incognito = if (enabled) false else it.incognito) }
     write(changes, providerChanged = enabled && incognitoWasOn)
   }
 
@@ -123,7 +122,7 @@ class ModernHistoryViewModel @Inject constructor(
       put(Preferences.FULL_INCOGNITO_MODE, on)
       if (on) put(Preferences.INCOGNITO_MODE, true)
     }
-    _uiState.update {
+    uiState.update {
       it.copy(
         incognito = on,
         historyEnabled = if (on) false else it.historyEnabled,
@@ -142,16 +141,16 @@ class ModernHistoryViewModel @Inject constructor(
     }
   }
 
-  fun openSearch() = _uiState.update { it.copy(searchOpen = true) }
+  fun openSearch() = uiState.update { it.copy(searchOpen = true) }
 
   fun closeSearch() {
     query.value = ""
-    _uiState.update { it.copy(searchOpen = false, query = "") }
+    uiState.update { it.copy(searchOpen = false, query = "") }
   }
 
   fun setQuery(text: String) {
     query.value = text
-    _uiState.update { it.copy(query = text) }
+    uiState.update { it.copy(query = text) }
   }
 
   /** Opens the row the way a link opens: the browsing mode, AMP and article settings apply. */
@@ -173,9 +172,9 @@ class ModernHistoryViewModel @Inject constructor(
     viewModelScope.launch { historyRepository.toggleBookmark(website.url) }
   }
 
-  fun requestClearAll() = _uiState.update { it.copy(dialog = HistoryDialog.ClearConfirm) }
+  fun requestClearAll() = uiState.update { it.copy(dialog = HistoryDialog.ClearConfirm) }
 
-  fun dismissDialog() = _uiState.update { it.copy(dialog = HistoryDialog.None) }
+  fun dismissDialog() = uiState.update { it.copy(dialog = HistoryDialog.None) }
 
   fun confirmClearAll() {
     dismissDialog()
