@@ -216,6 +216,12 @@
           "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
           "at": "2026-11-02T20:26:31Z",
           "workflow": "one-browsing-mode"
+        },
+        {
+          "commit": "a3eb206bb8175014eed06339425ed7ce8ca37433",
+          "version": "v1",
+          "at": "2026-11-08T10:33:21Z",
+          "workflow": "custom-tabs-modes"
         }
       ]
     },
@@ -370,7 +376,14 @@
       "slices": [],
       "created-at": "2026-11-08T10:27:16Z",
       "updated-at": "2026-11-08T10:27:16Z",
-      "approvals": []
+      "approvals": [
+        {
+          "commit": "a3eb206bb8175014eed06339425ed7ce8ca37433",
+          "version": "v1",
+          "at": "2026-11-08T10:33:21Z",
+          "workflow": "custom-tabs-modes"
+        }
+      ]
     }
   },
   "explore": {},
