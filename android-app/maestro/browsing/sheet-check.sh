@@ -39,7 +39,7 @@ case "$SERIAL" in
 esac
 
 source "$(dirname "$0")/../webheads/lib.sh"
-SC_HERE="$(cd "$(dirname "$0")" && pwd)"
+SC_HERE="$(hostpath "$(cd "$(dirname "$0")" && pwd)")"
 APP_ROOT="$(cd "$SC_HERE/../.." && pwd)"
 APK_DEBUG="$APP_ROOT/lynket/build/outputs/apk/debug/lynket-debug.apk"
 SEED="$SC_HERE/../seed"
@@ -98,7 +98,8 @@ serve_fixtures() {
 
 # The focused window as "<name> <left> <top> <right> <bottom>".
 focus_frame() {
-  a shell dumpsys window windows | tr -d '\r' | awk '
+  # The windows dump has the frames; only the full dump names the focus.
+  { a shell dumpsys window windows; a shell dumpsys window | grep "mCurrentFocus="; } | tr -d '\r' | awk '
     /^  Window #/ { name = $0; sub(/.* u0 /, "", name); sub(/}:.*/, "", name); f = "" }
     match($0, / frame=\[-?[0-9]+,-?[0-9]+\]\[-?[0-9]+,-?[0-9]+\]/) && f == "" {
       f = substr($0, RSTART + 7, RLENGTH - 7); gsub(/[\[\]]/, " ", f); gsub(/,/, " ", f); frames[name] = f
@@ -110,6 +111,7 @@ focus_frame() {
 # Opens Settings, then the fixture page as a link from Settings; records the windows, a screenshot,
 # a UI dump and the launch log line under the name $1.
 open_over_settings() {
+  a shell cmd statusbar collapse >/dev/null 2>&1 || true
   a shell am start -W -a android.settings.SETTINGS >/dev/null
   sleep 2
   a logcat -c
@@ -193,6 +195,9 @@ case "$WHICH" in
     a shell am force-stop com.android.chrome
     open_over_settings phone-drag
     read -r _ L T R B < <(focus_frame)
+    # From the sheet's toolbar, a quick drag to the bottom edge; never from the top of the screen,
+    # where a drag would open the notification shade.
+    [ -n "${T:-}" ] || T=$((H / 2))
     a shell input swipe "$((W / 2))" "$((T + 140))" "$((W / 2))" "$((H - 16))" 250
     sleep 3
     record phone-after-drag
