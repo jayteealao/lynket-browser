@@ -26,9 +26,6 @@ enum class PageSignal {
   /** The Custom Tab of the head reported that its navigation finished or failed. */
   Navigation,
 
-  /** The prefetch of the head's address ended. */
-  Prefetch,
-
   /** The fetch of the site details (title, icon, colour) ended. */
   SiteDetails,
 }
