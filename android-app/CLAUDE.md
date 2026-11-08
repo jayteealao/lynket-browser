@@ -164,6 +164,7 @@ Every activity uses a platform Material theme (`res/values/styles.xml`, with nig
 The app supports multiple browsing modes:
 - **Custom Tabs** (`browsing/customtabs/`) - Chrome Custom Tabs integration
 - **Web View** (`browsing/webview/`) - Built-in WebView in a Compose screen (`ui/webview/WebViewScreen.kt`)
+  - `browsing/webview/WebViewWarmUp.kt` starts the page engine once per process through the stable androidx.webkit start-up call, after an incoming link that shows in a web view has opened. No link is fetched ahead: androidx.webkit has no stable prefetch call, and its stable prerender call renders the whole page (scripts, cookies) before the person opens it.
 - **Article Mode** (`browsing/article/`) - Reader-friendly article view in Compose (`ui/reader/`); a page with no article shows the error state with Retry and Open in browser
 - **AMP Mode** (`browsing/amp/`) - Accelerated Mobile Pages
 - **Web Heads** (`bubbles/webheads/`) - Floating bubble browser windows
