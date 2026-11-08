@@ -13,6 +13,7 @@ package arun.com.chromer.bubbles
 
 import android.content.Context
 import android.graphics.Bitmap
+import androidx.annotation.ColorInt
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import java.lang.ref.WeakReference
@@ -28,4 +29,10 @@ data class BubbleLoadData(
   val color: Int = Constants.NO_COLOR,
   /** The height the first post asked for; a later post keeps it, whatever window is on screen then. */
   val desiredHeightDp: Int? = null,
+  /**
+   * The site's own colour for the bars of the bubble's page, or none when the site has no colour, the
+   * colour settings do not follow the site, or the bubble is incognito. It is not the notification's
+   * colour, which [color] holds.
+   */
+  @ColorInt val siteColor: Int = Constants.NO_COLOR,
 )
