@@ -56,6 +56,7 @@ import arun.com.chromer.browsing.optionspopup.ChromerOptionsActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.bubbles.webheads.WebHeadService
 import arun.com.chromer.settings.Preferences
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_ORIGINAL_URL
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.util.Utils
@@ -131,12 +132,12 @@ class CustomTabs @Inject constructor(
                 }
                 Timber.d("Launched url: %s", uri.toString())
             } catch (e: Exception) {
-                CUSTOM_TABS_FALLBACK.openUri(act, uri)
+                CUSTOM_TABS_FALLBACK.openUri(act, uri, incognito)
                 Timber.e("Called fallback even though a package was found, weird Exception : %s", e.toString())
             }
         } else {
             Timber.e("Called fallback since no package found!")
-            CUSTOM_TABS_FALLBACK.openUri(act, uri)
+            CUSTOM_TABS_FALLBACK.openUri(act, uri, incognito)
         }
     }
 
@@ -488,8 +489,9 @@ class CustomTabs @Inject constructor(
         /**
          * @param activity The Activity that wants to open the Uri.
          * @param uri      The uri to be opened by the fallback.
+         * @param incognito Whether the page must open incognito.
          */
-        fun openUri(activity: Activity, uri: Uri)
+        fun openUri(activity: Activity, uri: Uri, incognito: Boolean)
     }
 
     companion object {
@@ -505,12 +507,13 @@ class CustomTabs @Inject constructor(
         /**
          * Fallback in case there was en error launching custom tabs
          */
-        private val CUSTOM_TABS_FALLBACK = CustomTabsFallback { activity, uri ->
+        private val CUSTOM_TABS_FALLBACK = CustomTabsFallback { activity, uri, incognito ->
             val string = activity.getString(R.string.fallback_msg)
             Toast.makeText(activity, string, Toast.LENGTH_SHORT).show()
             try {
                 val intent = Intent(activity, WebViewActivity::class.java)
                 intent.data = uri
+                if (incognito) intent.putExtra(EXTRA_KEY_INCOGNITO, true)
                 activity.startActivity(intent)
             } catch (e: ActivityNotFoundException) {
                 Toast.makeText(activity, activity.getString(R.string.unxp_err), Toast.LENGTH_SHORT).show()
