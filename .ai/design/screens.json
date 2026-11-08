@@ -6,9 +6,12 @@
     "desktop": "1280x800"
   },
   "areas": [
+    "home",
+    "history",
+    "tabs",
+    "settings",
     "bubbles",
     "web-heads",
-    "settings",
     "shared"
   ],
   "screens": {
@@ -400,6 +403,84 @@
           "workflow": "custom-tabs-modes"
         }
       ]
+    },
+    "home": {
+      "title": "Home search",
+      "area": "home",
+      "flow": "search",
+      "order": 10,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:35Z",
+      "updated-at": "2026-11-08T16:46:35Z",
+      "approvals": []
+    },
+    "link-open-transition": {
+      "title": "Link opens",
+      "area": "home",
+      "flow": "open-link",
+      "order": 20,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:35Z",
+      "updated-at": "2026-11-08T16:46:35Z",
+      "approvals": []
+    },
+    "reader-text-size": {
+      "title": "Reader text size",
+      "area": "home",
+      "flow": "read",
+      "order": 30,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:36Z",
+      "updated-at": "2026-11-08T16:46:36Z",
+      "approvals": []
+    },
+    "history": {
+      "title": "History",
+      "area": "history",
+      "flow": "revisit",
+      "order": 10,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:36Z",
+      "updated-at": "2026-11-08T16:46:36Z",
+      "approvals": []
+    },
+    "tabs": {
+      "title": "Tabs",
+      "area": "tabs",
+      "flow": "revisit",
+      "order": 10,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:36Z",
+      "updated-at": "2026-11-08T16:46:36Z",
+      "approvals": []
+    },
+    "themed-icon": {
+      "title": "Themed icon",
+      "area": "shared",
+      "flow": "launch",
+      "order": 90,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:37Z",
+      "updated-at": "2026-11-08T16:46:37Z",
+      "approvals": []
     }
   },
   "explore": {},
@@ -443,6 +524,146 @@
       ],
       "created-at": "2026-11-08T10:28:00Z",
       "updated-at": "2026-11-08T10:28:00Z"
+    },
+    "large-top-bar": {
+      "title": "Large top app bar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/ScreenTitle.kt",
+      "name": "ScreenTitle",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:47Z",
+      "updated-at": "2026-11-08T16:28:47Z"
+    },
+    "site-avatar": {
+      "title": "Site avatar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/SiteAvatar.kt",
+      "name": "SiteAvatar",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:47Z",
+      "updated-at": "2026-11-08T16:28:47Z"
+    },
+    "day-label": {
+      "title": "Day label",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt",
+      "name": "DayLabel",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:49Z",
+      "updated-at": "2026-11-08T16:28:49Z"
+    },
+    "history-row": {
+      "title": "History row",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt",
+      "name": "HistoryRow",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:54Z",
+      "updated-at": "2026-11-08T16:28:54Z"
+    },
+    "tab-row": {
+      "title": "Tab row",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/tabs/TabsScreen.kt",
+      "name": "TabRow",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:54Z",
+      "updated-at": "2026-11-08T16:28:54Z"
+    },
+    "empty-state": {
+      "title": "Empty state",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/EmptyState.kt",
+      "name": "EmptyState",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:55Z",
+      "updated-at": "2026-11-08T16:28:55Z"
+    },
+    "error-state": {
+      "title": "Error state",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/ErrorState.kt",
+      "name": "ErrorState",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:55Z",
+      "updated-at": "2026-11-08T16:28:55Z"
+    },
+    "loading-list": {
+      "title": "Loading list",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/LoadingList.kt",
+      "name": "LoadingList",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:55Z",
+      "updated-at": "2026-11-08T16:28:55Z"
+    },
+    "home-search-bar": {
+      "title": "Home search bar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/home/HomeSearchBar.kt",
+      "name": "HomeSearchBar",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:56Z",
+      "updated-at": "2026-11-08T16:28:56Z"
+    },
+    "text-size-card": {
+      "title": "Text size card",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/reader/ReaderScreen.kt",
+      "name": "TextSizeCard",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:56Z",
+      "updated-at": "2026-11-08T16:28:56Z"
+    },
+    "browsing-bottom-bar": {
+      "title": "Browsing bottom bar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/browsing/BrowsingBars.kt",
+      "name": "BrowsingBottomBar",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:57Z",
+      "updated-at": "2026-11-08T16:28:57Z"
+    },
+    "fab": {
+      "title": "fab",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt",
+      "name": "FloatingActionButton",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:29:11Z",
+      "updated-at": "2026-11-08T16:29:11Z"
+    },
+    "snackbar": {
+      "title": "snackbar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt",
+      "name": "SnackbarHost",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:29:12Z",
+      "updated-at": "2026-11-08T16:29:12Z"
+    },
+    "launcher-icon": {
+      "title": "launcher-icon",
+      "code": "android-app/lynket/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "name": "ic_launcher",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:29:12Z",
+      "updated-at": "2026-11-08T16:29:12Z"
     }
   }
 }
