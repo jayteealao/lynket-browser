@@ -31,8 +31,8 @@
 # colour follows the site; this clears the app's data) and runs the native bubble setup itself:
 #
 #   site-colour    a first bubble of fixtures/site-colour.html (theme colour #0B6E4F) puts the
-#                  site's colour in the app's colour cache and is closed with its X, keeping the
-#                  app's process (the cache lives in it); then a page of the same host that
+#                  site's colour in the app's colour cache and stays open and folded, keeping the
+#                  app's process (the cache lives in it; closing a page ends it); then a page of the same host that
 #                  maestro/webheads/slow-page-server.py holds for HOLD_S seconds (40 by default)
 #                  opens as a bubble and is expanded: while the page and its site details are still
 #                  held, so only the bubble's own intent can have coloured it, the top bar and the
@@ -855,34 +855,65 @@ bounds_of() {
     sed -nE 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/p'
 }
 
-# Waits, at most $1 polls of 1 s, for a bubble line of the app in a fresh notification dump.
-wait_bubble_line() {
+# Waits, at most 30 polls of 1 s, for at least $1 bubbles of the app in a fresh notification dump.
+wait_bubbles() {
   local _
-  for _ in $(seq 1 "$1"); do
+  for _ in $(seq 1 30); do
     notifications "$MODE-notifications.txt"
-    [ -n "$(bubble_flag_lines "$OUT/$MODE-notifications.txt")" ] && return 0
-    sleep 1
-  done
-  return 1
-}
-wait_no_bubble_line() {
-  local _
-  for _ in $(seq 1 10); do
-    notifications "$MODE-notifications.txt"
-    [ -z "$(bubble_flag_lines "$OUT/$MODE-notifications.txt")" ] && return 0
+    [ "$(bubble_ids "$OUT/$MODE-notifications.txt" | grep -c . || true)" -ge "$1" ] && return 0
     sleep 1
   done
   return 1
 }
 
-# Opens the held page $1 (server id $2) as a bubble, expands it while the server still holds it,
-# and samples both bars into $3.png/.xml/.raw; sets SAMPLE_TOP and SAMPLE_BOTTOM.
+# The address of the expanded page; a page with no title yet shows its address as the title and no
+# address line.
+shown_page() {
+  local dump shown
+  dump="$(ui_dump)"
+  shown="$(text_of webview-address <<< "$dump" || true)"
+  [ -n "$shown" ] || shown="$(text_of webview-title <<< "$dump" || true)"
+  echo "$shown"
+}
+
+# The tap point "X Y" of the first bubble of the expanded row with $1 bubbles: the row of the
+# bubbles and the overflow button is centred on the screen, one item every 63 dp, 70 dp from the top
+# (measured on the API 34 emulator, 1080x2400 at 420 dpi).
+newest_bubble_point() {
+  local width density
+  width="$(a shell wm size | tr -d '\r' | sed -nE 's/.*: ([0-9]+)x[0-9]+$/\1/p' | tail -1)"
+  density="$(a shell wm density | tr -d '\r' | sed -nE 's/.*: ([0-9]+)$/\1/p' | tail -1)"
+  awk -v w="$width" -v d="$density" -v n="$1" 'BEGIN { s = d / 160; print int(w / 2 - n * 63 * s / 2), int(70 * s) }'
+}
+
+# Opens the held page $1 (server id $2) as the bubble number $4, expands it while the server still
+# holds it, and samples both bars into $3.png/.xml/.raw; sets SAMPLE_TOP and SAMPLE_BOTTOM. The
+# earlier bubbles stay open and folded: closing the last page would end the app's process.
 sample_held_page() {
-  local url="$1" id="$2" name="$3"
+  local url="$1" id="$2" name="$3" count="$4"
+  a shell input keyevent KEYCODE_HOME
   open_link "$url"
-  wait_bubble_line 30 || fail "no bubble for $url"
+  wait_bubbles "$count" || fail "no bubble for $url"
   expand_bubble || fail "no bubble to expand for $url"
   wait_for 'resource-id="webview-top-bar"' || fail "the expanded page of $url shows no top bar"
+  local shown
+  shown="$(shown_page)"
+  log "$name: expanded page $shown"
+  case "$shown" in
+    *"id=$id"*) ;;
+    *)
+      # The stack opened on the bubble selected last; the newest bubble is first in the expanded row.
+      local xy; xy="$(newest_bubble_point "$count")"
+      log "$name: selecting the newest bubble at $xy"
+      # shellcheck disable=SC2086
+      a shell input tap $xy
+      sleep 3
+      wait_for 'resource-id="webview-top-bar"' || true
+      shown="$(shown_page)"
+      log "$name: expanded page $shown"
+      ;;
+  esac
+  case "$shown" in *"id=$id"*) ;; *) fail "the expanded bubble shows ${shown:-no address}, not the held page $id" ;; esac
   grep -q "end id=$id\$" "$OUT/$MODE-server.log" && fail "the page $id finished before the bars were sampled"
   ui_dump > "$OUT/$name.xml"
   a exec-out screencap > "$OUT/$name.raw"
@@ -904,9 +935,13 @@ sample_held_page() {
 check_site_colour() {
   local hold="${HOLD_S:-40}" site="#0B6E4F" primary="#3F51B5"
   # (a) The settings, the bubble setup (judged by its bubble: its own last test can fail on another
-  # app's line after the bubble posted), and one stop so the setup's bubble is gone. The colour
-  # cache lives in the app's process, so the app is never stopped after the warm-up below.
+  # app's line after the bubble posted). The setup's bubble stays open and is folded with Home: the
+  # colour cache lives in the app's process, and stopping the app with a bubble expanded leaves the
+  # stack drawn where the shell no longer takes taps.
   cp "$BM_HERE/../seed/bubble-site-colour.xml" "$OUT/settings-site-colour.xml"
+  # Clearing the app's data under an expanded stack leaves it drawn where it takes no taps.
+  a shell input keyevent KEYCODE_HOME
+  sleep 1
   seed_settings "$OUT/settings-site-colour.xml"
   bash "$BM_HERE/../webheads/webheads-check.sh" "$SERIAL" "$OUT/setup-site-colour" bubble > "$OUT/setup-site-colour.log" 2>&1 || true
   notifications setup-site-colour-notifications.txt
@@ -917,10 +952,13 @@ check_site_colour() {
   [ "$stored" = true ] || fail "the stored dynamic colour setting is ${stored:-none}, not true"
   stored="$(awk -F'\t' '$1 == "dynamic_color_web" { print $3 }' "$OUT/settings-site-colour-stored.tsv")"
   [ "$stored" = true ] || fail "the stored setting based on web is ${stored:-none}, not true"
-  a shell am force-stop "$PKG"
-  wait_no_bubble_line || fail "the setup's bubble is still open after the app stopped"
+  a shell input keyevent KEYCODE_HOME
+  local earlier
+  earlier="$(bubble_ids "$OUT/setup-site-colour-notifications.txt" | grep -c . || true)"
+  log "bubbles of the setup left open: $earlier"
 
-  # (b) The warm-up: a bubble of the fixture page puts its colour in the cache, then closes with its X.
+  # (b) The warm-up: a bubble of the fixture page puts its colour in the cache. It stays open and
+  # folded: closing a bubble's page removes its task, and Android then ends the app's process.
   FIXTURES="$BM_HERE/fixtures"
   start_server
   a logcat -c
@@ -933,26 +971,21 @@ check_site_colour() {
   done
   [ -n "$cached" ] || fail "the site colour of the fixture page did not reach the cache"
   log "cache: $cached"
-  wait_bubble_line 30 || fail "no bubble for the fixture page"
-  expand_bubble || fail "no fixture bubble to expand"
-  tap_on 'resource-id="webview-close"' || fail "no Close on the fixture page"
-  wait_no_bubble_line || fail "the fixture bubble did not close"
+  wait_bubbles $((earlier + 1)) || fail "no bubble for the fixture page"
   [ -n "$(a shell pidof "$PKG" | tr -d '\r' || true)" ] || fail "the app's process stopped after the warm-up, so its colour cache is gone"
 
   # (c) The same host, held: both bars in the site colour while nothing but the bubble's intent can
   # have coloured them.
   start_page_server
-  sample_held_page "http://localhost:$PAGE_PORT/slow?s=$hold&id=1" 1 site-colour
+  sample_held_page "http://localhost:$PAGE_PORT/slow?s=$hold&id=1" 1 site-colour $((earlier + 2))
   colour_near "$SAMPLE_TOP" "$site" || fail "the top bar is $SAMPLE_TOP, not near $site"
   colour_near "$SAMPLE_BOTTOM" "$site" || fail "the bottom bar is $SAMPLE_BOTTOM, not near $site"
 
   # (d) Another host with no colour in the cache: both bars in the app colour.
-  tap_on 'resource-id="webview-close"' || fail "no Close on the site colour page"
-  wait_no_bubble_line || fail "the site colour bubble did not close"
-  sample_held_page "http://127.0.0.1:$PAGE_PORT/slow?s=$hold&id=2" 2 site-colour-none
+  sample_held_page "http://127.0.0.1:$PAGE_PORT/slow?s=$hold&id=2" 2 site-colour-none $((earlier + 3))
   colour_near "$SAMPLE_TOP" "$primary" || fail "the top bar of a site with no colour is $SAMPLE_TOP, not near $primary"
   colour_near "$SAMPLE_BOTTOM" "$primary" || fail "the bottom bar of a site with no colour is $SAMPLE_BOTTOM, not near $primary"
-  tap_on 'resource-id="webview-close"' || true
+  a shell input keyevent KEYCODE_HOME
 
   # (e) No crash.
   app_logcat site-colour
