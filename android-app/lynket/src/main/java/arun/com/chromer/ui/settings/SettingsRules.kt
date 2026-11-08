@@ -27,6 +27,8 @@ import arun.com.chromer.ui.settings.SettingsKeyTable.AMP_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_TYPE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_MODE
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SHEET
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SIDE_SHEET
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_APP
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_WEB
@@ -126,6 +128,8 @@ object SettingsRules {
       ARTICLE_MODE -> if (value == true && current.bool(AMP_MODE)) {
         dialogs += SettingsDialog.AmpAndArticle
       }
+      // The sheet on stores the side sheet option as shown (on unless chosen off before).
+      CUSTOM_TAB_SHEET -> if (value == true) writes[CUSTOM_TAB_SIDE_SHEET] = current.bool(CUSTOM_TAB_SIDE_SHEET)
     }
     return RuleResult(writes, dialogs)
   }
@@ -197,9 +201,14 @@ object SettingsRules {
     else -> null
   }
 
-  /** Whether the row of [key] shows at all: the dynamic colour boxes only while dynamic colour is on. */
+  /**
+   * Whether the row of [key] shows at all: the dynamic colour boxes only while dynamic colour is on,
+   * the sheet options only under slide over, the side sheet option only while the sheet is on.
+   */
   fun isVisible(key: String, values: SettingsValues): Boolean = when (key) {
     DYNAMIC_COLOR_APP, DYNAMIC_COLOR_WEB -> values.bool(DYNAMIC_COLOR)
+    CUSTOM_TAB_SHEET -> selectedMode(values) == BrowsingMode.SlideOver
+    CUSTOM_TAB_SIDE_SHEET -> selectedMode(values) == BrowsingMode.SlideOver && values.bool(CUSTOM_TAB_SHEET)
     else -> true
   }
 
