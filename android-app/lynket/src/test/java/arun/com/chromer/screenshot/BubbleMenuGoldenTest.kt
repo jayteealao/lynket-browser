@@ -41,8 +41,9 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Goldens of the open menu of a page in a bubble: Open in full window first, as text, over the bar
- * in the site's colour with the count, in the light and the dark theme. The whole screen is drawn,
- * so the menu's own window is in the picture. Record with `./gradlew :lynket:recordRoborazziDebug`.
+ * in the site's colour with the count, in the light and the dark theme. The menu and the bottom bar
+ * show what a bubble keeps: History and Minimize, which misbehave in a bubble, are left out. The
+ * whole screen is drawn, so the menu's own window is in the picture. Record with `./gradlew :lynket:recordRoborazziDebug`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(AndroidJUnit4::class)
@@ -66,7 +67,7 @@ class BubbleMenuGoldenTest {
           page = WebViewPage("Beating the compiler", "https://lemire.me/blog", 100, BubblePageCount(3, 7)),
           toolbarColour = Color(0xFF1E88E5),
           menuItems = browsingMenuItems(BrowsingScreen.WebView, bottomBar = true, actionButton = null, shareWithApp = null, text = text, inBubble = true),
-          bottomBarItems = browsingBottomBarItems(BrowsingScreen.WebView, true, text),
+          bottomBarItems = browsingBottomBarItems(BrowsingScreen.WebView, true, text, inBubble = true),
           bars = WebViewBarsState(),
           onClose = {},
           onMenuItem = {},
