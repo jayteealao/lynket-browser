@@ -110,6 +110,8 @@ class CustomTabs @Inject constructor(
             val keepAliveIntent = Intent()
             keepAliveIntent.setClassName(act.packageName, KeepAliveService::class.java.canonicalName!!)
             customTabsIntent.intent.putExtra(EXTRA_CUSTOM_TABS_KEEP_ALIVE, keepAliveIntent)
+            // The form of the launch, without the address, for the device checks (debug builds log it).
+            Timber.d("Custom Tab launch: sheet=%s sideSheet=%s", sheetLaunch, SheetLaunch.options(Preferences.get(act)).sideSheet)
             try {
                 if (sheetLaunch) {
                     // A browser opens a sheet only for a launch with a session or for a result.
