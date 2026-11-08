@@ -111,6 +111,7 @@ jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 # Paging
 androidx-paging-common = { group = "androidx.paging", name = "paging-common", version.ref = "paging" }
 androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "paging" }
+androidx-paging-testing = { group = "androidx.paging", name = "paging-testing", version.ref = "paging" }
 
 # Image Loading
 coil = { group = "io.coil-kt.coil3", name = "coil", version.ref = "coil" }
