@@ -111,6 +111,8 @@ import arun.com.chromer.ui.settings.components.SettingsGroup
 import arun.com.chromer.ui.settings.components.SettingsRow
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.displayAddress
+import arun.com.chromer.util.rowTitle
 import arun.com.chromer.ui.components.ScreenTitle
 import kotlinx.coroutines.launch
 import java.util.TimeZone
@@ -419,6 +421,7 @@ private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions:
   val top = if (first) 16.dp else 0.dp
   val bottom = if (last) 16.dp else 0.dp
   val shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
+  val title = rowTitle(website.title, website.url)
   val dismissState = rememberSwipeToDismissBoxState()
   SwipeToDismissBox(
     state = dismissState,
@@ -445,23 +448,25 @@ private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions:
             .clickable(role = Role.Button) { actions.onOpen(website) }
             .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
         ) {
-          SiteAvatar(website.safeLabel(), website.faviconUrl)
+          SiteAvatar(title, website.faviconUrl)
           Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
-            Text(website.safeLabel(), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // One line, cut in the middle, so the host and the end of the path both show.
             Text(
-              website.preferredUrl(),
+              displayAddress(website.preferredUrl()),
               style = MaterialTheme.typography.bodyMedium,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
               maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
+              overflow = TextOverflow.MiddleEllipsis,
+              modifier = Modifier.testTag("history-address"),
             )
           }
           if (website.hasAmp()) {
             IconButton(onClick = { actions.onOpenAmp(website) }, modifier = Modifier.testTag("history-amp")) {
-              Icon(Icons.Outlined.Bolt, contentDescription = stringResource(R.string.history_open_amp, website.safeLabel()))
+              Icon(Icons.Outlined.Bolt, contentDescription = stringResource(R.string.history_open_amp, title))
             }
           }
-          RowMenu(website, actions)
+          RowMenu(website, title, actions)
         }
       }
     }
@@ -469,11 +474,11 @@ private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions:
 }
 
 @Composable
-private fun RowMenu(website: Website, actions: HistoryActions) {
+private fun RowMenu(website: Website, title: String, actions: HistoryActions) {
   var open by remember { mutableStateOf(false) }
   Box {
     IconButton(onClick = { open = true }, modifier = Modifier.testTag("history-row-menu")) {
-      Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.history_more_options, website.safeLabel()))
+      Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.history_more_options, title))
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
       DropdownMenuItem(
