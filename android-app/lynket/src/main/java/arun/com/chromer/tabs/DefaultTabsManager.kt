@@ -492,12 +492,13 @@ constructor(
     incognito: Boolean,
     context: Context,
     @ColorInt color: Int,
+    @ColorInt siteColor: Int,
   ): Boolean {
     val bubble: FloatingBubble = when (mode) {
       BrowsingMode.NativeBubbles -> nativeFloatingBubble.get()
       BrowsingMode.WebHeads, BrowsingMode.SlideOver -> webHeadsFloatingBubble.get()
     }
-    return bubble.openBubble(website, fromMinimize, fromAmp, incognito, context, color)
+    return bubble.openBubble(website, fromMinimize, fromAmp, incognito, context, color, siteColor)
   }
 
   private fun openWebHeads(
@@ -530,6 +531,8 @@ constructor(
       return
     }
 
+    // One read of the site colour serves the bubble's colour and its page's bars.
+    val site = siteColour(website)
     val opened = openBubble(
       mode,
       website,
@@ -537,7 +540,8 @@ constructor(
       fromAmp,
       isIncognito,
       context,
-      customizedWebsiteColor(website, linkSource)
+      customizedWebsiteColor(website, linkSource, site),
+      siteColor = if (isIncognito) NO_COLOR else site,
     )
     if (!opened) {
       // The bubble could not show; the page opens in a tab instead of being lost.
@@ -635,11 +639,14 @@ constructor(
    * this link came from, so a link opened inside Lynket never takes an earlier link's app colour.
    */
   @ColorInt
-  private fun customizedWebsiteColor(website: Website, linkSource: LinkSource): Int {
+  private fun customizedWebsiteColor(
+    website: Website,
+    linkSource: LinkSource,
+    @ColorInt siteColour: Int = siteColour(website),
+  ): Int {
     if (preferences.isColoredToolbar()) {
       if (preferences.dynamicToolbar()) {
         var appColor = NO_COLOR
-        var websiteColor = NO_COLOR
 
         if (preferences.dynamicToolbarOnApp()) {
           val lastApp = linkSource.filtered
@@ -647,16 +654,9 @@ constructor(
             appColor = appRepository.getPackageColorSync(lastApp)
           }
         }
-        if (preferences.dynamicToolbarOnWeb()) {
-          websiteColor = if (website.themeColor() != NO_COLOR) {
-            website.themeColor()
-          } else {
-            websiteRepository.getWebsiteColorSync(website.url)
-          }
-        }
         return when {
           appColor != NO_COLOR -> appColor
-          websiteColor != NO_COLOR -> websiteColor
+          siteColour != NO_COLOR -> siteColour
           else -> preferences.toolbarColor()
         }
       } else {
@@ -665,6 +665,17 @@ constructor(
     } else return getColor(application, R.color.primary)
   }
 
+
+  /** The site's own colour when the person's toolbar colour follows the site, else none. */
+  @ColorInt
+  private fun siteColour(website: Website): Int {
+    if (!preferences.isColoredToolbar() || !preferences.dynamicToolbar() || !preferences.dynamicToolbarOnWeb()) return NO_COLOR
+    return if (website.themeColor() != NO_COLOR) {
+      website.themeColor()
+    } else {
+      websiteRepository.getWebsiteColorSync(website.url)
+    }
+  }
 
   private fun doIncognitoAction(activity: Activity, url: String, linkSource: LinkSource) {
     openUrl(activity, Website(url), fromApp = false, incognito = true, linkSource = linkSource)
