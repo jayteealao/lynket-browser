@@ -1195,11 +1195,12 @@ start_page_server() {
   python "$(hostpath "$HERE/slow-page-server.py")" "$PAGE_PORT" > "$OUT/$WHICH-server.log" 2>&1 &
   PAGE_SERVER_PID=$!
   a reverse "tcp:$PAGE_PORT" "tcp:$PAGE_PORT" >/dev/null
-  local _
+  local _ up=""
   for _ in $(seq 1 20); do
-    python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$PAGE_PORT/slow?s=0&id=0')" 2>/dev/null && break
+    python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$PAGE_PORT/slow?s=0&id=0')" 2>/dev/null && { up=1; break; }
     sleep 0.5
   done
+  [ -n "$up" ] || fail "slow page server did not answer on port $PAGE_PORT; see $OUT/$WHICH-server.log"
   log "slow page server on port $PAGE_PORT (adb reverse tcp:$PAGE_PORT)"
 }
 
@@ -1569,7 +1570,10 @@ case "$WHICH" in
   trash) check_trash ;;
   aggressive) check_aggressive ;;
   bubble-minimize) check_bubble_minimize ;;
-  page-state) check_page_state ;;
+  page-state)
+    # The screenshot judge reads the shots with Pillow; say so before the device setup, not after it.
+    python -c 'import PIL' 2>/dev/null || { echo "webheads-check: page-state needs python with Pillow (pip install Pillow)" >&2; exit 2; }
+    check_page_state ;;
   page-state-worst) check_page_state_worst ;;
   page-state-speech) check_page_state_speech ;;
   *) echo "unknown check: $WHICH; $USAGE" >&2; exit 2 ;;
