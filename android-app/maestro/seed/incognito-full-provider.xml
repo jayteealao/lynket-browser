@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  As incognito-full.xml, with Chrome named as the Custom Tab provider, so the check asks the
+  installed Chrome (on an older Chrome without ephemeral tabs, links open in the app's web view).
+-->
+<map>
+    <boolean name="full_incognito_mode" value="true" />
+    <string name="preferred_package">com.android.chrome</string>
+    <boolean name="firstrun_3" value="false" />
+</map>
