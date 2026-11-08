@@ -11,7 +11,9 @@
 
 package arun.com.chromer.browsing.customtabs
 
+import android.content.ComponentName
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageInfo
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent.EXTRA_ENABLE_EPHEMERAL_BROWSING
@@ -42,8 +44,17 @@ class CustomTabActivityIncognitoTest : LynketRobolectricSuite() {
     preferences.browsingMode(BrowsingMode.SlideOver)
   }
 
-  private fun installProvider() {
-    shadowOf(application.packageManager).installPackage(PackageInfo().apply { packageName = provider })
+  private fun installProvider(ephemeral: Boolean = true) {
+    val pm = shadowOf(application.packageManager)
+    pm.installPackage(PackageInfo().apply { packageName = provider })
+    val service = ComponentName(provider, "$provider.CustomTabsService")
+    pm.addServiceIfNotPresent(service)
+    pm.addIntentFilterForService(
+      service,
+      IntentFilter("android.support.customtabs.action.CustomTabsService").apply {
+        if (ephemeral) addCategory("androidx.browser.customtabs.category.EphemeralBrowsing")
+      },
+    )
     preferences.customTabPackage(provider)
   }
 
@@ -78,6 +89,18 @@ class CustomTabActivityIncognitoTest : LynketRobolectricSuite() {
   fun withNoProviderTheWebViewFallbackStaysIncognito() {
     val page = startedBy(incognito = true).single { it.component?.className == WebViewActivity::class.java.name }
 
+    assertThat(page.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
+    assertThat(page.dataString).isEqualTo(url)
+  }
+
+  @Test
+  fun aProviderWithoutEphemeralTabsNeverGetsTheIncognitoLink() {
+    installProvider(ephemeral = false)
+
+    val started = startedBy(incognito = true)
+
+    assertThat(started.none { it.`package` == provider }).isTrue()
+    val page = started.single { it.component?.className == WebViewActivity::class.java.name }
     assertThat(page.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)).isTrue()
     assertThat(page.dataString).isEqualTo(url)
   }

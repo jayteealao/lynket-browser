@@ -110,6 +110,12 @@ class CustomTabs @Inject constructor(
         val act = activity ?: return
         val packageName = customTabPackage(act)
         val uri = Uri.parse(url)
+        if (packageName != null && incognito && !isEphemeralSupported(act, packageName)) {
+            // A browser that cannot open an ephemeral tab would keep the page in its normal
+            // profile, so the incognito link opens in the incognito web view, with no message.
+            openIncognitoWebView(act, uri)
+            return
+        }
         if (packageName != null) {
             customTabsIntent.intent.setPackage(packageName)
             val keepAliveIntent = Intent()
@@ -138,6 +144,16 @@ class CustomTabs @Inject constructor(
         } else {
             Timber.e("Called fallback since no package found!")
             CUSTOM_TABS_FALLBACK.openUri(act, uri, incognito)
+        }
+    }
+
+    private fun openIncognitoWebView(act: Activity, uri: Uri) {
+        try {
+            act.startActivity(
+                Intent(act, WebViewActivity::class.java).setData(uri).putExtra(EXTRA_KEY_INCOGNITO, true)
+            )
+        } catch (e: ActivityNotFoundException) {
+            Timber.e(e, "No web view to open an incognito link in")
         }
     }
 
