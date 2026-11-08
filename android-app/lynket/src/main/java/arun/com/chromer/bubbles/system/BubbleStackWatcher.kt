@@ -73,6 +73,17 @@ constructor(
   /** True from a page start until a fold is sure: the delete intent of a page can follow its stop. */
   val stackOpen: Boolean get() = startedPages > 0 || foldUnsure
 
+  /**
+   * Holds the return of one closed bubble for the fold when the stack is open, and says whether it
+   * did. The watcher owns the order of a close in an open stack: the hold is made here, and only the
+   * fold check fills it, with the stack sure to be folded.
+   */
+  fun holdForTheFold(): Boolean {
+    if (!stackOpen) return false
+    nativeFloatingBubble.get().holdReturn()
+    return true
+  }
+
   fun attach(application: Application) {
     application.registerActivityLifecycleCallbacks(object : ActivityLifeCycleCallbackAdapter() {
       override fun onActivityStarted(activity: Activity) {

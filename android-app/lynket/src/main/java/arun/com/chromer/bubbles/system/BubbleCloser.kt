@@ -72,8 +72,9 @@ constructor(
 
   fun close(notificationId: Int) {
     val closed = takeOffTheList(notificationId)
+    val held = closed?.place == BubblePlace.STACK && stackWatcher.holdForTheFold()
     bubbleNotificationManager.dismissed(notificationId)
-    fillTheFreePlace(closed, stackWatcher.stackOpen, alreadyHeld = false)
+    fillTheFreePlace(closed, held)
   }
 
   /**
@@ -84,13 +85,11 @@ constructor(
    */
   private fun closeOffTheMainThread(notificationId: Int) {
     val closed = takeOffTheList(notificationId)
-    val stackOpen = stackWatcher.stackOpen
-    val held = closed?.place == BubblePlace.STACK && stackOpen
-    if (held) nativeFloatingBubble.holdReturn()
+    val held = closed?.place == BubblePlace.STACK && stackWatcher.holdForTheFold()
     scope.launch {
       try {
         bubbleNotificationManager.dismissed(notificationId)
-        fillTheFreePlace(closed, stackOpen, alreadyHeld = held)
+        fillTheFreePlace(closed, held)
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -99,7 +98,8 @@ constructor(
     }
   }
 
-  private fun fillTheFreePlace(closed: OpenBubble?, stackOpen: Boolean, alreadyHeld: Boolean) {
+  /** After a close: [held] says the stack was open and [BubbleStackWatcher] holds the return. */
+  private fun fillTheFreePlace(closed: OpenBubble?, held: Boolean) {
     // A close in the overflow leaves the stack full, and a second signal finds no entry. A close in
     // an open stack waits for the fold, and only a folded stack can be dragged away. A close in a
     // folded stack leaves its read to the return, which can tell a drag: during a drag a read here
@@ -107,10 +107,7 @@ constructor(
     // The return runs off this thread, so a delete intent does not hold back the others of a drag.
     when {
       closed?.place != BubblePlace.STACK -> bubbleReconciler.reconcileLater()
-      stackOpen -> {
-        if (!alreadyHeld) nativeFloatingBubble.holdReturn()
-        bubbleReconciler.reconcileLater()
-      }
+      held -> bubbleReconciler.reconcileLater()
       else -> nativeFloatingBubble.returnNewestOverflowBubble()
     }
   }
@@ -166,8 +163,8 @@ constructor(
     val nextPage = stackWatcher.startedPage
     if (returned) {
       withTimeoutOrNull(SHELL_ADD_MS) { nextPage.first { it != null && it != notificationId } }
-    } else if (stackWatcher.stackOpen) {
-      nativeFloatingBubble.holdReturn()
+    } else {
+      stackWatcher.holdForTheFold()
     }
     bubbleNotificationManager.dismissed(notificationId)
     bubbleReconciler.reconcile()
