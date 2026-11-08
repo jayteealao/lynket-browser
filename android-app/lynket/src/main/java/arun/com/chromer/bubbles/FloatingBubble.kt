@@ -28,6 +28,10 @@ import arun.com.chromer.shared.Constants
 /** Shows a link as a floating bubble; returns false when it could not, so the caller opens a tab. */
 interface FloatingBubble {
 
+  /**
+   * [color] tints the bubble's notification; [siteColor] is the site's own colour for the bars of its
+   * page, or none.
+   */
   fun openBubble(
     website: Website,
     fromMinimize: Boolean,
@@ -35,6 +39,8 @@ interface FloatingBubble {
     incognito: Boolean,
     context: Context? = null,
     @ColorInt
-    color: Int = Constants.NO_COLOR
+    color: Int = Constants.NO_COLOR,
+    @ColorInt
+    siteColor: Int = Constants.NO_COLOR
   ): Boolean
 }

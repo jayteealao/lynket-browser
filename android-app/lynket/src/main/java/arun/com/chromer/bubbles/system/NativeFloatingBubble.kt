@@ -116,7 +116,8 @@ constructor(
     fromAmp: Boolean,
     incognito: Boolean,
     context: Context?,
-    color: Int
+    color: Int,
+    siteColor: Int
   ): Boolean {
     val refusal = bubbleGate.refusal(bubbleConversationId(website.url, incognito))
     if (refusal != null) {
@@ -129,7 +130,8 @@ constructor(
       fromAmp = fromAmp,
       incognito = incognito,
       contextRef = WeakReference(context),
-      color = color
+      color = color,
+      siteColor = siteColor
     )
     scope.launch {
       try {

@@ -59,7 +59,9 @@ constructor(
     fromAmp: Boolean,
     incognito: Boolean,
     context: Context?,
-    color: Int
+    color: Int,
+    // A web head's page takes its colour when it opens.
+    siteColor: Int
   ): Boolean {
     // The tabs manager checks the overlay permission before it gets here, and the service checks
     // it again on start, so this only starts the service.
