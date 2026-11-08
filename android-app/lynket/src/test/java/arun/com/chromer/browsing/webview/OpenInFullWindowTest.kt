@@ -18,12 +18,16 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.webkit.WebView
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.browsing.menu.HIDDEN_IN_A_BUBBLE
 import arun.com.chromer.bubbles.BubbleLoadData
 import arun.com.chromer.bubbles.BubbleRegistry
 import arun.com.chromer.bubbles.bubbleNotificationId
@@ -221,6 +225,48 @@ class OpenInFullWindowTest {
     composeRule.onNodeWithTag("browsing-overflow").performClick()
     composeRule.onNodeWithTag("menu-menu_copy_link").assertIsDisplayed()
     assertThat(composeRule.onAllNodesWithTag("menu-menu_open_in_full_window").fetchSemanticsNodes()).isEmpty()
+  }
+
+  private fun tagsUnder(parent: String): List<String> =
+    composeRule.onAllNodes(hasAnyAncestor(hasTestTag(parent)))
+      .fetchSemanticsNodes()
+      .filter { SemanticsProperties.TestTag in it.config && it.config[SemanticsProperties.TestTag].startsWith("menu-") }
+      .map { it.config[SemanticsProperties.TestTag] }
+
+  private val hiddenTags get() = HIDDEN_IN_A_BUBBLE.map { "menu-" + application.resources.getResourceEntryName(it) }
+
+  @Test
+  fun aBubblePageShowsNoHiddenItem() {
+    post(first)
+    page(first)
+
+    composeRule.onNodeWithTag("browsing-overflow").performClick()
+    val menu = tagsUnder("browsing-overflow-menu")
+    assertThat(menu.first()).isEqualTo("menu-menu_open_in_full_window")
+    assertThat(menu).containsNoneIn(hiddenTags)
+    assertThat(menu).contains("menu-menu_copy_link")
+    val bar = tagsUnder("browsing-bottom-bar")
+    assertThat(bar).containsNoneIn(hiddenTags)
+    assertThat(bar).contains("menu-bottom_bar_share")
+  }
+
+  @Test
+  fun theShortcutPageAndTheWebViewProviderShowEveryItem() {
+    post(first)
+    page(first, inBubble = false)
+    composeRule.onNodeWithTag("browsing-overflow").performClick()
+    assertThat(tagsUnder("browsing-overflow-menu")).contains("menu-menu_history")
+    assertThat(tagsUnder("browsing-bottom-bar")).contains("menu-bottom_bar_minimize_tab")
+  }
+
+  @Test
+  fun theWebViewProviderShowsEveryItem() {
+    val intent = Intent(application, WebViewActivity::class.java).setData(Uri.parse(first))
+    Robolectric.buildActivity(WebViewActivity::class.java, intent).setup()
+
+    composeRule.onNodeWithTag("browsing-overflow").performClick()
+    assertThat(tagsUnder("browsing-overflow-menu")).contains("menu-menu_history")
+    assertThat(tagsUnder("browsing-bottom-bar")).contains("menu-bottom_bar_minimize_tab")
   }
 
   private companion object {

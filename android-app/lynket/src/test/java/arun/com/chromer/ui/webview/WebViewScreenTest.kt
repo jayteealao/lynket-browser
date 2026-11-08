@@ -40,6 +40,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.R
 import arun.com.chromer.browsing.menu.ActionButton
 import arun.com.chromer.browsing.menu.BrowsingScreen
+import arun.com.chromer.browsing.menu.HIDDEN_IN_A_BUBBLE
 import arun.com.chromer.browsing.menu.browsingBottomBarItems
 import arun.com.chromer.browsing.menu.browsingMenuItems
 import arun.com.chromer.bubbles.BubblePageCount
@@ -84,7 +85,7 @@ class WebViewScreenTest {
             page = page,
             toolbarColour = Color(0xFF3F51B5),
             menuItems = browsingMenuItems(BrowsingScreen.WebView, bottomBar, ActionButton("Share", iconRes = R.drawable.ic_share_24dp), null, text, inBubble),
-            bottomBarItems = browsingBottomBarItems(BrowsingScreen.WebView, bottomBar, text),
+            bottomBarItems = browsingBottomBarItems(BrowsingScreen.WebView, bottomBar, text, inBubble),
             bars = bars,
             onClose = { events += "close" },
             onMenuItem = { events += context.resources.getResourceEntryName(it.id) },
@@ -167,6 +168,51 @@ class WebViewScreenTest {
 
     composeRule.onNodeWithTag("menu-menu_copy_link").assertIsDisplayed()
     assertThat(composeRule.onAllNodesWithTag("menu-menu_open_in_full_window").fetchSemanticsNodes()).isEmpty()
+  }
+
+  private fun menuTags(): List<String> =
+    composeRule.onAllNodes(hasAnyAncestor(hasTestTag("browsing-overflow-menu")))
+      .fetchSemanticsNodes()
+      .filter { SemanticsProperties.TestTag in it.config && it.config[SemanticsProperties.TestTag].startsWith("menu-") }
+      .map { it.config[SemanticsProperties.TestTag] }
+
+  private fun barTags(): List<String> =
+    composeRule.onAllNodes(hasAnyAncestor(hasTestTag("browsing-bottom-bar")))
+      .fetchSemanticsNodes()
+      .filter { SemanticsProperties.TestTag in it.config && it.config[SemanticsProperties.TestTag].startsWith("menu-") }
+      .map { it.config[SemanticsProperties.TestTag] }
+
+  private val hiddenTags get() = HIDDEN_IN_A_BUBBLE.map { "menu-" + context.resources.getResourceEntryName(it) }
+
+  @Test
+  fun inABubbleTheMenuAndTheBarShowNoHiddenItemAndEveryOtherOne() {
+    show(WebViewPage("Fixture", "http://localhost:8000/a.html", 100, BubblePageCount(2, 3)), inBubble = true)
+    composeRule.onNodeWithTag("browsing-overflow").performClick()
+
+    assertThat(menuTags()).containsNoneIn(hiddenTags)
+    assertThat(menuTags()).containsExactly(
+      "menu-menu_open_in_full_window", "menu-menu_copy_link", "menu-menu_open_with", "menu-menu_share",
+      "menu-menu_add_to_home_screen",
+    ).inOrder()
+    assertThat(barTags()).containsNoneIn(hiddenTags)
+    assertThat(barTags()).containsExactly(
+      "menu-bottom_bar_open_in_new_tab", "menu-bottom_bar_share", "menu-bottom_bar_tabs", "menu-bottom_bar_article_view",
+    ).inOrder()
+    composeRule.onNodeWithTag("menu-menu_action_button").assertIsDisplayed()
+  }
+
+  @Test
+  fun outsideABubbleTheMenuAndTheBarShowEveryItem() {
+    show(WebViewPage("Fixture", "http://localhost:8000/a.html", 100))
+    composeRule.onNodeWithTag("browsing-overflow").performClick()
+
+    assertThat(menuTags()).containsExactly(
+      "menu-menu_copy_link", "menu-menu_open_with", "menu-menu_share", "menu-menu_history", "menu-menu_add_to_home_screen",
+    ).inOrder()
+    assertThat(barTags()).containsExactly(
+      "menu-bottom_bar_open_in_new_tab", "menu-bottom_bar_share", "menu-bottom_bar_tabs", "menu-bottom_bar_minimize_tab",
+      "menu-bottom_bar_article_view",
+    ).inOrder()
   }
 
   // Real text measurement: the legacy graphics mode does not break lines. The font scale is the
