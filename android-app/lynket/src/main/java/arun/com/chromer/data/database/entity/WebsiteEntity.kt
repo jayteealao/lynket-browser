@@ -33,7 +33,7 @@ import arun.com.chromer.shared.Constants
  * @property themeColor The website's theme color as a hex string
  * @property ampUrl AMP version URL if available
  * @property bookmarked Whether the user has bookmarked this site
- * @property createdAt Timestamp when first visited (milliseconds since epoch)
+ * @property createdAt Time of the last visit (milliseconds since epoch); the caller sets it from the app clock
  * @property visitCount Number of times the user has visited this site
  */
 @Entity(
@@ -70,7 +70,7 @@ data class WebsiteEntity(
     val bookmarked: Boolean = false,
 
     @ColumnInfo(name = "created_at")
-    val createdAt: Long = System.currentTimeMillis(),
+    val createdAt: Long,
 
     @ColumnInfo(name = "visit_count")
     val visitCount: Int = 1
