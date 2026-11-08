@@ -63,7 +63,7 @@ class HeadPageTracker(private val scope: CoroutineScope, private val limitMs: Lo
     limit.cancel()
     if (head.pageState == PageState.Loading) {
       head.pageState = if (failed) PageState.Failed else PageState.Loaded
-      Timber.d("Head page %s: %s by %s", head.url, head.pageState, signal)
+      Timber.d("Head page %s: %s by %s", head.logName, head.pageState, signal)
     }
   }
 
@@ -72,3 +72,7 @@ class HeadPageTracker(private val scope: CoroutineScope, private val limitMs: Lo
     limits.remove(head)?.cancel()
   }
 }
+
+/** The head's address for the debug log, which never names an incognito page. */
+private val WebHeadState.logName: String
+  get() = if (incognito) "(incognito)" else url

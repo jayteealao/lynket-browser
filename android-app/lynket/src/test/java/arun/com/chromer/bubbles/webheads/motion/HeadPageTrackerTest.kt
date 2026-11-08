@@ -7,6 +7,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import timber.log.Timber
 
 /** The page state of each head: loading from the open, then the first signal, or unknown after the limit. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -17,6 +18,30 @@ class HeadPageTrackerTest {
   @Test
   fun a_new_head_has_an_unknown_page() {
     assertThat(WebHeadState("https://a.example").pageState).isEqualTo(PageState.Unknown)
+  }
+
+  @Test
+  fun the_log_of_an_incognito_head_names_no_address() = runTest {
+    val lines = mutableListOf<String>()
+    val tree = object : Timber.Tree() {
+      override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+        lines += message
+      }
+    }
+    Timber.plant(tree)
+    try {
+      val tracker = tracker()
+      val secret = WebHeadState("https://secret.example/page", incognito = true)
+      val open = WebHeadState("https://open.example/page")
+      tracker.start(secret)
+      tracker.start(open)
+      tracker.finish(secret, PageSignal.SiteDetails, failed = false)
+      tracker.finish(open, PageSignal.SiteDetails, failed = false)
+    } finally {
+      Timber.uproot(tree)
+    }
+    assertThat(lines.joinToString(" ")).doesNotContain("secret.example")
+    assertThat(lines.joinToString(" ")).contains("open.example")
   }
 
   @Test
