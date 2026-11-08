@@ -20,6 +20,7 @@ import arun.com.chromer.data.preferences.RecordingTree
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.util.TestClock
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -81,6 +82,50 @@ class HistoryDatabaseCorruptionTest {
         }
       }
     }
+  }
+
+  /**
+   * Checks that opening the file failed with Room's own schema error, that its text is the
+   * [expectedEntry] of [HistoryDatabase.ROOM_SCHEMA_ERRORS], that the file was treated as broken
+   * (not left in place for a retry), and that the kept copy still holds the row of [keptRowUrl].
+   */
+  private suspend fun assertRoomSchemaErrorHandled(expectedEntry: String, keptRowUrl: String) {
+    assertBrokenFileHandled { kept ->
+      SQLiteDatabase.openDatabase(kept.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+        db.rawQuery("SELECT url FROM history", null).use {
+          assertThat(it.moveToFirst()).isTrue()
+          assertThat(it.getString(0)).isEqualTo(keptRowUrl)
+        }
+      }
+    }
+
+    val roomError = tree.throwables
+      .flatMap { logged -> generateSequence(logged) { it.cause }.toList() }
+      .firstOrNull { cause ->
+        cause is IllegalStateException && cause.stackTrace.any { it.className.startsWith("androidx.room3.") }
+      }
+    assertWithMessage("Room's IllegalStateException among the logged errors: %s", tree.throwables)
+      .that(roomError).isNotNull()
+    val message = roomError!!.message.orEmpty()
+    assertThat(message.lowercase()).contains(expectedEntry.lowercase())
+    assertThat(HistoryDatabase.ROOM_SCHEMA_ERRORS).contains(expectedEntry)
+    assertWithMessage("Room's text \"%s\" matches an entry of ROOM_SCHEMA_ERRORS", message)
+      .that(HistoryDatabase.ROOM_SCHEMA_ERRORS.any { message.contains(it, ignoreCase = true) }).isTrue()
+
+    assertThat(tree.errors.any { it.startsWith("History database could not be opened; history starts empty") })
+      .isTrue()
+    assertThat(tree.errors.none { it.contains("stays in place") }).isTrue()
+  }
+
+  /** Writes the tables and indexes of schema version 3 (`schemas/.../3.json`), with no identity row. */
+  private fun createVersion3Tables(db: SQLiteDatabase) {
+    db.execSQL(
+      "CREATE TABLE IF NOT EXISTS `history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+        "`url` TEXT NOT NULL, `title` TEXT, `favicon_url` TEXT, `canonical_url` TEXT, `theme_color` TEXT, " +
+        "`amp_url` TEXT, `bookmarked` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `visit_count` INTEGER NOT NULL)",
+    )
+    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_history_url` ON `history` (`url`)")
+    db.execSQL("CREATE INDEX IF NOT EXISTS `index_history_created_at` ON `history` (`created_at`)")
   }
 
   private suspend fun assertBrokenFileHandled(original: ByteArray) =
