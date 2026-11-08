@@ -58,28 +58,10 @@ CHROME_DEBUG_BEFORE=""
 on_exit() {
   [ -n "$PORT" ] && a reverse --remove "tcp:$PORT" >/dev/null 2>&1 || true
   [ -n "$SERVER_PID" ] && kill "$SERVER_PID" >/dev/null 2>&1 || true
-  if [ -n "$CHROME_CHANGED" ]; then
-    a shell rm -f /data/local/tmp/chrome-command-line >/dev/null 2>&1 || true
-    if [ -n "$CHROME_DEBUG_BEFORE" ] && [ "$CHROME_DEBUG_BEFORE" != "null" ]; then
-      a shell am set-debug-app --persistent "$CHROME_DEBUG_BEFORE" >/dev/null 2>&1 || true
-    else
-      a shell am clear-debug-app >/dev/null 2>&1 || true
-    fi
-  fi
+  chrome_restore
   a shell pm clear "$PKG" >/dev/null 2>&1 || true
 }
 trap on_exit EXIT
-
-# Chrome reads its command line from /data/local/tmp only while it is the debug app; these flags
-# skip its first-run screen, which otherwise covers the tab a link opens.
-chrome_without_first_run() {
-  a shell pm list packages com.android.chrome | grep -q "package:com.android.chrome" || return 0
-  CHROME_DEBUG_BEFORE="$(a shell settings get global debug_app | tr -d '\r')"
-  CHROME_CHANGED=1
-  a shell am set-debug-app --persistent com.android.chrome >/dev/null
-  a shell "echo 'chrome --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line"
-  a shell am force-stop com.android.chrome
-}
 
 serve_cookie_probe() {
   PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"

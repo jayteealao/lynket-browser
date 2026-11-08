@@ -114,28 +114,9 @@ CHROME_CHANGED=""
 CHROME_DEBUG_BEFORE=""
 on_exit() {
   [ -n "$FONT_CHANGED" ] && a shell settings put system font_scale 1.0 >/dev/null 2>&1 || true
-  if [ -n "$CHROME_CHANGED" ]; then
-    a shell rm -f /data/local/tmp/chrome-command-line >/dev/null 2>&1 || true
-    if [ -n "$CHROME_DEBUG_BEFORE" ] && [ "$CHROME_DEBUG_BEFORE" != "null" ]; then
-      a shell am set-debug-app --persistent "$CHROME_DEBUG_BEFORE" >/dev/null 2>&1 || true
-    else
-      a shell am clear-debug-app >/dev/null 2>&1 || true
-    fi
-  fi
+  chrome_restore
 }
 trap on_exit EXIT
-
-# Chrome reads its command line from /data/local/tmp only while it is the debug app; these flags
-# skip its first-run screen, which otherwise covers the tab a link opens.
-chrome_without_first_run() {
-  a shell pm list packages com.android.chrome | grep -q "package:com.android.chrome" || return 0
-  CHROME_DEBUG_BEFORE="$(a shell settings get global debug_app | tr -d '\r')"
-  CHROME_CHANGED=1
-  a shell am set-debug-app --persistent com.android.chrome >/dev/null
-  a shell "echo 'chrome --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line"
-  a shell am force-stop com.android.chrome
-  log "Chrome first-run screen off for this run"
-}
 
 # Native Bubbles (Beta) chosen on a fresh install, notifications allowed and every conversation
 # allowed to bubble.

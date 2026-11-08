@@ -170,3 +170,29 @@ seed_settings() {
   a exec-in run-as "$PKG" sh -c "cat > $prefs" < "$1"
   a shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
 }
+
+# Chrome reads its command line from /data/local/tmp only while it is the debug app; these flags
+# skip its first-run screen, which otherwise covers the tab a link opens. A check that calls it
+# calls chrome_restore on exit.
+CHROME_CHANGED="${CHROME_CHANGED:-}"
+CHROME_DEBUG_BEFORE="${CHROME_DEBUG_BEFORE:-}"
+chrome_without_first_run() {
+  a shell pm list packages com.android.chrome | grep -q "package:com.android.chrome" || return 0
+  CHROME_DEBUG_BEFORE="$(a shell settings get global debug_app | tr -d '\r')"
+  CHROME_CHANGED=1
+  a shell am set-debug-app --persistent com.android.chrome >/dev/null
+  a shell "echo 'chrome --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line"
+  a shell am force-stop com.android.chrome
+  log "Chrome first-run screen off for this run"
+}
+
+# Puts back Chrome's command line and the debug app that chrome_without_first_run changed.
+chrome_restore() {
+  [ -n "$CHROME_CHANGED" ] || return 0
+  a shell rm -f /data/local/tmp/chrome-command-line >/dev/null 2>&1 || true
+  if [ -n "$CHROME_DEBUG_BEFORE" ] && [ "$CHROME_DEBUG_BEFORE" != "null" ]; then
+    a shell am set-debug-app --persistent "$CHROME_DEBUG_BEFORE" >/dev/null 2>&1 || true
+  else
+    a shell am clear-debug-app >/dev/null 2>&1 || true
+  fi
+}
