@@ -21,7 +21,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -55,33 +54,33 @@ class AmpResolverViewModel @Inject constructor(
   private val networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
-  private val _state = MutableStateFlow<AmpState?>(null)
-  val state: StateFlow<AmpState?> = _state.asStateFlow()
+  val state: StateFlow<AmpState?>
+    field = MutableStateFlow<AmpState?>(null)
 
   private var lookup: Job? = null
   private var incognito = false
 
   /** Starts the lookup for [url] unless one already ran or runs (for example after recreation). */
   fun start(url: String, incognito: Boolean) {
-    if (_state.value != null) return
+    if (state.value != null) return
     this.incognito = incognito
     resolve(url)
   }
 
   /** Runs the lookup again (the error state's Try again). */
   fun retry() {
-    val url = _state.value?.url ?: return
+    val url = state.value?.url ?: return
     resolve(url)
   }
 
   private fun resolve(url: String) {
     lookup?.cancel()
-    _state.value = AmpState.Loading(url)
+    state.value = AmpState.Loading(url)
     lookup = viewModelScope.launch {
       val website = runCatching {
         if (incognito) websiteRepository.getWebsiteWithoutSaving(url).first() else websiteRepository.getWebsite(url).first()
       }.onFailure { Timber.e(it, "AMP lookup failed for %s", WebUrl.hostForLog(url)) }.getOrNull()
-      _state.value = when {
+      state.value = when {
         website != null && website.hasAmp() -> AmpState.Found(website)
         !networkMonitor.isOnlineNow() -> AmpState.Error(url)
         else -> AmpState.NotFound(website ?: Website(url))
