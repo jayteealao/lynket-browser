@@ -24,6 +24,7 @@ import arun.com.chromer.tabs.TabsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -44,13 +45,14 @@ import javax.inject.Inject
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class NewTabViewModel @Inject constructor(
-  private val savedState: SavedStateHandle,
+  savedState: SavedStateHandle,
   private val suggestionsEngine: SuggestionsEngine,
   private val searchProviders: SearchProviders,
   private val tabsManager: TabsManager,
 ) : ViewModel() {
 
-  val query: StateFlow<String> = savedState.getStateFlow(QUERY, "")
+  val query: StateFlow<String>
+    field = savedState.getMutableStateFlow(QUERY, "")
 
   val suggestions: StateFlow<Suggestions> = query
     .debounce(SUGGESTIONS_DEBOUNCE_MS)
@@ -79,7 +81,7 @@ class NewTabViewModel @Inject constructor(
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Suggestions())
 
   fun onQueryChange(text: String) {
-    savedState[QUERY] = text
+    query.value = text
   }
 
   /**
