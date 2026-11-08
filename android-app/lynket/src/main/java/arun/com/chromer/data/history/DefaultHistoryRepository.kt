@@ -51,8 +51,8 @@ internal constructor(
     return saved
   }
 
-  override suspend fun insert(website: Website): Website {
-    return if (historyOff()) website else historyStore.insert(website)
+  override suspend fun insert(website: Website) {
+    if (!historyOff()) historyStore.insert(website)
   }
 
   override suspend fun search(text: String) = historyStore.search(text)

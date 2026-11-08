@@ -20,6 +20,7 @@ import arun.com.chromer.data.database.HistoryDatabase
 import arun.com.chromer.data.database.entity.WebsiteEntity
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.data.preferences.UserPreferencesRepository
+import arun.com.chromer.util.TestClock
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
@@ -45,7 +46,8 @@ class RoomHistoryStoreTest {
     .build()
   private val dao = database.websiteDao()
   private val historyDatabase = HistoryDatabase(context, legacyImport = null) { database }
-  private val store = RoomHistoryStore(historyDatabase)
+  private val clock = TestClock(1_000L)
+  private val store = RoomHistoryStore(historyDatabase, clock)
 
   @After
   fun close() = database.close()

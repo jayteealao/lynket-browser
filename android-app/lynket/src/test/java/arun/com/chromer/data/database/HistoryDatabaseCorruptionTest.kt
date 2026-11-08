@@ -18,6 +18,7 @@ import arun.com.chromer.data.history.ModernHistoryRepository
 import arun.com.chromer.data.history.RoomHistoryStore
 import arun.com.chromer.data.preferences.RecordingTree
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.util.TestClock
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -85,7 +86,7 @@ class HistoryDatabaseCorruptionTest {
     assertBrokenFileHandled { kept -> assertThat(kept.readBytes()).isEqualTo(original) }
 
   private suspend fun assertBrokenFileHandled(checkKept: (File) -> Unit) {
-    val store = RoomHistoryStore(historyDatabase)
+    val store = RoomHistoryStore(historyDatabase, TestClock(1_000L))
     val history = ModernHistoryRepository(historyDatabase, Dispatchers.Unconfined)
 
     assertThat(history.getRecents().first()).isEmpty()

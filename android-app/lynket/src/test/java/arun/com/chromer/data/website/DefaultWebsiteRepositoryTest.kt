@@ -250,10 +250,9 @@ class DefaultWebsiteRepositoryTest {
 
     override suspend fun get(website: Website): Website? = stored
 
-    override suspend fun insert(website: Website): Website {
+    override suspend fun insert(website: Website) {
       inserts += website
       firstInsert.complete(Unit)
-      return website
     }
 
     override suspend fun search(text: String): List<Website> = emptyList()
