@@ -29,6 +29,7 @@ import arun.com.chromer.util.Utils
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Clock
 
 /**
  * The app a link came from: [nonFiltered] for per-app rules, [filtered] for the app-based toolbar
@@ -58,10 +59,11 @@ class AppDetectionManager
 constructor(
   private val application: Application,
   private val preferences: Preferences,
+  private val clock: Clock,
 ) {
 
   /** Reads the app the link being opened now came from. Call it when an external link arrives. */
-  fun detectLinkSource(now: Long = System.currentTimeMillis()): LinkSource {
+  fun detectLinkSource(now: Long = clock.now().toEpochMilliseconds()): LinkSource {
     if (!Utils.canReadUsageStats(application)) {
       Timber.d("Link source: no usage access")
       return LinkSource.NONE
