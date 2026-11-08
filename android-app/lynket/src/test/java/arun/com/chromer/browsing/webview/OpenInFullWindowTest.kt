@@ -197,8 +197,12 @@ class OpenInFullWindowTest {
   fun theFullWindowTakesTheColourTheBarShowsNow() {
     post(first)
     val page = page(first)
-    // The page sets the colour of its intent on the main thread after it starts; a colour set
-    // before that would be painted over.
+    // The page sets the colour of its intent on the main thread after it starts, and its site
+    // details lookup sets one again from a background thread; a colour set before those would be
+    // painted over.
+    // sdlc-debt: a fixed wait for the lookup; a signal that the lookup ended would replace it.
+    composeRule.waitForIdle()
+    Thread.sleep(COLOUR_LOOKUP_SETTLE_MS)
     composeRule.waitForIdle()
     page.setToolbarColour(GREEN)
 
@@ -290,5 +294,6 @@ class OpenInFullWindowTest {
     const val BLUE = 0xFF1E88E5.toInt()
     const val GREEN = 0xFF2E7D32.toInt()
     const val WAIT_FOR_RETURNS_MS = 10_000L
+    const val COLOUR_LOOKUP_SETTLE_MS = 1_000L
   }
 }

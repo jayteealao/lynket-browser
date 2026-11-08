@@ -1868,9 +1868,25 @@ class NativeBubblePostingTest {
     val finished = mutableListOf<String>()
 
     x(ONE, finished)
+    runCurrent()
 
     verify(exactly = 1) { notifications.dismissed(id(ONE)) }
     assertThat(finished).containsExactly(ONE)
+  }
+
+  @Test
+  fun the_x_finishes_the_page_before_the_notification_goes_off_the_main_thread() = posting { bubble ->
+    fullStackWith(bubble, listOf(ONE, TWO, THREE), ONE)
+    watcher.pageStarted(id(THREE))
+    val finished = mutableListOf<String>()
+
+    x(THREE, finished)
+
+    assertThat(finished).containsExactly(THREE)
+    assertThat(registry.list(BrowsingMode.NativeBubbles).map { it.url }).doesNotContain(THREE)
+    verify(exactly = 0) { notifications.dismissed(id(THREE)) }
+    runCurrent()
+    verify(exactly = 1) { notifications.dismissed(id(THREE)) }
   }
 
   @Test

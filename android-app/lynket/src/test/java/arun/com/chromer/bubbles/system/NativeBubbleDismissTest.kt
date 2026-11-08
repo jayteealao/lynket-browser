@@ -60,6 +60,15 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
   @Inject
   lateinit var nativeFloatingBubble: NativeFloatingBubble
 
+  @Inject
+  lateinit var closer: BubbleCloser
+
+  /** The page finishes at once; its bubble's notification and shortcut go just after, off the main thread. */
+  private fun EmbeddableWebViewActivity.finishAndWait() {
+    finish()
+    runBlocking { closer.awaitCloses() }
+  }
+
   private val notificationManager: NotificationManager
     get() = application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -204,7 +213,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     post(first)
     post(second)
 
-    page(first).finish()
+    page(first).finishAndWait()
 
     assertThat(notificationOf(first)).isNull()
     assertThat(shortcutIds()).doesNotContain(bubbleConversationId(first))
@@ -218,7 +227,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
   fun the_x_of_the_last_bubble_takes_the_summary_too() {
     post(first)
 
-    page(first).finish()
+    page(first).finishAndWait()
 
     assertThat(shadowOf(notificationManager).allNotifications).isEmpty()
   }
@@ -229,7 +238,7 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     post(second)
     val deleteIntent = Intent().putExtra(EXTRA_BUBBLE_NOTIFICATION_ID, bubbleNotificationId(first))
 
-    page(first).finish()
+    page(first).finishAndWait()
     BubbleDismissReceiver().onReceive(application, deleteIntent)
 
     assertThat(listed()).containsExactly(second)
@@ -243,9 +252,9 @@ class NativeBubbleDismissTest : LynketRobolectricSuite() {
     post(second)
     val page = page(first)
 
-    page.finish()
+    page.finishAndWait()
     post(first)
-    page.finish()
+    page.finishAndWait()
 
     assertThat(listed()).containsExactly(second, first).inOrder()
     assertThat(notificationOf(first)).isNotNull()

@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.RequiresApi
+import androidx.annotation.VisibleForTesting
 import arun.com.chromer.bubbles.BubbleKey
 import arun.com.chromer.bubbles.BubblePlace
 import arun.com.chromer.bubbles.BubbleRegistry
@@ -24,7 +25,9 @@ import arun.com.chromer.di.hilt.IoDispatcher
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -70,6 +73,33 @@ constructor(
   fun close(notificationId: Int) {
     val closed = takeOffTheList(notificationId)
     bubbleNotificationManager.dismissed(notificationId)
+    fillTheFreePlace(closed, stackWatcher.stackOpen, alreadyHeld = false)
+  }
+
+  /**
+   * [close] for a page that finishes on the main thread. The list and the hold of the return are in
+   * memory and change at once, so the count goes from the other pages and a fold that comes next
+   * still finds the hold. The notification, the shortcut and the return need Android, and wait on
+   * the lock of a bubble post, so they run off the main thread and the page does not wait for them.
+   */
+  private fun closeOffTheMainThread(notificationId: Int) {
+    val closed = takeOffTheList(notificationId)
+    val stackOpen = stackWatcher.stackOpen
+    val held = closed?.place == BubblePlace.STACK && stackOpen
+    if (held) nativeFloatingBubble.holdReturn()
+    scope.launch {
+      try {
+        bubbleNotificationManager.dismissed(notificationId)
+        fillTheFreePlace(closed, stackOpen, alreadyHeld = held)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e)
+      }
+    }
+  }
+
+  private fun fillTheFreePlace(closed: OpenBubble?, stackOpen: Boolean, alreadyHeld: Boolean) {
     // A close in the overflow leaves the stack full, and a second signal finds no entry. A close in
     // an open stack waits for the fold, and only a folded stack can be dragged away. A close in a
     // folded stack leaves its read to the return, which can tell a drag: during a drag a read here
@@ -77,8 +107,8 @@ constructor(
     // The return runs off this thread, so a delete intent does not hold back the others of a drag.
     when {
       closed?.place != BubblePlace.STACK -> bubbleReconciler.reconcileLater()
-      stackWatcher.stackOpen -> {
-        nativeFloatingBubble.holdReturn()
+      stackOpen -> {
+        if (!alreadyHeld) nativeFloatingBubble.holdReturn()
         bubbleReconciler.reconcileLater()
       }
       else -> nativeFloatingBubble.returnNewestOverflowBubble()
@@ -87,6 +117,7 @@ constructor(
 
   /**
    * What a page in a bubble does when it finishes: [close], then [finishPage], on the main thread.
+   * The page finishes at once; the Android part of the close runs after it, off the main thread.
    *
    * The X of the last bubble in an open stack needs more, or the stack empties and folds, and the
    * bubbles come back to a folded stack. So when the overflow holds a bubble, the closed bubble stays
@@ -107,7 +138,7 @@ constructor(
   fun closePage(notificationId: Int, leavingTheStack: Boolean = false, finishPage: () -> Unit) {
     if (notificationId in pagesClosing) return
     if (leavingTheStack || !isLastInOpenStack(notificationId)) {
-      close(notificationId)
+      closeOffTheMainThread(notificationId)
       finishPage()
       return
     }
@@ -151,6 +182,12 @@ constructor(
     return stackWatcher.stackOpen &&
       stack.singleOrNull()?.key?.notificationId == notificationId &&
       bubbleRegistry.returnCandidates(mode).isNotEmpty()
+  }
+
+  /** Waits for the closes that run off the main thread, for a test that reads Android after one. */
+  @VisibleForTesting
+  internal suspend fun awaitCloses() {
+    scope.coroutineContext[Job]?.children?.toList()?.joinAll()
   }
 
   private fun takeOffTheList(notificationId: Int): OpenBubble? {
