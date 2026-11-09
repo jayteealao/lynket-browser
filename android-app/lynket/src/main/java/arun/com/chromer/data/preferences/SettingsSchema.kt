@@ -174,13 +174,6 @@ object SettingsSchema {
 }
 
 /**
- * The stored value under [name], whatever its type. DataStore keys are equal by name, so any
- * typed key finds the entry without a cast (source: `Preferences$Key.equals` in the installed
- * datastore-preferences-core 1.2.1 compares only `name`).
- */
-fun Preferences.raw(name: String): Any? = asMap()[stringPreferencesKey(name)]
-
-/**
  * The value stored under [key], whatever type it was stored with: one lookup by the key's name,
  * with no copy of the map. DataStore keys are equal by name and the lookup checks no type (source:
  * `Preferences$Key.equals` and `MutablePreferences.get` in the installed

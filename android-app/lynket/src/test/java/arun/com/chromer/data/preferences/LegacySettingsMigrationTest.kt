@@ -84,7 +84,7 @@ class LegacySettingsMigrationTest {
       "firstrun_3" to false,
     )
     assertThat(expected).hasSize(36) // the 35 settings keys plus version_code
-    expected.forEach { (key, value) -> assertThat(stored.raw(key)).isEqualTo(value) }
+    expected.forEach { (key, value) -> assertThat(stored.storedValue(stringPreferencesKey(key))).isEqualTo(value) }
     assertThat(stored[SettingsSchema.MIGRATION_VERSION]).isEqualTo(1)
     val report = File(migration.migrationDir, LegacySettingsMigration.REPORT).readText()
     assertThat(report).doesNotContain("\tfailed")
@@ -103,12 +103,12 @@ class LegacySettingsMigrationTest {
     val migrated = migration.migrate(emptyPreferences())
 
     assertThat(tree.errors.joinToString()).contains("animation_preference")
-    assertThat(migrated.raw("animation_preference")).isNull()
+    assertThat(migrated.storedValue(stringPreferencesKey("animation_preference"))).isNull()
     assertThat(migrated[stringPreferencesKey("legacy_unconverted.animation_preference")]).isEqualTo("abc")
     val backup = File(migration.migrationDir, "${context.packageName}_preferences-1000.xml")
     assertThat(backup.readBytes()).isEqualTo(oldBytes)
     assertThat(oldFile.readText()).contains(">abc<")
-    assertThat(migrated.raw("animation_speed_preference")).isEqualTo(2)
+    assertThat(migrated.storedValue(stringPreferencesKey("animation_speed_preference"))).isEqualTo(2)
   }
 
   @Test
@@ -126,7 +126,7 @@ class LegacySettingsMigrationTest {
 
     val migrated = migration.migrate(earlier)
 
-    assertThat(migrated.raw("animation_preference")).isEqualTo(2)
+    assertThat(migrated.storedValue(stringPreferencesKey("animation_preference"))).isEqualTo(2)
     assertThat(migrated.readInt("animation_preference", 1)).isEqualTo(2)
   }
 
