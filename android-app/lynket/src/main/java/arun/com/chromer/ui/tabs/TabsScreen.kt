@@ -306,7 +306,7 @@ private fun TabAddressLine(label: String, address: String) {
   Layout(
     modifier = Modifier.testTag("tab-address-line"),
     content = {
-      Text(label, style = style, color = color, maxLines = 1, softWrap = false, modifier = Modifier.testTag("tab-type"))
+      Text(label, style = style, color = color, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("tab-type"))
       Text(" · ", style = style, color = color, maxLines = 1, softWrap = false, modifier = Modifier.clearAndSetSemantics { testTag = "tab-dot" })
       Text(address, style = style, color = color, maxLines = 1, overflow = TextOverflow.MiddleEllipsis, modifier = Modifier.testTag("tab-address"))
     },
