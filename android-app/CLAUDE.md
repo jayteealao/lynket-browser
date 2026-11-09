@@ -49,6 +49,7 @@ Run from `android-app/`:
 - `bash maestro/charter/charter-check.sh <phone> <fold> <dir>` - The whole path of a user who updates from release 2.1.3: the update on the phone, a link through the intercept activity, a Chrome Custom Tab with the bottom bar, the Lynket options sheet, web heads through the permission explainer, the drag recording, a native bubble, History from the drawer (read against the database) and the 2.1.3 pinned shortcut; then the update, the drag recording and History on the fold. Each step writes PASS or FAIL to `charter.txt`
 - `bash maestro/upgrade/upgrade-check.sh <serial> <dir>` / `maestro/upgrade/tile-check.sh` - Device checks that settings and per-app rules survive an update from release 2.1.3 and that the web heads tile reaches every reader (debug build; it dumps both stores with the debug-only `StoreDumpReceiver`)
 - `bash maestro/upgrade/link-source-check.sh <serial> <dir>` - After the upgrade check: no app-detection service or notification, and a link from a blacklisted app follows its per-app rule
+- `bash maestro/browsing/app-colour-check.sh <serial> <dir>` - Five links from one app in one process look for its toolbar colour once: builds a small white app from `maestro/browsing/fixtures/no-colour-app/` with the SDK tools (`--build-fixture <dir>` only builds it), seeds `maestro/seed/app-colour.xml` (the toolbar takes the colour of the app), sends five links from it and counts the look-up lines of the app's process through lazylogcat; checks one process and no crash, and records the stored colour (debug build; `./gradlew :lynket:assembleDebug` first)
 - `bash maestro/upgrade/history-check.sh <serial> <dir>` - Device check that 500 history rows of release 2.1.3 (5 written by the app, 495 appended in its format) survive an update and show in the History screen
 - `bash maestro/webheads/webheads-check.sh <serial> <dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state|page-state-worst|page-state-speech>` - Web heads on a device, one mode per run (the header comment of the script describes each mode, `aggressive` and `bubble-minimize` included):
   - `head`: A head and the trash window and their removal
@@ -182,7 +183,7 @@ The app supports multiple browsing modes:
 
 ### Services
 
-- `AppColorExtractorJob` - Extracts app colors for theming (JobService)
+- No job service: the colour of the app a link came from is looked for once per process on the app's coroutine scope (`browsing/customtabs/dynamictoolbar/AppColorExtractor`, started by `DefaultAppRepository`)
 - `WebHeadService` - Manages floating web head bubbles
 - `KeepAliveService` - Keeps custom tabs connection alive
 
