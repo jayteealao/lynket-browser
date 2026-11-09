@@ -64,3 +64,20 @@ The bubble flag itself, which the JVM tests can only fake, is the emulator check
 [The bubble flow on an emulator](#the-bubble-flow-on-an-emulator) and the phone check of
 [A real phone](#a-real-phone). `NativeBubbleTest` covers what the app does after Android answers:
 a bubble Android shows stays, and a plain notification is removed and its page opens in a tab.
+
+## Web heads, the other bubble mode
+
+A person who leaves native bubbles, or whose phone cannot show them, falls back to a tab or to web
+heads, so web heads must hold too. Device checks run as
+`bash maestro/webheads/webheads-check.sh <serial> <dir> <mode>`, one mode per run.
+
+| Criterion | Check | Where |
+|---|---|---|
+| With "Display over other apps" off, a shared link opens in a tab and a message says why | `OverlayRefusalTest`, `WebHeadServiceOverlayTest`; `maestro/webheads/webheads-check.sh` `refused`, `maestro/webheads/bubble-guidance-check.sh` `overlay` and `service` | JVM, emulator |
+| With the permission off, the overlay settings page opens only when the person taps Open Settings | `OverlayRefusalTest` (`refused_tab_shows_the_overlay_message_and_no_settings_page_before_a_tap`); `webheads-check.sh` `refused` | JVM, emulator |
+| After Android restarts the service with no heads, no web heads notification stays | `WebHeadServiceOverlayTest` (`a_restart_with_no_head_stops_and_removes_the_notification`); `webheads-check.sh` `restart` | JVM, emulator |
+| After a rotation, every open head rests on a screen edge inside the new bounds | `WebHeadsControllerTest` (`open_heads_move_to_the_stack_edge_after_a_rotation`, `six_heads_low_on_the_left_stay_inside_after_a_rotation`); `webheads-check.sh` `resnap` | JVM, emulator |
+| After a rotation, a new head spawns where the stack was | `WebHeadsControllerTest` (`a_new_head_after_a_rotation_spawns_on_the_stack_side_at_its_height_ratio`); `webheads-check.sh` `rotation` | JVM, emulator |
+| A normal fling on a 1280 dp wide window snaps a head to an edge | `WebHeadsControllerTest` (`a_fling_ends_at_an_edge`); `webheads-check.sh` `fling` | JVM, emulator |
+| TalkBack says the number of heads and whether the trash is locked, and a person hears "Release to close" | `WebHeadBubbleSemanticsTest`, `TrashTargetSemanticsTest`; `webheads-check.sh` `speech` and `trash`; listening with TalkBack on a real phone | JVM, emulator, real phone |
+| A head that locks onto the trash or leaves it ticks once, and a person signs off the feel | `WebHeadServiceOverlayTest` (`locking_and_leaving_the_trash_ticks_on_the_head_window`); `webheads-check.sh` `trash`; `bash maestro/webheads/drag-check.sh <serial> <dir>` and rows 11-13 of `maestro/webheads/feel-checklist.md`, signed on a real phone | JVM, emulator, real phone |
