@@ -25,6 +25,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
@@ -183,11 +184,17 @@ private fun Changelog(navigator: LynketNavigator) {
   )
 }
 
-/** A link that is not a web address: the shared error state with the text as it arrived. */
+/**
+ * A link that is not a web address: the shared error state with the text as it arrived. It is
+ * opaque, so it covers the screen behind while it slides over it.
+ */
 @Composable
 internal fun LinkErrorScreen(url: String, onBack: () -> Unit) {
   Box(
-    modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
+    modifier = Modifier
+      .fillMaxSize()
+      .background(MaterialTheme.colorScheme.surface)
+      .windowInsetsPadding(WindowInsets.safeDrawing),
     contentAlignment = Alignment.Center,
   ) {
     ErrorState(
