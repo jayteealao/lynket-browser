@@ -193,6 +193,9 @@ internal val SearchCloseSpec = tween<Float>(durationMillis = 350, delayMillis = 
 /** Window width at which the home uses 8 recents columns and a centred column (medium size class). */
 private const val MEDIUM_WIDTH_DP = 600
 
+/** The widest the home column grows on a wide window; the open search fills the same width. */
+internal val HomeColumnMaxWidth = 680.dp
+
 @Composable
 fun HomeScreen(
   navigator: LynketNavigator,
@@ -318,7 +321,7 @@ fun HomeScreenContent(
           // The cap comes first: after fillMaxSize the minimum width is the window's, which
           // widthIn cannot lower.
           modifier = Modifier
-            .widthIn(max = 680.dp)
+            .widthIn(max = HomeColumnMaxWidth)
             .fillMaxSize(),
         ) {
           HomeSearchBar(

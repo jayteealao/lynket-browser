@@ -263,7 +263,7 @@ private fun rememberPillShape(): Shape {
 }
 
 /** The widest the open search gets: the home's centred column on a fold or a tablet. */
-private val OpenSearchMaxWidth = 680.dp
+private val OpenSearchMaxWidth = HomeColumnMaxWidth
 
 /**
  * On a wide window the open search fills the home's centred 680 dp column, as the home's column
