@@ -106,3 +106,27 @@ any serial that is not an emulator, on an Android 11 and an Android 14 emulator 
 | When the person closes a bubble in the stack and the overflow holds one, the newest overflow bubble returns with no alert: at once in a folded stack, when the stack folds in an open one, and at once when the X closes the last bubble of an open stack | `NativeBubblePostingTest` (`a_fold_fills_every_free_place_newest_first`), `NativeBubbleDismissTest` (`a_close_in_the_stack_posts_the_newest_overflow_bubble_again`), `NativeBubbleShadeTest` (`a_returned_bubble_carries_no_alert`); `overflow-probe.sh` `return`, `close` and `close-last` | JVM, emulators on Android 11 and 14 |
 | A bubble that the person closed on purpose, or turned off from its Manage menu, does not come back | `BubbleRegistryTest` (`a_marked_entry_stays_listed_and_is_never_offered_for_a_return`), `NativeBubbleDismissTest` (`a_close_in_the_overflow_posts_nothing_and_stays_closed`); `overflow-probe.sh` `close` and `dont-bubble` | JVM, emulators on Android 11 and 14 |
 | The behaviour above is measured on Android 11 and Android 14, and the results in [native-bubble-overflow.md](native-bubble-overflow.md) match the current build | `overflow-probe.sh` `registry`, `count`, `return`, `close` and `dont-bubble` on both versions | Emulators on Android 11 and 14 |
+
+## Page state
+
+Device checks: `bash maestro/browsing/error-page-check.sh <serial> <dir> <mode>`,
+`bash maestro/browsing/bubble-menu-check.sh <serial> <dir> <mode>` and
+`maestro/webheads/webheads-check.sh` page state modes. The `offline-bubble`, `retry-bubble` and
+`full-window` modes start after `webheads-check.sh <serial> <dir> bubble`; the header comment of each
+script gives the setup of the other modes.
+
+| Criterion | Check | Where |
+|---|---|---|
+| With the phone offline, a page in a bubble shows the error page with Retry, under a top bar that keeps Close and the count | `WebViewErrorPageTest` (`anOfflineBubblePageShowsItsCauseAndRetryUnderCloseAndTheCount`); `maestro/browsing/error-page-check.sh` `offline-bubble` | JVM, emulator |
+| Retry loads the page once the connection is back, in the same bubble | `WebViewRetryTest` (`retryInABubbleLoadsTheFailedAddressAndThePageShowsInTheSameBubble`); `error-page-check.sh` `retry-bubble` and `retry-offline` | JVM, emulator |
+| A certificate error shows the error page and gives no way past it | `WebViewErrorPageTest` (`aCertificateErrorCancelsTheLoadAndShowsNoWayPastIt`), `WebViewRetryTest` (`aRetryOfACertificateErrorIsCancelledAgainWithNoWayPastIt`); `error-page-check.sh` `certificate` and `retry-certificate` | JVM, emulator |
+| Open in full window shows the same page in a full window and closes the bubble | `OpenInFullWindowTest` (`theSamePageOpensInAFullWindowOfItsOwnAndTheBubbleCloses`); `maestro/browsing/bubble-menu-check.sh` `full-window` | JVM, emulator |
+| The bars of a page in a bubble take the site's colour when the site has one, with a readable title | `BubbleSiteColourPageTest`, `BubbleSiteColourIntentTest`; `bubble-menu-check.sh` `site-colour` | JVM, emulator |
+| A web head shows the loading ring from the open until its page finishes, and only the front head turns | `WebHeadRingTest` (`aLoadingFrontHeadTurnsItsArcAndFadesItsFill`); `webheads-check.sh` `page-state`; `webheads-check.sh` `page-state-worst` on a real phone for the frame time | JVM, emulator, real phone |
+| A web head shows its loaded state after the page finishes | `WebHeadRingTest` (`aLoadedPageShowsTheHeadOfToday`); `webheads-check.sh` `page-state` | JVM, emulator |
+| TalkBack says "loading" or "loaded" for a head, and a person hears it | `WebHeadBubbleSemanticsTest` (`a_loading_head_says_loading`, `a_loaded_head_says_loaded`); `webheads-check.sh` `page-state-speech`; listening with TalkBack on a real phone | JVM, emulator, real phone |
+| The web view uses only stable androidx.webkit calls, and a link opens no slower than before | `WebViewWarmUpTest`; `./gradlew :lynket:lintDebug` (no opt-in or experimental call); `git grep -ln "androidx.webkit" -- lynket/src/main` lists only `WebViewWarmUp.kt`; `bash maestro/browsing/link-open-timing.sh <serial> <dir> bubble` on the build before and after, then `... compare <before.tsv> <after.tsv>` prints PASS | JVM, lint, emulator |
+
+`BubbleMenuAuditTest` keeps the items a bubble hides in line with
+`lynket/src/test/resources/bubble-menu-audit.tsv`; see
+[The known issues of the warning](#the-known-issues-of-the-warning).
