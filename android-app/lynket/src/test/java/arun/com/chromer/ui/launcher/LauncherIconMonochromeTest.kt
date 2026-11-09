@@ -79,7 +79,36 @@ class LauncherIconMonochromeTest {
     val foreground = rasterise(ContextCompat.getDrawable(context, R.mipmap.ic_launcher_foreground)!!)
     assertTrue("the check must catch a layer outside the safe zone", paintedOutsideSafeZone(foreground) > 0)
   }
+
+  @Test
+  fun glyphHasOneColourAndItsCutOuts() {
+    val glyph = rasterise(ContextCompat.getDrawable(context, R.drawable.ic_launcher_monochrome)!!)
+
+    val colours = mutableSetOf<Int>()
+    glyph.forEachPainted { _, _, pixel -> colours += pixel and 0xFFFFFF }
+    assertEquals("RGB values of the painted pixels: ${colours.map { Integer.toHexString(it) }}", 1, colours.size)
+
+    // Points in the approved glyph's own coordinates (the screen page's path data).
+    val opaque = mapOf(
+      "tag outline, left edge" to toCanvas(25f, 66f),
+      "globe ring" to toCanvas(35f, 59.75f),
+      "document tile between lines 1 and 2" to toCanvas(73f, 63.15f),
+      "document tile between lines 2 and 3" to toCanvas(73f, 68.85f),
+    )
+    val transparent = mapOf(
+      "inside the tag outline, right of the globe" to toCanvas(45.5f, 66f),
+      "inside the globe ring, above the land" to toCanvas(35f, 62f),
+      "document line 1" to toCanvas(73f, 60.25f),
+      "document line 2" to toCanvas(71.5f, 66f),
+      "document line 3" to toCanvas(73f, 71.75f),
+    )
+    for ((name, point) in opaque) assertEquals("$name is painted", 255, alphaAt(glyph, point))
+    for ((name, point) in transparent) assertEquals("$name is cut out", 0, alphaAt(glyph, point))
+  }
 }
+
+private fun alphaAt(bitmap: Bitmap, point: CanvasPoint): Int =
+  Color.alpha(bitmap.getPixel((point.x * PX_PER_DP).toInt(), (point.y * PX_PER_DP).toInt()))
 
 /** Pixels per dp of the test rasters: the 108 dp canvas is 432 x 432 px. */
 private const val PX_PER_DP = 4
