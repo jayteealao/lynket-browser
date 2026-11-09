@@ -16,12 +16,16 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.R
@@ -32,6 +36,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -115,6 +120,30 @@ class NativeBubblesWarningTest {
     val guide = composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles_guide)).getUnclippedBoundsInRoot()
     val ok = composeRule.onNodeWithText(string(android.R.string.ok)).getUnclippedBoundsInRoot()
     assertThat(guide.left).isLessThan(ok.left)
+  }
+
+  private fun assertTitleAndButtonsDisplayed() {
+    composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles)).assertIsDisplayed()
+    composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles_guide)).assertIsDisplayed()
+    composeRule.onNodeWithText(string(android.R.string.ok)).assertIsDisplayed()
+  }
+
+  @Test
+  fun atTheLargestFontTheTextScrollsAndTheTitleAndButtonsStay() {
+    RuntimeEnvironment.setFontScale(2f)
+    show()
+    assertTitleAndButtonsDisplayed()
+    val last = string(R.string.browsing_mode_native_bubbles_issue_refused)
+    composeRule.onNodeWithTag("native-bubbles-warning-text").performScrollToNode(hasText(last))
+    composeRule.onNodeWithText(last).assertIsDisplayed()
+    assertTitleAndButtonsDisplayed()
+  }
+
+  @Test
+  fun inTheDarkThemeTheWarningKeepsItsButtons() {
+    show(ThemeMode.Dark)
+    composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles_warning)).assertIsDisplayed()
+    assertTitleAndButtonsDisplayed()
   }
 }
 
