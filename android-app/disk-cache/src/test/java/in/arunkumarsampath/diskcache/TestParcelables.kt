@@ -13,6 +13,7 @@ package `in`.arunkumarsampath.diskcache
 
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.core.os.ParcelCompat
 
 /** A cached item with a nested parcelable, read back with the item's own class loader. */
 data class TestItem(val title: String, val url: String, val tag: TestTag?) : Parcelable {
@@ -31,7 +32,7 @@ data class TestItem(val title: String, val url: String, val tag: TestTag?) : Par
       override fun createFromParcel(source: Parcel): TestItem = TestItem(
         title = source.readString()!!,
         url = source.readString()!!,
-        tag = source.readParcelable(TestTag::class.java.classLoader),
+        tag = ParcelCompat.readParcelable(source, TestTag::class.java.classLoader, TestTag::class.java),
       )
 
       override fun newArray(size: Int): Array<TestItem?> = arrayOfNulls(size)

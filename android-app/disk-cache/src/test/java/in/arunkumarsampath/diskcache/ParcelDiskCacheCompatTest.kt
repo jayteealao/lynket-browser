@@ -92,6 +92,15 @@ class ParcelDiskCacheCompatTest {
   }
 
   @Test
+  fun aParcelOfAnotherClassReadsAsNull() {
+    EarlierReleaseCache.writeParcelableEntry(dir, folderVersion(), "other", OtherItem(42))
+
+    val read: TestItem? = openCache().get("other")
+
+    assertNull(read)
+  }
+
+  @Test
   fun valuesSetThroughTheCacheReadBack() {
     val cache = openCache()
     cache.set("one", item)
