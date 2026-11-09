@@ -179,3 +179,23 @@ The two options, and the evidence each needs before the label goes:
   result kept with the release.
 
 The choice is open.
+
+## Open on 9 November 2026
+
+These criteria were known not to hold on this date. The list is a snapshot; the tables above are
+the criteria.
+
+- The four known issues are still in the warning, as known issues. See
+  [The known issues of the warning](#the-known-issues-of-the-warning).
+- No test phone is named, so no check has run on a real phone for this build, and no phone maker's
+  build on the newest Android has been checked beyond the Samsung notes. See
+  [A real phone](#a-real-phone).
+- The CI question is open. See [CI](#ci).
+- Nobody has listened with TalkBack for "Release to close" on the trash, or for "loading" and
+  "loaded" on a head; the dumps of what TalkBack is given pass. See
+  [Web heads, the other bubble mode](#web-heads-the-other-bubble-mode) and
+  [Page state](#page-state).
+- The trash ticks (rows 11-13 of `maestro/webheads/feel-checklist.md`) are not signed on a real
+  phone. See [Web heads, the other bubble mode](#web-heads-the-other-bubble-mode).
+- The frame time of five loading heads at rest has a floor from an emulator only, not a measure on
+  a real phone. See [Page state](#page-state).
