@@ -186,7 +186,9 @@ fun SettingsDialogContent(dialog: SettingsDialog?, actions: SettingsDialogAction
       modifier = Modifier.testTag("settings-dialog"),
       title = { Text(stringResource(R.string.browsing_mode_native_bubbles)) },
       text = { NativeBubblesWarningText() },
-      // OK continues the setup, so it takes the end place; Guide sits before it.
+      // The approved order is Guide, then OK. Material 3 draws the dismiss slot before the confirm
+      // slot, so OK goes in the confirm slot and Guide in the dismiss slot. Both buttons close the
+      // warning and go on with the setup; Guide also opens the guide.
       confirmButton = { TextButton(onClick = actions.onDismiss) { Text(stringResource(android.R.string.ok)) } },
       dismissButton = {
         TextButton(onClick = actions.onBubblesGuide) { Text(stringResource(R.string.browsing_mode_native_bubbles_guide)) }
