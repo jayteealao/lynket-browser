@@ -192,6 +192,7 @@ class BrowsingModePermissionTest {
     composeRule.onNodeWithTag("mode-native-bubbles").performClick()
 
     composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles_warning)).assertExists()
+    composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles_known_issues)).assertExists()
     awaitStore { nativeBubbles() }
     composeRule.onNodeWithText(string(android.R.string.ok)).performClick()
     composeRule.onNodeWithText(string(R.string.bubbles_notification_explainer_title)).assertExists()
