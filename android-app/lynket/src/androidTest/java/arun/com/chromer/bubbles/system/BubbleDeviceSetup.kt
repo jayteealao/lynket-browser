@@ -40,6 +40,17 @@ internal fun shell(command: String): String {
   return ParcelFileDescriptor.AutoCloseInputStream(output).use { it.readBytes().decodeToString() }
 }
 
+/**
+ * Runs a shell [command] that changes a setting and fails at once when the shell reports an error,
+ * so a command that a device does not support names itself instead of failing a later check.
+ */
+private fun shellSet(command: String) {
+  val output = shell(command)
+  check(SHELL_ERRORS.none { output.contains(it, ignoreCase = true) }) { "shell failed: $command -> $output" }
+}
+
+private val SHELL_ERRORS = listOf("exception", "error", "unknown command")
+
 /** Allows the app's notifications; before Android 13 they need no runtime permission. */
 internal fun grantNotifications() {
   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -49,7 +60,7 @@ internal fun grantNotifications() {
 
 /** The app's bubble setting: 0 nothing can bubble, 1 all conversations, 2 selected ones. */
 internal fun setAppBubbles(preference: Int) {
-  shell("cmd notification set_bubbles $pkg $preference")
+  shellSet("cmd notification set_bubbles $pkg $preference")
 }
 
 /** The shell value of an app bubble setting, or null when the setting has no shell value. */
@@ -64,7 +75,7 @@ internal fun BubbleSetting.shellValue(): Int? = when (this) {
 internal fun deviceBubbles(): String = shell("settings get secure notification_bubbles").trim()
 
 internal fun setDeviceBubbles(value: String) {
-  shell("settings put secure notification_bubbles $value")
+  shellSet("settings put secure notification_bubbles $value")
 }
 
 /** Whether the bubble notification of [url] carries the bubble flag, or null when none is posted. */
