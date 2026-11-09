@@ -81,3 +81,13 @@ heads, so web heads must hold too. Device checks run as
 | A normal fling on a 1280 dp wide window snaps a head to an edge | `WebHeadsControllerTest` (`a_fling_ends_at_an_edge`); `webheads-check.sh` `fling` | JVM, emulator |
 | TalkBack says the number of heads and whether the trash is locked, and a person hears "Release to close" | `WebHeadBubbleSemanticsTest`, `TrashTargetSemanticsTest`; `webheads-check.sh` `speech` and `trash`; listening with TalkBack on a real phone | JVM, emulator, real phone |
 | A head that locks onto the trash or leaves it ticks once, and a person signs off the feel | `WebHeadServiceOverlayTest` (`locking_and_leaving_the_trash_ticks_on_the_head_window`); `webheads-check.sh` `trash`; `bash maestro/webheads/drag-check.sh <serial> <dir>` and rows 11-13 of `maestro/webheads/feel-checklist.md`, signed on a real phone | JVM, emulator, real phone |
+
+## One browsing mode
+
+| Criterion | Check | Where |
+|---|---|---|
+| No code outside the one mode reader and the migration reads the old web heads and native bubbles switches | `PreferencesFacadeTest` (`eachValidStoredModeReadsBackUnchanged`, `writingAModeStoresExactlyThatMode`); and `git grep -nE "fun (webHeads\|nativeBubbles)\(" -- lynket/src/main` prints only the two private readers of `BrowsingModeMigration.kt` | JVM, source search |
+| A restored settings set with both switches on reads as one mode (web heads), and the settings screen agrees | `BrowsingModeMigrationTest` (`aRestoredSetWithBothSwitchesOnIsStoredAsWebHeadsAndTheSettingsScreenAgrees`), `PreferencesFacadeTest` (`bothModesOnReadsAsWebHeadsAndIsStoredAsWebHeadsWithoutWaitingOnTheMainThread`) | JVM |
+| In native bubble mode no web head setting row is enabled that has no effect | `SettingsRulesTest` (`webHeadRowsMinimizeAndTheNoteFollowTheBrowsingMode`), `SettingsScreensUiTest` (`lookAndFeelWebHeadRowsAreGreyUnderTheNoteInNativeBubbleMode`, `browsingOptionsWebHeadRowsAreGreyUnderTheNoteInNativeBubbleMode`) | JVM |
+| In native bubble mode the minimize option's label names a bubble, not a web head | `SettingsRulesTest` (`webHeadRowsMinimizeAndTheNoteFollowTheBrowsingMode`), `SettingsScreensUiTest` (`minimizeIsGreyAndSaysItOpensABubbleInNativeBubbleMode`); `maestro/webheads/webheads-check.sh` `bubble-minimize` | JVM, emulator |
+| Aggressive loading still works in web heads mode | `PreferencesFacadeTest` (`aggressiveLoadingIsOnOnlyInWebHeadsModeWithItsSettingOn`); `webheads-check.sh` `aggressive` | JVM, emulator |
