@@ -13,6 +13,9 @@ package arun.com.chromer.ui.launcher
 
 import android.app.Application
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -21,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.R
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -60,4 +64,62 @@ class LauncherIconMonochromeTest {
       assertTrue("background is ${icon.background}", icon.background is BitmapDrawable)
     }
   }
+
+  @Test
+  fun glyphStaysInsideTheSafeZone() {
+    val glyph = rasterise(ContextCompat.getDrawable(context, R.drawable.ic_launcher_monochrome)!!)
+    assertEquals("painted pixels outside the 66 dp safe zone", 0, paintedOutsideSafeZone(glyph))
+
+    // The 0.72 scale and the centring: the glyph spans x 31.7-76.3 dp and y 43.9-64.1 dp.
+    val bounds = paintedBoundsDp(glyph)
+    val expected = floatArrayOf(toCanvas(23f, 52f).x, toCanvas(23f, 52f).y, toCanvas(85f, 80f).x, toCanvas(85f, 80f).y)
+    for (i in 0..3) assertEquals("bounds $i: ${bounds.toList()}", expected[i], bounds[i], 0.5f)
+
+    // Control: the same check on the full-colour foreground, which reaches outside the safe zone.
+    val foreground = rasterise(ContextCompat.getDrawable(context, R.mipmap.ic_launcher_foreground)!!)
+    assertTrue("the check must catch a layer outside the safe zone", paintedOutsideSafeZone(foreground) > 0)
+  }
+}
+
+/** Pixels per dp of the test rasters: the 108 dp canvas is 432 x 432 px. */
+private const val PX_PER_DP = 4
+private const val CANVAS_PX = 108 * PX_PER_DP
+
+/** A point of the approved glyph's own coordinates, moved onto the 108 dp canvas as the layer draws it. */
+internal data class CanvasPoint(val x: Float, val y: Float)
+
+internal fun toCanvas(x: Float, y: Float) = CanvasPoint(54 + 0.72f * (x - 54), 54 + 0.72f * (y - 66))
+
+private fun rasterise(drawable: Drawable): Bitmap {
+  val bitmap = Bitmap.createBitmap(CANVAS_PX, CANVAS_PX, Bitmap.Config.ARGB_8888)
+  drawable.setBounds(0, 0, CANVAS_PX, CANVAS_PX)
+  drawable.draw(Canvas(bitmap))
+  return bitmap
+}
+
+private inline fun Bitmap.forEachPainted(action: (x: Int, y: Int, pixel: Int) -> Unit) {
+  for (y in 0 until height) for (x in 0 until width) {
+    val pixel = getPixel(x, y)
+    if (Color.alpha(pixel) > 0) action(x, y, pixel)
+  }
+}
+
+/** Painted pixels whose centre lies farther than 33 dp from the centre of the canvas. */
+private fun paintedOutsideSafeZone(bitmap: Bitmap): Int {
+  val centre = CANVAS_PX / 2f
+  var outside = 0
+  bitmap.forEachPainted { x, y, _ -> if (hypot(x + 0.5f - centre, y + 0.5f - centre) > 33f * PX_PER_DP) outside++ }
+  return outside
+}
+
+/** The painted bounding box in dp: left, top, right, bottom. */
+private fun paintedBoundsDp(bitmap: Bitmap): FloatArray {
+  var left = Int.MAX_VALUE
+  var top = Int.MAX_VALUE
+  var right = -1
+  var bottom = -1
+  bitmap.forEachPainted { x, y, _ ->
+    left = minOf(left, x); top = minOf(top, y); right = maxOf(right, x + 1); bottom = maxOf(bottom, y + 1)
+  }
+  return intArrayOf(left, top, right, bottom).map { it.toFloat() / PX_PER_DP }.toFloatArray()
 }
