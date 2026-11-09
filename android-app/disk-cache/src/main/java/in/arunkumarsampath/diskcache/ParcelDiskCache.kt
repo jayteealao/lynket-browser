@@ -25,6 +25,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.os.ParcelCompat
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -257,17 +258,16 @@ class ParcelDiskCache<T : Parcelable> private constructor(
       outputStream.close()
     }
 
-    // sdlc-debt: PackageInfo.versionCode is the only version API on API 24-27 (minSdk 24), and the
-    // cache folder version must stay versionCode + SDK_INT so caches written by older releases open.
-    // Upgrade path: PackageInfoCompat.getLongVersionCode once androidx.core is a dependency here.
-    // source: https://developer.android.com/reference/android/content/pm/PackageInfo#getLongVersionCode() (added in API 28)
-    @Suppress("DEPRECATION")
+    /**
+     * The app's version code: the low 32 bits of the long version code, which equal the plain
+     * version code while the app sets no major version, so caches of earlier releases still open.
+     */
     @JvmStatic
     fun getVersionCode(context: Context): Int {
       var result = 0
       try {
         val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-        result = pInfo.versionCode
+        result = PackageInfoCompat.getLongVersionCode(pInfo).toInt()
       } catch (e: PackageManager.NameNotFoundException) {
         e.printStackTrace()
       }
