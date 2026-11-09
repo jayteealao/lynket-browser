@@ -36,6 +36,13 @@ class SettingKey(
   val legacyText: Boolean = false,
   private val defaultValue: (Context) -> Any?,
 ) {
+  /** The DataStore key of this setting, of its stored type; built once. */
+  val preferenceKey: Preferences.Key<*> = when (type) {
+    SettingType.BOOLEAN -> booleanPreferencesKey(name)
+    SettingType.INT -> intPreferencesKey(name)
+    SettingType.STRING -> stringPreferencesKey(name)
+  }
+
   fun default(context: Context): Any? = defaultValue(context)
 
   /**
@@ -172,6 +179,18 @@ object SettingsSchema {
  * datastore-preferences-core 1.2.1 compares only `name`).
  */
 fun Preferences.raw(name: String): Any? = asMap()[stringPreferencesKey(name)]
+
+/**
+ * The value stored under [key], whatever type it was stored with: one lookup by the key's name,
+ * with no copy of the map. DataStore keys are equal by name and the lookup checks no type (source:
+ * `Preferences$Key.equals` and `MutablePreferences.get` in the installed
+ * datastore-preferences-core 1.3.0), so a caller checks the value's type before using it.
+ */
+// sdlc-debt: unchecked cast to Key<Any> so a value stored under another type reads without a
+// ClassCastException (ceiling: the type is checked by the caller at runtime); upgrade path: drop it
+// once no store holds a mistyped value.
+@Suppress("UNCHECKED_CAST")
+internal fun Preferences.storedValue(key: Preferences.Key<*>): Any? = this[key as Preferences.Key<Any>]
 
 fun Preferences.readBoolean(name: String, default: Boolean): Boolean =
   when (val value = raw(name)) {
