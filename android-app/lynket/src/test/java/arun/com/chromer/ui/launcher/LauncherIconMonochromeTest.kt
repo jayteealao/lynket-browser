@@ -105,6 +105,19 @@ class LauncherIconMonochromeTest {
     for ((name, point) in opaque) assertEquals("$name is painted", 255, alphaAt(glyph, point))
     for ((name, point) in transparent) assertEquals("$name is cut out", 0, alphaAt(glyph, point))
   }
+
+  /** Android 12 reads only the background and the foreground of an adaptive icon. */
+  @Test
+  @Config(sdk = [31])
+  fun android12InflatesTheFullColourIconOnly() {
+    for (id in listOf(R.mipmap.ic_launcher, R.mipmap.ic_launcher_round)) {
+      val icon = mipmap(id)
+      assertTrue("$icon is not an adaptive icon", icon is AdaptiveIconDrawable)
+      icon as AdaptiveIconDrawable
+      assertTrue("foreground is ${icon.foreground}", icon.foreground is BitmapDrawable)
+      assertTrue("background is ${icon.background}", icon.background is BitmapDrawable)
+    }
+  }
 }
 
 private fun alphaAt(bitmap: Bitmap, point: CanvasPoint): Int =
