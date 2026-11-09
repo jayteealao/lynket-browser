@@ -44,7 +44,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CollectionInfo
+import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.collectionInfo
+import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -225,9 +229,17 @@ private fun NativeBubblesWarningText() {
       modifier = Modifier.semantics { heading() },
     )
     Spacer(Modifier.height(8.dp))
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-      nativeBubblesIssues.forEach { issue ->
-        Row(Modifier.padding(start = 20.dp)) {
+    // List semantics, so a screen reader announces a list of the four issues under the heading.
+    Column(
+      verticalArrangement = Arrangement.spacedBy(4.dp),
+      modifier = Modifier.semantics { collectionInfo = CollectionInfo(rowCount = nativeBubblesIssues.size, columnCount = 1) },
+    ) {
+      nativeBubblesIssues.forEachIndexed { index, issue ->
+        Row(
+          Modifier
+            .padding(start = 20.dp)
+            .semantics { collectionItemInfo = CollectionItemInfo(rowIndex = index, rowSpan = 1, columnIndex = 0, columnSpan = 1) },
+        ) {
           Text("•", style = body, color = colours.onSurfaceVariant, modifier = Modifier.width(16.dp).clearAndSetSemantics { })
           Text(stringResource(issue), style = body, color = colours.onSurfaceVariant)
         }
