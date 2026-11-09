@@ -91,3 +91,18 @@ heads, so web heads must hold too. Device checks run as
 | In native bubble mode no web head setting row is enabled that has no effect | `SettingsRulesTest` (`webHeadRowsMinimizeAndTheNoteFollowTheBrowsingMode`), `SettingsScreensUiTest` (`lookAndFeelWebHeadRowsAreGreyUnderTheNoteInNativeBubbleMode`, `browsingOptionsWebHeadRowsAreGreyUnderTheNoteInNativeBubbleMode`) | JVM |
 | In native bubble mode the minimize option's label names a bubble, not a web head | `SettingsRulesTest` (`webHeadRowsMinimizeAndTheNoteFollowTheBrowsingMode`), `SettingsScreensUiTest` (`minimizeIsGreyAndSaysItOpensABubbleInNativeBubbleMode`); `maestro/webheads/webheads-check.sh` `bubble-minimize` | JVM, emulator |
 | Aggressive loading still works in web heads mode | `PreferencesFacadeTest` (`aggressiveLoadingIsOnOnlyInWebHeadsModeWithItsSettingOn`); `webheads-check.sh` `aggressive` | JVM, emulator |
+
+## Open bubbles and the overflow
+
+Android shows five bubbles in its stack and moves older ones to an overflow that it does not report
+to the app. [native-bubble-overflow.md](native-bubble-overflow.md) holds the measured behaviour.
+Device checks run as `bash maestro/webheads/overflow-probe.sh <serial> <dir> <mode>`, which refuses
+any serial that is not an emulator, on an Android 11 and an Android 14 emulator each.
+
+| Criterion | Check | Where |
+|---|---|---|
+| The app's list holds every open bubble of the active mode, in open order, overflow included | `BubbleRegistryTest`, `BubbleReconcilerTest`; `overflow-probe.sh` `registry` | JVM, emulators on Android 11 and 14 |
+| With 7 bubbles open, a page in a bubble reads its place and the total ("3 of 7"), and no notification, shortcut or intent holds the count | `NativeBubbleShadeTest` (`no_notification_shortcut_or_intent_of_seven_bubbles_holds_the_count`); `overflow-probe.sh` `count` | JVM, emulators on Android 11 and 14 |
+| When the person closes a bubble in the stack and the overflow holds one, the newest overflow bubble returns with no alert: at once in a folded stack, when the stack folds in an open one, and at once when the X closes the last bubble of an open stack | `NativeBubblePostingTest` (`a_fold_fills_every_free_place_newest_first`), `NativeBubbleDismissTest` (`a_close_in_the_stack_posts_the_newest_overflow_bubble_again`), `NativeBubbleShadeTest` (`a_returned_bubble_carries_no_alert`); `overflow-probe.sh` `return`, `close` and `close-last` | JVM, emulators on Android 11 and 14 |
+| A bubble that the person closed on purpose, or turned off from its Manage menu, does not come back | `BubbleRegistryTest` (`a_marked_entry_stays_listed_and_is_never_offered_for_a_return`), `NativeBubbleDismissTest` (`a_close_in_the_overflow_posts_nothing_and_stays_closed`); `overflow-probe.sh` `close` and `dont-bubble` | JVM, emulators on Android 11 and 14 |
+| The behaviour above is measured on Android 11 and Android 14, and the results in [native-bubble-overflow.md](native-bubble-overflow.md) match the current build | `overflow-probe.sh` `registry`, `count`, `return`, `close` and `dont-bubble` on both versions | Emulators on Android 11 and 14 |
