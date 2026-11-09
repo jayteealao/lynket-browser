@@ -197,7 +197,8 @@ fun HistoryScreen(onBack: () -> Unit, viewModel: ModernHistoryViewModel = hiltVi
     providerName = providerName,
     snackbarHostState = snackbar,
     actions = actions,
-    // Read on each composition, so the day headers follow the app clock as the day changes.
+    // A plain read of the app clock, not state: the day headers take the new day on the next
+    // recomposition after midnight, as they did when the screen read the system time.
     now = viewModel.now(),
   )
 }
