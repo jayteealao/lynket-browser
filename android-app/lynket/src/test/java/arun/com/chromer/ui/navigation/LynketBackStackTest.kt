@@ -87,6 +87,8 @@ class LynketBackStackTest {
     val navigator = show(LynketKey.Home, LynketKey.Browser("https://"))
     composeRule.onNodeWithTag("link-error").assertIsDisplayed()
     composeRule.onNodeWithText("https://").assertIsDisplayed()
+    // The tap counts once the slide has settled: a tap during a screen transition is dropped.
+    composeRule.waitForIdle()
     composeRule.onNodeWithText("Go back").performClick()
     composeRule.runOnIdle { assertThat(navigator.backStack).containsExactly(LynketKey.Home) }
   }
@@ -98,6 +100,23 @@ class LynketBackStackTest {
     composeRule.onNodeWithText("fake home").assertExists()
     composeRule.onNodeWithTag("changelog-ok").performClick()
     composeRule.runOnIdle { assertThat(navigator.backStack).containsExactly(LynketKey.Home) }
+  }
+
+  @Test
+  fun theChangelogDialogStillOpensOverAStillHome() {
+    val navigator = show(LynketKey.Home)
+    composeRule.mainClock.autoAdvance = false
+
+    composeRule.runOnUiThread { navigator.navigateToChangelog() }
+    repeat(3) {
+      composeRule.mainClock.advanceTimeByFrame()
+      composeRule.waitForIdle()
+      composeRule.onNodeWithText("fake home").assertIsDisplayed()
+    }
+    composeRule.mainClock.autoAdvance = true
+    composeRule.onNodeWithTag("changelog").assertIsDisplayed()
+    composeRule.onNodeWithText("fake home").assertIsDisplayed()
+    assertThat(navigator.backStack).containsExactly(LynketKey.Home, LynketKey.Changelog).inOrder()
   }
 
   @Test
