@@ -48,6 +48,9 @@ import javax.inject.Inject
  * and a bubble Android refuses opens its link in a tab. Only a real system server sets the bubble
  * flag, so these checks cannot run on the JVM.
  *
+ * The settings stores are fresh for each test (`InstrumentedDataStoreModule`); the bubble setting,
+ * the device switch and the notification permission are the device's own, set through the shell.
+ *
  * Run on a headless emulator:
  * `ANDROID_SERIAL=<emulator> ./gradlew :lynket:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=arun.com.chromer.bubbles.system.NativeBubbleSystemTest`.
  * Add `-Pandroid.testInstrumentationRunnerArguments.bubbleHoldMs=<ms>` to keep the posted bubble on
@@ -68,14 +71,12 @@ class NativeBubbleSystemTest {
   @Inject lateinit var preferences: Preferences
 
   private var deviceSwitch = ""
-  private lateinit var browsingMode: BrowsingMode
 
   @Before
   fun setUp() {
     hilt.inject()
     grantNotifications()
     deviceSwitch = deviceBubbles()
-    browsingMode = preferences.browsingMode()
     setDeviceBubbles("1")
     cancelAppNotifications()
   }
@@ -86,7 +87,6 @@ class NativeBubbleSystemTest {
     // A switch that was never stored reads "null"; Android treats it as on.
     setDeviceBubbles(if (deviceSwitch == "0") "0" else "1")
     setAppBubbles(1)
-    preferences.browsingMode(browsingMode)
   }
 
   @Test
