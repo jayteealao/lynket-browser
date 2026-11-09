@@ -186,10 +186,11 @@ fun SettingsDialogContent(dialog: SettingsDialog?, actions: SettingsDialogAction
       modifier = Modifier.testTag("settings-dialog"),
       title = { Text(stringResource(R.string.browsing_mode_native_bubbles)) },
       text = { NativeBubblesWarningText() },
-      confirmButton = {
+      // OK continues the setup, so it takes the end place; Guide sits before it.
+      confirmButton = { TextButton(onClick = actions.onDismiss) { Text(stringResource(android.R.string.ok)) } },
+      dismissButton = {
         TextButton(onClick = actions.onBubblesGuide) { Text(stringResource(R.string.browsing_mode_native_bubbles_guide)) }
       },
-      dismissButton = { TextButton(onClick = actions.onDismiss) { Text(stringResource(android.R.string.ok)) } },
     )
   }
 }
