@@ -11,7 +11,9 @@
 
 package arun.com.chromer.ui.home
 
+import android.content.Context
 import androidx.compose.ui.res.pluralStringResource
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -104,6 +106,7 @@ import arun.com.chromer.ui.components.ErrorState
 import arun.com.chromer.ui.components.LoadingTiles
 import arun.com.chromer.ui.components.showTransientError
 import arun.com.chromer.ui.navigation.LynketNavigator
+import arun.com.chromer.ui.navigation.dropUnlessResumedWith
 import arun.com.chromer.ui.navigation.navigateToAbout
 import arun.com.chromer.ui.navigation.navigateToHistory
 import arun.com.chromer.ui.navigation.navigateToIntro
@@ -146,6 +149,33 @@ data class HomeActions(
   val onRetryConnection: () -> Unit = {},
   val onTips: () -> Unit = {},
   val onDrawerItem: (DrawerItem) -> Unit = {},
+)
+
+/**
+ * The moves of the home that open another screen. Each one is dropped while a screen transition
+ * runs, so a second tap (on the same control or on another one) pushes no second screen.
+ */
+@Composable
+internal fun HomeActions.navigatingWith(navigator: LynketNavigator, context: Context): HomeActions = copy(
+  onHistory = dropUnlessResumed { navigator.navigateToHistory() },
+  onTabs = dropUnlessResumed { navigator.navigateToTabs() },
+  onChangeProvider = dropUnlessResumed { navigator.navigateToProviderSelection() },
+  onTips = dropUnlessResumed { navigator.navigateToTips() },
+  onDrawerItem = dropUnlessResumedWith { item: DrawerItem ->
+    when (item) {
+      DrawerItem.Home -> Unit
+      DrawerItem.History -> navigator.navigateToHistory()
+      DrawerItem.Tabs -> navigator.navigateToTabs()
+      DrawerItem.Settings -> navigator.navigateToSettings()
+      DrawerItem.Tips -> navigator.navigateToTips()
+      DrawerItem.Intro -> navigator.navigateToIntro()
+      DrawerItem.Feedback -> HomeDrawerIntents.feedback(context)
+      DrawerItem.Rate -> HomeDrawerIntents.rate(context)
+      DrawerItem.Beta -> HomeDrawerIntents.beta(context)
+      DrawerItem.Share -> HomeDrawerIntents.share(context)
+      DrawerItem.About -> navigator.navigateToAbout()
+    }
+  },
 )
 
 /** Window width at which the home uses 8 recents columns and a centred column (medium size class). */
@@ -194,29 +224,10 @@ fun HomeScreen(
     onOpenWebsite = { viewModel.openWebsite(context, it) },
     onToggleBookmark = viewModel::toggleBookmark,
     onRemoveWebsite = viewModel::deleteWebsite,
-    onHistory = { navigator.navigateToHistory() },
-    onTabs = { navigator.navigateToTabs() },
-    onChangeProvider = { navigator.navigateToProviderSelection() },
     onRetryProvider = viewModel::rescanProviders,
     onRetryRecents = viewModel::refreshRecents,
     onRetryConnection = viewModel::retryConnection,
-    onTips = { navigator.navigateToTips() },
-    onDrawerItem = { item ->
-      when (item) {
-        DrawerItem.Home -> Unit
-        DrawerItem.History -> navigator.navigateToHistory()
-        DrawerItem.Tabs -> navigator.navigateToTabs()
-        DrawerItem.Settings -> navigator.navigateToSettings()
-        DrawerItem.Tips -> navigator.navigateToTips()
-        DrawerItem.Intro -> navigator.navigateToIntro()
-        DrawerItem.Feedback -> HomeDrawerIntents.feedback(context)
-        DrawerItem.Rate -> HomeDrawerIntents.rate(context)
-        DrawerItem.Beta -> HomeDrawerIntents.beta(context)
-        DrawerItem.Share -> HomeDrawerIntents.share(context)
-        DrawerItem.About -> navigator.navigateToAbout()
-      }
-    },
-  )
+  ).navigatingWith(navigator, context)
   HomeScreenContent(state = state, actions = actions, snackbarHostState = snackbarHostState)
 }
 
