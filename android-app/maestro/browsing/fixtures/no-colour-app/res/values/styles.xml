@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The white theme of the link source app of the app colour check: its primary colour is white. -->
+<resources>
+  <style name="White" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <item name="android:colorPrimary">#FFFFFFFF</item>
+  </style>
+</resources>

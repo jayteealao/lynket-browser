@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A small app with no code, used as the source of links in the app colour check: its theme colour
+  and its icon are white, the palest colour the app-coloured toolbar can be given. app-colour-check.sh
+  builds it with the SDK tools; it is never part of Lynket.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="arun.com.chromer.fixture.nocolour"
+  android:versionCode="1"
+  android:versionName="1">
+
+  <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="36" />
+
+  <application
+    android:hasCode="false"
+    android:icon="@drawable/white_icon"
+    android:label="No colour"
+    android:theme="@style/White">
+    <activity
+      android:name="android.app.Activity"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>
