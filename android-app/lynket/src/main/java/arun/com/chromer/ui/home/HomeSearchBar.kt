@@ -114,9 +114,19 @@ fun HomeSearchBar(
   /** The screen's messages; the open search shows them too, since it covers the screen. */
   snackbarHostState: SnackbarHostState? = null,
 ) {
+  // The field owns the text: typing flows up through onQueryChange, and nothing flows back down,
+  // so a query that arrives late from the screen can never overwrite newer typing. A spoken query
+  // is written into the field here.
+  val text = rememberTextFieldState(query)
+  val currentQuery by rememberUpdatedState(query)
+  val currentOnQueryChange by rememberUpdatedState(onQueryChange)
+  LaunchedEffect(text) {
+    snapshotFlow { text.text.toString() }.collect { if (it != currentQuery) currentOnQueryChange(it) }
+  }
   val voice = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
     if (result.resultCode == Activity.RESULT_OK) {
       result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let {
+        text.setTextAndPlaceCursorAtEnd(it)
         onQueryChange(it)
         onSubmit(it)
       }
@@ -127,17 +137,6 @@ fun HomeSearchBar(
   val backLabel = stringResource(R.string.back)
   val scope = rememberCoroutineScope()
   val colors = SearchBarDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-
-  // The field keeps its own text; typing passes it up, and a query set from outside (voice) comes in.
-  val text = rememberTextFieldState(query)
-  val currentQuery by rememberUpdatedState(query)
-  val currentOnQueryChange by rememberUpdatedState(onQueryChange)
-  LaunchedEffect(text) {
-    snapshotFlow { text.text.toString() }.collect { if (it != currentQuery) currentOnQueryChange(it) }
-  }
-  LaunchedEffect(query) {
-    if (text.text.toString() != query) text.setTextAndPlaceCursorAtEnd(query)
-  }
 
   // One field, drawn in the closed bar and again at the top of the open search.
   val inputField = @Composable {
