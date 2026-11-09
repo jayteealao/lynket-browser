@@ -37,7 +37,7 @@ Run from `android-app/`:
 - `./gradlew :lynket:testDebugUnitTest` - Run the JVM unit tests; Compose UI tests also run the accessibility checks of `AccessibilityChecksRule` (`ui/accessibility/AccessibilityChecks.kt`, whose KDoc says what they check)
 - `./gradlew :lynket:verifyRoborazziDebug` - Compare the screenshot goldens (`lynket/src/test/screenshots`); `recordRoborazziDebug` records them again. `ThemeMatrixGoldenTest` draws every screen in the light, dark and black themes at a phone and a fold size
 - `bash scripts/check-compose-only.sh` - Fails on an XML layout other than the Custom Tab bottom bar's RemoteViews layout, a menu or preference XML, a View, Fragment or Adapter subclass, `setContentView` with a layout, kapt, an AGP opt-out flag, or a JVM Compose UI test without `AccessibilityChecksRule`
-- `./gradlew :disk-cache:testDebugUnitTest` - Run the disk cache journal tests
+- `./gradlew :disk-cache:testDebugUnitTest` - Run the disk cache tests: the journal format, and parcels and lists written by earlier releases read back at API 24, 33 and 36 with the version check
 - `./gradlew :lynket:assembleBenchmark :benchmark:assembleBenchmark` - Build the minified benchmark app and the benchmarks
 - `./gradlew :lynket:installDebug` - Install the debug build on a device
 - `./gradlew :lynket:assembleRelease -Plynket.composeReports=true` - Writes the Compose compiler stability reports and metrics to `lynket/build/compose_compiler/`
