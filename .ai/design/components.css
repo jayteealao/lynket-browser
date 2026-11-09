@@ -59,6 +59,13 @@
 .empty-st p { margin: 0; color: var(--on-surface-variant); max-width: 32ch; }
 .empty-st.err .blob { background: var(--error-container); color: var(--on-error-container); }
 .empty-st button { min-height: 48px; padding: 0 24px; border: 0; border-radius: 24px; background: var(--primary); color: var(--on-primary); font: inherit; font-weight: 600; }
+.empty-st .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.empty-st button.outlined { background: transparent; color: var(--primary); border: 1px solid var(--outline-variant); }
+.empty-st button:disabled { opacity: .38; }
+.empty-st.compact { gap: 8px; padding: 16px; }
+.empty-st.compact .blob { width: 64px; height: 64px; }
+.empty-st.compact .blob svg { width: 28px; height: 28px; }
+.empty-st.compact h4 { font-size: 14px; line-height: 20px; }
 .loading-list { background: var(--surface-container); border-radius: 16px; overflow: hidden; }
 .loading-list > div { display: flex; align-items: center; gap: 16px; min-height: 64px; padding: 8px 16px; box-sizing: border-box; }
 .loading-list > div + div { border-top: 1px solid var(--outline-variant); }
@@ -107,6 +114,11 @@
 .dark .swipe { background: var(--error-container-dark); color: var(--on-error-container-dark); }
 .dark .swipe > .ib { color: var(--on-error-container-dark); }
 .dark .empty-st .blob { background: var(--surface-container-highest-dark); color: var(--on-surface-variant-dark); }
+.dark .empty-st.err .blob { background: var(--error-container-dark); color: var(--on-error-container-dark); }
+.dark .empty-st button { background: var(--primary-dark); color: var(--surface-dark); }
+.dark .empty-st button.outlined { background: transparent; color: var(--primary-dark); border-color: var(--outline-dark); }
+.dark .search-view .chip { border-color: var(--outline-dark); color: var(--on-surface-dark); }
+.dark .search-view .chip.on { background: var(--surface-container-highest-dark); color: var(--primary-dark); border-color: transparent; }
 .dark .empty-st p { color: var(--on-surface-variant-dark); }
 .dark .fab { background: var(--surface-container-high-dark); color: var(--primary-dark); }
 .dark .snack { background: var(--inverse-surface-dark); color: var(--inverse-on-surface-dark); }
