@@ -11,7 +11,9 @@
 
 package arun.com.chromer.ui.home
 
+import android.app.Activity
 import android.app.Application
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -22,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
@@ -90,6 +93,26 @@ internal object HomeSearchSamples {
 }
 
 /**
+ * Puts the window in touch mode, as a person's first tap does on a phone. Without it the view
+ * system hands focus back to the first focusable control when the field lets go of it, and the
+ * search field opens again. The test injects its taps past the view root, so the root is told.
+ */
+internal fun Activity.enterTouchMode() {
+  val root = window.decorView
+  val viewRoot = View::class.java.getMethod("getViewRootImpl").invoke(root)
+  viewRoot.javaClass.getDeclaredMethod("ensureTouchMode", Boolean::class.javaPrimitiveType)
+    .apply { isAccessible = true }
+    .invoke(viewRoot, true)
+}
+
+/** The editable search field; while search is open it is the one of the open search. */
+internal fun SemanticsNodeInteractionsProvider.searchField(): SemanticsNodeInteraction {
+  val matcher = hasTestTag("home-search-field") and hasSetTextAction()
+  val count = onAllNodes(matcher).fetchSemanticsNodes().size
+  return onAllNodes(matcher)[count - 1]
+}
+
+/**
  * The home search bar as a person uses it: open, type, pick an engine, pick a suggestion, search,
  * close with Back, open the drawer, and keep open search across a recreation.
  */
@@ -136,23 +159,10 @@ class HomeSearchBarTest {
     touchMode()
   }
 
-  /**
-   * Puts the window in touch mode, as a person's first tap does on a phone. Without it the view
-   * system hands focus back to the first focusable control when the field lets go of it, and the
-   * search field opens again. The test injects its taps past the view root, so the root is told.
-   */
-  private fun touchMode() {
-    val root = composeRule.activity.window.decorView
-    val viewRoot = android.view.View::class.java.getMethod("getViewRootImpl").invoke(root)
-    viewRoot.javaClass.getDeclaredMethod("ensureTouchMode", Boolean::class.javaPrimitiveType).apply { isAccessible = true }.invoke(viewRoot, true)
-  }
+  private fun touchMode() = composeRule.activity.enterTouchMode()
 
   /** The editable search field; while search is open it is the one of the open search. */
-  private fun field(): SemanticsNodeInteraction {
-    val matcher = hasTestTag("home-search-field") and hasSetTextAction()
-    val count = composeRule.onAllNodes(matcher).fetchSemanticsNodes().size
-    return composeRule.onAllNodes(matcher)[count - 1]
-  }
+  private fun field() = composeRule.searchField()
 
   private fun open() {
     field().performClick()
