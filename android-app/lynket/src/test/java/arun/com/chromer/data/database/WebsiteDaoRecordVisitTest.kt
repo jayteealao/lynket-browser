@@ -23,9 +23,11 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
+import org.json.JSONObject
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import java.io.File
 import kotlin.time.Duration.Companion.minutes
 
 /** A visit is one statement: a stored row keeps its id and details, a new URL gets one row. */
@@ -53,6 +55,32 @@ class WebsiteDaoRecordVisitTest {
     bookmarked = false,
     now = clock.now().toEpochMilliseconds()
   )
+
+  /**
+   * The visit statement replaces the whole row, so it must write every column of the table: a
+   * column it leaves out would go back to its default on every repeat visit. The table's columns
+   * come from the newest exported Room schema, so a new column fails here until the statement
+   * names it.
+   */
+  @Test
+  fun theVisitStatementWritesEveryColumnOfTheHistoryTable() = runTest {
+    val schema = File("schemas/arun.com.chromer.data.database.ChromerDatabase")
+      .listFiles { file -> file.extension == "json" }!!
+      .maxBy { it.nameWithoutExtension.toInt() }
+    val entities = JSONObject(schema.readText()).getJSONObject("database").getJSONArray("entities")
+    val history = (0 until entities.length()).map { entities.getJSONObject(it) }
+      .single { it.getString("tableName") == "history" }
+    val fields = history.getJSONArray("fields")
+    val tableColumns = (0 until fields.length()).map { fields.getJSONObject(it).getString("columnName") }
+    driver.clear()
+
+    dao.visit("https://columns.example/")
+
+    val statement = driver.historyStatements().single { it.startsWith("INSERT OR REPLACE") }
+    val written = statement.substringAfter("INTO history").substringAfter('(').substringBefore(')')
+      .split(',').map { it.trim() }
+    assertThat(written).containsExactlyElementsIn(tableColumns)
+  }
 
   @Test
   fun aStoredRowKeepsItsIdAndDetailsAndCountsOneMoreVisitInOneStatement() = runTest {
