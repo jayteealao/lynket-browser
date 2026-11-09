@@ -61,7 +61,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberSearchBarState
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -178,6 +182,14 @@ internal fun HomeActions.navigatingWith(navigator: LynketNavigator, context: Con
   },
 )
 
+/**
+ * The home search opens over 600 ms after 100 ms on the emphasized decelerate curve, and closes
+ * over 350 ms after 100 ms: the Material motion tokens long 4, short 2 and medium 3 that the
+ * search bar has always used.
+ */
+private val SearchOpenSpec = tween<Float>(durationMillis = 600, delayMillis = 100, easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f))
+private val SearchCloseSpec = tween<Float>(durationMillis = 350, delayMillis = 100, easing = CubicBezierEasing(0f, 1f, 0f, 1f))
+
 /** Window width at which the home uses 8 recents columns and a centred column (medium size class). */
 private const val MEDIUM_WIDTH_DP = 600
 
@@ -246,7 +258,11 @@ fun HomeScreenContent(
   searchExpanded: Boolean = false,
 ) {
   val scope = rememberCoroutineScope()
-  var expanded by rememberSaveable { mutableStateOf(searchExpanded) }
+  val searchBar = rememberSearchBarState(
+    initialValue = if (searchExpanded) SearchBarValue.Expanded else SearchBarValue.Collapsed,
+    animationSpecForExpand = SearchOpenSpec,
+    animationSpecForCollapse = SearchCloseSpec,
+  )
   val offlineMessage = stringResource(R.string.offline_message)
   val retry = stringResource(R.string.retry)
 
@@ -308,17 +324,24 @@ fun HomeScreenContent(
           HomeSearchBar(
             query = state.query,
             onQueryChange = actions.onQueryChange,
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
+            searchBarState = searchBar,
             suggestions = state.suggestions,
             searchEngines = state.searchEngines,
             selectedEngine = state.selectedEngine,
             onSelectEngine = actions.onSelectEngine,
-            onSubmit = { expanded = false; actions.onSubmit(it) },
-            onSuggestion = { expanded = false; actions.onSuggestion(it) },
+            onSubmit = {
+              scope.launch { searchBar.animateToCollapsed() }
+              actions.onSubmit(it)
+            },
+            onSuggestion = {
+              scope.launch { searchBar.animateToCollapsed() }
+              actions.onSuggestion(it)
+            },
             onMenu = { scope.launch { drawerState.open() } },
             onVoiceUnavailable = actions.onVoiceUnavailable,
-            modifier = Modifier.padding(horizontal = if (expanded) 0.dp else gutter),
+            snackbarHostState = snackbarHostState,
+            // The open search is its own layer over the screen, so the closed bar keeps its margins.
+            modifier = Modifier.padding(horizontal = gutter),
           )
           LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
