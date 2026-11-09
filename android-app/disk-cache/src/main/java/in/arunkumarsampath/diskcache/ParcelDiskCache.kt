@@ -143,8 +143,13 @@ class ParcelDiskCache<T : Parcelable> private constructor(
       if (type != LIST) {
         throw IllegalAccessError("Parcel doesn't contain list data")
       }
-      ParcelCompat.readList(parcel, res, classLoader, itemClass)
+      val read = ArrayList<T>()
+      ParcelCompat.readList(parcel, read, classLoader, itemClass)
+      // Before Android 13 the platform list read does not check the class of each value, so the
+      // check is made here: a list that holds another class reads as empty on every release.
+      if (read.all { itemClass.isInstance(it) }) res.addAll(read)
     } catch (e: Exception) {
+      res.clear()
       e.printStackTrace()
     } finally {
       parcel.recycle()

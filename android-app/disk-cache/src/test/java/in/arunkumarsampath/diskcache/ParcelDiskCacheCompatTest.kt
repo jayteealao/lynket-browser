@@ -101,6 +101,13 @@ class ParcelDiskCacheCompatTest {
   }
 
   @Test
+  fun aListOfAnotherClassReadsAsEmpty() {
+    EarlierReleaseCache.writeListEntry(dir, folderVersion(), "others", listOf(OtherItem(1), OtherItem(2)))
+
+    assertEquals(emptyList<TestItem>(), readList(openCache(), "others"))
+  }
+
+  @Test
   fun valuesSetThroughTheCacheReadBack() {
     val cache = openCache()
     cache.set("one", item)
