@@ -75,7 +75,9 @@ class SettingsTypedKeyReadTest {
   fun everySettingReadsTheValueStoredWithItsType() {
     for (key in SettingsSchema.keys) {
       val sample = sampleOf(key)
-      @Suppress("UNCHECKED_CAST") // sdlc-debt: test store write of a value of the key's own type; no ceiling in a test.
+      // sdlc-debt: unchecked cast to write a sample through the key's untyped view (ceiling: a wrong
+      // sample type shows only when the test runs); upgrade path: typed keys on SettingKey.
+      @Suppress("UNCHECKED_CAST")
       val stored = mutablePreferencesOf().apply { this[key.preferenceKey as Preferences.Key<Any>] = sample }
       assertWithMessage("stored %s", key.name).that(stored.read(key)).isEqualTo(sample)
     }
