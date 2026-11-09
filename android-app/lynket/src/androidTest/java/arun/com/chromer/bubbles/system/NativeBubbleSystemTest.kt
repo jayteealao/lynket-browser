@@ -28,6 +28,7 @@ import arun.com.chromer.bubbles.bubbleConversationId
 import arun.com.chromer.bubbles.bubbleNotificationId
 import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.di.data.deleteTestStores
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.shared.Constants.EXTRA_KEY_BUBBLE_REFUSAL
 import arun.com.chromer.tabs.TabsManager
@@ -90,6 +91,7 @@ class NativeBubbleSystemTest {
     setDeviceBubbles(if (deviceSwitch == "0") "0" else "1")
     // Put back the app's bubble setting found before the test; all when it could not be read.
     setAppBubbles(appBubbles ?: 1)
+    deleteTestStores(appContext)
   }
 
   @Test

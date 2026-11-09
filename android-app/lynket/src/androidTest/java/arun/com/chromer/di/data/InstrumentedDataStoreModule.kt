@@ -56,5 +56,12 @@ object InstrumentedDataStoreModule {
     DataStoreModule.perAppRulesDataStore(context, clock) { storeFile(context, "per_app_rules") }
 
   private fun storeFile(context: Context, name: String): File =
-    File(File(context.cacheDir, "test-datastore/${UUID.randomUUID()}"), "$name.preferences_pb")
+    File(File(testStoreRoot(context), UUID.randomUUID().toString()), "$name.preferences_pb")
+}
+
+private fun testStoreRoot(context: Context) = File(context.cacheDir, "test-datastore")
+
+/** Deletes the store files of the instrumented tests, so repeated runs leave none on the device. */
+internal fun deleteTestStores(context: Context) {
+  testStoreRoot(context).deleteRecursively()
 }
