@@ -21,27 +21,41 @@
 
 package arun.com.chromer.data.apps
 
-import android.app.Application
-import android.content.Intent
-import arun.com.chromer.browsing.customtabs.dynamictoolbar.AppColorExtractorJob
+import arun.com.chromer.browsing.customtabs.dynamictoolbar.AppColorExtractor
 import arun.com.chromer.data.apps.qualifiers.System
 import arun.com.chromer.data.apps.store.AppStore
 import arun.com.chromer.data.common.App
 import arun.com.chromer.data.common.qualifiers.Disk
+import arun.com.chromer.di.hilt.ApplicationScope
+import arun.com.chromer.di.hilt.DefaultDispatcher
 import arun.com.chromer.shared.Constants
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class DefaultAppRepository
 @Inject internal constructor(
-  private val application: Application,
   @param:Disk private val diskStore: AppStore,
-  @param:System private val systemStore: AppStore
+  @param:System private val systemStore: AppStore,
+  @param:ApplicationScope private val appScope: CoroutineScope,
+  @param:DefaultDispatcher private val extractionDispatcher: CoroutineDispatcher,
+  private val extractor: AppColorExtractor,
 ) : AppRepository {
+
+  /**
+   * The packages whose colour this process has already looked for. A package stays here whatever the
+   * result, so a second link from an app whose colour is pending, or that has none, starts no second
+   * extraction; the next start of the app looks again.
+   */
+  private val requested: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
   override suspend fun getApp(packageName: String): App {
     return diskStore.getApp(packageName)
@@ -57,14 +71,20 @@ class DefaultAppRepository
     return color
   }
 
+  /** Looks for the colour of [packageName] once per process, off the main thread, and stores it. */
   private fun startColorExtraction(packageName: String) {
-    Timber.d("Color not found, starting extraction.")
-    androidx.core.app.JobIntentService.enqueueWork(
-      application,
-      AppColorExtractorJob::class.java,
-      AppColorExtractorJob.JOB_ID,
-      Intent().putExtra(Constants.EXTRA_PACKAGE_NAME, packageName)
-    )
+    if (!requested.add(packageName)) return
+    Timber.d("Color not found for %s, starting extraction.", packageName)
+    appScope.launch(extractionDispatcher) {
+      try {
+        val color = extractor.extract(packageName)
+        if (color != Constants.NO_COLOR) diskStore.setPackageColor(packageName, color)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e, "Colour extraction failed for %s", packageName)
+      }
+    }
   }
 
   override suspend fun setPackageColor(packageName: String, color: Int): App {
