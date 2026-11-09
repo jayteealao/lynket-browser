@@ -33,7 +33,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -223,7 +223,9 @@ class HomeSearchBarTest {
   fun theBackIconAndSystemBackCloseSearchAndHomeStays() {
     show()
     open()
-    composeRule.onNodeWithContentDescription(composeRule.activity.getString(R.string.back)).performClick()
+    // While search is open the field shows in the closed bar and in the open search; tap the open one.
+    val back = composeRule.onAllNodesWithContentDescription(composeRule.activity.getString(R.string.back))
+    back[back.fetchSemanticsNodes().size - 1].performClick()
     composeRule.waitForIdle()
     assertThat(isOpen()).isFalse()
 
