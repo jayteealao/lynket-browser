@@ -25,6 +25,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.core.os.ParcelCompat
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -94,7 +95,7 @@ class ParcelDiskCache<T : Parcelable> private constructor(
       if (type != null && type != PARCELABLE) {
         throw IllegalAccessError("Parcel doesn't contain parcelable data")
       }
-      return readParcelable(parcel)
+      return ParcelCompat.readParcelable(parcel, classLoader, itemClass)
     } catch (e: Exception) {
       e.printStackTrace()
     } finally {
@@ -102,13 +103,6 @@ class ParcelDiskCache<T : Parcelable> private constructor(
     }
     return null
   }
-
-  // sdlc-debt: the typed readParcelable(ClassLoader, Class) needs API 33 and a Class<T> that this
-  // generic cache does not hold; the deprecated call is the one older releases used to write and read
-  // the same bytes. Upgrade path: pass the item class to open().
-  // source: https://developer.android.com/reference/android/os/Parcel#readParcelable(java.lang.ClassLoader,java.lang.Class%3CT%3E) (added in API 33)
-  @Suppress("DEPRECATION")
-  private fun readParcelable(parcel: Parcel): T? = parcel.readParcelable(classLoader)
 
   private fun getParcel(key: String): Parcel? {
     var value: ByteArray? = null
@@ -148,20 +142,13 @@ class ParcelDiskCache<T : Parcelable> private constructor(
       if (type != LIST) {
         throw IllegalAccessError("Parcel doesn't contain list data")
       }
-      readList(parcel, res, classLoader)
+      ParcelCompat.readList(parcel, res, classLoader, itemClass)
     } catch (e: Exception) {
       e.printStackTrace()
     } finally {
       parcel.recycle()
     }
     return res
-  }
-
-  // sdlc-debt: same reason as readParcelable above; the typed readList overload needs API 33.
-  // source: https://developer.android.com/reference/android/os/Parcel#readList(java.util.List%3C?%20super%20T%3E,java.lang.ClassLoader,java.lang.Class%3CT%3E) (added in API 33)
-  @Suppress("DEPRECATION")
-  private fun readList(parcel: Parcel, out: MutableList<T>, loader: ClassLoader?) {
-    parcel.readList(out, loader)
   }
 
   override fun remove(key: String): Boolean {
