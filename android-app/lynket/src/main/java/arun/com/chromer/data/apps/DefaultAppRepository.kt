@@ -27,7 +27,7 @@ import arun.com.chromer.data.apps.store.AppStore
 import arun.com.chromer.data.common.App
 import arun.com.chromer.data.common.qualifiers.Disk
 import arun.com.chromer.di.hilt.ApplicationScope
-import arun.com.chromer.di.hilt.DefaultDispatcher
+import arun.com.chromer.di.hilt.IoDispatcher
 import arun.com.chromer.shared.Constants
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -46,7 +46,7 @@ class DefaultAppRepository
   @param:Disk private val diskStore: AppStore,
   @param:System private val systemStore: AppStore,
   @param:ApplicationScope private val appScope: CoroutineScope,
-  @param:DefaultDispatcher private val extractionDispatcher: CoroutineDispatcher,
+  @param:IoDispatcher private val extractionDispatcher: CoroutineDispatcher,
   private val extractor: AppColorExtractor,
 ) : AppRepository {
 
