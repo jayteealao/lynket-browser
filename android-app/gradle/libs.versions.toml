@@ -41,7 +41,6 @@ jsoup = "1.23.2"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 testRunner = "1.7.0"
-testCore = "1.7.0"
 robolectric = "4.17"
 turbine = "1.2.1"
 mockk = "1.14.11"
@@ -131,7 +130,7 @@ androidx-palette = { group = "androidx.palette", name = "palette", version.ref =
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
-androidx-test-core = { group = "androidx.test", name = "core", version.ref = "testCore" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "testRunner" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
