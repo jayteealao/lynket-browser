@@ -154,6 +154,14 @@ dependencies {
     androidTestImplementation(libs.hilt.android.testing)
     // HiltTestRunner extends AndroidJUnitRunner, which comes from androidx.test:runner
     androidTestImplementation(libs.androidx.test.runner)
+    // The emulator bubble tests run with the AndroidJUnit4 runner of the AndroidX JUnit extension
+    androidTestImplementation(libs.androidx.junit)
+    // InstrumentationRegistry and the app context the emulator bubble tests post from
+    androidTestImplementation(libs.androidx.test.core)
+    // Assertions of the emulator bubble tests, the same library as the unit tests
+    androidTestImplementation(libs.truth)
+    // Generates the Hilt test components that inject the real bubble classes into the emulator tests
+    kspAndroidTest(libs.hilt.compiler)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
