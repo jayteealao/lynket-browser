@@ -113,7 +113,8 @@ stack keeps it open on the next overflow bubble (`BubbleCloser.closePage`);
 `docs/native-bubble-overflow.md` says how.
 
 Browsing mode explains the choice "All conversations can bubble" and shows the current setting under
-the Native Bubbles row.
+the Native Bubbles row. Native bubbles keep the "(Beta)" label until the criteria in
+`docs/native-bubbles-beta-exit.md` hold.
 
 ## Images: Coil 3
 
