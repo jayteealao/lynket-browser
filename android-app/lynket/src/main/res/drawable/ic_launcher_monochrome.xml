@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~
+  ~  Lynket
+  ~
+  ~  Copyright (C) 2026 Arunkumar
+  ~
+  ~  This program is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  (at your option) any later version.
+  ~
+  ~  This program is distributed in the hope that it will be useful,
+  ~  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~  GNU General Public License for more details.
+  ~
+  ~  You should have received a copy of the GNU General Public License
+  ~  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<!-- The themed (monochrome) launcher icon: the tag tile with its globe as an outline and the
+     document tile solid with three cut-out lines, scaled to 0.72 and centred in the 66 dp safe
+     zone. The launcher tints it by its alpha, so the white fill is never shown. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="108dp"
+  android:height="108dp"
+  android:viewportWidth="108"
+  android:viewportHeight="108">
+  <group
+    android:pivotX="54"
+    android:pivotY="66"
+    android:scaleX="0.72"
+    android:scaleY="0.72"
+    android:translateY="-12">
+    <path
+      android:fillColor="#FFFFFFFF"
+      android:fillType="evenOdd"
+      android:pathData="M26 52h17l10 14-10 14H26a3 3 0 0 1-3-3V55a3 3 0 0 1 3-3zm1 4v20h15l7-10-7-10z" />
+    <path
+      android:fillColor="#FFFFFFFF"
+      android:fillType="evenOdd"
+      android:pathData="M35 58.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm0 2.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" />
+    <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M31.5 63.5h3l2 3-1 3h-2l-1.2-3zM37 61.5l2 1v3l-2-1z" />
+    <path
+      android:fillColor="#FFFFFFFF"
+      android:fillType="evenOdd"
+      android:pathData="M57 52h23a5 5 0 0 1 5 5v18a5 5 0 0 1-5 5H57l10-14zM68 58.5v3.5h10v-3.5zM68 64.3v3.4h7v-3.4zM68 70v3.5h10V70z" />
+  </group>
+</vector>
