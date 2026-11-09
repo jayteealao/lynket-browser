@@ -47,7 +47,7 @@ class LegacySettingsMigration(
   val migrationDir: File get() = File(context.filesDir, "settings-migration")
 
   override suspend fun shouldMigrate(currentData: Preferences): Boolean =
-    (currentData.raw(SettingsSchema.MIGRATION_VERSION.name) as? Int ?: 0) < VERSION
+    (currentData.storedValue(SettingsSchema.MIGRATION_VERSION) as? Int ?: 0) < VERSION
 
   override suspend fun migrate(currentData: Preferences): Preferences {
     val out = currentData.toMutablePreferences()
