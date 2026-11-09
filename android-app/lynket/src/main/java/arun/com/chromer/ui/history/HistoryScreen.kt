@@ -78,6 +78,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -111,6 +112,8 @@ import arun.com.chromer.ui.settings.components.SettingsGroup
 import arun.com.chromer.ui.settings.components.SettingsRow
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
+import arun.com.chromer.util.displayAddress
+import arun.com.chromer.util.rowTitle
 import arun.com.chromer.ui.components.ScreenTitle
 import kotlinx.coroutines.launch
 import java.util.TimeZone
@@ -140,6 +143,7 @@ class HistoryActions(
 @Composable
 fun HistoryScreen(onBack: () -> Unit, viewModel: ModernHistoryViewModel = hiltViewModel()) {
   val context = LocalContext.current
+  val resources = LocalResources.current
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val items = viewModel.items.collectAsLazyPagingItems()
   val snackbar = remember { SnackbarHostState() }
@@ -155,13 +159,13 @@ fun HistoryScreen(onBack: () -> Unit, viewModel: ModernHistoryViewModel = hiltVi
         when (event) {
           is HistoryEvent.Deleted -> {
             val result = snackbar.showSnackbar(
-              message = context.getString(R.string.history_removed),
-              actionLabel = context.getString(R.string.undo),
+              message = resources.getString(R.string.history_removed),
+              actionLabel = resources.getString(R.string.undo),
               duration = SnackbarDuration.Short,
             )
             if (result == SnackbarResult.ActionPerformed) viewModel.undo(event.website)
           }
-          is HistoryEvent.Cleared -> snackbar.showSnackbar(context.getString(R.string.deleted_items, event.count))
+          is HistoryEvent.Cleared -> snackbar.showSnackbar(resources.getString(R.string.deleted_items, event.count))
         }
       }
     }
@@ -193,6 +197,9 @@ fun HistoryScreen(onBack: () -> Unit, viewModel: ModernHistoryViewModel = hiltVi
     providerName = providerName,
     snackbarHostState = snackbar,
     actions = actions,
+    // A plain read of the app clock, not state: the day headers take the new day on the next
+    // recomposition after midnight, as they did when the screen read the system time.
+    now = viewModel.now(),
   )
 }
 
@@ -204,7 +211,7 @@ fun HistoryContent(
   providerName: String?,
   actions: HistoryActions,
   snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-  now: Long = System.currentTimeMillis(),
+  now: Long,
   timeZone: TimeZone = TimeZone.getDefault(),
 ) {
   val context = LocalContext.current
@@ -268,12 +275,12 @@ fun HistoryContent(
               singleLine = true,
               label = { Text(stringResource(R.string.history_search_hint)) },
               leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-              modifier = Modifier.settingsColumn().padding(bottom = 16.dp).testTag("history-search"),
+              modifier = Modifier.animateItem().settingsColumn().padding(bottom = 16.dp).testTag("history-search"),
             )
           }
         }
         item(key = "switches", contentType = "switches") {
-          HistorySwitches(state, providerName, actions, Modifier.settingsColumn().padding(bottom = 8.dp))
+          HistorySwitches(state, providerName, actions, Modifier.animateItem().settingsColumn().padding(bottom = 8.dp))
         }
         when {
           refresh is LoadState.Error && !hasRows -> item(key = "error", contentType = "state") {
@@ -282,14 +289,14 @@ fun HistoryContent(
               body = stringResource(R.string.history_error_body),
               retryLabel = stringResource(R.string.retry),
               onRetry = { items.retry() },
-              modifier = Modifier.settingsColumn(),
+              modifier = Modifier.animateItem().settingsColumn(),
             )
           }
           refresh is LoadState.Loading && !hasRows -> item(key = "loading", contentType = "state") {
             Surface(
               shape = RoundedCornerShape(16.dp),
               color = MaterialTheme.colorScheme.surfaceContainer,
-              modifier = Modifier.settingsColumn().padding(top = 8.dp),
+              modifier = Modifier.animateItem().settingsColumn().padding(top = 8.dp),
             ) {
               LoadingList(modifier = Modifier.padding(vertical = 12.dp), rows = 8, loadingLabel = stringResource(R.string.loading))
             }
@@ -299,7 +306,7 @@ fun HistoryContent(
               icon = Icons.Outlined.SearchOff,
               title = stringResource(R.string.history_search_empty, state.query.trim()),
               body = stringResource(R.string.history_empty_body),
-              modifier = Modifier.settingsColumn().testTag("history-no-match"),
+              modifier = Modifier.animateItem().settingsColumn().testTag("history-no-match"),
             )
           }
           !hasRows -> item(key = "empty", contentType = "state") {
@@ -307,7 +314,7 @@ fun HistoryContent(
               icon = Icons.Outlined.History,
               title = stringResource(R.string.history_empty_title),
               body = stringResource(R.string.history_empty_body),
-              modifier = Modifier.settingsColumn(),
+              modifier = Modifier.animateItem().settingsColumn(),
             )
           }
           else -> items(
@@ -316,11 +323,12 @@ fun HistoryContent(
             contentType = { index -> if (items.peek(index) is HistoryListItem.DayHeader) "day" else "row" },
           ) { index ->
             when (val item = items[index]) {
-              is HistoryListItem.DayHeader -> DayLabel(dayLabel(context, item.dayStart, now, timeZone))
+              // Rows and day headers fade and slide into place (spring, no bounce) when rows go or come back.
+              is HistoryListItem.DayHeader -> DayLabel(dayLabel(context, item.dayStart, now, timeZone), Modifier.animateItem())
               is HistoryListItem.Row -> {
                 val first = index == 0 || items.peek(index - 1) !is HistoryListItem.Row
                 val last = index == items.itemCount - 1 || items.peek(index + 1) !is HistoryListItem.Row
-                HistoryRow(item.website, first, last, actions)
+                HistoryRow(item.website, first, last, actions, Modifier.animateItem())
               }
               null -> Unit
             }
@@ -394,12 +402,12 @@ private fun HistorySwitches(state: HistoryUiState, providerName: String?, action
 
 /** A day header: the section label of the board, in the primary colour. */
 @Composable
-private fun DayLabel(text: String) {
+private fun DayLabel(text: String, modifier: Modifier = Modifier) {
   Text(
     text = text,
     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
     color = MaterialTheme.colorScheme.primary,
-    modifier = Modifier
+    modifier = modifier
       .settingsColumn()
       .padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
       .semantics { heading() }
@@ -413,14 +421,15 @@ private fun DayLabel(text: String) {
  * in one rounded container; the first and last row carry its corners.
  */
 @Composable
-private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions: HistoryActions) {
+private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions: HistoryActions, modifier: Modifier = Modifier) {
   val top = if (first) 16.dp else 0.dp
   val bottom = if (last) 16.dp else 0.dp
   val shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
+  val title = rowTitle(website.title, website.url)
   val dismissState = rememberSwipeToDismissBoxState()
   SwipeToDismissBox(
     state = dismissState,
-    modifier = Modifier.settingsColumn().testTag("history-row"),
+    modifier = modifier.settingsColumn().testTag("history-row"),
     backgroundContent = {
       Box(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer, shape).padding(horizontal = 24.dp),
@@ -443,23 +452,25 @@ private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions:
             .clickable(role = Role.Button) { actions.onOpen(website) }
             .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
         ) {
-          SiteAvatar(website.safeLabel(), website.faviconUrl)
+          SiteAvatar(title, website.faviconUrl)
           Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
-            Text(website.safeLabel(), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // One line, cut in the middle, so the host and the end of the path both show.
             Text(
-              website.preferredUrl(),
+              displayAddress(website.preferredUrl()),
               style = MaterialTheme.typography.bodyMedium,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
               maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
+              overflow = TextOverflow.MiddleEllipsis,
+              modifier = Modifier.testTag("history-address"),
             )
           }
           if (website.hasAmp()) {
             IconButton(onClick = { actions.onOpenAmp(website) }, modifier = Modifier.testTag("history-amp")) {
-              Icon(Icons.Outlined.Bolt, contentDescription = stringResource(R.string.history_open_amp, website.safeLabel()))
+              Icon(Icons.Outlined.Bolt, contentDescription = stringResource(R.string.history_open_amp, title))
             }
           }
-          RowMenu(website, actions)
+          RowMenu(website, title, actions)
         }
       }
     }
@@ -467,11 +478,11 @@ private fun HistoryRow(website: Website, first: Boolean, last: Boolean, actions:
 }
 
 @Composable
-private fun RowMenu(website: Website, actions: HistoryActions) {
+private fun RowMenu(website: Website, title: String, actions: HistoryActions) {
   var open by remember { mutableStateOf(false) }
   Box {
     IconButton(onClick = { open = true }, modifier = Modifier.testTag("history-row-menu")) {
-      Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.history_more_options, website.safeLabel()))
+      Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.history_more_options, title))
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
       DropdownMenuItem(

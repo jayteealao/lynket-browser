@@ -36,7 +36,7 @@ Lynket is an all-Compose app in Kotlin. One activity holds every in-app screen o
 
 ## Building
 
-The Gradle project lives in `android-app/`. You need the JetBrains Runtime 21 (Android Studio's bundled JDK; see `android-app/CLAUDE.md` if Gradle does not find it) and the Android SDK with platform 37 (`compileSdk`; the app targets SDK 36). Run these from `android-app/`:
+The Gradle project lives in `android-app/`. You need the JetBrains Runtime 21 (Android Studio's bundled JDK; see `android-app/CLAUDE.md` if Gradle does not find it) and the Android SDK with platform 37 (`compileSdk`; the app targets SDK 36). Gradle checks every downloaded dependency against `android-app/gradle/verification-metadata.xml`, whose checksums were written on Windows; on a first build on Linux or macOS, AGP's aapt2 for that system fails the check, so run the checksum command under "Dependency changes" in `android-app/CLAUDE.md` once and review the diff. Run these from `android-app/`:
 
 | Task | Command |
 |---|---|
@@ -48,7 +48,7 @@ The Gradle project lives in `android-app/`. You need the JetBrains Runtime 21 (A
 | Check that no XML layout, View screen or kapt came back | `bash scripts/check-compose-only.sh` |
 | Build the benchmark app and the macrobenchmarks | `./gradlew :lynket:assembleBenchmark :benchmark:assembleBenchmark` |
 | Run the macrobenchmarks on a connected device | `./gradlew :benchmark:connectedBenchmarkAndroidTest` |
-| Generate the Baseline Profile on a connected device (API 33 or later) | `./gradlew :lynket:generateBaselineProfile` |
+| Generate the Baseline Profile on a Gradle Managed Device (an API 36 Google Play emulator that Gradle creates; needs x86_64 hardware acceleration, WHPX/Hyper-V on Windows, and about 1.9 GB of download on the first run) | `./gradlew :lynket:generateBaselineProfile` |
 
 The screenshot goldens are in `android-app/lynket/src/test/screenshots`; every screen has one in the light, dark and black themes at a phone and a fold window size. Device checks are bash scripts under `android-app/maestro/` that drive an emulator with adb and [Maestro](https://maestro.mobile.dev); each script's header says what it checks and what it needs. `maestro/charter/charter-check.sh <phone> <fold> <dir>` runs the whole path of a user who updates from release 2.1.3: `<phone>` and `<fold>` are adb serials, the 2.1.3 APK must be built first (`maestro/build-old-apk.sh`), and both devices are reinstalled, which clears the app's data.
 

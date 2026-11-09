@@ -18,7 +18,9 @@ import arun.com.chromer.data.history.ModernHistoryRepository
 import arun.com.chromer.data.history.RoomHistoryStore
 import arun.com.chromer.data.preferences.RecordingTree
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.util.TestClock
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -28,20 +30,29 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import timber.log.Timber
 import java.io.File
 import kotlin.random.Random
 
-/** A broken history database opens as empty history, with a logged error, no crash and the file kept. */
+/**
+ * A broken history database opens as empty history, with a logged error, no crash and the file kept.
+ *
+ * Beside a file of random bytes, four real SQLite files fail Room's own schema checks, one for each
+ * text of [HistoryDatabase.ROOM_SCHEMA_ERRORS] as Room 3.0.3 words it:
+ * - "Migration didn't properly handle": the tables still do not match after a migration;
+ * - "Room cannot verify the data integrity": the identity hash differs from the schema's;
+ * - "A migration from 4 to 3 was required but not found": a newer version with no way back;
+ * - "Pre-packaged database has an invalid schema": no identity row and tables that do not match.
+ * A Room update that rewords one of them fails its case here.
+ */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class HistoryDatabaseCorruptionTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()
   private val dbFile = context.getDatabasePath(ChromerDatabase.DATABASE_NAME)
   private val tree = RecordingTree()
-  private val historyDatabase = HistoryDatabase(context, LegacyHistoryImport(context))
+  private val clock = TestClock(1_234_567L)
+  private val historyDatabase = HistoryDatabase(context, LegacyHistoryImport(context, clock), clock)
 
   @Before
   fun plant() {
@@ -64,30 +75,108 @@ class HistoryDatabaseCorruptionTest {
   }
 
   @Test
-  fun aDatabaseWithAWrongHistoryTableOpensAsEmptyHistory() = runTest {
+  fun aMissingColumnIsRoomsMigrationErrorAndTheFileIsKept() = runTest {
     SQLiteDatabase.openOrCreateDatabase(dbFile, null).use { db ->
       db.execSQL("CREATE TABLE history (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, url TEXT NOT NULL)")
-      db.execSQL("INSERT INTO history (url) VALUES ('https://broken.example/')")
+      db.execSQL("INSERT INTO history (url) VALUES ('$BROKEN_URL')")
       db.version = 2
     }
 
     // Room opened the file in WAL mode before its check failed and rolled back, so the kept copy
     // differs in header bytes; what must hold is that the person's rows are still in it.
+    assertRoomSchemaErrorHandled("Migration didn't properly handle", BROKEN_URL)
+  }
+
+  @Test
+  fun aWrongIdentityHashIsRoomsIntegrityErrorAndTheFileIsKept() = runTest {
+    SQLiteDatabase.openOrCreateDatabase(dbFile, null).use { db ->
+      createVersion3Tables(db)
+      db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
+      db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '$WRONG_HASH')")
+      insertVersion3Row(db)
+      db.version = 3
+    }
+
+    assertRoomSchemaErrorHandled("Room cannot verify the data integrity", BROKEN_URL)
+  }
+
+  @Test
+  fun aNewerVersionWithNoMigrationIsRoomsMissingMigrationErrorAndTheFileIsKept() = runTest {
+    SQLiteDatabase.openOrCreateDatabase(dbFile, null).use { db ->
+      createVersion3Tables(db)
+      insertVersion3Row(db)
+      db.version = 4
+    }
+
+    assertRoomSchemaErrorHandled("was required but not found", BROKEN_URL)
+  }
+
+  @Test
+  fun tablesWithNoIdentityRowAreRoomsInvalidSchemaErrorAndTheFileIsKept() = runTest {
+    SQLiteDatabase.openOrCreateDatabase(dbFile, null).use { db ->
+      db.execSQL("CREATE TABLE history (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, url TEXT NOT NULL)")
+      db.execSQL("INSERT INTO history (url) VALUES ('$BROKEN_URL')")
+      db.version = 3
+    }
+
+    assertRoomSchemaErrorHandled("has an invalid schema", BROKEN_URL)
+  }
+
+  /**
+   * Checks that opening the file failed with Room's own schema error, that its text is the
+   * [expectedEntry] of [HistoryDatabase.ROOM_SCHEMA_ERRORS], that the file was treated as broken
+   * (not left in place for a retry), and that the kept copy still holds the row of [keptRowUrl].
+   */
+  private suspend fun assertRoomSchemaErrorHandled(expectedEntry: String, keptRowUrl: String) {
     assertBrokenFileHandled { kept ->
       SQLiteDatabase.openDatabase(kept.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
         db.rawQuery("SELECT url FROM history", null).use {
           assertThat(it.moveToFirst()).isTrue()
-          assertThat(it.getString(0)).isEqualTo("https://broken.example/")
+          assertThat(it.getString(0)).isEqualTo(keptRowUrl)
         }
       }
     }
+
+    val roomError = tree.throwables
+      .flatMap { logged -> generateSequence(logged) { it.cause }.toList() }
+      .firstOrNull { cause ->
+        cause is IllegalStateException && cause.stackTrace.any { it.className.startsWith("androidx.room3.") }
+      }
+    assertWithMessage("Room's IllegalStateException among the logged errors: %s", tree.throwables)
+      .that(roomError).isNotNull()
+    val message = roomError!!.message.orEmpty()
+    assertThat(message.lowercase()).contains(expectedEntry.lowercase())
+    assertThat(HistoryDatabase.ROOM_SCHEMA_ERRORS).contains(expectedEntry)
+    assertWithMessage("Room's text \"%s\" matches an entry of ROOM_SCHEMA_ERRORS", message)
+      .that(HistoryDatabase.ROOM_SCHEMA_ERRORS.any { message.contains(it, ignoreCase = true) }).isTrue()
+
+    assertThat(tree.errors.any { it.startsWith("History database could not be opened; history starts empty") })
+      .isTrue()
+    assertThat(tree.errors.none { it.contains("stays in place") }).isTrue()
+  }
+
+  /** Writes the tables and indexes of schema version 3 (`schemas/.../3.json`), with no identity row. */
+  private fun createVersion3Tables(db: SQLiteDatabase) {
+    db.execSQL(
+      "CREATE TABLE IF NOT EXISTS `history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+        "`url` TEXT NOT NULL, `title` TEXT, `favicon_url` TEXT, `canonical_url` TEXT, `theme_color` TEXT, " +
+        "`amp_url` TEXT, `bookmarked` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `visit_count` INTEGER NOT NULL)",
+    )
+    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_history_url` ON `history` (`url`)")
+    db.execSQL("CREATE INDEX IF NOT EXISTS `index_history_created_at` ON `history` (`created_at`)")
+  }
+
+  private fun insertVersion3Row(db: SQLiteDatabase) {
+    db.execSQL(
+      "INSERT INTO history (url, bookmarked, created_at, visit_count) VALUES ('$BROKEN_URL', 0, 1000, 1)",
+    )
   }
 
   private suspend fun assertBrokenFileHandled(original: ByteArray) =
     assertBrokenFileHandled { kept -> assertThat(kept.readBytes()).isEqualTo(original) }
 
   private suspend fun assertBrokenFileHandled(checkKept: (File) -> Unit) {
-    val store = RoomHistoryStore(historyDatabase)
+    val store = RoomHistoryStore(historyDatabase, clock)
     val history = ModernHistoryRepository(historyDatabase, Dispatchers.Unconfined)
 
     assertThat(history.getRecents().first()).isEmpty()
@@ -95,9 +184,15 @@ class HistoryDatabaseCorruptionTest {
     val kept = File(context.filesDir, HistoryDatabase.BROKEN_FOLDER).walk()
       .filter { it.name == ChromerDatabase.DATABASE_NAME }.toList()
     assertThat(kept).hasSize(1)
+    assertThat(kept[0].parentFile).isEqualTo(File(context.filesDir, "${HistoryDatabase.BROKEN_FOLDER}/1234567"))
     checkKept(kept[0])
 
     store.insert(Website("https://after.example/"))
     assertThat(history.getRecents().first().map { it.url }).containsExactly("https://after.example/")
+  }
+
+  private companion object {
+    const val BROKEN_URL = "https://broken.example/"
+    const val WRONG_HASH = "00000000000000000000000000000000"
   }
 }

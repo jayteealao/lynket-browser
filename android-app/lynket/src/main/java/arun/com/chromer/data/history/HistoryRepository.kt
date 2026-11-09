@@ -30,8 +30,11 @@ import arun.com.chromer.data.website.model.Website
 interface HistoryRepository {
   suspend fun get(website: Website): Website?
 
-  /** Records a visit: a new row, or one more visit and a new visit time for a stored URL. */
-  suspend fun insert(website: Website): Website
+  /**
+   * Records a visit: a new row, or one more visit and a new visit time for a stored URL, whose
+   * title and other details stay.
+   */
+  suspend fun insert(website: Website)
 
   suspend fun search(text: String): List<Website>
 }

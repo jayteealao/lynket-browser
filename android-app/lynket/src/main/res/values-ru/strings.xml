@@ -221,9 +221,8 @@
   <string name="article_theme">Тема статьи</string>
   <string name="article_mode_summary">Загружает лаконичный и удобный Режим чтения без лишнего мусора, сфокусировавшись исключительно на содержании.</string>
   <string name="amp_warning_title">Предупреждение AMP</string>
-  <string name="amp_warning_content"><![CDATA[В режиме <b>Слайд вверх</b> может пройти некоторое время, для захвата URL-адреса используя AMP. Вы можете увидеть диалоговое окно, когда это произойдет.]]></string>
+  <string name="amp_warning_content"><![CDATA[Вне режима <b>Плавающие кнопки</b> может пройти некоторое время, чтобы получить AMP-адрес сайта. Вы можете увидеть диалоговое окно, когда это произойдет.]]></string>
   <string name="title_activity_look_and_feel">Смотри и чувствуй</string>
-  <string name="not_available_in_slide_mode">Недоступно в режиме Слайд вверх</string>
   <string name="title_activity_browsing_options">Параметры просмотра</string>
   <string name="grabbing_amp_link">Захват AMP ссылки</string>
   <string name="link_found">Ссылка найдена!</string>
@@ -274,4 +273,6 @@
   <string name="minimize_normally">Минимизировать</string>
   <string name="minimize_to_web_head">Минимизировать и открывать заголовок всегда</string>
   <string name="minimize_behavior">Минимизировать поведение</string>
+  <string name="only_used_in_web_heads_mode">Используется только в режиме «Плавающие кнопки»</string>
+  <string name="minimize_always_opens_bubble">Сворачивание всегда открывает пузырёк</string>
 </resources>

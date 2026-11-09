@@ -228,9 +228,8 @@
   <string name="article_theme">Tema de artigo</string>
   <string name="article_mode_summary">Carregar um modo de leitura elegante sem nenhum extra, somente o conteúdo que interessa.</string>
   <string name="amp_warning_title">Aviso de AMP</string>
-  <string name="amp_warning_content"><![CDATA[No modo <b>Slide-over</b>, pode tomar um pequeno intervalo para obter os sites com URLs AMP. Você talvez verá um dialog enquanto isso acontece.]]></string>
+  <string name="amp_warning_content"><![CDATA[Fora do modo <b>Ícones flutuantes</b>, pode levar um pequeno intervalo para obter a URL AMP do site. Você talvez verá um diálogo enquanto isso acontece.]]></string>
   <string name="title_activity_look_and_feel">Aparência</string>
-  <string name="not_available_in_slide_mode">Não disponível no modo deslizar sobre</string>
   <string name="title_activity_browsing_options">Opções de navegação</string>
   <string name="grabbing_amp_link">Obtendo link AMP</string>
   <string name="link_found">Link encontrado!</string>
@@ -319,4 +318,6 @@
   <string name="minimize_normally">Minimizar normalmente</string>
   <string name="minimize_to_web_head">Minimizar e abrir web head sempre</string>
   <string name="minimize_behavior">Comportamento ao minimizar</string>
+  <string name="only_used_in_web_heads_mode">Usado apenas no modo Ícones flutuantes</string>
+  <string name="minimize_always_opens_bubble">Minimizar sempre abre uma bolha</string>
 </resources>

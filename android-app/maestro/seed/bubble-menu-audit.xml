@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  A settings file for the menu audit in native bubble mode, with the intro already passed. The
+  menu check fills the placeholders before it seeds the file: the bottom bar on or off, the
+  preferred action of the menu button (1 secondary browser, 2 favourite share app, 3 share), and
+  the browser and the share app the device has, as package/activity.
+-->
+<map>
+    <boolean name="webhead_enabled_pref" value="false" />
+    <boolean name="native_bubbles_preference" value="true" />
+    <boolean name="firstrun_3" value="false" />
+    <boolean name="bottombar_enabled_preference" value="@BOTTOM_BAR@" />
+    <string name="preferred_action_preference">@ACTION@</string>
+    <string name="secondary_preference">@BROWSER@</string>
+    <string name="fav_share_preference">@FAV_SHARE@</string>
+</map>

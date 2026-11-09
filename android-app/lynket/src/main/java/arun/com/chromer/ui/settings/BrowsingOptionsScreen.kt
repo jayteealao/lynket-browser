@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -82,6 +83,8 @@ import arun.com.chromer.ui.settings.components.SettingsRow
 import arun.com.chromer.ui.settings.components.SettingsScaffold
 import arun.com.chromer.ui.settings.components.settingsColumn
 import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.dropUnlessResumed
+import arun.com.chromer.ui.navigation.dropUnlessResumedWith
 
 /**
  * Browsing options: app preferences, behaviour, web head options and the bottom bar with the
@@ -89,7 +92,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun BrowsingOptionsScreen(navigator: LynketNavigator, viewModel: SettingsViewModel = hiltViewModel()) {
-  val context = LocalContext.current
+  val resources = LocalResources.current
   val values by viewModel.values.collectAsStateWithLifecycle()
   val dialogs by viewModel.dialogs.collectAsStateWithLifecycle()
   val labels by viewModel.appLabels.collectAsStateWithLifecycle()
@@ -104,9 +107,9 @@ fun BrowsingOptionsScreen(navigator: LynketNavigator, viewModel: SettingsViewMod
     values = values,
     labels = labels,
     snackbarHostState = snackbar,
-    onBack = { navigator.back() },
+    onBack = dropUnlessResumed { navigator.back() },
     onSet = viewModel::set,
-    onOpen = { navigator.navigate(it) },
+    onOpen = dropUnlessResumedWith { key: LynketKey -> navigator.navigate(key) },
     onPickApp = { picker = it },
   )
   picker?.let { key ->
@@ -121,7 +124,7 @@ fun BrowsingOptionsScreen(navigator: LynketNavigator, viewModel: SettingsViewMod
       onPick = { app ->
         picker = null
         viewModel.setApp(key, app.component)
-        val message = context.getString(if (secondary) R.string.secondary_browser_success else R.string.fav_share_success, app.label)
+        val message = resources.getString(if (secondary) R.string.secondary_browser_success else R.string.fav_share_success, app.label)
         scope.launch { snackbar.showSnackbar(message) }
       },
       onDismiss = { picker = null },
@@ -152,7 +155,7 @@ fun BrowsingOptionsContent(
 ) {
   var minimizeDialog by rememberSaveable { mutableStateOf(openList) }
   val minimizeChoices = listChoices(MINIMIZE_BEHAVIOR, R.array.minimizePreferenceValues, R.array.minimizePreferenceKeys)
-  val webHeadsNotice = if (SettingsRules.showsSlideOverNotice(values)) stringResource(R.string.not_available_in_slide_mode) else null
+  val webHeadsNotice = if (SettingsRules.showsOutsideWebHeadsNotice(values)) stringResource(R.string.only_used_in_web_heads_mode) else null
   SettingsScaffold(
     title = stringResource(R.string.settings_browsing_options),
     onBack = onBack,

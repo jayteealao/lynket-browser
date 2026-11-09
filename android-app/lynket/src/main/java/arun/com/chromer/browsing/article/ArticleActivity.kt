@@ -20,10 +20,12 @@
 
 package arun.com.chromer.browsing.article
 
+import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color as AndroidColor
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
@@ -87,6 +89,7 @@ class ArticleActivity : BrowsingActivity() {
     enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
     super.onCreate(savedInstanceState)
     val url = intent?.dataString ?: return // BrowsingActivity already closed with a message.
+    slideInFromTheBottom()
 
     viewModel.initTextSize(preferences.articleTextSizeIncrement())
     viewModel.load(url)
@@ -127,6 +130,32 @@ class ArticleActivity : BrowsingActivity() {
           modifier = Modifier.semantics { testTagsAsResourceId = true },
         )
       }
+    }
+  }
+
+  /**
+   * The reader rises from the bottom edge over the screen that opened it and leaves through the
+   * same edge; the screen behind does not move. With system animations off, there is no slide.
+   */
+  private fun slideInFromTheBottom() {
+    slidIn = true
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, R.anim.reader_slide_up, 0)
+      overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, R.anim.reader_slide_down)
+    } else {
+      @Suppress("DEPRECATION") // sdlc-debt: the call API 34 replaced with overrideActivityTransition, kept for older Android; drop it with minSdk 34
+      overridePendingTransition(R.anim.reader_slide_up, 0)
+    }
+  }
+
+  /** True once the reader rose with the slide; a reader that closes before that leaves as the system does. */
+  private var slidIn = false
+
+  override fun finish() {
+    super.finish()
+    if (slidIn && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      @Suppress("DEPRECATION") // sdlc-debt: the call API 34 replaced with overrideActivityTransition, kept for older Android; drop it with minSdk 34
+      overridePendingTransition(0, R.anim.reader_slide_down)
     }
   }
 

@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
@@ -94,7 +95,8 @@ internal val OPENABLE_LINK_SCHEMES = setOf("http", "https", "mailto")
 fun rememberArticleText(html: String, linkColour: Color): AnnotatedString {
   val uriHandler = LocalUriHandler.current
   val context = LocalContext.current
-  return remember(html, linkColour, uriHandler) {
+  val resources = LocalResources.current
+  return remember(html, linkColour, uriHandler, resources) {
     AnnotatedString.fromHtml(
       htmlString = html,
       linkStyles = TextLinkStyles(SpanStyle(color = linkColour, textDecoration = TextDecoration.Underline)),
@@ -108,7 +110,7 @@ fun rememberArticleText(html: String, linkColour: Color): AnnotatedString {
           uriHandler.openUri(url)
         } catch (e: Exception) {
           Timber.w(e, "Could not open %s", url)
-          Toast.makeText(context, R.string.unsupported_link, Toast.LENGTH_SHORT).show()
+          Toast.makeText(context, resources.getString(R.string.unsupported_link), Toast.LENGTH_SHORT).show()
         }
       },
     )

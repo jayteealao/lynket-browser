@@ -49,13 +49,15 @@ android {
     buildTypes {
         release {
             resValue("string", "app_name", "Lynket")
-            isMinifyEnabled = true
-            isShrinkResources = true
             isDebuggable = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            // R8 code and resource shrinking. AGP adds proguard-android-optimize.txt (includeDefault) and
+            // the app rules in src/main/keepRules/*.keep, which also reach the benchmark build type.
+            optimization {
+                enable = true
+                keepRules {
+                    includeDefault = true
+                }
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -67,6 +69,7 @@ android {
         }
         // Release-like build used only by the :benchmark module to measure start-up and frame times.
         create("benchmark") {
+            // initWith copies release's optimization block: R8 and resource shrinking with the same rules.
             initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
@@ -117,6 +120,7 @@ dependencies {
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.webkit)
 
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime)
@@ -148,6 +152,15 @@ dependencies {
     testImplementation(libs.hilt.android.testing)
     kspTest(libs.hilt.compiler)
     androidTestImplementation(libs.hilt.android.testing)
+    // HiltTestRunner extends AndroidJUnitRunner, which comes from androidx.test:runner
+    androidTestImplementation(libs.androidx.test.runner)
+    // The emulator bubble tests run with the AndroidJUnit4 runner of the AndroidX JUnit extension
+    androidTestImplementation(libs.androidx.junit)
+    // InstrumentationRegistry and the app context the emulator bubble tests post from
+    androidTestImplementation(libs.androidx.test.core)
+    // Assertions of the emulator bubble tests, the same library as the unit tests
+    androidTestImplementation(libs.truth)
+    // Generates the Hilt test components that inject the real bubble classes into the emulator tests
     kspAndroidTest(libs.hilt.compiler)
 
     // Coroutines
@@ -188,15 +201,13 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.androidx.lifecycle.viewmodel.testing)
+    testImplementation(libs.androidx.paging.testing)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
 
     // Pull to refresh around the web view, and website and app colours
     implementation(libs.androidx.swiperefreshlayout)
@@ -239,9 +250,7 @@ kotlin {
         freeCompilerArgs.addAll(
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-opt-in=kotlinx.coroutines.FlowPreview",
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
-            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
         )
     }
 }

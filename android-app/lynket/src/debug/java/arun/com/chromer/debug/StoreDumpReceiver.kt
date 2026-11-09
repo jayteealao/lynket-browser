@@ -22,10 +22,10 @@ import arun.com.chromer.data.preferences.LegacySettingsMigration
 import arun.com.chromer.data.preferences.SettingType
 import arun.com.chromer.data.preferences.SettingsSchema
 import arun.com.chromer.data.preferences.UserPreferencesRepository
-import arun.com.chromer.data.preferences.raw
 import arun.com.chromer.data.preferences.readBoolean
 import arun.com.chromer.data.preferences.readInt
 import arun.com.chromer.data.preferences.readString
+import arun.com.chromer.data.preferences.storedValue
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +81,7 @@ class StoreDumpReceiver : BroadcastReceiver() {
 
     val settings = StringBuilder("key\tstored_type\tstored_value\treader_value\n")
     for (key in SettingsSchema.keys) {
-      val raw = stored.raw(key.name)
+      val raw = stored.storedValue(key.preferenceKey)
       val reader: Any? = when (key.type) {
         SettingType.BOOLEAN -> stored.readBoolean(key.name, key.default(context) as Boolean)
         SettingType.INT -> stored.readInt(key.name, key.default(context) as Int)
@@ -89,9 +89,9 @@ class StoreDumpReceiver : BroadcastReceiver() {
       }
       settings.row(key.name, typeOf(raw), raw, reader)
     }
-    stored.asMap().keys.map { it.name }.filter { SettingsSchema[it] == null }.sorted().forEach { name ->
-      val raw = stored.raw(name)
-      settings.row(name, typeOf(raw), raw, "")
+    // The one walk of every stored key: the keys outside the schema, each with its own value.
+    stored.asMap().filterKeys { SettingsSchema[it.name] == null }.entries.sortedBy { it.key.name }.forEach { (key, raw) ->
+      settings.row(key.name, typeOf(raw), raw, "")
     }
     File(out, "settings.tsv").writeText(settings.toString())
 

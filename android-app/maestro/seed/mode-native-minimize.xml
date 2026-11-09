@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  A settings file in native bubble mode whose Minimize choice is to open a web head, with the
+  intro already passed: the way back to web heads shows that choice again.
+-->
+<map>
+    <boolean name="webhead_enabled_pref" value="false" />
+    <boolean name="native_bubbles_preference" value="true" />
+    <string name="minimize_behavior_preference">2</string>
+    <boolean name="firstrun_3" value="false" />
+</map>

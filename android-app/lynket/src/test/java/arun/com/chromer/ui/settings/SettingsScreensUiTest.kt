@@ -23,7 +23,12 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -31,23 +36,37 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.R
 import arun.com.chromer.browsing.providerselection.ModernProviderSelectionViewModel.ProviderSelectionUiState
 import arun.com.chromer.data.apps.model.Provider
+import arun.com.chromer.data.preferences.BrowsingMode
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.navigation.LynketKey
 import arun.com.chromer.ui.providerselection.ProviderSelectionContent
+import arun.com.chromer.ui.settings.SettingsKeyTable.AGGRESSIVE_LOADING
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SHEET
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SIDE_SHEET
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_SPEED
 import arun.com.chromer.ui.settings.SettingsKeyTable.ANIMATION_TYPE
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.DYNAMIC_COLOR_APP
+import arun.com.chromer.ui.settings.SettingsKeyTable.MINIMIZE_BEHAVIOR
+import arun.com.chromer.ui.settings.SettingsKeyTable.NATIVE_BUBBLES
 import arun.com.chromer.ui.settings.SettingsKeyTable.PREFERRED_ACTION
 import arun.com.chromer.ui.settings.SettingsKeyTable.THEME_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR
 import arun.com.chromer.ui.settings.SettingsKeyTable.TOOLBAR_COLOR_PREF
+import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEADS_COLOR
+import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_CLOSE_ON_OPEN
 import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_ENABLED
+import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_SIZE
+import arun.com.chromer.ui.settings.SettingsKeyTable.WEB_HEAD_SPAWN
+import arun.com.chromer.ui.settings.components.hexOf
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import com.google.common.truth.Truth.assertThat
@@ -58,11 +77,14 @@ import org.robolectric.annotation.Config
 
 /** Each settings screen: its rows, the rows that follow another, and where each row leads. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class SettingsScreensUiTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val context: Application get() = ApplicationProvider.getApplicationContext()
   private val defaults: SettingsValues get() = SettingsValues.from(emptyPreferences(), context)
@@ -131,6 +153,86 @@ class SettingsScreensUiTest {
     assertThat(writes).containsExactly(SettingsKeyTable.AMP_MODE to true, SettingsKeyTable.ARTICLE_MODE to true).inOrder()
   }
 
+  // Browsing mode: the sheet options of slide over
+
+  private val sheetRow = "row-$CUSTOM_TAB_SHEET"
+  private val sideSheetRow = "row-$CUSTOM_TAB_SIDE_SHEET"
+
+  private fun browsingMode(values: SettingsValues) = show {
+    BrowsingModeContent(values, showNativeBubbles = true, onBack = {}, onMode = {}, onSet = { k, v -> writes += k to v })
+  }
+
+  private fun top(tag: String) = row(tag).getUnclippedBoundsInRoot().top
+
+  @Test
+  fun slideOverShowsTheSheetOptionOffAndKeepsEveryModeInItsPlace() {
+    browsingMode(defaults)
+    row("mode-slide-over").assertIsSelected()
+    row(sheetRow).assertIsDisplayed().assertIsOff()
+    composeRule.onNodeWithTag(sideSheetRow).assertDoesNotExist()
+    val tops = listOf("mode-slide-over", sheetRow, "mode-web-heads", "mode-native-bubbles").map(::top)
+    assertThat(tops).isInStrictOrder()
+  }
+
+  @Test
+  fun theSheetOnShowsTheSideSheetOptionOnBetweenItAndWebHeads() {
+    browsingMode(slideOver.with(CUSTOM_TAB_SHEET to true))
+    row(sheetRow).assertIsOn()
+    row(sideSheetRow).assertIsDisplayed().assertIsOn()
+    assertThat(top(sideSheetRow)).isGreaterThan(top(sheetRow))
+    assertThat(top(sideSheetRow)).isLessThan(top("mode-web-heads"))
+  }
+
+  @Test
+  fun webHeadsHideBothSheetOptions() {
+    browsingMode(webHeads.with(CUSTOM_TAB_SHEET to true))
+    row("mode-web-heads").assertIsSelected()
+    composeRule.onNodeWithTag(sheetRow).assertDoesNotExist()
+    composeRule.onNodeWithTag(sideSheetRow).assertDoesNotExist()
+  }
+
+  @Test
+  fun nativeBubblesHideBothSheetOptions() {
+    browsingMode(nativeBubbles.with(CUSTOM_TAB_SHEET to true))
+    row("mode-native-bubbles").assertIsSelected()
+    composeRule.onNodeWithTag(sheetRow).assertDoesNotExist()
+    composeRule.onNodeWithTag(sideSheetRow).assertDoesNotExist()
+  }
+
+  @Test
+  fun aTapOnTheSheetOptionTurnsItOn() {
+    browsingMode(defaults)
+    row(sheetRow).performClick()
+    assertThat(writes).containsExactly(CUSTOM_TAB_SHEET to true)
+  }
+
+  @Test
+  fun bothSheetOptionsSitIndentedUnderSlideOver() {
+    browsingMode(slideOver.with(CUSTOM_TAB_SHEET to true))
+    val slideOverLeft = row("mode-slide-over").getUnclippedBoundsInRoot().left
+    listOf(
+      sheetRow to string(R.string.custom_tab_sheet_title),
+      sideSheetRow to string(R.string.custom_tab_side_sheet_title),
+    ).forEach { (tag, title) ->
+      val rowBounds = row(tag).getUnclippedBoundsInRoot()
+      assertThat(rowBounds.left).isEqualTo(slideOverLeft)
+      val titleLeft = composeRule.onNodeWithText(title, useUnmergedTree = true).getUnclippedBoundsInRoot().left
+      // The 40 dp indent comes before the list item's own start padding.
+      assertThat(titleLeft - rowBounds.left).isAtLeast(40.dp + 16.dp)
+    }
+  }
+
+  @Test
+  fun theSheetOptionsShowTheirTitlesAndSummaries() {
+    browsingMode(slideOver.with(CUSTOM_TAB_SHEET to true))
+    row(sheetRow)
+      .assertTextContains("Open as a sheet")
+      .assertTextContains("Pages open over the app you came from. Drag up for full screen.")
+    row(sideSheetRow)
+      .assertTextContains("Side sheet on wide screens")
+      .assertTextContains("On a wide screen, such as a tablet or an unfolded phone, pages open at the side.")
+  }
+
   // Look and feel
 
   private fun lookAndFeel(values: SettingsValues, wallpaper: Boolean = true, openList: String? = null, openColour: String? = null) = show {
@@ -184,11 +286,72 @@ class SettingsScreensUiTest {
     row("row-$ANIMATION_SPEED").assertIsNotEnabled()
   }
 
+  // The web head rows in each browsing mode
+
+  private val nativeBubbles: SettingsValues get() = defaults.with(WEB_HEAD_ENABLED to false, NATIVE_BUBBLES to true)
+  private val slideOver: SettingsValues get() = defaults.with(WEB_HEAD_ENABLED to false, NATIVE_BUBBLES to false)
+  private val webHeads: SettingsValues get() = defaults.with(WEB_HEAD_ENABLED to true, NATIVE_BUBBLES to false)
+
+  /** The label of the stored choice of a list setting, as its row shows it. */
+  private fun choiceLabel(values: SettingsValues, key: String, labels: Int, keys: Int): String {
+    val index = context.resources.getStringArray(keys).indexOf(values.values[key].toString())
+    return context.resources.getStringArray(labels)[index]
+  }
+
+  /** The whole note shows under the Web heads label, so a cut-off note fails. */
+  private fun assertTheWebHeadsNoteShows() {
+    composeRule.onNodeWithTag("group-note").assertTextEquals(string(R.string.only_used_in_web_heads_mode))
+  }
+
+  /** The row is grey, reads as disabled with [summary], and a tap writes nothing and opens nothing. */
+  private fun assertGreyRow(key: String, summary: String) {
+    row("row-$key").assertIsNotEnabled().assertTextContains(summary).performClick()
+    composeRule.waitForIdle()
+    assertThat(writes).isEmpty()
+    composeRule.onNodeWithTag("list-dialog").assertDoesNotExist()
+    composeRule.onNodeWithTag("colour-hex").assertDoesNotExist()
+  }
+
+  private fun assertLookAndFeelWebHeadRowsAreGreyUnderTheNote(values: SettingsValues) {
+    lookAndFeel(values)
+    assertGreyRow(WEB_HEADS_COLOR, hexOf(values.int(WEB_HEADS_COLOR)))
+    assertGreyRow(WEB_HEAD_SPAWN, choiceLabel(values, WEB_HEAD_SPAWN, R.array.webHeadsSpawnValues, R.array.webHeadsSpawnKeys))
+    assertGreyRow(WEB_HEAD_SIZE, choiceLabel(values, WEB_HEAD_SIZE, R.array.webHeadsSizeValues, R.array.webHeadsSizeKeys))
+    assertTheWebHeadsNoteShows()
+  }
+
+  private fun assertBrowsingOptionsWebHeadRowsAreGreyUnderTheNote(values: SettingsValues) {
+    browsingOptions(values)
+    assertGreyRow(AGGRESSIVE_LOADING, string(R.string.aggressive_background_loading_desc))
+    assertGreyRow(WEB_HEAD_CLOSE_ON_OPEN, string(R.string.web_close_on_open_desc))
+    assertTheWebHeadsNoteShows()
+  }
+
   @Test
-  fun webHeadRowsCarryTheSlideOverNoticeAndAreDisabled() {
-    lookAndFeel(defaults.with(WEB_HEAD_ENABLED to false))
-    row("row-${SettingsKeyTable.WEB_HEAD_SIZE}").assertIsNotEnabled()
-    composeRule.onAllNodesWithTag("slide-over-notice")[0].assertExists()
+  fun lookAndFeelWebHeadRowsAreGreyUnderTheNoteInNativeBubbleMode() =
+    assertLookAndFeelWebHeadRowsAreGreyUnderTheNote(nativeBubbles)
+
+  @Test
+  fun lookAndFeelWebHeadRowsAreGreyUnderTheNoteInSlideOverMode() =
+    assertLookAndFeelWebHeadRowsAreGreyUnderTheNote(slideOver)
+
+  @Test
+  fun browsingOptionsWebHeadRowsAreGreyUnderTheNoteInNativeBubbleMode() =
+    assertBrowsingOptionsWebHeadRowsAreGreyUnderTheNote(nativeBubbles)
+
+  @Test
+  fun browsingOptionsWebHeadRowsAreGreyUnderTheNoteInSlideOverMode() =
+    assertBrowsingOptionsWebHeadRowsAreGreyUnderTheNote(slideOver)
+
+  @Test
+  fun lookAndFeelWebHeadRowsTakeInputWithNoNoteInWebHeadsMode() {
+    lookAndFeel(webHeads)
+    row("row-$WEB_HEADS_COLOR").assertIsEnabled()
+    row("row-$WEB_HEAD_SPAWN").assertIsEnabled()
+    row("row-$WEB_HEAD_SIZE").assertIsEnabled()
+    composeRule.onAllNodesWithTag("group-note").assertCountEquals(0)
+    row("row-$WEB_HEAD_SIZE").performClick()
+    composeRule.onNodeWithTag("list-dialog").assertIsDisplayed()
   }
 
   @Test
@@ -241,17 +404,42 @@ class SettingsScreensUiTest {
   }
 
   @Test
-  fun webHeadOptionsNeedWebHeads() {
-    browsingOptions(defaults.with(WEB_HEAD_ENABLED to false))
-    row("row-${SettingsKeyTable.AGGRESSIVE_LOADING}").assertIsNotEnabled()
-    row("row-${SettingsKeyTable.WEB_HEAD_CLOSE_ON_OPEN}").assertIsNotEnabled()
+  fun webHeadOptionsWriteWithWebHeadsOn() {
+    browsingOptions(webHeads)
+    row("row-$WEB_HEAD_CLOSE_ON_OPEN").assertIsEnabled()
+    composeRule.onAllNodesWithTag("group-note").assertCountEquals(0)
+    row("row-$AGGRESSIVE_LOADING").assertIsEnabled().performClick()
+    assertThat(writes.single().first).isEqualTo(AGGRESSIVE_LOADING)
+  }
+
+  // The Minimize behavior row in each browsing mode
+
+  private val minimizeNormally: String get() = context.resources.getStringArray(R.array.minimizePreferenceKeys)[0]
+  private val minimizeToWebHead: String get() = context.resources.getStringArray(R.array.minimizePreferenceKeys)[1]
+
+  @Test
+  fun minimizeIsGreyAndSaysItOpensABubbleInNativeBubbleMode() {
+    browsingOptions(nativeBubbles.with(MINIMIZE_BEHAVIOR to minimizeToWebHead))
+    row("row-$MINIMIZE_BEHAVIOR").assert(!hasText(string(R.string.minimize_to_web_head)))
+    assertGreyRow(MINIMIZE_BEHAVIOR, string(R.string.minimize_always_opens_bubble))
   }
 
   @Test
-  fun webHeadOptionsWriteWithWebHeadsOn() {
-    browsingOptions(defaults.with(WEB_HEAD_ENABLED to true))
-    row("row-${SettingsKeyTable.AGGRESSIVE_LOADING}").assertIsEnabled().performClick()
-    assertThat(writes.single().first).isEqualTo(SettingsKeyTable.AGGRESSIVE_LOADING)
+  fun minimizeShowsTheChosenChoiceAndOpensItInSlideOverMode() {
+    browsingOptions(slideOver.with(MINIMIZE_BEHAVIOR to minimizeNormally))
+    row("row-$MINIMIZE_BEHAVIOR").assertIsEnabled()
+      .assertTextContains(string(R.string.minimize_normally))
+      .assert(!hasText(string(R.string.minimize_always_opens_bubble)))
+      .performClick()
+    composeRule.onNodeWithTag("list-dialog").assertIsDisplayed()
+  }
+
+  @Test
+  fun minimizeShowsTheChosenChoiceInWebHeadsMode() {
+    browsingOptions(webHeads.with(MINIMIZE_BEHAVIOR to minimizeToWebHead))
+    row("row-$MINIMIZE_BEHAVIOR").assertIsEnabled()
+      .assertTextContains(string(R.string.minimize_to_web_head))
+      .assert(!hasText(string(R.string.minimize_always_opens_bubble)))
   }
 
   @Test

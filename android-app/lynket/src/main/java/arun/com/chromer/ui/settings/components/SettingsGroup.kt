@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -70,6 +71,9 @@ class SettingsGroupScope internal constructor() {
 /**
  * A settings group: a section label in the primary colour, an optional notice line, and the rows
  * in one 16 dp rounded container with 1 dp dividers between them.
+ *
+ * The notice is a neutral note line in on-surface-variant, not an error: it tells the person when
+ * the rows of the group apply, for example "Only used in web heads mode".
  */
 @Composable
 fun SettingsGroup(
@@ -92,8 +96,8 @@ fun SettingsGroup(
       Text(
         text = notice,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.error,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp).testTag("slide-over-notice"),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp).testTag("group-note"),
       )
     }
     Surface(
@@ -163,9 +167,9 @@ fun Modifier.settingsColumn(): Modifier = widthIn(max = 680.dp).fillMaxWidth()
 @Composable
 private fun SettingsGroupPreview() {
   ChromerTheme {
-    SettingsGroup(label = "Browsing mode", notice = "Not available during slide-over mode") {
-      row { SettingsRow("Slide over", icon = RowIcon(Icons.Outlined.Layers), control = RowControl.Radio(true), onClick = {}) }
-      row { SettingsRow("Web heads", control = RowControl.Radio(false), onClick = {}) }
+    SettingsGroup(label = "Web heads", notice = "Only used in web heads mode") {
+      row { SettingsRow("Size", icon = RowIcon(Icons.Outlined.Layers), summary = AnnotatedString("Normal"), enabled = false, onClick = {}) }
+      row { SettingsRow("Initial spawn location", summary = AnnotatedString("Right"), enabled = false, onClick = {}) }
     }
   }
 }

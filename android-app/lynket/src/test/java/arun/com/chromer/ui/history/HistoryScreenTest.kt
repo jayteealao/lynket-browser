@@ -16,6 +16,8 @@ import android.app.Application
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -39,6 +41,7 @@ import arun.com.chromer.history.HistoryUiState
 import arun.com.chromer.history.ModernHistoryViewModel
 import arun.com.chromer.settings.Preferences
 import arun.com.chromer.tabs.TabsManager
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import arun.com.chromer.util.events.Event
@@ -59,6 +62,13 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 import java.util.concurrent.TimeUnit
+import arun.com.chromer.util.TestClock
+import arun.com.chromer.util.setMillis
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
+import java.util.TimeZone
 
 /**
  * The History screen with fakes: the old controls in their order, the empty, loading and error
@@ -66,7 +76,7 @@ import java.util.concurrent.TimeUnit
  */
 @RunWith(AndroidJUnit4::class)
 // A phone-sized window: the default Robolectric screen is too short for the switches and the first day.
-@Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class HistoryScreenTest {
 
   @get:Rule(order = 0)
@@ -74,6 +84,9 @@ class HistoryScreenTest {
 
   @get:Rule(order = 1)
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val log = mutableListOf<String>()
 
@@ -120,8 +133,17 @@ class HistoryScreenTest {
     composeRule.onNodeWithTag("history-clear-all").assertExists()
     composeRule.onNodeWithText("Today").assertExists()
     composeRule.onNodeWithText("Yesterday").assertExists()
-    composeRule.onNodeWithText("https://seed.example/page-001").assertExists()
+    composeRule.onNodeWithText("seed.example/page-001").assertExists()
+    composeRule.onNodeWithText("https://seed.example/page-001").assertDoesNotExist()
     composeRule.onAllNodesWithTag("history-amp").assertCountEquals(1)
+  }
+
+  @Test
+  fun anUntitledPageIsTitledByItsHostAndNeverShowsItsUrl() {
+    show(flowOf(loaded(listOf(Website(null, "https://github.com/", null, null, null, null, false, TEST_NOW - 3_600_000L, 1)))))
+    composeRule.onNodeWithTag("history-address", useUnmergedTree = true).assertTextEquals("github.com")
+    composeRule.onAllNodesWithText("github.com", useUnmergedTree = true).assertCountEquals(2)
+    composeRule.onNodeWithText("https://github.com/", substring = true, useUnmergedTree = true).assertDoesNotExist()
   }
 
   @Test
@@ -207,7 +229,7 @@ class HistoryScreenTest {
       val q = firstArg<String>()
       flowOf(PagingData.from(testSites.filter { it.title!!.contains(q, ignoreCase = true) }))
     }
-    val viewModel = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager)
+    val viewModel = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager, TestClock(TEST_NOW))
     composeRule.setContent { ChromerTheme(themeMode = ThemeMode.Light) { HistoryScreen(onBack = {}, viewModel = viewModel) } }
     composeRule.waitForIdle()
     return viewModel
@@ -269,5 +291,43 @@ class HistoryScreenTest {
       preferencesRepository.setValues(mapOf(Preferences.FULL_INCOGNITO_MODE to true, Preferences.INCOGNITO_MODE to true))
     }
     composeRule.onNodeWithTag("history-switch").assertIsOff()
+  }
+
+  @Test
+  fun theDayHeadersFollowTheAppClockNotTheDeviceTime() {
+    val zone = TimeZone.getDefault()
+    TimeZone.setDefault(TEST_ZONE)
+    try {
+      val dayStart = TEST_NOW - TEST_NOW % DAY_MS
+      val visit = Website("Late visit", "https://late.example/", null, null, null, null, false, dayStart + 23 * HOUR_MS + 58 * MINUTE_MS, 1)
+      every { preferences.historyDisabled() } returns false
+      every { preferences.fullIncognitoMode() } returns false
+      every { preferences.customTabPackage() } returns null
+      every { repository.getPagedHistory() } returns flowOf(PagingData.from(listOf(visit)))
+      val clock = TestClock(dayStart + 23 * HOUR_MS + 59 * MINUTE_MS)
+      val viewModel = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager, clock)
+      var composition by mutableIntStateOf(0)
+      composeRule.setContent {
+        ChromerTheme(themeMode = ThemeMode.Light) { key(composition) { HistoryScreen(onBack = {}, viewModel = viewModel) } }
+      }
+      composeRule.waitForIdle()
+      composeRule.onNodeWithText("Today").assertExists()
+      composeRule.onNodeWithText("Yesterday").assertDoesNotExist()
+
+      clock.setMillis(dayStart + DAY_MS + MINUTE_MS)
+      composition++
+      composeRule.waitForIdle()
+
+      composeRule.onNodeWithText("Yesterday").assertExists()
+      composeRule.onNodeWithText("Today").assertDoesNotExist()
+    } finally {
+      TimeZone.setDefault(zone)
+    }
+  }
+
+  private companion object {
+    const val MINUTE_MS = 60_000L
+    const val HOUR_MS = 60 * MINUTE_MS
+    const val DAY_MS = 24 * HOUR_MS
   }
 }

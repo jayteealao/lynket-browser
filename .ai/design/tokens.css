@@ -1,0 +1,45 @@
+/* From DESIGN.md, ## Colors. wf.mjs design tokens writes this file; do not edit it. */
+:root {
+  --brand: #3F51B5;
+  --primary: #515B92;
+  --on-primary: #FEFBFF;
+  --primary-container: #DEE0FF;
+  --on-primary-container: #0B154B;
+  --surface: #FBF8FF;
+  --on-surface: #1B1B21;
+  --on-surface-variant: #46464F;
+  --surface-container: #EFEDF4;
+  --surface-container-high: #E9E7EF;
+  --outline: #767680;
+  --outline-variant: #C7C5D0;
+  --inverse-surface: #303036;
+  --inverse-on-surface: #F2EFF7;
+  --inverse-primary: #BAC3FF;
+  --scrim: #0D0E13;
+  --primary-dark: #BAC3FF;
+  --outline-dark: #90909A;
+  --surface-dark: #121318;
+  --on-surface-dark: #E4E1E9;
+  --on-surface-variant-dark: #C7C5D0;
+  --surface-container-dark: #1F1F25;
+  --surface-container-high-dark: #29292F;
+  --inverse-surface-dark: #E4E1E9;
+  --inverse-on-surface-dark: #303036;
+  --inverse-primary-dark: #515B92;
+  --surface-container-highest: #E4E1E9;
+  --error: #BA1A1A;
+  --on-error: #FFFBFF;
+  --surface-container-highest-dark: #34343A;
+  --error-dark: #FFB4AB;
+  --on-error-dark: #690005;
+  --error-container: #FFDAD6;
+  --on-error-container: #410002;
+  --error-container-dark: #93000A;
+  --on-error-container-dark: #FFDAD6;
+  --tertiary: #9A4059;
+  --on-tertiary: #FFFBFF;
+  --tertiary-dark: #FFB1C1;
+  --on-tertiary-dark: #5F112C;
+  --surface-container-lowest: #FEFBFF;
+  --surface-container-lowest-dark: #0D0E13;
+}

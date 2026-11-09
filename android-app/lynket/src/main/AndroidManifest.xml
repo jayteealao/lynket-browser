@@ -50,10 +50,6 @@
     tools:ignore="GoogleAppIndexingWarning"
     tools:targetApi="n">
     <service
-      android:name=".browsing.customtabs.dynamictoolbar.AppColorExtractorJob"
-      android:exported="false"
-      android:permission="android.permission.BIND_JOB_SERVICE" />
-    <service
       android:name="arun.com.chromer.bubbles.webheads.WebHeadService"
       android:enabled="true"
       android:exported="false"
@@ -115,6 +111,11 @@
     <receiver android:name=".browsing.customtabs.callbacks.OpenInChromeReceiver" />
     <receiver android:name=".browsing.customtabs.callbacks.MinimizeBroadcastReceiver" />
     <receiver android:name=".browsing.customtabs.bottombar.BottomBarReceiver" />
+    <!-- Only a bubble's delete intent (API 29 and later) sends it. -->
+    <receiver
+      android:name=".bubbles.system.BubbleDismissReceiver"
+      android:exported="false"
+      tools:targetApi="29" />
 
     <!-- Modern Compose-based main activity (Phase 3) -->
     <activity

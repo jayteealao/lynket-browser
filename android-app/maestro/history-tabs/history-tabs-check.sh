@@ -14,6 +14,18 @@
 #                 and opens no new task (tabs-reorder.yaml)
 #   back-gesture  home, then History from the drawer; a back swipe held mid-way shows home behind
 #                 the screen, and releasing it returns home (run it on the fold)
+#   worst         the worst addresses people keep (a long host with a deep path, an untitled
+#                 host-only page, an IP address with a query, an untitled file: download, a
+#                 content: address) seeded straight into the database: History, then Tabs with a
+#                 long, a host-only and an IP address, then Tabs again at 200% font (worst-*.png and
+#                 their UI trees; no address line shows https:// or www.)
+#   motion        rows over two days; at a tenfold animation scale, row-motion.yaml swipes the
+#                 second row away and taps Undo, then closes the second of three tabs, while the
+#                 Android CLI takes frames about every 150 ms (motion-frames/) and the screen is
+#                 recorded (motion.mp4)
+#   motion-off    the same at animation scale 0, then one more delete with two frames 100 ms apart
+#                 that both show the rows in their final place
+# worst, motion and motion-off restore the font and animation scales on exit.
 #
 # Usage: maestro/history-tabs/history-tabs-check.sh <serial> <evidence-dir> <mode>   (from android-app/)
 # SEED=direct skips history-check.sh and writes the 500 rows straight into the database.
@@ -21,7 +33,7 @@
 # the app, which clears its data on that device.
 set -euo pipefail
 
-USAGE="usage: history-tabs-check.sh <serial> <evidence-dir> <legacy|captures|clear-all|tabs-reorder|back-gesture>"
+USAGE="usage: history-tabs-check.sh <serial> <evidence-dir> <legacy|captures|clear-all|tabs-reorder|back-gesture|worst|motion|motion-off>"
 SERIAL="${1:?$USAGE}"
 OUT="${2:?$USAGE}"
 MODE="${3:?$USAGE}"
@@ -135,11 +147,24 @@ seed_history() {  # $1 = evidence sub-folder
   seed_rows
 }
 
-# 500 rows written into the app's own history database (fresh install): one every 20 minutes back
-# from now, so they span about a week; every 10th row has an AMP address. Same titles and
-# addresses as history-check.sh appends ("Seed page NNN", https://seed.example/page-NNN).
+# The 500 rows of seed_rows: one every 20 minutes back from now, so they span about a week; every
+# 10th row has an AMP address. Same titles and addresses as history-check.sh appends ("Seed page
+# NNN", https://seed.example/page-NNN).
+seed_500_sql() {  # $1 = now in ms
+  local n nnn amp
+  for n in $(seq 1 500); do
+    nnn="$(printf '%03d' "$n")"
+    amp="NULL"; [ $((n % 10)) -eq 0 ] && amp="'https://seed.example/amp/page-$nnn'"
+    echo "INSERT INTO history (url, title, amp_url, bookmarked, created_at, visit_count) VALUES ('https://seed.example/page-$nnn', 'Seed page $nnn', $amp, 0, $(($1 - n * 1200000)), $((n % 7 + 1)));"
+  done
+}
+
+# Rows written into the app's own history database (fresh install). With no arguments, the 500
+# rows of seed_500_sql; else $1 names a function that prints the INSERT statements for a given
+# now, and $2 is the number of rows it writes.
 seed_rows() {
-  local tmp now n nnn
+  local sql="${1:-seed_500_sql}" want="${2:-500}"
+  local tmp now
   tmp="$(hostpath "$(mktemp -d)")"
   fresh_install
   # The history database is created on first use: open the History screen once.
@@ -164,11 +189,7 @@ seed_rows() {
   now="$(($(date +%s) * 1000))"
   {
     echo "BEGIN;"
-    for n in $(seq 1 500); do
-      nnn="$(printf '%03d' "$n")"
-      amp="NULL"; [ $((n % 10)) -eq 0 ] && amp="'https://seed.example/amp/page-$nnn'"
-      echo "INSERT INTO history (url, title, amp_url, bookmarked, created_at, visit_count) VALUES ('https://seed.example/page-$nnn', 'Seed page $nnn', $amp, 0, $((now - n * 1200000)), $((n % 7 + 1)));"
-    done
+    "$sql" "$now"
     echo "COMMIT;"
     echo "PRAGMA wal_checkpoint(TRUNCATE);"
     echo "PRAGMA journal_mode=DELETE;"
@@ -179,7 +200,7 @@ seed_rows() {
   rows="$(sqlite3 "$tmp/chromer.db" 'select count(*) from history;' | tr -d '\r')"
   rm -rf "$tmp"
   log "seeded rows: $rows"
-  [ "$rows" = 500 ] || fail "the history database holds $rows rows after seeding"
+  [ "$rows" = "$want" ] || fail "the history database holds $rows rows after seeding"
 }
 
 # Centre of the first node matching the grep arguments, from a fresh dump; empty if none.
@@ -419,6 +440,136 @@ legacy() {
   log "legacy captures done"
 }
 
+# The Android CLI's capture of the screen. The Android CLI has no recorder and no settings
+# command, so the screen recording and the animation and font settings below stay on adb.
+cli_shot() {  # $1 = name
+  android screen capture --device="$SERIAL" --output="$OUT/$1.png" >/dev/null 2>&1 || shot "$1"
+}
+
+# The settings these modes change, put back on exit, failures included.
+restore_settings() {
+  a shell settings put system font_scale 1.0 >/dev/null 2>&1 || true
+  a shell settings put global window_animation_scale 1 >/dev/null 2>&1 || true
+  a shell settings put global transition_animation_scale 1 >/dev/null 2>&1 || true
+  a shell settings put global animator_duration_scale 1 >/dev/null 2>&1 || true
+}
+
+animation_scale() {  # $1 = the scale of every system animation
+  a shell settings put global window_animation_scale "$1"
+  a shell settings put global transition_animation_scale "$1"
+  a shell settings put global animator_duration_scale "$1"
+}
+
+insert_row() {  # $1 = url, $2 = title or NULL (quoted already), $3 = created_at
+  echo "INSERT INTO history (url, title, amp_url, bookmarked, created_at, visit_count) VALUES ('$1', $2, NULL, 0, $3, 1);"
+}
+
+# The worst addresses, newest first: three today, two yesterday. A NULL title is an untitled page.
+worst_sql() {  # $1 = now in ms
+  local h=3600000
+  insert_row "https://www.docs.engineering-platform.example-company.co.uk/teams/mobile/android/release-notes/2026/q3/build-4821" "'Release notes'" $(($1 - h))
+  insert_row "https://github.com/" NULL $(($1 - 2 * h))
+  insert_row "http://192.168.1.1:8080/settings/network/wireless?band=5ghz" "'Router settings'" $(($1 - 3 * h))
+  insert_row "file:///storage/emulated/0/Download/report-2026-q3-final-v2.pdf" NULL $(($1 - 26 * h))
+  insert_row "content://downloads/document/12" "'Downloaded document'" $(($1 - 27 * h))
+}
+
+# Three rows today and one yesterday: the rows the motion modes delete and put back.
+two_days_sql() {  # $1 = now in ms
+  local h=3600000
+  insert_row "https://example.com/motion-1" "'Motion row 1'" $(($1 - h))
+  insert_row "https://example.com/motion-2" "'Motion row 2'" $(($1 - 2 * h))
+  insert_row "https://example.com/motion-3" "'Motion row 3'" $(($1 - 3 * h))
+  insert_row "https://example.com/motion-4" "'Motion row 4'" $(($1 - 26 * h))
+}
+
+worst() {
+  trap restore_settings EXIT
+  seed_rows worst_sql 5
+  a logcat -c
+  start_history
+  cli_shot worst-history
+  ui_dump > "$OUT/worst-history.xml"
+  if grep -qE 'text="(https?://|www\.)' "$OUT/worst-history.xml"; then fail "a History line shows https:// or www."; fi
+  grep -qF 'text="github.com"' "$OUT/worst-history.xml" || fail "the untitled github.com row has no github.com title"
+  grep -qF 'text="file:///storage/emulated/0/Download/report-2026-q3-final-v2.pdf"' "$OUT/worst-history.xml" || fail "the file: row lost its scheme"
+  crash_check worst-history
+  open_tabs "https://www.docs.engineering-platform.example-company.co.uk/teams/mobile/android/release-notes/2026/q3/build-4821" \
+    "https://github.com/" "http://192.168.1.1:8080/settings/network/wireless?band=5ghz"
+  a shell am start -W -n "$PKG/$TABS" >/dev/null
+  wait_id tabs-list || fail "Tabs did not show"
+  sleep 3
+  cli_shot worst-tabs
+  ui_dump > "$OUT/worst-tabs.xml"
+  if grep -qE 'text="(https?://|www\.)' "$OUT/worst-tabs.xml"; then fail "a Tabs line shows https:// or www."; fi
+  a shell settings put system font_scale 2.0
+  a shell am force-stop "$PKG"
+  a shell am start -W -n "$PKG/$TABS" >/dev/null
+  wait_id tabs-list || fail "Tabs did not show at 200% font"
+  sleep 3
+  cli_shot worst-tabs-font200
+  ui_dump > "$OUT/worst-tabs-font200.xml"
+  crash_check worst-tabs
+  log "worst captures done: worst-history.png, worst-tabs.png, worst-tabs-font200.png"
+}
+
+# Frames from the Android CLI about every 150 ms into $OUT/$2/ until the file $1 exists.
+frames_until() {  # $1 = stop file, $2 = frame folder name
+  local i=0
+  mkdir -p "$OUT/$2"
+  while [ ! -f "$1" ]; do
+    android screen capture --device="$SERIAL" --output="$OUT/$2/$(printf '%04d' "$i").png" >/dev/null 2>&1 || true
+    i=$((i + 1))
+    sleep 0.15
+  done
+  log "$2: $i frames"
+}
+
+motion() {  # $1 = the animation scale (10 for motion, 0 for motion-off), $2 = the evidence name
+  local scale="$1" name="$2" stop
+  trap restore_settings EXIT
+  seed_rows two_days_sql 4
+  animation_scale "$scale"
+  a logcat -c
+  start_history
+  stop="$OUT/$name.stop"
+  rm -f "$stop"
+  frames_until "$stop" "$name-frames" &
+  a shell screenrecord --time-limit 120 "/sdcard/$name.mp4" &
+  maestro --device "$SERIAL" test -e OUT="$OUT" -e HISTORY=1 -e ROW2="Motion row 2" "$HT_HERE/row-motion.yaml" \
+    > "$OUT/$name.history.maestro.txt" 2>&1 || { touch "$stop"; free_ui_automation; fail "row-motion.yaml (History) did not pass (see $name.history.maestro.txt)"; }
+  free_ui_automation
+  open_tabs "https://example.com/?t=1" "https://example.org/?t=2" "https://example.net/?t=3"
+  a shell am start -W -n "$PKG/$TABS" >/dev/null
+  wait_id tabs-list || { touch "$stop"; fail "Tabs did not show"; }
+  maestro --device "$SERIAL" test -e OUT="$OUT" -e TABS=1 "$HT_HERE/row-motion.yaml" \
+    > "$OUT/$name.tabs.maestro.txt" 2>&1 || { touch "$stop"; free_ui_automation; fail "row-motion.yaml (Tabs) did not pass (see $name.tabs.maestro.txt)"; }
+  free_ui_automation
+  touch "$stop"
+  a shell pkill -INT screenrecord >/dev/null 2>&1 || true
+  wait
+  sleep 2
+  a pull "/sdcard/$name.mp4" "$OUT/$name.mp4" >/dev/null 2>&1 || log "no screen recording to pull"
+  rm -f "$stop"
+  crash_check "$name"
+  log "$name done: $name-frames/, $name.mp4"
+}
+
+motion_off() {
+  local xy x y
+  motion 0 motion-off
+  # One more delete at scale 0, with two frames 100 ms apart right after it.
+  start_history
+  xy="$(id_centre history-row)"
+  [ -n "$xy" ] || fail "no History row to delete"
+  read -r x y <<< "$xy"
+  a shell input swipe "$x" "$y" 10 "$y" 150
+  cli_shot motion-off-after-delete-1
+  sleep 0.1
+  cli_shot motion-off-after-delete-2
+  log "motion-off: motion-off-after-delete-1.png and -2.png must both show the rows in their place"
+}
+
 free_ui_automation
 case "$MODE" in
   legacy) legacy ;;
@@ -426,5 +577,8 @@ case "$MODE" in
   clear-all) clear_all ;;
   tabs-reorder) tabs_reorder ;;
   back-gesture) back_gesture ;;
+  worst) worst ;;
+  motion) motion 10 motion ;;
+  motion-off) motion_off ;;
   *) fail "unknown mode $MODE; $USAGE" ;;
 esac

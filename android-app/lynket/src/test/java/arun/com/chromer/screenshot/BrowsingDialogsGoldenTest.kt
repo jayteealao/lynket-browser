@@ -30,6 +30,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.browsing.amp.AmpState
 import arun.com.chromer.home.ModernHomeViewModel.Suggestions
 import arun.com.chromer.search.suggestion.items.SuggestionItem
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.browsing.AmpResolverDialog
 import arun.com.chromer.ui.browsing.NewTabCard
 import arun.com.chromer.ui.browsing.OptionsSheetContent
@@ -52,11 +53,14 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = Application::class, qualifiers = BD_PHONE)
+@Config(application = Application::class, qualifiers = BD_PHONE)
 class BrowsingDialogsGoldenTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private fun capture(theme: ThemeMode = ThemeMode.Light, dialog: Boolean = false, content: @Composable () -> Unit) {
     // The AMP dialog's progress bar never stops, so a dialog's frames are advanced by hand.

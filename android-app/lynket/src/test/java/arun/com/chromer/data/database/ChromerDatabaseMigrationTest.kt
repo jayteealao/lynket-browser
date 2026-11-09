@@ -23,7 +23,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import java.io.File
 
 /**
@@ -39,7 +38,6 @@ import java.io.File
  * Room's validation of every table, the same path a person's update takes.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class ChromerDatabaseMigrationTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()

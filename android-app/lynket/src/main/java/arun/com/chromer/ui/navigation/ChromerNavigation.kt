@@ -12,12 +12,20 @@
 package arun.com.chromer.ui.navigation
 
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
@@ -31,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -56,6 +65,7 @@ import arun.com.chromer.ui.settings.BrowsingOptionsScreen
 import arun.com.chromer.ui.settings.LookAndFeelScreen
 import arun.com.chromer.ui.settings.SettingsScreen
 import arun.com.chromer.ui.tabs.TabsScreen
+import androidx.lifecycle.compose.dropUnlessResumed
 
 /**
  * The single navigation display of [arun.com.chromer.MainActivity]: one back stack of [LynketKey]s,
@@ -82,6 +92,8 @@ fun LynketNavDisplay(
     // A short fade-through between screens, forward and back, in place of the library's 700 ms
     // cross-fade (navigation3-ui 1.2.0 defaultTransitionSpec). Predictive back keeps the library's
     // gesture-driven spec, and the changelog dialog scene is not animated by these specs.
+    // Two screens differ: a link (Browser) and the reader (Article) slide up over the screen that
+    // opened them and slide down on back, with their own specs in [linkScreenSlide].
     transitionSpec = { screenFadeThrough() },
     popTransitionSpec = { screenFadeThrough() },
     entryProvider = entryProvider<NavKey> {
@@ -94,14 +106,14 @@ fun LynketNavDisplay(
       entry<LynketKey.Tips> { TipsScreen(navigator = navigator) }
       entry<LynketKey.Intro> { entries.intro(navigator) }
       entry<LynketKey.Changelog>(metadata = DialogSceneStrategy.dialog()) { entries.changelog(navigator) }
-      entry<LynketKey.Browser> { key ->
+      entry<LynketKey.Browser>(metadata = linkScreenSlide()) { key ->
         if (WebUrl.parseOrNull(key.url) == null) {
-          LinkErrorScreen(url = key.url, onBack = { navigator.back() })
+          LinkErrorScreen(url = key.url, onBack = dropUnlessResumed { navigator.back() })
         } else {
           BrowserScreen(url = key.url, navigator = navigator)
         }
       }
-      entry<LynketKey.Article> { key -> ArticleScreen(url = key.url, navigator = navigator) }
+      entry<LynketKey.Article>(metadata = linkScreenSlide()) { key -> ArticleScreen(url = key.url, navigator = navigator) }
       entry<LynketKey.BrowsingMode> { BrowsingModeScreen(navigator = navigator) }
       entry<LynketKey.LookAndFeel> { LookAndFeelScreen(navigator = navigator) }
       entry<LynketKey.BrowsingOptions> { BrowsingOptionsScreen(navigator = navigator) }
@@ -121,6 +133,31 @@ private fun screenFadeThrough(): ContentTransform =
   fadeIn(tween(SCREEN_FADE_IN_MS, delayMillis = SCREEN_FADE_OUT_MS, easing = LinearOutSlowInEasing)) togetherWith
     fadeOut(tween(SCREEN_FADE_OUT_MS, easing = FastOutLinearInEasing))
 
+/**
+ * The spring of the link and reader slide: no bounce, and it comes within a pixel of a full
+ * phone-height travel in under 300 ms. Being a spring, a back during the slide turns it around.
+ */
+private val linkSlideSpring = spring(
+  dampingRatio = Spring.DampingRatioNoBouncy,
+  stiffness = Spring.StiffnessMedium,
+  visibilityThreshold = IntOffset.VisibilityThreshold,
+)
+
+/**
+ * Entry metadata for the screens a link opens: the screen slides up from the bottom edge with no
+ * fade while the screen behind stays still, and back (a tap or the predictive back gesture) slides
+ * it down the same way. The display reads these specs only on the push into and the pop out of
+ * an entry that carries them, so every other screen keeps the fade-through.
+ */
+internal fun linkScreenSlide(): Map<String, Any> =
+  NavDisplay.transitionSpec {
+    slideInVertically(linkSlideSpring) { it } togetherWith ExitTransition.None
+  } + NavDisplay.popTransitionSpec {
+    EnterTransition.None togetherWith slideOutVertically(linkSlideSpring) { it }
+  } + NavDisplay.predictivePopTransitionSpec { _ ->
+    EnterTransition.None togetherWith slideOutVertically(linkSlideSpring) { it }
+  }
+
 /** Screens that tests replace with fakes; the app uses [Default]. */
 class LynketEntries(
   val home: @Composable (LynketNavigator) -> Unit,
@@ -132,8 +169,8 @@ class LynketEntries(
   companion object {
     val Default = LynketEntries(
       home = { navigator -> HomeScreen(navigator = navigator) },
-      history = { navigator -> HistoryScreen(onBack = { navigator.back() }) },
-      tabs = { navigator -> TabsScreen(onBack = { navigator.back() }, closeIcon = false) },
+      history = { navigator -> HistoryScreen(onBack = dropUnlessResumed { navigator.back() }) },
+      tabs = { navigator -> TabsScreen(onBack = dropUnlessResumed { navigator.back() }, closeIcon = false) },
       intro = { navigator -> IntroScreen(navigator = navigator) },
     )
   }
@@ -148,11 +185,17 @@ private fun Changelog(navigator: LynketNavigator) {
   )
 }
 
-/** A link that is not a web address: the shared error state with the text as it arrived. */
+/**
+ * A link that is not a web address: the shared error state with the text as it arrived. It is
+ * opaque, so it covers the screen behind while it slides over it.
+ */
 @Composable
 internal fun LinkErrorScreen(url: String, onBack: () -> Unit) {
   Box(
-    modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
+    modifier = Modifier
+      .fillMaxSize()
+      .background(MaterialTheme.colorScheme.surface)
+      .windowInsetsPadding(WindowInsets.safeDrawing),
     contentAlignment = Alignment.Center,
   ) {
     ErrorState(

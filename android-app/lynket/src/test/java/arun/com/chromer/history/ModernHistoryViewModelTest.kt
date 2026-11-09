@@ -39,6 +39,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import arun.com.chromer.util.TestClock
+import arun.com.chromer.util.setMillis
 
 /** The History view model: the switch rule, search, remove and undo, delete all, opening rows. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,6 +56,7 @@ class ModernHistoryViewModelTest {
   private val preferencesRepository = mockk<UserPreferencesRepository>(relaxed = true)
   private val eventBus = mockk<EventBus>(relaxed = true)
   private val tabsManager = mockk<TabsManager>(relaxed = true)
+  private val clock = TestClock(1_700_000_000_000L)
 
   private val site = Website("Example", "https://example.com/a", null, null, null, "https://example.com/amp/a", false, 1_000L, 3)
 
@@ -66,7 +69,15 @@ class ModernHistoryViewModelTest {
     every { repository.getPagedSearch(any()) } returns flowOf(PagingData.from(listOf(site)))
   }
 
-  private fun viewModel() = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager)
+  private fun viewModel() = ModernHistoryViewModel(repository, preferences, preferencesRepository, eventBus, tabsManager, clock)
+
+  @Test
+  fun nowIsTheAppClockTime() {
+    val vm = viewModel()
+    assertThat(vm.now()).isEqualTo(1_700_000_000_000L)
+    clock.setMillis(1_700_000_060_000L)
+    assertThat(vm.now()).isEqualTo(1_700_000_060_000L)
+  }
 
   @Test
   fun theStateStartsFromTheStoredSwitches() {

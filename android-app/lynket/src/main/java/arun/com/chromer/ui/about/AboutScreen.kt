@@ -82,6 +82,7 @@ import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.ui.navigation.navigateToChangelog
 import arun.com.chromer.ui.components.ScreenTitle
 import timber.log.Timber
+import androidx.lifecycle.compose.dropUnlessResumed
 
 /** One About row: a title, an optional line under it, and where a tap goes (null: no action). */
 data class AboutRow(
@@ -161,11 +162,12 @@ fun aboutSections(): List<AboutSection> = listOf(
 @Composable
 fun AboutScreen(navigator: LynketNavigator) {
   val context = LocalContext.current
+  val openChangelog = dropUnlessResumed { navigator.navigateToChangelog() }
   AboutContent(
-    onBack = { navigator.back() },
+    onBack = dropUnlessResumed { navigator.back() },
     onRow = { row ->
       when {
-        row.opensChangelog -> navigator.navigateToChangelog()
+        row.opensChangelog -> openChangelog()
         row.link != null -> openLink(context, row.link)
       }
     },

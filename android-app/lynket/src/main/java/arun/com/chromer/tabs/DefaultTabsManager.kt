@@ -49,13 +49,14 @@ import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.browsing.customtabs.CustomTabs
 import arun.com.chromer.browsing.newtab.NewTabDialogActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
-import arun.com.chromer.bubbles.BubbleType.NATIVE
-import arun.com.chromer.bubbles.BubbleType.WEB_HEADS
-import arun.com.chromer.bubbles.FloatingBubbleFactory
+import arun.com.chromer.browsing.webview.WebViewWarmUp
+import arun.com.chromer.bubbles.FloatingBubble
+import arun.com.chromer.bubbles.bubbleConversationId
 import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
-import arun.com.chromer.bubbles.system.bubbleConversationId
+import arun.com.chromer.bubbles.system.NativeFloatingBubble
+import arun.com.chromer.bubbles.webheads.WebHeadsFloatingBubble
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
@@ -68,6 +69,7 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_TOOLBAR_COLOR
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.tabs.ui.TabsActivity
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.ui.browsing.showSecondaryBrowserError
 import arun.com.chromer.util.WebUrl
 import arun.com.chromer.util.SafeIntent
@@ -81,6 +83,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 
 @Singleton
@@ -94,8 +97,10 @@ constructor(
   private val websiteRepository: WebsiteRepository,
   private val backgroundLoadingStrategyFactory: BackgroundLoadingStrategyFactory,
   private val eventBus: EventBus,
-  private val floatingBubbleFactory: FloatingBubbleFactory,
+  private val nativeFloatingBubble: Provider<NativeFloatingBubble>,
+  private val webHeadsFloatingBubble: Provider<WebHeadsFloatingBubble>,
   private val bubbleGate: BubbleGate,
+  private val webViewWarmUp: WebViewWarmUp,
 ) : TabsManager {
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -138,11 +143,10 @@ constructor(
     if (!fromApp) {
       clearNonBrowsingActivities()
     }
-    // Open in web heads mode if we this command did not come from web heads.
-    val webHeads = preferences.webHeads()
-    val nativeBubbles = preferences.nativeBubbles()
-    Timber.d("Open %s: webHeads=%b nativeBubbles=%b", website.url, webHeads, nativeBubbles)
-    if ((webHeads || nativeBubbles) && !fromWebHeads) {
+    // In web heads or native bubble mode the link opens in a bubble, unless a web head sent it.
+    val mode = preferences.browsingMode()
+    Timber.d("Open %s: mode=%s", website.url, mode)
+    if (mode != BrowsingMode.SlideOver && !fromWebHeads) {
       openWebHeads(context, website, fromMinimize = fromAmp, fromAmp = false, incognito = incognito, linkSource = linkSource)
       return
     }
@@ -165,6 +169,7 @@ constructor(
           activityNames = null,
           incognito = incognito,
           linkSource = linkSource,
+          fromWebHead = fromWebHeads,
         )
         return
       } else if (!fromWebHeads) {
@@ -194,7 +199,16 @@ constructor(
       return
     }
     // If everything failed then launch normally in browsing activity.
-    openBrowsingTab(context, website, smart = true, fromNewTab = fromNewTab, activityNames = null, incognito = incognito, linkSource = linkSource)
+    openBrowsingTab(
+      context,
+      website,
+      smart = true,
+      fromNewTab = fromNewTab,
+      activityNames = null,
+      incognito = incognito,
+      linkSource = linkSource,
+      fromWebHead = fromWebHeads,
+    )
   }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -268,7 +282,7 @@ constructor(
 
   override fun minimizeTabByUrl(url: String, fromClass: String, incognito: Boolean) {
     eventBus.tryEmit(Event.TabEvent.Minimized(url, getTabType(fromClass)))
-    if (preferences.webHeads() || preferences.nativeBubbles() || preferences.minimizeToWebHead()) {
+    if (preferences.browsingMode() != BrowsingMode.SlideOver || preferences.minimizeToWebHead()) {
       // When minimizing, don't try to handle aggressive loading cases.
       openWebHeads(application, website = Website(url), fromMinimize = true, incognito = incognito)
     }
@@ -320,6 +334,10 @@ constructor(
         if (proceed) {
           openUrlInternal(activity, Website(url), fromApp = false, linkSource = linkSource)
         }
+        // The page engine starts after the link has opened, so its start does not compete with the
+        // open of the bubble or the window. It starts once per process, so the check of the mode,
+        // which reads the installed browsers, runs only until then.
+        if (!webViewWarmUp.isStarted && opensInWebView()) webViewWarmUp.warmUp()
       }
     } catch (e: Exception) {
       Timber.e(e, "Critical error when processing incoming intent")
@@ -373,7 +391,10 @@ constructor(
     openBrowsingTab(context, website, smart, fromNewTab, activityNames, incognito, linkSource, extras = null)
   }
 
-  /** Returns false when an existing tab of [website] came to the front instead of a new one. */
+  /**
+   * Returns false when an existing tab of [website] came to the front instead of a new one.
+   * [fromWebHead] is true for a link a web head opened, which keeps the web view when incognito.
+   */
   private fun openBrowsingTab(
     context: Context,
     website: Website,
@@ -383,13 +404,14 @@ constructor(
     incognito: Boolean,
     linkSource: LinkSource,
     extras: Bundle? = null,
+    fromWebHead: Boolean = false,
   ): Boolean {
     val reordered = smart && reOrderTabByUrl(context, website, activityNames)
 
     if (!reordered) {
       val isIncognito = preferences.fullIncognitoMode() || incognito
 
-      val browsingActivity = if (shouldUseWebView(incognito)) {
+      val browsingActivity = if (shouldUseWebView(incognito, fromWebHead)) {
         Intent(context, WebViewActivity::class.java)
       } else {
         Intent(context, CustomTabActivity::class.java)
@@ -415,14 +437,22 @@ constructor(
     return !reordered
   }
 
-  override fun openRefusedBubble(context: Context, website: Website, refusal: BubbleRefusal, incognito: Boolean) =
-    openRefusedBubble(context, website, refusal, incognito, LinkSource.NONE)
+  override fun openOverlayRefused(
+    context: Context,
+    website: Website,
+    incognito: Boolean,
+    linkSource: LinkSource,
+  ) {
+    // No address in the log: the event is enough to see the refusal on a device.
+    Timber.w("Overlay permission is off; the link opens in a tab")
+    openRefusedBubble(context, website, BubbleRefusal.OVERLAY_OFF, incognito, linkSource)
+  }
 
   /**
    * The page opens in a tab, which then shows the message (see BrowsingActivity). When the tab of
    * this page already exists and only comes to the front, the message starts in a task of its own.
    */
-  private fun openRefusedBubble(
+  override fun openRefusedBubble(
     context: Context,
     website: Website,
     refusal: BubbleRefusal,
@@ -445,12 +475,28 @@ constructor(
     }
   }
 
-  override fun shouldUseWebView(incognito: Boolean): Boolean {
-    val canSafelyOpenCCT =
-      !preferences.useWebView() && CustomTabs.getCustomTabSupportingPackages(application)
-        .isNotEmpty()
-    val isIncognito = preferences.fullIncognitoMode() || incognito
-    return !(!isIncognito && canSafelyOpenCCT)
+  // The page engine starts early only for a link that will show in a web view: a bubble or a Web View tab.
+  private fun opensInWebView(): Boolean =
+    preferences.browsingMode() == BrowsingMode.NativeBubbles || shouldUseWebView(incognito = false)
+
+  override fun shouldUseWebView(incognito: Boolean): Boolean = shouldUseWebView(incognito, fromWebHead = false)
+
+  /**
+   * Where a link that opens in a tab shows:
+   * - the app's web view when the person chose it, or when no browser supports Custom Tabs;
+   * - a normal Custom Tab for a normal link;
+   * - for an incognito link (or any link in full incognito mode), an ephemeral Custom Tab when the
+   *   person's browser can open one, else the app's web view;
+   * - the app's web view for an incognito link a web head opened, as web heads keep their web view.
+   */
+  private fun shouldUseWebView(incognito: Boolean, fromWebHead: Boolean): Boolean {
+    if (preferences.useWebView()) return true
+    val supporting = CustomTabs.getCustomTabSupportingPackages(application)
+    if (supporting.isEmpty()) return true
+    if (!preferences.fullIncognitoMode() && !incognito) return false
+    if (fromWebHead) return true
+    // The browser is picked from the list above, so the installed browsers are listed once.
+    return !CustomTabs.isEphemeralSupported(application, CustomTabs.customTabPackageAmong(application, supporting))
   }
 
   override fun openWebHeads(
@@ -461,6 +507,30 @@ constructor(
     incognito: Boolean
   ) = openWebHeads(context, website, fromMinimize, fromAmp, incognito, LinkSource.NONE)
 
+  /**
+   * Native bubble mode opens a bubble; every other mode opens a web head, a minimize from
+   * slide-over mode too. Returns false when it could not show, so the caller opens a tab.
+   * The one mode value picks the class here, so no factory stands between a caller and a bubble: a
+   * new mode adds its row to this choice.
+   */
+  private fun openBubble(
+    mode: BrowsingMode,
+    website: Website,
+    fromMinimize: Boolean,
+    fromAmp: Boolean,
+    incognito: Boolean,
+    context: Context,
+    @ColorInt color: Int,
+    @ColorInt siteColor: Int,
+  ): Boolean {
+    val bubble: FloatingBubble = when (mode) {
+      BrowsingMode.NativeBubbles -> nativeFloatingBubble.get()
+      BrowsingMode.WebHeads, BrowsingMode.SlideOver -> webHeadsFloatingBubble.get()
+    }
+    // The two colours go by name: both are colour ints with the same "none" value.
+    return bubble.openBubble(website, fromMinimize, fromAmp, incognito, context, color = color, siteColor = siteColor)
+  }
+
   private fun openWebHeads(
     context: Context,
     website: Website,
@@ -469,35 +539,48 @@ constructor(
     incognito: Boolean,
     linkSource: LinkSource,
   ) {
+    // App-wide incognito makes every bubble incognito, the same as a tab.
+    val isIncognito = preferences.fullIncognitoMode() || incognito
     val url = website.preferredUrl()
-    val bubbles = preferences.nativeBubbles()
-    val webHeads = preferences.webHeads()
+    val mode = preferences.browsingMode()
+    val nativeBubble = mode == BrowsingMode.NativeBubbles
 
-    if (bubbles && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+    if (nativeBubble && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       // Android would not show the bubble: open the page in a tab now and say why.
-      val refusal = bubbleGate.refusal(bubbleConversationId(website.url))
+      val refusal = bubbleGate.refusal(bubbleConversationId(website.url, isIncognito))
       if (refusal != null) {
         Timber.w("Bubble refused (%s); opening %s in a tab", refusal, website.url)
-        openRefusedBubble(context, website, refusal, incognito, linkSource)
+        openRefusedBubble(context, website, refusal, isIncognito, linkSource)
         return
       }
     }
 
-    val opened = floatingBubbleFactory[if (bubbles) NATIVE else WEB_HEADS].openBubble(
-      website,
-      fromMinimize,
-      fromAmp,
-      incognito,
-      context,
-      customizedWebsiteColor(website, linkSource)
-    )
-    if (!opened) {
-      // The bubble could not show; the page opens in a tab instead of being lost.
-      openBrowsingTab(context, website, smart = true, fromNewTab = false, activityNames = null, incognito = incognito, linkSource = linkSource)
+    if (!nativeBubble && !Utils.isOverlayGranted(context)) {
+      // Web heads cannot draw: the page opens in one tab, and aggressive loading adds no second.
+      openOverlayRefused(context, website, isIncognito, linkSource)
       return
     }
 
-    val shouldUseWebView = shouldUseWebView(incognito)
+    // One read of the site colour serves the bubble's colour and its page's bars.
+    val site = siteColour(website)
+    val opened = openBubble(
+      mode,
+      website,
+      fromMinimize,
+      fromAmp,
+      isIncognito,
+      context,
+      color = customizedWebsiteColor(website, linkSource, site),
+      siteColor = if (isIncognito) NO_COLOR else site,
+    )
+    if (!opened) {
+      // The bubble could not show; the page opens in a tab instead of being lost.
+      openBrowsingTab(context, website, smart = true, fromNewTab = false, activityNames = null, incognito = isIncognito, linkSource = linkSource)
+      return
+    }
+
+    // The background tab of a web head follows the web head: an incognito one keeps the web view.
+    val shouldUseWebView = shouldUseWebView(isIncognito, fromWebHead = true)
 
     // If this command was not issued for minimizing, then attempt aggressive loading.
     if (preferences.aggressiveLoading() && !fromMinimize) {
@@ -505,9 +588,7 @@ constructor(
         preferences.articleMode() -> backgroundLoadingStrategyFactory[ARTICLE].prepare(url)
         else -> {
           if (shouldUseWebView) {
-            if (!bubbles) {
-              backgroundLoadingStrategyFactory[WEB_VIEW].prepare(url)
-            }
+            backgroundLoadingStrategyFactory[WEB_VIEW].prepare(url)
           } else {
             backgroundLoadingStrategyFactory[CUSTOM_TAB].prepare(url)
           }
@@ -517,8 +598,9 @@ constructor(
             smart = true,
             fromNewTab = false,
             activityNames = null,
-            incognito = incognito,
+            incognito = isIncognito,
             linkSource = linkSource,
+            fromWebHead = true,
           )
         }
       }
@@ -589,11 +671,14 @@ constructor(
    * this link came from, so a link opened inside Lynket never takes an earlier link's app colour.
    */
   @ColorInt
-  private fun customizedWebsiteColor(website: Website, linkSource: LinkSource): Int {
+  private fun customizedWebsiteColor(
+    website: Website,
+    linkSource: LinkSource,
+    @ColorInt siteColour: Int = siteColour(website),
+  ): Int {
     if (preferences.isColoredToolbar()) {
       if (preferences.dynamicToolbar()) {
         var appColor = NO_COLOR
-        var websiteColor = NO_COLOR
 
         if (preferences.dynamicToolbarOnApp()) {
           val lastApp = linkSource.filtered
@@ -601,16 +686,9 @@ constructor(
             appColor = appRepository.getPackageColorSync(lastApp)
           }
         }
-        if (preferences.dynamicToolbarOnWeb()) {
-          websiteColor = if (website.themeColor() != NO_COLOR) {
-            website.themeColor()
-          } else {
-            websiteRepository.getWebsiteColorSync(website.url)
-          }
-        }
         return when {
           appColor != NO_COLOR -> appColor
-          websiteColor != NO_COLOR -> websiteColor
+          siteColour != NO_COLOR -> siteColour
           else -> preferences.toolbarColor()
         }
       } else {
@@ -619,6 +697,17 @@ constructor(
     } else return getColor(application, R.color.primary)
   }
 
+
+  /** The site's own colour when the person's toolbar colour follows the site, else none. */
+  @ColorInt
+  private fun siteColour(website: Website): Int {
+    if (!preferences.isColoredToolbar() || !preferences.dynamicToolbar() || !preferences.dynamicToolbarOnWeb()) return NO_COLOR
+    return if (website.themeColor() != NO_COLOR) {
+      website.themeColor()
+    } else {
+      websiteRepository.getWebsiteColorSync(website.url)
+    }
+  }
 
   private fun doIncognitoAction(activity: Activity, url: String, linkSource: LinkSource) {
     openUrl(activity, Website(url), fromApp = false, incognito = true, linkSource = linkSource)

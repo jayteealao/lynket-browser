@@ -26,6 +26,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import com.google.common.truth.Truth.assertThat
 import org.jsoup.Jsoup
@@ -41,11 +42,14 @@ import java.io.File
  */
 @RunWith(AndroidJUnit4::class)
 @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = Application::class, qualifiers = "w841dp-h701dp-xxhdpi")
+@Config(application = Application::class, qualifiers = "w841dp-h701dp-xxhdpi")
 class ReaderMeasureTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   @Test
   fun bodyIs18spOn30sp() {

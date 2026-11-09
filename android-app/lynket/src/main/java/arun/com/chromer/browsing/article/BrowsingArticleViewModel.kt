@@ -33,7 +33,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -74,15 +73,16 @@ class BrowsingArticleViewModel
 constructor(
   private val webArticleRepository: WebArticleRepository,
   private val searchProviders: SearchProviders,
-  private val savedStateHandle: SavedStateHandle,
+  savedStateHandle: SavedStateHandle,
   @DefaultDispatcher private val blockDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
-  private val _state = MutableStateFlow<ReaderState>(ReaderState.Loading)
-  val state: StateFlow<ReaderState> = _state.asStateFlow()
+  val state: StateFlow<ReaderState>
+    field = MutableStateFlow<ReaderState>(ReaderState.Loading)
 
   /** The text-size increment in sp the slider set; null until the first [initTextSize]. */
-  val textSizeIncrement: StateFlow<Int?> = savedStateHandle.getStateFlow(KEY_TEXT_SIZE, null)
+  val textSizeIncrement: StateFlow<Int?>
+    field = savedStateHandle.getMutableStateFlow<Int?>(KEY_TEXT_SIZE, null)
 
   private var url: String? = null
   private var job: Job? = null
@@ -101,11 +101,11 @@ constructor(
 
   /** Sets the increment from the stored setting once; a value the slider set wins after recreation. */
   fun initTextSize(stored: Int) {
-    if (savedStateHandle.get<Int>(KEY_TEXT_SIZE) == null) savedStateHandle[KEY_TEXT_SIZE] = stored
+    textSizeIncrement.compareAndSet(null, stored)
   }
 
   fun setTextSize(increment: Int) {
-    savedStateHandle[KEY_TEXT_SIZE] = increment.coerceIn(0, MAX_TEXT_SIZE_INCREMENT)
+    textSizeIncrement.value = increment.coerceIn(0, MAX_TEXT_SIZE_INCREMENT)
   }
 
   /** The search address of [keyword] with the selected search provider (keyword chips). */
@@ -113,7 +113,7 @@ constructor(
 
   private fun extract(url: String) {
     job?.cancel()
-    _state.value = ReaderState.Loading
+    state.value = ReaderState.Loading
     job = viewModelScope.launch {
       val article = try {
         webArticleRepository.getWebArticle(url).firstOrNull()
@@ -125,7 +125,7 @@ constructor(
       }
       // Building the blocks walks and serialises the whole article; it stays off the main thread.
       val reader = article?.let { withContext(blockDispatcher) { it.toReaderArticle(url) } }
-      _state.value = reader?.let { ReaderState.Content(it) } ?: ReaderState.Error
+      state.value = reader?.let { ReaderState.Content(it) } ?: ReaderState.Error
     }
   }
 

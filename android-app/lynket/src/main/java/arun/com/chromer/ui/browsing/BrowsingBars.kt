@@ -54,9 +54,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -71,8 +71,8 @@ import arun.com.chromer.browsing.menu.MenuPlacement
 /** The test tag of a menu or bottom-bar item: `menu-<id name>`, for example `menu-menu_share`. */
 @Composable
 fun menuTag(item: BrowsingMenuItem): String {
-  val resources = LocalContext.current.resources
-  return remember(item.id) { "menu-" + runCatching { resources.getResourceEntryName(item.id) }.getOrDefault(item.id.toString()) }
+  val resources = LocalResources.current
+  return remember(item.id, resources) { "menu-" + runCatching { resources.getResourceEntryName(item.id) }.getOrDefault(item.id.toString()) }
 }
 
 @Composable

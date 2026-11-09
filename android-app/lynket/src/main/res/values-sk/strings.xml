@@ -224,9 +224,8 @@
   <string name="article_theme">Téma článku</string>
   <string name="article_mode_summary">Načíta elegatne vyzerajúci článok zameraný na obsah bez zbytočností okolo.</string>
   <string name="amp_warning_title">AMP upozornenie</string>
-  <string name="amp_warning_content"><![CDATA[V režime <b>Vysunúť cez aplikáciu</b> môže získanie AMP adresy chvíľu trvať. Uvidíte dialógové okno s informáciou.]]></string>
+  <string name="amp_warning_content"><![CDATA[Mimo režimu <b>Webové hlavičky</b> môže získanie AMP adresy chvíľu trvať. Uvidíte dialógové okno s informáciou.]]></string>
   <string name="title_activity_look_and_feel">Vzhľad a dojem</string>
-  <string name="not_available_in_slide_mode">Nie je dostupné v režime vysunutia cez aplikáciu</string>
   <string name="title_activity_browsing_options">Možnosti prehiadania</string>
   <string name="grabbing_amp_link">Získavanie AMP odkazu</string>
   <string name="link_found">Odkaz nájdený!</string>
@@ -282,4 +281,6 @@
   <string name="see_demo">Zobraziť demo</string>
   <string name="tips">Tipy</string>
   <string name="quick_settings">Rýchle nastavenia</string>
+  <string name="only_used_in_web_heads_mode">Používa sa len v režime Webové hlavičky</string>
+  <string name="minimize_always_opens_bubble">Minimalizácia vždy otvorí bublinu</string>
 </resources>

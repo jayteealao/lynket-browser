@@ -25,6 +25,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.core.content.pm.PackageInfoCompat
+import androidx.core.os.ParcelCompat
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -40,14 +42,17 @@ import java.security.MessageDigest
  * Implementation modified from https://gist.github.com/VladSumtsov/c4af1f4b8fe5099ca809
  *
  * @param T Parcelable type.
+ * @param itemClass the class of the cached values; reads check each value against it and load it
+ * with its class loader.
  */
 class ParcelDiskCache<T : Parcelable> private constructor(
   context: Context,
-  private val classLoader: ClassLoader?,
+  private val itemClass: Class<T>,
   name: String,
   maxSize: Long,
 ) : DiskCache<T> {
 
+  private val classLoader: ClassLoader? = itemClass.classLoader
   private val storeExecutor: Executor = Executors.newSingleThreadExecutor()
   private val cache: DiskLruCache
   private var saveInUI = true
@@ -91,7 +96,7 @@ class ParcelDiskCache<T : Parcelable> private constructor(
       if (type != null && type != PARCELABLE) {
         throw IllegalAccessError("Parcel doesn't contain parcelable data")
       }
-      return readParcelable(parcel)
+      return ParcelCompat.readParcelable(parcel, classLoader, itemClass)
     } catch (e: Exception) {
       e.printStackTrace()
     } finally {
@@ -99,13 +104,6 @@ class ParcelDiskCache<T : Parcelable> private constructor(
     }
     return null
   }
-
-  // sdlc-debt: the typed readParcelable(ClassLoader, Class) needs API 33 and a Class<T> that this
-  // generic cache does not hold; the deprecated call is the one older releases used to write and read
-  // the same bytes. Upgrade path: pass the item class to open().
-  // source: https://developer.android.com/reference/android/os/Parcel#readParcelable(java.lang.ClassLoader,java.lang.Class%3CT%3E) (added in API 33)
-  @Suppress("DEPRECATION")
-  private fun readParcelable(parcel: Parcel): T? = parcel.readParcelable(classLoader)
 
   private fun getParcel(key: String): Parcel? {
     var value: ByteArray? = null
@@ -134,8 +132,7 @@ class ParcelDiskCache<T : Parcelable> private constructor(
    */
   private fun validateKey(key: String): String = cacheKey(key)
 
-  @JvmOverloads
-  fun getList(key: String, itemClass: Class<*>? = null): List<T> {
+  fun getList(key: String): List<T> {
     val res = ArrayList<T>()
     val parcel = getParcel(validateKey(key)) ?: return res
     try {
@@ -146,20 +143,18 @@ class ParcelDiskCache<T : Parcelable> private constructor(
       if (type != LIST) {
         throw IllegalAccessError("Parcel doesn't contain list data")
       }
-      readList(parcel, res, itemClass?.classLoader ?: ArrayList::class.java.classLoader)
+      val read = ArrayList<T>()
+      ParcelCompat.readList(parcel, read, classLoader, itemClass)
+      // Before Android 13 the platform list read does not check the class of each value, so the
+      // check is made here: a list that holds another class reads as empty on every release.
+      if (read.all { itemClass.isInstance(it) }) res.addAll(read)
     } catch (e: Exception) {
+      res.clear()
       e.printStackTrace()
     } finally {
       parcel.recycle()
     }
     return res
-  }
-
-  // sdlc-debt: same reason as readParcelable above; the typed readList overload needs API 33.
-  // source: https://developer.android.com/reference/android/os/Parcel#readList(java.util.List%3C?%20super%20T%3E,java.lang.ClassLoader,java.lang.Class%3CT%3E) (added in API 33)
-  @Suppress("DEPRECATION")
-  private fun readList(parcel: Parcel, out: MutableList<T>, loader: ClassLoader?) {
-    parcel.readList(out, loader)
   }
 
   override fun remove(key: String): Boolean {
@@ -226,10 +221,10 @@ class ParcelDiskCache<T : Parcelable> private constructor(
     @Throws(IOException::class)
     fun <T : Parcelable> open(
       context: Context,
-      classLoader: ClassLoader?,
+      itemClass: Class<T>,
       name: String,
       maxSize: Long,
-    ): ParcelDiskCache<T> = ParcelDiskCache(context, classLoader, name, maxSize)
+    ): ParcelDiskCache<T> = ParcelDiskCache(context, itemClass, name, maxSize)
 
     private fun saveValue(cache: DiskLruCache, value: Parcel, key: String) {
       val lowerKey = key.lowercase()
@@ -268,17 +263,16 @@ class ParcelDiskCache<T : Parcelable> private constructor(
       outputStream.close()
     }
 
-    // sdlc-debt: PackageInfo.versionCode is the only version API on API 24-27 (minSdk 24), and the
-    // cache folder version must stay versionCode + SDK_INT so caches written by older releases open.
-    // Upgrade path: PackageInfoCompat.getLongVersionCode once androidx.core is a dependency here.
-    // source: https://developer.android.com/reference/android/content/pm/PackageInfo#getLongVersionCode() (added in API 28)
-    @Suppress("DEPRECATION")
+    /**
+     * The app's version code: the low 32 bits of the long version code, which equal the plain
+     * version code while the app sets no major version, so caches of earlier releases still open.
+     */
     @JvmStatic
     fun getVersionCode(context: Context): Int {
       var result = 0
       try {
         val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-        result = pInfo.versionCode
+        result = PackageInfoCompat.getLongVersionCode(pInfo).toInt()
       } catch (e: PackageManager.NameNotFoundException) {
         e.printStackTrace()
       }

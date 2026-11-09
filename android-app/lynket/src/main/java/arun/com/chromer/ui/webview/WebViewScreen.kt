@@ -11,8 +11,10 @@
 
 package arun.com.chromer.ui.webview
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,9 +53,17 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
 import arun.com.chromer.browsing.menu.BrowsingMenuItem
+import arun.com.chromer.bubbles.BubblePageCount
 import arun.com.chromer.ui.browsing.BrowsingBottomBar
 import arun.com.chromer.ui.browsing.BrowsingTopBarActions
 import arun.com.chromer.ui.browsing.HideOnScrollState
@@ -62,7 +72,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
 /** What the web view's bars show. [progress] is 0..100; at 100 the progress bar hides. */
-data class WebViewPage(val title: String, val address: String, val progress: Int)
+data class WebViewPage(
+  val title: String,
+  val address: String,
+  val progress: Int,
+  /** Only a native bubble page has one. */
+  val count: BubblePageCount? = null,
+  /** Whether the page is loading, loaded, or failed to load and why. */
+  val load: PageLoad = PageLoad.Loading,
+)
 
 /**
  * The web view's bars: the top bar collapses while the page scrolls down and returns when it
@@ -97,7 +115,10 @@ class WebViewBarsState {
 /**
  * The web view: a top bar in the website colour with Close, the page title and address and the
  * browsing actions; a progress bar while the page loads; the page; and the bottom bar over the
- * page's end. [page] draws the WebView (the host wraps it in an AndroidView).
+ * page's end. [page] draws the WebView (the host wraps it in an AndroidView). A page that did not
+ * load shows its cause and Retry ([onRetry]) in place of the page, under the same top bar, with no
+ * progress bar and no bottom bar. A retry keeps the cause on screen with the progress bar until the
+ * page loads or fails again.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,6 +130,7 @@ fun WebViewScreen(
   bars: WebViewBarsState,
   onClose: () -> Unit,
   onMenuItem: (BrowsingMenuItem) -> Unit,
+  onRetry: () -> Unit = {},
   modifier: Modifier = Modifier,
   content: @Composable (Modifier) -> Unit,
 ) {
@@ -121,6 +143,9 @@ fun WebViewScreen(
       bars.bottom.animateSettle()
     }
   }
+  val failure = page.load as? PageLoad.Failed
+  // A bar that collapsed while the page scrolled shows again with the error, so Close is in reach.
+  LaunchedEffect(failure != null) { if (failure != null) bars.top.heightOffset = 0f }
   Scaffold(
     modifier = modifier.fillMaxSize().testTag("webview-screen"),
     contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top).union(WindowInsets.ime),
@@ -130,8 +155,20 @@ fun WebViewScreen(
           title = {
             Column {
               Text(page.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("webview-title"))
-              if (page.address.isNotEmpty() && page.address != page.title) {
-                Text(page.address, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("webview-address"))
+              val showAddress = page.address.isNotEmpty() && page.address != page.title
+              if (showAddress || page.count != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                  if (showAddress) {
+                    Text(
+                      page.address,
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
+                      style = MaterialTheme.typography.bodySmall,
+                      modifier = Modifier.weight(1f, fill = false).testTag("webview-address"),
+                    )
+                  }
+                  page.count?.let { BubbleCount(it, separated = showAddress) }
+                }
               }
             }
           },
@@ -151,31 +188,59 @@ fun WebViewScreen(
           scrollBehavior = behavior,
           modifier = Modifier.testTag("webview-top-bar"),
         )
-        if (page.progress in 0 until 100) {
+        val retrying = failure?.retrying == true
+        val progressModifier = Modifier.fillMaxWidth().testTag("webview-progress")
+        if ((failure == null && page.progress in 0 until 100) || (retrying && page.progress in 1 until 100)) {
           LinearProgressIndicator(
             progress = { page.progress / 100f },
             color = foreground,
             trackColor = toolbarColour,
-            modifier = Modifier.fillMaxWidth().testTag("webview-progress"),
+            modifier = progressModifier,
           )
+        } else if (retrying) {
+          // Before the first progress report, and at 100 until the load ends, a retry still shows.
+          LinearProgressIndicator(color = foreground, trackColor = toolbarColour, modifier = progressModifier)
         }
       }
     },
   ) { padding ->
     Box(Modifier.fillMaxSize().padding(padding)) {
-      content(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)))
-      BrowsingBottomBar(
-        bottomBarItems,
-        containerColour = toolbarColour,
-        contentColour = foreground,
-        onItem = onMenuItem,
-        modifier = Modifier
-          .align(Alignment.BottomCenter)
-          .onSizeChanged { bars.bottom.limit = it.height.toFloat() }
-          .graphicsLayer { translationY = -bars.bottom.offset },
-      )
+      val pageArea = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+      if (failure != null) {
+        WebPageError(failure, onRetry, pageArea)
+      } else {
+        content(pageArea)
+        BrowsingBottomBar(
+          bottomBarItems,
+          containerColour = toolbarColour,
+          contentColour = foreground,
+          onItem = onMenuItem,
+          modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .onSizeChanged { bars.bottom.limit = it.height.toFloat() }
+            .graphicsLayer { translationY = -bars.bottom.offset },
+        )
+      }
     }
   }
+}
+
+/** The place of the page in the top bar. Figures keep their width, so a change does not jitter. */
+@Composable
+private fun BubbleCount(count: BubblePageCount, separated: Boolean) {
+  val text = stringResource(R.string.bubble_page_count, count.position, count.total)
+  val spoken = stringResource(R.string.bubble_page_count_spoken, count.position, count.total)
+  val separator = stringResource(R.string.bubble_page_count_separator)
+  Text(
+    buildAnnotatedString {
+      if (separated) withStyle(SpanStyle(fontWeight = FontWeight.Normal)) { append(separator) }
+      append(text)
+    },
+    maxLines = 1,
+    softWrap = false,
+    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum"),
+    modifier = Modifier.testTag("webview-count").semantics { contentDescription = spoken },
+  )
 }
 
 @Composable

@@ -7,14 +7,64 @@
 #         a process kill a link starts a special-use foreground service; with the start forced to
 #         fail (debug marker file) the link opens in a Custom Tab with a message
 #   bubble  native bubbles mode: the app's notification request, bubbles allowed for the app, then a
-#         link shows a system bubble that opens the page
+#         link shows a system bubble that opens the page, and no web head service runs
+#   refused  web heads chosen, then the overlay permission denied: a link opens in a tab, no settings
+#         page opens and no head shows
+#   restart  web heads chosen: a start of the service with no link stops it with no notification; then
+#         one head open, the app's process killed, and after Android restarts the service no web
+#         heads notification stays and no head shows
+#   rotation  web heads chosen: two heads resting on the left at 70 % of the height in portrait; after a
+#         turn to landscape a new link spawns its head on the left edge at the same share of the
+#         height, not at the default point (restores the rotation settings and the navigation mode)
+#   resnap  web heads chosen: three heads resting on the right at half the height in portrait; after a
+#         turn to landscape every head rests on the right edge inside the screen at the same share of
+#         the height; then six heads at 90 % on the left, and after a turn every head rests on the
+#         left edge inside the screen (restores the rotation settings and the navigation mode)
+#   fling  web heads chosen: one head; at the phone's own width and then on a 1280 dp window (wm size and
+#         density), the same flick in dp per second from the middle snaps the head to the edge it
+#         points to, both ways (restores the size, the density, the rotation settings and the
+#         navigation mode)
+#   speech  web heads chosen: three links open three heads; a dump of every window shows the front
+#         head described as "Web head: <title>, 1 of 3" and the other two as 2 of 3 and 3 of 3; each
+#         description may end in the page state ("loading", "loaded" or "page did not load")
+#   trash  web heads chosen: one head held in a drag (input motionevent); a dump of every window shows
+#         the shown trash as "Close target", "Release to close" while the head is on it, nothing after
+#         it leaves, and again after it returns; the trash window takes touches only while it shows;
+#         with TalkBack installed, a probe of whether a held drag still moves the head with TalkBack
+#         on (restores the accessibility services and the navigation mode); it also records what the
+#         vibrator service saw of the lock and leave ticks
+#   aggressive  web heads chosen and "Aggressive background loading" turned on in Browsing options: a
+#         link shows a head and the trash, and a browsing tab of the same link loads behind them
+#         (Custom Tab or Web View), with no crash (turns the setting off and closes the heads on exit)
+#   bubble-minimize  native bubbles mode: with bubbles off for the app a link opens in a tab; bubbles
+#         on again, Minimize in the tab's bottom bar posts a bubble and starts no web head service
+#   page-state  web heads chosen: a link to slow-page-server.py held 6 s (HTTPBIN=1: https://httpbin.org/delay/5);
+#         a screenshot every 500 ms for 12 s; while the page loads the head's ring turns and its fill is
+#         faded, and from 1 s after it finished (the server's answer and the head's "Head page ... Loaded"
+#         log line) the head is still with the full fill (needs python with Pillow; closes the heads,
+#         stops the server and removes the adb reverse on exit)
+#   page-state-worst  web heads chosen: five links to slow-page-server.py held 25 s; with the stack at rest,
+#         5 s of dumpsys gfxinfo framestats: only one head window draws (the others at most 2 frames;
+#         when the frame stats are not split by window, the app's total frames stay at most 1.2 x the
+#         refresh rate x 5 s), and on a phone the 95th percentile frame time of that window is at most
+#         one refresh interval (on an emulator it is written as a floor, not judged); writes the
+#         refresh rate and the host load (needs python; closes the heads and stops the server on exit)
+#   page-state-speech  web heads chosen: a link to slow-page-server.py held 20 s; a dump of every window
+#         shows the head described as "Web head: <title>, 1 of 1, loading" while it loads and ", loaded"
+#         after its "Head page ... Loaded" log line; an accessibility events capture around the finish
+#         counts the head's content-description change events (logged, never failing); a link to a
+#         local port with no server gives ", page did not load"; with TalkBack installed it is turned on
+#         by adb, a tap on a new slow head moves its focus there, and TalkBack's log is kept while the
+#         page loads and after it finished (closes the heads, stops the server, removes the adb
+#         reverses and restores the accessibility services on exit)
 #
-# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble>   (from android-app/)
+# Usage: maestro/webheads/webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state|page-state-worst|page-state-speech>   (from android-app/)
 set -euo pipefail
 
-SERIAL="${1:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble>}"
-OUT="${2:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble>}"
-WHICH="${3:?usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble>}"
+USAGE="usage: webheads-check.sh <serial> <evidence-dir> <head|permission|bubble|refused|restart|rotation|resnap|fling|speech|trash|aggressive|bubble-minimize|page-state|page-state-worst|page-state-speech>"
+SERIAL="${1:?$USAGE}"
+OUT="${2:?$USAGE}"
+WHICH="${3:?$USAGE}"
 source "$(dirname "$0")/lib.sh"
 mkdir -p "$OUT"
 OUT="$(hostpath "$(cd "$OUT" && pwd)")"
@@ -146,10 +196,20 @@ check_bubble() {
   for _ in $(seq 1 10); do
     sleep 2
     a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/bubble-notifications.txt"
-    grep -qE "pkg=$PKG.*flags=[A-Z_|]*BUBBLE" "$OUT/bubble-notifications.txt" && break
+    [ -n "$(bubble_flag_lines "$OUT/bubble-notifications.txt")" ] && break
   done
-  grep -E "pkg=$PKG.*flags=[A-Z_|]*BUBBLE" "$OUT/bubble-notifications.txt" | tee -a "$OUT/bubble.txt" ||
+  # Read every flagged line first: a reader that stops at the first line would break the pipe.
+  local flagged
+  flagged="$(bubble_flag_lines "$OUT/bubble-notifications.txt")"
+  [ -z "$flagged" ] || printf '%s
+' "$flagged" >> "$OUT/bubble.txt"
+  [ -n "$flagged" ] ||
     fail "no notification of the app carries the bubble flag (see bubble-notifications.txt)"
+  # Native bubble mode never starts the web head service.
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/bubble-webhead-service.txt"
+  if grep -q "ServiceRecord" "$OUT/bubble-webhead-service.txt"; then
+    fail "the web head service runs in native bubble mode (see bubble-webhead-service.txt)"
+  fi
   sleep 2
   shot bubble-bubble
   # The bubble is drawn by the system shell and is missing from UI dumps; its stack position is
@@ -179,9 +239,1342 @@ check_bubble() {
   log "bubble passed"
 }
 
+check_refused() {
+  web_heads_mode
+  a shell appops set "$PKG" SYSTEM_ALERT_WINDOW deny
+  # Never leave the permission denied behind: later checks expect web heads to draw.
+  trap 'a shell appops set "$PKG" SYSTEM_ALERT_WINDOW allow' EXIT
+  a logcat -c
+  open_link "https://example.com/?refused=1"
+  for _ in $(seq 1 60); do
+    a logcat -d | grep -q "Overlay permission is off; the link opens in a tab" && break
+    sleep 1
+  done
+  sleep 2
+  shot refused-tab
+  local top
+  top="$(a shell dumpsys activity activities | tr -d '\r' | grep -m1 "topResumedActivity" || true)"
+  echo "$top" | tee -a "$OUT/refused.txt"
+  app_logcat refused
+  grep -q "Overlay permission is off; the link opens in a tab" "$OUT/refused.logcat.txt" || fail "no refusal in logcat"
+  ! echo "$top" | grep -q "com.android.settings" || fail "a settings page opened on its own"
+  [ "$(overlay_count)" -eq 0 ] || fail "a head showed although the overlay permission is off"
+  [ ! -s "$OUT/refused.crash.txt" ] || fail "crash during the refusal (see refused.crash.txt)"
+  log "refused passed"
+  a shell input keyevent HOME
+}
+
+# The web heads notification lines of the notification dump; empty when none is posted.
+web_head_notification() {
+  a shell dumpsys notification --noredact | tr -d '\r' | grep -F "channel=$WEB_HEAD_SERVICE" || true
+}
+
+# The web head service records of the app; empty when the service does not run.
+web_head_service_record() {
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' | grep -F "ServiceRecord" || true
+}
+
+# Kills the app's process with a signal, as the system does under memory pressure. `am kill` spares a
+# process that holds a foreground service, so it cannot stand in here.
+kill_app() {
+  local pid
+  pid="$(a shell pidof "$PKG" | tr -d '\r' || true)"
+  [ -n "$pid" ] || fail "no app process to kill"
+  # The device's SELinux policy may refuse a kill from run-as; su then works on an AOSP image.
+  a shell run-as "$PKG" kill -9 "$pid" >/dev/null 2>&1 || true
+  sleep 1
+  if ! process_alive "$pid"; then
+    log "process $pid killed with run-as"
+    return
+  fi
+  a shell su 0 kill -9 "$pid" >/dev/null 2>&1 || true
+  sleep 1
+  if ! process_alive "$pid"; then
+    log "process $pid killed with su"
+    return
+  fi
+  fail "could not kill the app's process"
+}
+
+# True while the process $1 exists.
+process_alive() {
+  [ -n "$(a shell "[ -d /proc/$1 ] && echo alive" | tr -d '\r' || true)" ]
+}
+
+check_restart() {
+  web_heads_mode
+  # The shade shows the web heads notification only while the app may post notifications (Android 13
+  # and later ask for it; web_heads_mode declines the request). Without it every read below is empty.
+  a shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
+  # 1. A start with no link (the debug build exports the service to the shell): the service stops
+  #    at once and leaves no notification.
+  a logcat -c
+  a shell am start -W -n "$PKG/$MAIN" >/dev/null
+  sleep 2
+  a shell am start-foreground-service -n "$PKG/$WEB_HEAD_SERVICE" >/dev/null
+  for _ in $(seq 1 30); do
+    a logcat -d | grep -q "Web heads started with no head; stopping" && break
+    sleep 1
+  done
+  sleep 2
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/restart-empty-notifications.txt"
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/restart-empty-service.txt"
+  a logcat -d | grep -q "Web heads started with no head; stopping" || fail "a start with no link did not stop the service"
+  [ -z "$(web_head_notification)" ] || fail "a web heads notification stayed after a start with no link"
+  [ -z "$(web_head_service_record)" ] || fail "the service still runs after a start with no link"
+  log "a start with no link stopped the service with no notification"
+
+  # 2. One head open, with its notification.
+  a shell input keyevent HOME
+  sleep 1
+  open_link "https://example.com/?restart=1"
+  for _ in $(seq 1 60); do
+    a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' | grep -q "isForeground=true" && break
+    sleep 1
+  done
+  sleep 2
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/restart-before-notifications.txt"
+  [ "$(overlay_count)" -ge 2 ] || fail "no head before the kill"
+  [ -n "$(web_head_notification)" ] || fail "no head before the kill: no web heads notification"
+  log "one head open with its notification"
+
+  # 3. The process killed; Android restarts the sticky service with no link.
+  local old_pid new_pid="" line=""
+  old_pid="$(a shell pidof "$PKG" | tr -d '\r' || true)"
+  a logcat -c
+  kill_app
+  for _ in $(seq 1 90); do
+    new_pid="$(a shell pidof "$PKG" | tr -d '\r' || true)"
+    if [ -n "$new_pid" ] && [ "$new_pid" != "$old_pid" ]; then
+      if a logcat -d | grep -q "Web heads started with no head; stopping"; then
+        line="Web heads started with no head; stopping"
+        break
+      fi
+      if a logcat -d | grep -q "Web heads could not start in the foreground"; then
+        line="Web heads could not start in the foreground"
+        break
+      fi
+    fi
+    sleep 1
+  done
+  [ -n "$line" ] || fail "Android did not restart the service within 90 s"
+
+  # 4. The shade after the restart.
+  sleep 3
+  shot restart-after
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/restart-after-notifications.txt"
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/restart-after-service.txt"
+  app_logcat restart
+  log "restart logged: $line"
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  [ -z "$(web_head_notification)" ] || fail "a web heads notification stayed after the restart"
+  [ -z "$(web_head_service_record)" ] || fail "the service still runs after the restart"
+  [ "$(overlay_count)" -eq 0 ] || fail "a head showed after the restart"
+  [ ! -s "$OUT/restart.crash.txt" ] || fail "crash during the restart (see restart.crash.txt)"
+  log "restart passed"
+  a shell input keyevent HOME
+}
+
+# Frame of the master head (the front touchable overlay window) as "left top right bottom".
+master_frame() {
+  overlay_windows | awk '$1 == 1 { print $2, $3, $4, $5; exit }'
+}
+
+# Layout top of the master head (the front touchable overlay window), the y the app gives its window.
+# The frame sits below it by the status bar, which differs between portrait and landscape, so the
+# share of the height is measured from this value.
+master_layout_top() {
+  a shell dumpsys window windows | tr -d '\r' | awk -v pkg="$PKG" '
+    /^  Window #/ { if (keep && t) { print y; exit } keep = 0; t = 1; y = ""; inwin = ($0 ~ ("u0 " pkg "}")); next }
+    inwin && /ty=APPLICATION_OVERLAY/ { keep = 1 }
+    inwin && /NOT_TOUCHABLE/ { t = 0 }
+    inwin && y == "" && match($0, /mAttrs=\{\(-?[0-9]+,-?[0-9]+\)/) {
+      s = substr($0, RSTART + 9, RLENGTH - 10); sub(/^-?[0-9]+,/, "", s); y = s
+    }
+    END { if (keep && t) print y }' | head -1
+}
+
+# Current logical display size as "W H"; unlike `wm size` it follows the rotation.
+display_size() {
+  a shell dumpsys window displays | tr -d '\r' | grep -o -m1 'cur=[0-9]*x[0-9]*' | sed 's/cur=//' | tr 'x' ' '
+}
+
+# Display density as a scale of 160 dpi (the override density when one is set).
+density() {
+  a shell wm density | tr -d '\r' | awk -F': ' '/Override density/ { o = $2 } /Physical density/ { p = $2 } END { print (o != "" ? o : p) / 160 }'
+}
+
+# Rest range of a head on a display of height $1 at density $2, as "top bottom": 25 dp from the top
+# to 85 % of the height, as the app computes it.
+rest_range() {
+  awk -v h="$1" -v d="$2" 'BEGIN { print int(25 * d + 0.5), int(h * 0.85) }'
+}
+
+# Share of the rest range ($2 top, $3 bottom) at which a frame top $1 sits.
+share_of_range() {
+  awk -v y="$1" -v t="$2" -v b="$3" 'BEGIN { printf "%.3f", (y - t) / (b - t) }'
+}
+
+ROT_ACCEL_BEFORE=""
+ROT_USER_BEFORE=""
+restore_rotation_setting() {  # $1 = key, $2 = saved value ("null" when the key was unset)
+  if [ -z "$2" ] || [ "$2" = "null" ]; then a shell settings delete system "$1" >/dev/null 2>&1 || true
+  else a shell settings put system "$1" "$2" >/dev/null 2>&1 || true; fi
+}
+rotation_restore() {
+  restore_rotation_setting user_rotation "$ROT_USER_BEFORE"
+  restore_rotation_setting accelerometer_rotation "$ROT_ACCEL_BEFORE"
+  nav_restore
+  close_all_heads
+}
+
+check_rotation() {
+  # 1. Portrait, fixed, with three-button navigation (the gesture Back zone takes edge swipes).
+  ROT_ACCEL_BEFORE="$(a shell settings get system accelerometer_rotation | tr -d '\r')"
+  ROT_USER_BEFORE="$(a shell settings get system user_rotation | tr -d '\r')"
+  trap rotation_restore EXIT
+  web_heads_mode
+  nav_three_button
+  a shell settings put system accelerometer_rotation 0
+  a shell settings put system user_rotation 0
+  sleep 2
+
+  # 2. Two heads (and the trash window).
+  open_link "https://example.com/?rotation=1"
+  sleep 3
+  open_link "https://example.com/?rotation=2"
+  local n=0
+  for _ in $(seq 1 60); do
+    n="$(overlay_count)"
+    [ "$n" -ge 3 ] && break
+    sleep 1
+  done
+  [ "$n" -ge 3 ] || fail "expected two heads and the trash window, found $n overlay windows"
+  sleep 3
+
+  # 3. The stack dragged slowly to the left edge at 70 % of the rest range.
+  local w h d top bottom fl ft fr fb cx cy ty
+  read -r w h < <(display_size) || fail "no display size"
+  d="$(density)"
+  read -r top bottom < <(rest_range "$h" "$d")
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  read -r cx cy < <(head_centre) || fail "no master head to drag"
+  ty="$(awk -v t="$top" -v b="$bottom" -v fh="$((fb - ft))" 'BEGIN { print int(t + 0.7 * (b - t) + fh / 2) }')"
+  log "portrait ${w}x${h}, density $d, rest range $top..$bottom, master frame $fl $ft $fr $fb"
+  a shell input swipe "$cx" "$cy" 150 "$ty" 1500
+  sleep 3
+  shot rotation-portrait
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  local ratio_p
+  ratio_p="$(share_of_range "$ft" "$top" "$bottom")"
+  log "portrait master frame $fl $ft $fr $fb, share of the height $ratio_p"
+  [ $(((fl + fr) / 2)) -lt $((w / 2)) ] || fail "the stack did not rest on the left at 70 % (frame $fl $ft $fr $fb)"
+  awk -v r="$ratio_p" 'BEGIN { exit !(r - 0.70 <= 0.05 && 0.70 - r <= 0.05) }' || fail "the stack did not rest on the left at 70 % (share $ratio_p)"
+
+  # 4. A turn to landscape.
+  a shell settings put system user_rotation 1
+  for _ in $(seq 1 10); do
+    read -r w h < <(display_size)
+    [ "$w" -gt "$h" ] && break
+    sleep 1
+  done
+  [ "$w" -gt "$h" ] || fail "the display did not turn to landscape (${w}x${h})"
+  sleep 2
+  shot rotation-landscape-before
+
+  # 5. A new link: its head must spawn at the stack, before the master coasts (6 s).
+  a logcat -c
+  open_link "https://example.com/?rotation=3"
+  for _ in $(seq 1 30); do
+    n="$(overlay_count)"
+    [ "$n" -ge 4 ] && break
+    sleep 1
+  done
+  [ "$n" -ge 4 ] || fail "the new link showed no head ($n overlay windows)"
+  sleep 3
+  shot rotation-landscape-after
+  overlay_windows > "$OUT/rotation-windows.txt"
+  a shell dumpsys window windows | tr -d '\r' > "$OUT/rotation-window-dump.txt"
+  read -r top bottom < <(rest_range "$h" "$d")
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  local ratio_l
+  ratio_l="$(share_of_range "$ft" "$top" "$bottom")"
+  log "landscape ${w}x${h}, rest range $top..$bottom, new master frame $fl $ft $fr $fb, share of the height $ratio_l"
+  [ $(((fl + fr) / 2)) -lt $((w / 2)) ] || fail "the new head is not on the stack's side (frame $fl $ft $fr $fb)"
+  [ "$fl" -le 0 ] || fail "the new head is not on the edge (left $fl)"
+  [ "$ft" -ge $((top - 2)) ] && [ "$ft" -le $((bottom + 2)) ] || fail "the new head is outside the bounds (top $ft, range $top..$bottom)"
+  awk -v a="$ratio_l" -v b="$ratio_p" 'BEGIN { exit !(a - b <= 0.05 && b - a <= 0.05) }' || fail "the new head is not at the stack's height ($ratio_l against $ratio_p)"
+  awk -v y="$ft" -v h="$h" 'BEGIN { d = y - h / 3; if (d < 0) d = -d; exit !(d >= 0.1 * h) }' || fail "the new head is at the default spawn point (top $ft)"
+
+  # 6. No crash.
+  app_logcat rotation
+  [ ! -s "$OUT/rotation.crash.txt" ] || fail "crash during the rotation (see rotation.crash.txt)"
+  log "ratio_p $ratio_p, ratio_l $ratio_l, API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "rotation passed"
+}
+
+# Size the app measures, into APP_W and APP_H: `app=WxH` of the display dump (the logical size
+# without the system bars the app does not draw under), else the logical size. APP_SIZE_SOURCE
+# names which one it used.
+APP_W=0
+APP_H=0
+APP_SIZE_SOURCE=""
+app_size() {
+  local s
+  s="$(a shell dumpsys window displays | tr -d '\r' | grep -o -m1 'app=[0-9]*x[0-9]*' | sed 's/app=//' | tr 'x' ' ' || true)"
+  if [ -n "$s" ]; then
+    APP_SIZE_SOURCE="app"
+  else
+    APP_SIZE_SOURCE="cur"
+    s="$(display_size)"
+  fi
+  read -r APP_W APP_H <<< "$s" || fail "no display size"
+}
+
+# Frame of every touchable overlay window (the heads; the trash takes touches only while a head is
+# dragged), one "left top right bottom" per line, front first.
+head_frames() {
+  overlay_windows | awk '$1 == 1 { print $2, $3, $4, $5 }'
+}
+
+# Waits up to $1 s for at least $2 overlay windows; prints the count it saw last.
+wait_for_overlays() {
+  local n=0
+  for _ in $(seq 1 "$1"); do
+    n="$(overlay_count)"
+    [ "$n" -ge "$2" ] && break
+    sleep 1
+  done
+  echo "$n"
+}
+
+# Turns the display to $1 (0 portrait, 1 landscape) and waits up to 10 s for it.
+turn_to() {
+  local w=0 h=0
+  a shell settings put system user_rotation "$1"
+  for _ in $(seq 1 10); do
+    read -r w h < <(display_size)
+    if [ "$1" = 1 ] && [ "$w" -gt "$h" ]; then return 0; fi
+    if [ "$1" = 0 ] && [ "$h" -gt "$w" ]; then return 0; fi
+    sleep 1
+  done
+  fail "the display did not turn (user_rotation $1, ${w}x${h})"
+}
+
+# Drags the master slowly so its window rests at share $2 of the rest range, the finger let go at
+# x = $1; sets RATIO_P to the share of the height it rests at. Needs APP_H and RS_D (portrait).
+RATIO_P=""
+rest_master_at() {
+  local top bottom fl ft fr fb cx cy ty
+  read -r top bottom < <(rest_range "$APP_H" "$RS_D")
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  read -r cx cy < <(head_centre) || fail "no master head to drag"
+  ty="$(awk -v t="$top" -v b="$bottom" -v s="$2" -v fh="$((fb - ft))" 'BEGIN { print int(t + s * (b - t) + fh / 2) }')"
+  a shell input swipe "$cx" "$cy" "$1" "$ty" 1500
+  sleep 3
+  RATIO_P="$(share_of_range "$(master_layout_top)" "$top" "$bottom")"
+}
+
+# After a turn to landscape: every head rests on the $1 edge (left or right) inside the screen, and
+# the master at the share $2 of the height (within 0.03). Sets RATIO_L to the landscape share.
+RATIO_L=""
+check_stack_on() {
+  local w h top bottom fl ft fr fb
+  app_size
+  w="$APP_W"
+  h="$APP_H"
+  read -r top bottom < <(rest_range "$h" "$RS_D")
+  [ -n "$(head_frames)" ] || fail "no head window after the turn"
+  while read -r fl ft fr fb; do
+    if [ "$1" = right ]; then
+      [ $(((fl + fr) / 2)) -gt $((w / 2)) ] || fail "a head left the stack's side (frame $fl $ft $fr $fb, width $w)"
+      [ "$fr" -ge "$w" ] || fail "a head is not on the edge (frame $fl $ft $fr $fb, width $w)"
+      [ "$fl" -lt "$w" ] || fail "a head is off screen (frame $fl $ft $fr $fb, width $w)"
+    else
+      [ $(((fl + fr) / 2)) -lt $((w / 2)) ] || fail "a head left the stack's side (frame $fl $ft $fr $fb, width $w)"
+      [ "$fl" -le 0 ] || fail "a head is not on the edge (frame $fl $ft $fr $fb)"
+      [ "$fr" -gt 0 ] || fail "a head is off screen (frame $fl $ft $fr $fb)"
+    fi
+    [ "$ft" -ge $((top - 2)) ] && [ "$ft" -le $((bottom + 30)) ] || fail "a head is outside the bounds (top $ft, range $top..$bottom)"
+  done < <(head_frames)
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  RATIO_L="$(share_of_range "$(master_layout_top)" "$top" "$bottom")"
+  log "landscape ${w}x${h} (size from $APP_SIZE_SOURCE), rest range $top..$bottom, master frame $fl $ft $fr $fb, share $RATIO_L"
+  awk -v a="$RATIO_L" -v b="$2" 'BEGIN { exit !(a - b <= 0.03 && b - a <= 0.03) }' || fail "the stack lost its height ($RATIO_L against $2)"
+}
+
+check_resnap() {
+  # 1. Portrait, fixed, with three-button navigation (the gesture Back zone takes edge swipes).
+  ROT_ACCEL_BEFORE="$(a shell settings get system accelerometer_rotation | tr -d '\r')"
+  ROT_USER_BEFORE="$(a shell settings get system user_rotation | tr -d '\r')"
+  trap rotation_restore EXIT
+  web_heads_mode
+  nav_three_button
+  a shell settings put system accelerometer_rotation 0
+  a shell settings put system user_rotation 0
+  sleep 2
+
+  # 2. Three heads (and the trash window).
+  local i n
+  for i in 1 2 3; do
+    open_link "https://example.com/?resnap=$i"
+    sleep 3
+  done
+  n="$(wait_for_overlays 60 4)"
+  [ "$n" -ge 4 ] || fail "expected three heads and the trash window, found $n overlay windows"
+  sleep 3
+
+  # 3. The stack dragged slowly to the right edge at half the rest range.
+  app_size
+  RS_D="$(density)"
+  log "portrait ${APP_W}x${APP_H} (size from $APP_SIZE_SOURCE), density $RS_D"
+  local ratio_p fl ft fr fb
+  rest_master_at $((APP_W - 150)) 0.5
+  ratio_p="$RATIO_P"
+  shot resnap-portrait
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  log "portrait master frame $fl $ft $fr $fb, share of the height $ratio_p"
+  [ $(((fl + fr) / 2)) -gt $((APP_W / 2)) ] || fail "the stack did not rest on the right at half the height (frame $fl $ft $fr $fb)"
+  awk -v r="$ratio_p" 'BEGIN { exit !(r - 0.50 <= 0.05 && 0.50 - r <= 0.05) }' || fail "the stack did not rest on the right at half the height (share $ratio_p)"
+
+  # 4. A turn to landscape; the spring settles in under a second, the coasting (after 6 s) moves only x.
+  turn_to 1
+  sleep 3
+  shot resnap-landscape
+  overlay_windows > "$OUT/resnap-windows.txt"
+  a shell dumpsys window windows | tr -d '\r' > "$OUT/resnap-window-dump.txt"
+
+  # 5. Every head on the right edge inside the screen, at the same share of the height.
+  check_stack_on right "$ratio_p"
+  log "three heads on the right: ratio_p $ratio_p, ratio_l $RATIO_L"
+
+  # 6. The worst state: six heads low on the left, then a turn.
+  turn_to 0
+  sleep 2
+  for i in 4 5 6; do
+    open_link "https://example.com/?resnap=$i"
+    sleep 3
+  done
+  n="$(wait_for_overlays 60 7)"
+  [ "$n" -ge 7 ] || fail "expected six heads and the trash window, found $n overlay windows"
+  sleep 3
+  app_size
+  rest_master_at 150 0.9
+  ratio_p="$RATIO_P"
+  shot resnap-worst-portrait
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  log "worst portrait ${APP_W}x${APP_H}, master frame $fl $ft $fr $fb, share of the height $ratio_p"
+  [ $(((fl + fr) / 2)) -lt $((APP_W / 2)) ] || fail "the stack did not rest on the left at 90 % (frame $fl $ft $fr $fb)"
+  awk -v r="$ratio_p" 'BEGIN { exit !(r - 0.90 <= 0.05 && 0.90 - r <= 0.05) }' || fail "the stack did not rest on the left at 90 % (share $ratio_p)"
+  turn_to 1
+  sleep 3
+  shot resnap-worst-landscape
+  overlay_windows > "$OUT/resnap-worst-windows.txt"
+  check_stack_on left "$ratio_p"
+  log "six heads on the left: ratio_p $ratio_p, ratio_l $RATIO_L"
+
+  # 7. No crash.
+  app_logcat resnap
+  [ ! -s "$OUT/resnap.crash.txt" ] || fail "crash during the rotation (see resnap.crash.txt)"
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "resnap passed"
+}
+
+# The size and density overrides the device had before the fling check ("" when none was set).
+FLING_SIZE_BEFORE=""
+FLING_DENSITY_BEFORE=""
+fling_restore() {
+  if [ -n "$FLING_SIZE_BEFORE" ]; then a shell wm size "$FLING_SIZE_BEFORE" >/dev/null 2>&1 || true
+  else a shell wm size reset >/dev/null 2>&1 || true; fi
+  if [ -n "$FLING_DENSITY_BEFORE" ]; then a shell wm density "$FLING_DENSITY_BEFORE" >/dev/null 2>&1 || true
+  else a shell wm density reset >/dev/null 2>&1 || true; fi
+  sleep 2
+  rotation_restore
+}
+
+# Swipe duration in ms that moves $1 px at $2 dp per second on a display of density $3; at least
+# 50 ms, because the velocity tracker reads the last 100 ms of a gesture.
+flick_ms() {
+  awk -v d="$1" -v v="$2" -v s="$3" 'BEGIN { ms = int(d / (v * s) * 1000 + 0.5); print (ms < 50 ? 50 : ms) }'
+}
+
+# Flicks the master horizontally from its centre to share $1 of the width APP_W at $2 dp per second
+# (density FL_D); `input swipe` moves at a constant speed, so the release speed is the distance over
+# the duration. Logs the distance, the duration and the speed.
+flick_to() {
+  local cx cy tx dist ms
+  read -r cx cy < <(head_centre) || fail "no master head to flick"
+  tx="$(awk -v s="$1" -v w="$APP_W" 'BEGIN { print int(s * w + 0.5) }')"
+  dist=$((cx > tx ? cx - tx : tx - cx))
+  ms="$(flick_ms "$dist" "$2" "$FL_D")"
+  a shell input swipe "$cx" "$cy" "$tx" "$cy" "$ms"
+  log "flick from x $cx to $tx (share $1 of $APP_W): $dist px in $ms ms, $(awk -v d="$dist" -v m="$ms" -v s="$FL_D" 'BEGIN { printf "%.0f", d / s / m * 1000 }') dp/s"
+}
+
+# The edge the master rests on, from its frame's x only (frame y sits below the layout position by
+# the status bar): left, right or middle.
+edge_of_master() {
+  local fl ft fr fb
+  read -r fl ft fr fb < <(master_frame) || fail "no master head window"
+  log "master frame $fl $ft $fr $fb (width $APP_W)" >&2
+  if [ "$fl" -le 0 ]; then echo left
+  elif [ "$fr" -ge "$APP_W" ]; then echo right
+  else echo middle; fi
+}
+
+# Two flicks from a head resting on the right edge at 1000 dp/s: to the left, let go right of the
+# middle (so the nearer edge is the right one), then back to the right, let go left of the middle.
+# $1 names the phase in the screenshots.
+flick_both_ways() {
+  local edge
+  flick_to 0.55 1000
+  sleep 3
+  shot "fling-$1-left"
+  edge="$(edge_of_master)"
+  log "$1: flung left, rests on the $edge"
+  [ "$edge" = left ] || fail "the head did not snap to the edge it was flung towards ($1, left, found $edge)"
+  flick_to 0.45 1000
+  sleep 3
+  shot "fling-$1-right"
+  edge="$(edge_of_master)"
+  log "$1: flung right, rests on the $edge"
+  [ "$edge" = right ] || fail "the head did not snap to the edge it was flung towards ($1, right, found $edge)"
+}
+
+check_fling() {
+  # 1. Save the overrides and the rotation settings; portrait, fixed, with three-button navigation.
+  FLING_SIZE_BEFORE="$(a shell wm size | tr -d '\r' | awk -F': ' '/Override size/ { print $2 }')"
+  FLING_DENSITY_BEFORE="$(a shell wm density | tr -d '\r' | awk -F': ' '/Override density/ { print $2 }')"
+  ROT_ACCEL_BEFORE="$(a shell settings get system accelerometer_rotation | tr -d '\r')"
+  ROT_USER_BEFORE="$(a shell settings get system user_rotation | tr -d '\r')"
+  trap fling_restore EXIT
+  web_heads_mode
+  nav_three_button
+  a shell settings put system accelerometer_rotation 0
+  a shell settings put system user_rotation 0
+  sleep 2
+
+  # 2. The phone's own width: one head on the right edge, flung both ways.
+  local n
+  open_link "https://example.com/?fling=1"
+  n="$(wait_for_overlays 60 2)"
+  [ "$n" -ge 2 ] || fail "expected a head and the trash window, found $n overlay windows"
+  sleep 3
+  app_size
+  FL_D="$(density)"
+  log "phone ${APP_W}x${APP_H} (size from $APP_SIZE_SOURCE), density $FL_D, $(awk -v w="$APP_W" -v d="$FL_D" 'BEGIN { printf "%.0f", w / d }') dp wide"
+  flick_both_ways phone
+
+  # 3. A 1280 dp window: the service gets the configuration change and the head finds the stack's place.
+  a shell wm size 2560x1600
+  a shell wm density 320
+  sleep 4
+  app_size
+  FL_D="$(density)"
+  local wide_dp
+  wide_dp="$(awk -v w="$APP_W" -v d="$FL_D" 'BEGIN { printf "%.0f", w / d }')"
+  log "wide ${APP_W}x${APP_H} (size from $APP_SIZE_SOURCE), density $FL_D, $wide_dp dp wide"
+  awk -v w="$wide_dp" 'BEGIN { exit !(w - 1280 <= 16 && 1280 - w <= 16) }' || fail "the window is not 1280 dp wide ($wide_dp dp)"
+  [ "$(edge_of_master)" = right ] || fail "the head did not rest on the right edge of the wide window"
+  flick_both_ways wide
+  overlay_windows > "$OUT/fling-wide-windows.txt"
+  a shell dumpsys window windows | tr -d '\r' > "$OUT/fling-wide-window-dump.txt"
+
+  # 4. The same flick speed in dp per second in both phases (logged per flick); no crash.
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  app_logcat fling
+  [ ! -s "$OUT/fling.crash.txt" ] || fail "crash during the flings (see fling.crash.txt)"
+  log "fling passed"
+}
+
+# Prints every web head description that a UI dump shows, one per line. Dumps every window first
+# (a head is an overlay, never the active window), then the active window, then the maestro
+# hierarchy; keeps the dump it used in the evidence and logs which source answered.
+head_descriptions() {
+  local dump=/sdcard/webheads-speech.xml
+  a shell uiautomator dump --windows "$dump" >/dev/null 2>&1 || true
+  a shell cat "$dump" 2>/dev/null | tr -d '\r' > "$OUT/speech-ui.xml" || true
+  if grep -q 'content-desc="Web head: ' "$OUT/speech-ui.xml"; then
+    log "dump source: uiautomator dump --windows" >&2
+  else
+    a shell uiautomator dump "$dump" >/dev/null 2>&1 || true
+    a shell cat "$dump" 2>/dev/null | tr -d '\r' > "$OUT/speech-ui.xml" || true
+    if grep -q 'content-desc="Web head: ' "$OUT/speech-ui.xml"; then
+      log "dump source: uiautomator dump (active window)" >&2
+    elif command -v maestro >/dev/null; then
+      maestro --device "$SERIAL" hierarchy > "$OUT/speech-hierarchy.json" 2>/dev/null || true
+      log "dump source: maestro hierarchy" >&2
+      grep -o 'Web head: [^"]*' "$OUT/speech-hierarchy.json" || true
+      return 0
+    else
+      log "dump source: none had a web head node" >&2
+    fi
+  fi
+  grep -o 'Web head: [^"]*' "$OUT/speech-ui.xml" || true
+}
+
+check_speech() {
+  # 1. Web heads mode with a clean log.
+  web_heads_mode
+  a logcat -c
+  # 2. Three links, three heads; the newest is at the front.
+  open_link "https://example.com/?speech=1"
+  sleep 3
+  open_link "https://example.com/?speech=2"
+  sleep 3
+  open_link "https://example.com/?speech=3"
+  local windows
+  windows="$(wait_for_overlays 60 4)"
+  log "overlay windows: $windows"
+  [ "$windows" -ge 4 ] || fail "expected three head windows and the trash, found $windows"
+  sleep 8  # the page titles
+  # 3. What a screen reader is given for each head.
+  shot speech-heads
+  head_descriptions > "$OUT/speech-descriptions.txt"
+  log "descriptions:"
+  sed 's/^/  /' "$OUT/speech-descriptions.txt" | tee -a "$OUT/speech.txt"
+  [ -s "$OUT/speech-descriptions.txt" ] || fail "no head description in any UI dump"
+  # Each description may end in the page state of its head.
+  local front state='(, (loading|loaded|page did not load))?$'
+  front="$(grep -cE "^Web head: .+, 1 of 3$state" "$OUT/speech-descriptions.txt" || true)"
+  [ "$front" -eq 1 ] || fail "the front head does not say 1 of 3"
+  grep -qE ", 2 of 3$state" "$OUT/speech-descriptions.txt" || fail "no head says 2 of 3"
+  grep -qE ", 3 of 3$state" "$OUT/speech-descriptions.txt" || fail "no head says 3 of 3"
+  log "front title: $(grep -E ", 1 of 3$state" "$OUT/speech-descriptions.txt" | sed -E 's/^Web head: (.*), 1 of 3(, (loading|loaded|page did not load))?$/\1/') (\"Example Domain\" online, else the address)"
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  # 4. No crash; close the heads.
+  app_logcat speech
+  [ ! -s "$OUT/speech.crash.txt" ] || fail "crash with three heads open (see speech.crash.txt)"
+  close_all_heads
+  log "speech passed"
+}
+
+# Dumps every window to $OUT/$1.xml (a head and the trash are overlays, never the active window).
+dump_windows() {
+  local dump=/sdcard/webheads-trash.xml
+  a shell uiautomator dump --windows "$dump" >/dev/null 2>&1 || true
+  a shell cat "$dump" 2>/dev/null | tr -d '\r' > "$OUT/$1.xml" || true
+}
+
+# Centre "X Y" of the node described as "Close target" in the dump $1.
+trash_node_centre() {
+  grep -o 'content-desc="Close target"[^>]*bounds="\[[0-9]*,[0-9]*\]\[[0-9]*,[0-9]*\]"' "$1" | head -1 |
+    sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
+    awk '{ print int(($1 + $3) / 2), int(($2 + $4) / 2) }'
+}
+
+# Number of overlay windows that take touches in the list $1.
+touchable_windows() { grep -c '^1 ' "$1" || true; }
+
+# Moves the held touch from ($1, $2) to ($3, $4) in $5 steps.
+move_in_steps() {
+  local i
+  for i in $(seq 1 "$5"); do
+    a shell input motionevent MOVE $(( $1 + ($3 - $1) * i / $5 )) $(( $2 + ($4 - $2) * i / $5 ))
+  done
+}
+
+TALKBACK_PKG="com.google.android.marvin.talkback"
+TALKBACK_BEFORE=""
+
+# Turns TalkBack on by adb and waits up to 10 s for it to bind. Returns 0 when bound, 1 when it is
+# not installed, 2 when it is installed but did not bind; $OUT/$1-accessibility.txt keeps the last
+# dumpsys. talkback_restore puts the accessibility services back as they were.
+talkback_on() {
+  local talkback
+  talkback="$(a shell pm list packages | tr -d '\r' | grep -x "package:$TALKBACK_PKG" | sed 's/package://' | head -1 || true)"
+  [ -n "$talkback" ] || return 1
+  TALKBACK_BEFORE="none$(a shell settings get secure enabled_accessibility_services | tr -d '\r' | sed 's/^null$//')"
+  a shell settings put secure enabled_accessibility_services "$talkback/$TALKBACK_PKG.TalkBackService"
+  a shell settings put secure accessibility_enabled 1
+  for _ in $(seq 1 10); do
+    a shell dumpsys accessibility | tr -d '\r' > "$OUT/$1-accessibility.txt"
+    if grep -q "Bound services:{Service\[label=TalkBack" "$OUT/$1-accessibility.txt"; then return 0; fi
+    sleep 1
+  done
+  return 2
+}
+
+talkback_restore() {
+  if [ "$TALKBACK_BEFORE" = "none" ]; then
+    a shell settings delete secure enabled_accessibility_services >/dev/null 2>&1 || true
+    a shell settings put secure accessibility_enabled 0 >/dev/null 2>&1 || true
+  elif [ -n "$TALKBACK_BEFORE" ]; then
+    a shell settings put secure enabled_accessibility_services "${TALKBACK_BEFORE#none}" >/dev/null 2>&1 || true
+  fi
+  TALKBACK_BEFORE=""
+}
+
+trash_restore() {
+  nav_restore
+  talkback_restore
+}
+
+check_trash() {
+  trap trash_restore EXIT
+  # 1. Web heads mode, one head; the hidden trash takes no touches. Three-button navigation, so the
+  # gesture Back zone at the right edge does not take the drag of the head resting there.
+  web_heads_mode
+  nav_three_button
+  a logcat -c
+  open_link "https://example.com/?trash=1"
+  local windows
+  windows="$(wait_for_overlays 60 2)"
+  log "overlay windows: $windows"
+  [ "$windows" -ge 2 ] || fail "expected a head window and the trash, found $windows"
+  sleep 3
+  local hx hy w h
+  read -r hx hy < <(head_centre)
+  read -r w h < <(screen_size)
+  log "head centre: $hx $hy, screen: $w x $h"
+  overlay_windows > "$OUT/trash-windows-idle.txt"
+  [ "$(touchable_windows "$OUT/trash-windows-idle.txt")" -eq 1 ] || fail "the hidden trash window takes touches"
+  # 2. The dumps come first: while an events capture holds the UI automation connection,
+  # uiautomator dump writes nothing, so the capture gets its own drag in part 8.
+  # 3. A held drag to the middle shows the trash, named and touchable.
+  local mx=$((w / 2)) my=$((h / 2)) ax=$((w / 2)) ay=$((h / 3))
+  a shell dumpsys vibrator_manager | tr -d '\r' > "$OUT/trash-vibrator-before.txt" || true
+  a shell input motionevent DOWN "$hx" "$hy"
+  move_in_steps "$hx" "$hy" "$mx" "$my" 4
+  sleep 1
+  overlay_windows > "$OUT/trash-windows-shown.txt"
+  [ "$(touchable_windows "$OUT/trash-windows-shown.txt")" -eq 2 ] || fail "the shown trash window does not take touches"
+  dump_windows trash-shown
+  grep -q 'content-desc="Close target"' "$OUT/trash-shown.xml" || fail "the shown trash is not called Close target in any window"
+  if grep -q 'content-desc="Release to close"' "$OUT/trash-shown.xml"; then fail "Release to close before a lock"; fi
+  log "shown: Close target, no Release to close; the trash window takes touches"
+  local tx ty
+  read -r tx ty < <(trash_node_centre "$OUT/trash-shown.xml") || true
+  [ -n "$tx" ] || fail "no bounds for the Close target node"
+  log "trash centre: $tx $ty"
+  # 4. Onto the trash, then eight more moves that stay on it: one lock.
+  a shell input motionevent MOVE "$tx" "$ty"
+  sleep 1
+  local i
+  for i in $(seq 1 8); do
+    a shell input motionevent MOVE $((tx + (i % 3) * 5 - 5)) $((ty + (i % 2) * 10 - 5))
+    sleep 0.1
+  done
+  sleep 1
+  dump_windows trash-locked
+  grep -q 'content-desc="Release to close"' "$OUT/trash-locked.xml" || fail "the locked trash does not say Release to close"
+  log "locked: Release to close"
+  # 5. Off the trash: the name stays, the announcement empties.
+  a shell input motionevent MOVE "$ax" "$ay"
+  sleep 1
+  dump_windows trash-left
+  grep -q 'content-desc="Close target"' "$OUT/trash-left.xml" || fail "the trash lost its name after the head left"
+  if grep -q 'content-desc="Release to close"' "$OUT/trash-left.xml"; then fail "Release to close after the head left"; fi
+  log "left: Close target, no Release to close"
+  # 6. Back onto the trash: it locks again.
+  a shell input motionevent MOVE "$tx" "$ty"
+  sleep 1
+  dump_windows trash-relocked
+  grep -q 'content-desc="Release to close"' "$OUT/trash-relocked.xml" || fail "the trash does not say Release to close after the second lock"
+  log "relocked: Release to close"
+  # 7. Off the trash and let go: the trash hides and takes no touches.
+  a shell input motionevent MOVE "$ax" "$ay"
+  a shell input motionevent UP "$ax" "$ay"
+  sleep 2
+  overlay_windows > "$OUT/trash-windows-after.txt"
+  [ "$(touchable_windows "$OUT/trash-windows-after.txt")" -eq 1 ] || fail "the trash window still takes touches after the release"
+  log "released: the trash window takes no touches"
+  # The haptic ticks: what the vibrator service saw of the lock and leave ticks. It never fails the
+  # check; the felt ticks are a person's sign-off on a real phone (feel-checklist.md).
+  a shell dumpsys vibrator_manager | tr -d '\r' > "$OUT/trash-vibrator-after.txt" || true
+  local vib vib_before vib_after vib_played
+  # Android 12+ lists each vibrator as "Vibrator (id=N):"; older dumps print hasVibrator or vibratorIds.
+  vib="$(grep -m1 -iE "Vibrator \(id=|hasVibrator|vibratorIds|Vibrator IDs" "$OUT/trash-vibrator-after.txt" | sed 's/^ *//' || true)"
+  log "vibrator: ${vib:-none listed}"
+  vib_before="$(grep -c "$PKG" "$OUT/trash-vibrator-before.txt" || true)"
+  vib_after="$(grep -c "$PKG" "$OUT/trash-vibrator-after.txt" || true)"
+  log "vibrator: app entries before ${vib_before:-0}, after ${vib_after:-0}"
+  # The constants of the app's haptics the service played during this drag, oldest first
+  # (16 CONFIRM, 1 VIRTUAL_KEY, 4 CLOCK_TICK); the service keeps earlier ones in its history too.
+  local vib_new=$(( ${vib_after:-0} - ${vib_before:-0} ))
+  [ "$vib_new" -ge 0 ] || vib_new=0
+  vib_played="$(grep "$PKG" "$OUT/trash-vibrator-after.txt" | tail -n "$vib_new" | grep -oE "performHapticFeedback\(constant=[0-9]+\)" | grep -oE "[0-9]+" | tr '\n' ' ' || true)"
+  log "vibrator: app haptics played in this drag: ${vib_played:-none}"
+  if [ -z "$vib" ] || echo "$vib" | grep -qiE "hasVibrator[=: ]*false|vibratorIds[=: ]*\[\]|Vibrator IDs[=: ]*\[\]"; then
+    log "vibrator: none on this device; the felt ticks are the person's sign-off"
+  fi
+  # 8. The same drag again with an accessibility events capture: shown, locked with eight more moves
+  # on the trash, left, locked again, released.
+  sleep 3
+  read -r hx hy < <(head_centre)
+  a shell "timeout 30 uiautomator events" > "$OUT/trash-events.txt" 2>&1 &
+  local events=$!
+  sleep 2
+  a shell input motionevent DOWN "$hx" "$hy"
+  move_in_steps "$hx" "$hy" "$mx" "$my" 4
+  sleep 1
+  a shell input motionevent MOVE "$tx" "$ty"
+  sleep 1
+  for i in $(seq 1 8); do
+    a shell input motionevent MOVE $((tx + (i % 3) * 5 - 5)) $((ty + (i % 2) * 10 - 5))
+    sleep 0.1
+  done
+  sleep 1
+  a shell input motionevent MOVE "$ax" "$ay"
+  sleep 1
+  a shell input motionevent MOVE "$tx" "$ty"
+  sleep 1
+  a shell input motionevent MOVE "$ax" "$ay"
+  a shell input motionevent UP "$ax" "$ay"
+  wait "$events" || true
+  tr -d '\r' < "$OUT/trash-events.txt" > "$OUT/trash-events.clean.txt"
+  local changes spoken
+  changes="$(grep -F "PackageName: $PKG" "$OUT/trash-events.clean.txt" | grep -F TYPE_WINDOW_CONTENT_CHANGED | grep -cF CONTENT_CHANGE_TYPE_CONTENT_DESCRIPTION || true)"
+  log "content-description change events from the app: $changes"
+  spoken="$(grep -cF "Release to close" "$OUT/trash-events.clean.txt" || true)"
+  if [ "$spoken" -gt 0 ]; then
+    log "event lines with Release to close: $spoken"
+    [ "$spoken" -eq 2 ] || fail "Release to close came $spoken times for two locks"
+  else
+    log "content-change events carry no text here; the dumps and the JVM tests carry the words"
+  fi
+  # 9. TalkBack probe: it records what happens and never fails the check.
+  local talkback=0
+  talkback_on trash || talkback=$?
+  if [ "$talkback" -eq 1 ]; then
+    log "talkback: not installed"
+  else
+    if [ "$talkback" -eq 2 ]; then
+      log "talkback: installed but not bound (see trash-accessibility.txt)"
+    else
+      a logcat -c
+      local before after
+      before="$(overlay_windows | awk '$1 == 1 { print $2, $3; exit }')"
+      a shell input motionevent DOWN "$hx" "$hy"
+      a shell input motionevent MOVE "$tx" "$ty"
+      sleep 1
+      after="$(overlay_windows | awk '$1 == 1 { print $2, $3; exit }')"
+      sleep 1
+      a shell input motionevent MOVE "$ax" "$ay"
+      a shell input motionevent UP "$ax" "$ay"
+      sleep 2
+      log "talkback: head frame before $before, after the move $after"
+      if [ -n "$before" ] && [ "$before" != "$after" ]; then
+        log "talkback: a held drag moves the head"
+      else
+        log "talkback: injected touches are explored, the head does not move"
+      fi
+      a logcat -d | tr -d '\r' | grep -iE "talkback|speech|utterance" > "$OUT/trash-talkback.logcat.txt" || true
+      if grep -qF "Release to close" "$OUT/trash-talkback.logcat.txt"; then
+        log "talkback: its log has Release to close"
+      else
+        log "talkback: its log has no Release to close"
+      fi
+    fi
+    trash_restore
+  fi
+  # 10. No crash; close the head.
+  app_logcat trash
+  [ ! -s "$OUT/trash.crash.txt" ] || fail "crash during the trash drags (see trash.crash.txt)"
+  close_all_heads
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "trash passed"
+}
+
+# Taps a row by its title, scrolling the screen up until it shows (six tries, a swipe after each miss).
+tap_scrolled() {
+  local w h
+  read -r w h < <(screen_size)
+  for _ in 1 2 3 4 5 6; do
+    tap_text "$1" && return 0
+    a shell input swipe $((w / 2)) $((h * 3 / 4)) $((w / 2)) $((h / 4)) 300
+    sleep 1
+  done
+  return 1
+}
+
+# Sets "Aggressive background loading" to $1 (on or off): when the stored value differs, opens
+# Browsing options and taps the row; turning it on also turns on Merge tabs and shows an info
+# dialog, which Back closes.
+toggle_aggressive_loading() {
+  local want=false current
+  [ "$1" = on ] && want=true
+  current="$(stored_setting aggressive_loading "aggressive-setting-before-$1.tsv")"
+  if [ "${current:-false}" = "$want" ]; then
+    log "aggressive background loading is already $1"
+    return 0
+  fi
+  a shell am start -W -n "$PKG/$MAIN" -f 0x24000000 --es "$DESTINATION" BrowsingOptions >/dev/null
+  sleep 2
+  tap_scrolled "Aggressive background loading" || fail "no \"Aggressive background loading\" row in Browsing options"
+  sleep 2
+  shot "aggressive-setting-$1"
+  a shell input keyevent BACK
+  sleep 1
+  a shell input keyevent HOME
+  sleep 1
+}
+
+check_aggressive() {
+  web_heads_mode
+  toggle_aggressive_loading on
+  trap 'toggle_aggressive_loading off; close_all_heads' EXIT
+  local link="https://example.com/?aggressive=1"
+  a logcat -c
+  open_link "$link"
+  sleep 6
+  shot aggressive-head
+  overlay_windows > "$OUT/aggressive-windows.txt"
+  local running
+  running="$(overlay_count)"
+  log "overlay windows: $running"
+  [ "$running" -ge 2 ] || fail "expected a head window and the trash window, found $running"
+  a shell dumpsys activity activities | tr -d '\r' > "$OUT/aggressive-activities.txt"
+  # Android shortens the link in this dump (dat=https://example.com/...), so the host is matched.
+  grep -E "(CustomTabActivity|WebViewActivity)" "$OUT/aggressive-activities.txt" | grep -F "example.com" | head -3 | tee -a "$OUT/aggressive.txt" ||
+    fail "no browsing tab of $link loads behind the head (see aggressive-activities.txt)"
+  app_logcat aggressive
+  [ ! -s "$OUT/aggressive.crash.txt" ] || fail "crash with aggressive loading (see aggressive.crash.txt)"
+  log "aggressive passed"
+}
+
+bubble_flag_count() {
+  a shell dumpsys notification --noredact | tr -d '\r' > "$OUT/$1"
+  bubble_flag_lines "$OUT/$1" | grep -c . || true
+}
+
+check_bubble_minimize() {
+  a shell am force-stop "$PKG"
+  choose_mode "Native Bubbles (Beta)"
+  # The legacy guide dialog first; dismissing it brings the notification explainer.
+  a shell input keyevent BACK
+  sleep 2
+  if tap_text "Grant"; then
+    sleep 2
+    tap_text "Allow" || fail "no system notification request"
+    sleep 1
+  fi
+  a shell input keyevent HOME
+  # Bubbles off for the app: the link opens in a tab with the refusal message instead of a bubble.
+  a shell cmd notification set_bubbles "$PKG" 0
+  trap 'a shell cmd notification set_bubbles "$PKG" 1' EXIT
+  a logcat -c
+  open_link "https://example.com/?minimize=1"
+  sleep 6
+  shot bubble-minimize-tab
+  a shell cmd notification set_bubbles "$PKG" 1
+  local before after
+  before="$(bubble_flag_count bubble-minimize-before.txt)"
+  # The bubbles-off message covers the bottom bar for a few seconds after the link opens.
+  wait_tap_text "Minimize" 15 || fail "no Minimize action in the tab's bottom bar (see bubble-minimize-tab.png)"
+  for _ in $(seq 1 10); do
+    sleep 2
+    after="$(bubble_flag_count bubble-minimize-notifications.txt)"
+    [ "$after" -gt "$before" ] && break
+  done
+  log "bubble notifications before Minimize: $before, after: $after"
+  [ "$after" -gt "$before" ] || fail "Minimize posted no bubble (see bubble-minimize-notifications.txt)"
+  a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/bubble-minimize-webhead-service.txt"
+  if grep -q "ServiceRecord" "$OUT/bubble-minimize-webhead-service.txt"; then
+    fail "Minimize started the web head service in native bubble mode (see bubble-minimize-webhead-service.txt)"
+  fi
+  sleep 2
+  shot bubble-minimize
+  app_logcat bubble-minimize
+  [ ! -s "$OUT/bubble-minimize.crash.txt" ] || fail "crash on Minimize (see bubble-minimize.crash.txt)"
+  a shell input keyevent HOME
+  log "bubble-minimize passed"
+}
+
+# ---------------------------------------------------------------------------------------------
+# Page state of a head: the turning ring and the faded head while its page loads, the solid ring
+# and the full head once it finished. The pages come from slow-page-server.py on this host,
+# through adb reverse, so no outside site is needed; HTTPBIN=1 opens https://httpbin.org/delay/5.
+
+PAGE_PORT=""
+PAGE_SERVER_PID=""
+
+# Starts slow-page-server.py on a free port and reverses it to the device.
+start_page_server() {
+  PAGE_PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
+  python "$(hostpath "$HERE/slow-page-server.py")" "$PAGE_PORT" > "$OUT/$WHICH-server.log" 2>&1 &
+  PAGE_SERVER_PID=$!
+  a reverse "tcp:$PAGE_PORT" "tcp:$PAGE_PORT" >/dev/null
+  local _ up=""
+  for _ in $(seq 1 20); do
+    python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$PAGE_PORT/slow?s=0&id=0')" 2>/dev/null && { up=1; break; }
+    sleep 0.5
+  done
+  [ -n "$up" ] || fail "slow page server did not answer on port $PAGE_PORT; see $OUT/$WHICH-server.log"
+  log "slow page server on port $PAGE_PORT (adb reverse tcp:$PAGE_PORT)"
+}
+
+page_state_cleanup() {
+  close_all_heads
+  [ -n "$PAGE_PORT" ] && a reverse --remove "tcp:$PAGE_PORT" >/dev/null 2>&1 || true
+  [ -n "$PAGE_SERVER_PID" ] && kill "$PAGE_SERVER_PID" >/dev/null 2>&1 || true
+}
+
+now_ms() { python -c 'import time; print(int(time.time() * 1000))'; }
+
+check_page_state() {
+  trap page_state_cleanup EXIT
+  local url finish_source
+  if [ "${HTTPBIN:-0}" = 1 ]; then
+    url="https://httpbin.org/delay/5"
+    finish_source="log"
+  else
+    start_page_server
+    url="http://localhost:$PAGE_PORT/slow?s=6&id=1"
+    finish_source="server"
+  fi
+  # 1. Web heads mode with a clean log; one slow link.
+  web_heads_mode
+  a logcat -c
+  open_link "$url"
+  local windows
+  windows="$(wait_for_overlays 30 2)"
+  [ "$windows" -ge 2 ] || fail "no head window for the slow link (found $windows overlay windows)"
+  local frame
+  frame="$(overlay_windows | awk '$1 == 1 { print $2, $3, $4, $5; exit }')"
+  [ -n "$frame" ] || fail "no front head window"
+  log "head window frame: $frame"
+  # 2. A screenshot every 500 ms for 12 s, each with its host time.
+  : > "$OUT/page-state-times.tsv"
+  local n t
+  for n in $(seq -w 1 24); do
+    t="$(now_ms)"
+    shot "page-state-$n"
+    printf '%s\t%s\n' "$n" "$t" >> "$OUT/page-state-times.tsv"
+    sleep 0.5
+  done
+  # 3. When the page finished: the server's end line (host time) and the head's log line.
+  app_logcat page-state
+  cp "$OUT/page-state.crash.txt" "$OUT/page-state-crash.txt"
+  local loaded_line
+  loaded_line="$(grep -E "Head page .*: Loaded by" "$OUT/page-state.logcat.txt" | head -1 || true)"
+  log "head log line: ${loaded_line:-none}"
+  [ -n "$loaded_line" ] || fail "no \"Head page ... Loaded\" log line for the slow link"
+  # 4. Judge the crops: turning and faded before the finish, still and full from 1 s after it.
+  if ! python - "$OUT" "$frame" "$finish_source" <<'PY' | tee -a "$OUT/page-state.txt"; then
+import datetime, glob, os, sys
+from PIL import Image, ImageChops
+
+out, frame, source = sys.argv[1], [int(v) for v in sys.argv[2].split()], sys.argv[3]
+times = dict(line.split("\t") for line in open(os.path.join(out, "page-state-times.tsv")).read().split("\n") if line)
+shots = []
+for name, t in sorted(times.items()):
+    img = Image.open(os.path.join(out, f"page-state-{name}.png")).convert("RGB")
+    l, t0, r, b = frame
+    l, t0, r, b = max(l, 0), max(t0, 0), min(r, img.width), min(b, img.height)
+    shots.append((int(t), img.crop((l, t0, r, b))))
+
+if source == "server":
+    ends = [line for line in open(os.path.join(out, "page-state-server.log")) if " end id=1" in line]
+    if not ends:
+        print("FAIL the server never answered the slow page"); sys.exit(1)
+    clock = ends[0].split()[0]
+    today = datetime.date.today()
+    finish = int(datetime.datetime.combine(today, datetime.time.fromisoformat(clock)).timestamp() * 1000)
+else:
+    # httpbin answers after 5 s; the head's log line follows the site details fetch.
+    finish = shots[0][0] + 5_000
+
+def changed(a, b):
+    diff = ImageChops.difference(a, b).convert("L").point(lambda v: 255 if v > 8 else 0)
+    return sum(1 for v in diff.getdata() if v) / (a.width * a.height)
+
+def centre(img):
+    w, h = img.size
+    box = img.crop((int(w * 0.4), int(h * 0.4), int(w * 0.6), int(h * 0.6)))
+    px = list(box.getdata())
+    return tuple(sum(p[i] for p in px) / len(px) for i in range(3))
+
+def corner(img):
+    return img.getpixel((1, 1))
+
+def dist(a, b):
+    return sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
+
+before = [s for s in shots if s[0] < finish - 300]
+after = [s for s in shots if s[0] >= finish + 1_000]
+print(f"shots: {len(shots)}, before the finish: {len(before)}, from 1 s after: {len(after)}")
+ok = True
+if len(before) < 3 or len(after) < 3:
+    print("FAIL too few shots on one side of the finish"); sys.exit(1)
+
+turning = [changed(a[1], b[1]) > 0.002 for a, b in zip(before, before[1:])]
+line = f"turning while loading: {sum(turning)} of {len(turning)} consecutive pairs differ"
+if sum(turning) >= 0.8 * len(turning):
+    print("PASS " + line)
+else:
+    print("FAIL " + line); ok = False
+
+still = [changed(a[1], b[1]) <= 0.002 for a, b in zip(after, after[1:])]
+line = f"still after the finish: {sum(still)} of {len(still)} consecutive pairs are the same"
+if all(still):
+    print("PASS " + line)
+else:
+    print("FAIL " + line); ok = False
+
+bg = corner(after[-1][1])
+full = centre(after[-1][1])
+faded = [dist(centre(s[1]), bg) < dist(full, bg) - 10 for s in before]
+line = f"faded while loading: {sum(faded)} of {len(faded)} shots have the fill nearer the background than the full head"
+if all(faded):
+    print("PASS " + line)
+else:
+    print("FAIL " + line); ok = False
+
+full_after = [dist(centre(s[1]), full) < 6 for s in after]
+line = f"full after the finish: {sum(full_after)} of {len(full_after)} shots match the full fill"
+if all(full_after):
+    print("PASS " + line)
+else:
+    print("FAIL " + line); ok = False
+sys.exit(0 if ok else 1)
+PY
+    fail "the head did not show its page state (see page-state.txt)"
+  fi
+  [ ! -s "$OUT/page-state-crash.txt" ] || fail "crash while the head loaded (see page-state-crash.txt)"
+  log "page-state passed"
+}
+
+check_page_state_worst() {
+  trap page_state_cleanup EXIT
+  start_page_server
+  # 1. Five slow links at once, the stack at rest.
+  web_heads_mode
+  a logcat -c
+  local i
+  for i in 1 2 3 4 5; do
+    open_link "http://localhost:$PAGE_PORT/slow?s=25&id=$i"
+    sleep 1
+  done
+  local windows
+  windows="$(wait_for_overlays 30 6)"
+  log "overlay windows: $windows"
+  [ "$windows" -ge 6 ] || fail "expected five head windows and the trash, found $windows"
+  sleep 3
+  shot page-state-worst
+  # 2. The device: its refresh rate, whether it is an emulator, and the host load.
+  local fps qemu
+  fps="$(a shell dumpsys display | tr -d '\r' | grep -oE 'renderFrameRate[= ][0-9.]+' | head -1 | grep -oE '[0-9.]+$' || true)"
+  [ -n "$fps" ] || fps="$(a shell dumpsys display | tr -d '\r' | grep -oE 'fps=[0-9.]+' | head -1 | grep -oE '[0-9.]+$' || true)"
+  [ -n "$fps" ] || fps=60
+  qemu="$(a shell getprop ro.kernel.qemu | tr -d '\r')"
+  log "refresh rate: $fps Hz; emulator: ${qemu:-0}; API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "host load: $(powershell -NoProfile -Command '(Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average).Average' 2>/dev/null | tr -d '\r' || uptime)"
+  # 3. Five seconds of frames at rest.
+  a shell dumpsys gfxinfo "$PKG" reset >/dev/null
+  sleep 5
+  a shell dumpsys gfxinfo "$PKG" framestats | tr -d '\r' > "$OUT/page-state-worst-gfxinfo.txt"
+  # 4. Only the front head's window draws, and on a phone its frames fit one refresh interval.
+  if ! python - "$OUT/page-state-worst-gfxinfo.txt" "$fps" "${qemu:-0}" <<'PY' | tee -a "$OUT/page-state-worst.txt"; then
+import sys
+
+path, fps, qemu = sys.argv[1], float(sys.argv[2]), sys.argv[3].strip() == "1"
+windows, current, header, inside = {}, None, None, False
+total = None
+for line in open(path):
+    line = line.rstrip("\n")
+    if line.startswith("Total frames rendered:") and total is None:
+        total = int(line.split(":")[1])
+    if line.startswith("Window: "):
+        current = line[len("Window: "):] + f" #{len(windows) + 1}"
+        windows[current] = []
+    elif line.strip() == "---PROFILEDATA---":
+        inside = not inside
+        header = None
+    elif inside and line.startswith("Flags,"):
+        header = line.rstrip(",").split(",")
+    elif inside and header and current is not None and line and line[0].isdigit():
+        row = dict(zip(header, line.rstrip(",").split(",")))
+        if row.get("Flags") == "0":
+            windows[current].append(row)
+
+ok = True
+budget_frames = 1.2 * fps * 5
+if windows:
+    counts = {name: len(rows) for name, rows in windows.items()}
+    for name, n in counts.items():
+        print(f"window {name}: {n} frames")
+    drawing = [name for name, n in counts.items() if n > 2]
+    if len(drawing) == 1:
+        print(f"PASS only one window draws ({drawing[0]}); every other window drew at most 2 frames")
+    else:
+        print(f"FAIL {len(drawing)} windows drew more than 2 frames: {drawing}"); ok = False
+    rows = windows[drawing[0]] if drawing else []
+else:
+    print(f"frame stats are not split by window; total frames {total}")
+    if total is not None and total <= budget_frames:
+        print(f"PASS total frames {total} <= {budget_frames:.0f} (1.2 x {fps:g} Hz x 5 s)")
+    else:
+        print(f"FAIL total frames {total} > {budget_frames:.0f}"); ok = False
+    rows = []
+
+if rows:
+    times = sorted((int(r["FrameCompleted"]) - int(r["IntendedVsync"])) / 1e6 for r in rows)
+    p95 = times[min(len(times) - 1, int(round(0.95 * (len(times) - 1))))]
+    interval = 1000 / fps
+    line = f"95th percentile frame time {p95:.2f} ms over {len(times)} frames, refresh interval {interval:.2f} ms"
+    if qemu:
+        print(f"floor {line} (emulator: recorded, not judged)")
+    elif p95 <= interval:
+        print("PASS " + line)
+    else:
+        print("FAIL " + line); ok = False
+else:
+    print("no drawing window frames to time")
+sys.exit(0 if ok else 1)
+PY
+    fail "five loading heads drew more than the front head's frames (see page-state-worst.txt)"
+  fi
+  app_logcat page-state-worst
+  [ ! -s "$OUT/page-state-worst.crash.txt" ] || fail "crash with five heads loading (see page-state-worst.crash.txt)"
+  log "page-state-worst passed"
+}
+
+
+# The page state in words, for screen readers. Waits up to $1 s for a "Head page ...: $2 by" line
+# in the device log and prints it (empty when none came).
+wait_for_page_line() {
+  local line=""
+  for _ in $(seq 1 "$1"); do
+    line="$(a logcat -d | tr -d '\r' | grep -E "Head page .*: $2 by" | head -1 || true)"
+    [ -n "$line" ] && break
+    sleep 1
+  done
+  echo "$line"
+}
+
+SPEECH_EXTRA_PORT=""
+page_state_speech_cleanup() {
+  page_state_cleanup
+  [ -n "$SPEECH_EXTRA_PORT" ] && a reverse --remove "tcp:$SPEECH_EXTRA_PORT" >/dev/null 2>&1 || true
+  talkback_restore
+}
+
+# Keeps the TalkBack process's log lines since the last logcat -c in $OUT/$1.
+talkback_log() {
+  local pid
+  pid="$(a shell pidof "$TALKBACK_PKG" | tr -d '\r' || true)"
+  if [ -n "$pid" ]; then a logcat -d --pid="$pid" | tr -d '\r' > "$OUT/$1"; else a logcat -d | tr -d '\r' | grep -iF talkback > "$OUT/$1" || true; fi
+}
+
+check_page_state_speech() {
+  trap page_state_speech_cleanup EXIT
+  # 1. Web heads mode with a clean log; one link that the local server holds 20 s, under the 30 s limit after
+  # which a head that heard nothing turns unknown.
+  start_page_server
+  web_heads_mode
+  a logcat -c
+  open_link "http://localhost:$PAGE_PORT/slow?s=20&id=1"
+  local windows
+  windows="$(wait_for_overlays 60 2)"
+  [ "$windows" -ge 2 ] || fail "no head window for the slow link (found $windows overlay windows)"
+  # 2. While it loads, the head says "loading". The dump comes before the events capture: while a
+  # capture holds the UI automation connection, uiautomator dump writes nothing.
+  head_descriptions > "$OUT/page-state-speech-loading.txt"
+  cp "$OUT/speech-ui.xml" "$OUT/page-state-speech-loading-ui.xml" 2>/dev/null || true
+  sed 's/^/  loading: /' "$OUT/page-state-speech-loading.txt" | tee -a "$OUT/page-state-speech.txt"
+  grep -qE '^Web head: .+, 1 of 1, loading$' "$OUT/page-state-speech-loading.txt" ||
+    fail "the loading head does not say \", 1 of 1, loading\" (see page-state-speech-loading.txt)"
+  log "PASS loading: the head says loading"
+  # 3. An accessibility events capture over the finish, then the finish itself.
+  a shell "timeout 75 uiautomator events" > "$OUT/page-state-speech-events.txt" 2>&1 &
+  local events=$!
+  local loaded_line
+  loaded_line="$(wait_for_page_line 70 Loaded)"
+  [ -n "$loaded_line" ] || fail "no \"Head page ... Loaded\" log line for the slow link"
+  log "head log line: $loaded_line"
+  sleep 3
+  a shell pkill -f "uiautomator events" >/dev/null 2>&1 || true
+  kill "$events" >/dev/null 2>&1 || true
+  wait "$events" 2>/dev/null || true
+  sleep 1
+  # 4. After the finish, the head says "loaded".
+  head_descriptions > "$OUT/page-state-speech-loaded.txt"
+  cp "$OUT/speech-ui.xml" "$OUT/page-state-speech-loaded-ui.xml" 2>/dev/null || true
+  sed 's/^/  loaded: /' "$OUT/page-state-speech-loaded.txt" | tee -a "$OUT/page-state-speech.txt"
+  grep -qE '^Web head: .+, 1 of 1, loaded$' "$OUT/page-state-speech-loaded.txt" ||
+    fail "the loaded head does not say \", 1 of 1, loaded\" (see page-state-speech-loaded.txt)"
+  log "PASS loaded: the head says loaded"
+  # 5. The description change at the finish, as the events capture saw it (logged, never failing:
+  # what an event line carries differs between Android versions).
+  tr -d '\r' < "$OUT/page-state-speech-events.txt" > "$OUT/page-state-speech-events.clean.txt"
+  local changes spoken
+  changes="$(grep -F "PackageName: $PKG" "$OUT/page-state-speech-events.clean.txt" | grep -F TYPE_WINDOW_CONTENT_CHANGED | grep -cF CONTENT_CHANGE_TYPE_CONTENT_DESCRIPTION || true)"
+  log "content-description change events from the app around the finish: $changes"
+  spoken="$(grep -cF ", loaded" "$OUT/page-state-speech-events.clean.txt" || true)"
+  log "event lines with \", loaded\": $spoken"
+  # 6. A page that does not load: a local port reversed to the host with nothing listening on it.
+  close_all_heads
+  a logcat -c
+  SPEECH_EXTRA_PORT="$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
+  a reverse "tcp:$SPEECH_EXTRA_PORT" "tcp:$SPEECH_EXTRA_PORT" >/dev/null
+  open_link "http://localhost:$SPEECH_EXTRA_PORT/"
+  windows="$(wait_for_overlays 60 2)"
+  [ "$windows" -ge 2 ] || fail "no head window for the link to a closed port (found $windows overlay windows)"
+  local failed_line
+  failed_line="$(wait_for_page_line 40 Failed)"
+  [ -n "$failed_line" ] || fail "no \"Head page ... Failed\" log line for the link to a closed port"
+  log "head log line: $failed_line"
+  sleep 1
+  head_descriptions > "$OUT/page-state-speech-failed.txt"
+  cp "$OUT/speech-ui.xml" "$OUT/page-state-speech-failed-ui.xml" 2>/dev/null || true
+  sed 's/^/  failed: /' "$OUT/page-state-speech-failed.txt" | tee -a "$OUT/page-state-speech.txt"
+  grep -qE '^Web head: .+, 1 of 1, page did not load$' "$OUT/page-state-speech-failed.txt" ||
+    fail "the failed head does not say \", 1 of 1, page did not load\" (see page-state-speech-failed.txt)"
+  log "PASS failed: the head says page did not load"
+  close_all_heads
+  # 7. TalkBack, when installed: a tap moves its focus to a loading head, then the page finishes.
+  # It keeps what TalkBack logged and never fails the check.
+  local talkback=0
+  talkback_on page-state-speech || talkback=$?
+  if [ "$talkback" -eq 1 ]; then
+    log "talkback: not installed"
+  elif [ "$talkback" -eq 2 ]; then
+    log "talkback: installed but not bound (see page-state-speech-accessibility.txt)"
+  else
+    log "talkback: bound"
+    a logcat -c
+    open_link "http://localhost:$PAGE_PORT/slow?s=20&id=2"
+    wait_for_overlays 60 2 >/dev/null
+    sleep 2
+    local hx hy
+    read -r hx hy < <(head_centre)
+    a shell input tap "$hx" "$hy"  # touch exploration moves the focus to the head
+    sleep 3
+    talkback_log page-state-speech-talkback-loading.txt
+    if grep -qF "loading" "$OUT/page-state-speech-talkback-loading.txt"; then log "talkback: its log has loading"; else log "talkback: its log has no loading"; fi
+    loaded_line="$(wait_for_page_line 70 Loaded)"
+    log "talkback run, head log line: ${loaded_line:-none}"
+    sleep 4
+    talkback_log page-state-speech-talkback-loaded.txt
+    if grep -qF "loaded" "$OUT/page-state-speech-talkback-loaded.txt"; then log "talkback: its log has loaded"; else log "talkback: its log has no loaded"; fi
+    talkback_restore
+  fi
+  # 8. No crash.
+  app_logcat page-state-speech
+  [ ! -s "$OUT/page-state-speech.crash.txt" ] || fail "crash while a head's page loaded (see page-state-speech.crash.txt)"
+  log "API level: $(a shell getprop ro.build.version.sdk | tr -d '\r')"
+  log "page-state-speech passed"
+}
+
 case "$WHICH" in
   head) check_head ;;
   permission) check_permission ;;
   bubble) check_bubble ;;
-  *) echo "unknown check: $WHICH" >&2; exit 2 ;;
+  refused) check_refused ;;
+  restart) check_restart ;;
+  rotation) check_rotation ;;
+  resnap) check_resnap ;;
+  fling) check_fling ;;
+  speech) check_speech ;;
+  trash) check_trash ;;
+  aggressive) check_aggressive ;;
+  bubble-minimize) check_bubble_minimize ;;
+  page-state)
+    # The screenshot judge reads the shots with Pillow; say so before the device setup, not after it.
+    python -c 'import PIL' 2>/dev/null || { echo "webheads-check: page-state needs python with Pillow (pip install Pillow)" >&2; exit 2; }
+    check_page_state ;;
+  page-state-worst) check_page_state_worst ;;
+  page-state-speech) check_page_state_speech ;;
+  *) echo "unknown check: $WHICH; $USAGE" >&2; exit 2 ;;
 esac

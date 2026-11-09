@@ -27,6 +27,7 @@ import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Clock
 
 /**
  * Opens the history database once, on first use, off the main thread, and survives a bad file.
@@ -47,14 +48,16 @@ class HistoryDatabase
 internal constructor(
   private val context: Context,
   private val legacyImport: LegacyHistoryImport?,
+  private val clock: Clock,
   private val open: () -> ChromerDatabase
 ) {
 
   @Inject
   constructor(
     @ApplicationContext context: Context,
-    legacyImport: LegacyHistoryImport
-  ) : this(context, legacyImport, { ChromerDatabase.create(context) })
+    legacyImport: LegacyHistoryImport,
+    clock: Clock
+  ) : this(context, legacyImport, clock, { ChromerDatabase.create(context) })
 
   private val mutex = Mutex()
 
@@ -157,7 +160,7 @@ internal constructor(
 
   /** Moves the database and its side files to `files/history-broken/<time>/`. */
   private fun quarantine(file: File) {
-    val folder = File(context.filesDir, "$BROKEN_FOLDER/${System.currentTimeMillis()}")
+    val folder = File(context.filesDir, "$BROKEN_FOLDER/${clock.now().toEpochMilliseconds()}")
     listOf("", "-wal", "-shm", "-journal")
       .map { File(file.path + it) }
       .filter { it.exists() }

@@ -59,6 +59,8 @@ import arun.com.chromer.ui.settings.components.SettingsScaffold
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
 import timber.log.Timber
+import androidx.lifecycle.compose.dropUnlessResumed
+import arun.com.chromer.ui.navigation.dropUnlessResumedWith
 
 /** The settings root: the default browser card, the three groups and About, in the legacy order. */
 @Composable
@@ -72,9 +74,9 @@ fun SettingsScreen(navigator: LynketNavigator) {
   SettingsRootContent(
     showDefaultBrowserCard = !isDefault,
     version = BuildConfig.VERSION_NAME,
-    onBack = { navigator.back() },
+    onBack = dropUnlessResumed { navigator.back() },
     onSetDefault = { openDefaultBrowserSettings(context) },
-    onOpen = { navigator.navigate(it) },
+    onOpen = dropUnlessResumedWith { key: LynketKey -> navigator.navigate(key) },
   )
 }
 
@@ -199,7 +201,10 @@ private fun DefaultBrowserCard(onSetDefault: () -> Unit) {
   }
 }
 
-/** A switch row for [key], enabled as the rules say; a tap sets the opposite value. */
+/**
+ * A switch row for [key], enabled as the rules say; a tap sets the opposite value. [indent] for an
+ * option under the row it belongs to.
+ */
 @Composable
 internal fun SwitchRow(
   key: String,
@@ -208,6 +213,7 @@ internal fun SwitchRow(
   values: SettingsValues,
   onSet: (String, Any?) -> Unit,
   icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+  indent: Boolean = false,
 ) {
   val checked = values.bool(key)
   SettingsRow(
@@ -216,6 +222,7 @@ internal fun SwitchRow(
     icon = icon?.let { RowIcon(it) },
     control = RowControl.Switch(checked),
     enabled = SettingsRules.isEnabled(key, values),
+    indent = indent,
     modifier = Modifier.testTag("row-$key"),
     onClick = { onSet(key, !checked) },
   )
@@ -273,7 +280,8 @@ internal fun ListRow(
   val current = values.values[key]
   SettingsRow(
     title = stringResource(title),
-    summary = choices.firstOrNull { it.value == current }?.label?.let(::AnnotatedString),
+    summary = SettingsRules.summaryOverride(key, values)?.let { stringResource(it) }?.let(::AnnotatedString)
+      ?: choices.firstOrNull { it.value == current }?.label?.let(::AnnotatedString),
     icon = icon?.let { RowIcon(it) },
     enabled = SettingsRules.isEnabled(key, values),
     modifier = Modifier.testTag("row-$key"),

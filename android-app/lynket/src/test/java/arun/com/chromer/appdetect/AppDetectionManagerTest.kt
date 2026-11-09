@@ -16,17 +16,27 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.os.Process
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.di.hilt.ClockModule
+import arun.com.chromer.util.TestClock
 import com.google.common.truth.Truth.assertThat
+import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.UninstallModules
 import org.junit.Test
 import org.robolectric.Shadows.shadowOf
 import javax.inject.Inject
+import kotlin.time.Clock
 
 /**
  * The app a link came from is read from usage events when the link opens; no service polls for it.
  */
 @HiltAndroidTest
+@UninstallModules(ClockModule::class)
 class AppDetectionManagerTest : LynketRobolectricSuite() {
+
+  @BindValue
+  @JvmField
+  val clock: Clock = TestClock(CLOCK_NOW)
 
   @Inject
   lateinit var appDetectionManager: AppDetectionManager
@@ -127,5 +137,33 @@ class AppDetectionManagerTest : LynketRobolectricSuite() {
 
     assertThat(source.nonFiltered).isEmpty()
     assertThat(source.filtered).isEmpty()
+  }
+
+  @Test
+  fun withNoTimeGivenTheWindowEndsAtTheAppClock() {
+    usageAccess(AppOpsManager.MODE_ALLOWED)
+    resumed("com.google.android.calendar", CLOCK_NOW - 60_000)
+    resumed("com.google.android.deskclock", CLOCK_NOW - 2_000)
+
+    val source = appDetectionManager.detectLinkSource()
+
+    assertThat(source.nonFiltered).isEqualTo("com.google.android.deskclock")
+    assertThat(source.filtered).isEqualTo("com.google.android.deskclock")
+  }
+
+  @Test
+  fun withNoTimeGivenAnAppResumedOnlyBeforeTheWindowIsIgnored() {
+    usageAccess(AppOpsManager.MODE_ALLOWED)
+    resumed("com.google.android.calendar", CLOCK_NOW - 60_000)
+
+    val source = appDetectionManager.detectLinkSource()
+
+    assertThat(source.nonFiltered).isEmpty()
+    assertThat(source.filtered).isEmpty()
+  }
+
+  private companion object {
+    /** The app clock of this test, far from the device time, so a system-time read would miss every event. */
+    const val CLOCK_NOW = 5_000_000L
   }
 }

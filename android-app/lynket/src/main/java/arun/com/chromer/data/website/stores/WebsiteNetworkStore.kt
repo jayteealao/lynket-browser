@@ -72,6 +72,7 @@ class WebsiteNetworkStore @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            // An unreachable page gives no website, so the caller reports the fetch as failed.
             Timber.e(e)
             null
         }

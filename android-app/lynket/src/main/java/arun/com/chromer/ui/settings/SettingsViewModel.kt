@@ -18,6 +18,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.preferences.UserPreferencesRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
@@ -31,7 +32,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -70,22 +70,20 @@ class SettingsViewModel @Inject constructor(
     .map { SettingsValues.from(it, context) }
     .stateIn(viewModelScope, SharingStarted.Eagerly, SettingsValues.from(repository.current(), context))
 
-  private val queue = MutableStateFlow<List<SettingsDialog>>(emptyList())
-
   /** The dialogs to show, first one on screen. */
-  val dialogs: StateFlow<List<SettingsDialog>> = queue.asStateFlow()
+  val dialogs: StateFlow<List<SettingsDialog>>
+    field = MutableStateFlow<List<SettingsDialog>>(emptyList())
 
-  private val labels = MutableStateFlow(AppLabels())
-  val appLabels: StateFlow<AppLabels> = labels.asStateFlow()
-
-  private val bubbles = MutableStateFlow(bubbleGate.setting())
+  val appLabels: StateFlow<AppLabels>
+    field = MutableStateFlow(AppLabels())
 
   /** The app's bubble setting in Android, read again by [refreshBubbleSetting]. */
-  val bubbleSetting: StateFlow<BubbleSetting> = bubbles.asStateFlow()
+  val bubbleSetting: StateFlow<BubbleSetting>
+    field = MutableStateFlow(bubbleGate.setting())
 
   /** Reads the bubble setting again, for example after the person returns from Android settings. */
   fun refreshBubbleSetting() {
-    bubbles.value = bubbleGate.setting()
+    bubbleSetting.value = bubbleGate.setting()
   }
 
   /** The Android settings page that changes [setting]. */
@@ -100,7 +98,7 @@ class SettingsViewModel @Inject constructor(
   /** Sets [key] to [value] with every write and dialog the old screens tied to it. */
   fun set(key: String, value: Any?, canReadUsageStats: Boolean = Utils.canReadUsageStats(context)) {
     val result = SettingsRules.change(key, value, values.value, canReadUsageStats)
-    if (result.dialogs.isNotEmpty()) queue.update { it + result.dialogs }
+    if (result.dialogs.isNotEmpty()) dialogs.update { it + result.dialogs }
     viewModelScope.launch {
       repository.setValues(result.writes)
       if (key in APP_KEYS) loadAppLabels()
@@ -126,13 +124,13 @@ class SettingsViewModel @Inject constructor(
    * the bubble setting explainer.
    */
   fun dismissDialog(notificationsAllowed: Boolean = true) {
-    val closed = queue.value.firstOrNull() ?: return
+    val closed = dialogs.value.firstOrNull() ?: return
     val after = if (closed == SettingsDialog.NativeBubblesWarning) {
       SettingsRules.afterBubblesWarning(notificationsAllowed, bubbleGate.preference())
     } else {
       emptyList()
     }
-    queue.update { current -> if (current.firstOrNull() == closed) after + current.drop(1) else current }
+    dialogs.update { current -> if (current.firstOrNull() == closed) after + current.drop(1) else current }
   }
 
   /** After the usage access dialog: the app colour box follows the permission, as before. */
@@ -153,7 +151,7 @@ class SettingsViewModel @Inject constructor(
   }
 
   private suspend fun loadAppLabels() {
-    labels.value = withContext(Dispatchers.IO) {
+    appLabels.value = withContext(Dispatchers.IO) {
       // The provider row reads the provider the way the old card did: a missing package falls
       // back to the default provider, which is stored.
       val provider = preferences.customTabPackage()
@@ -174,7 +172,7 @@ class SettingsViewModel @Inject constructor(
 
   private fun apply(result: RuleResult) {
     write(result.writes)
-    if (result.dialogs.isNotEmpty()) queue.update { it + result.dialogs }
+    if (result.dialogs.isNotEmpty()) dialogs.update { it + result.dialogs }
   }
 
   private fun write(writes: Map<String, Any?>) {

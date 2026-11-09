@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import arun.com.chromer.R
 import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.ui.components.ScreenTitle
+import androidx.lifecycle.compose.dropUnlessResumed
 
 /** One tip of the old Tips screen: its title, text, picture and icon. */
 data class Tip(@StringRes val title: Int, @StringRes val body: Int, @DrawableRes val image: Int, val icon: ImageVector)
@@ -81,7 +82,7 @@ val Tips: List<Tip> = listOf(
 
 @Composable
 fun TipsScreen(navigator: LynketNavigator) {
-  TipsContent(onClose = { navigator.back() })
+  TipsContent(onClose = dropUnlessResumed { navigator.back() })
 }
 
 /** Tips, stateless: a large title under a small bar with a close icon, then one card per tip. */

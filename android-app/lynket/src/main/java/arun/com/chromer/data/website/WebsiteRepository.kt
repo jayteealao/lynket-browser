@@ -29,6 +29,12 @@ import arun.com.chromer.data.website.model.Website
 import kotlinx.coroutines.flow.Flow
 
 /**
+ * A website read, whether its page could not be fetched, and whether the page was read from the
+ * network now ([fromNetwork] false: the details were already known, from the cache or history).
+ */
+data class WebsiteLookup(val website: Website, val fetchFailed: Boolean, val fromNetwork: Boolean = true)
+
+/**
  * Interface definition of Website repository which is responsible for providing
  * [Website] instances containing useful website information.
  * Will use a combination of disk cache and network parsing to provide requested website's data.
@@ -36,7 +42,31 @@ import kotlinx.coroutines.flow.Flow
 interface WebsiteRepository {
   fun getWebsite(url: String): Flow<Website>
 
-  fun getWebsiteReadOnly(url: String): Flow<Website>
+  /**
+   * Reads the website from the cache, history and the network, like [getWebsite] (or, when
+   * [incognito], like [getWebsiteWithoutSaving], writing nothing), and tells whether the page could
+   * not be fetched: [WebsiteLookup.fetchFailed] is true when no store had it and the network gave
+   * nothing or failed, and then [WebsiteLookup.website] holds only the address.
+   */
+  fun lookUpWebsite(url: String, incognito: Boolean): Flow<WebsiteLookup>
+
+  /**
+   * Reads the page of [url] from the network only, storing what [lookUpWebsite] would, and tells
+   * whether it could not be fetched. A web head whose site is already known reads its page this way.
+   */
+  fun fetchWebsite(url: String, incognito: Boolean): Flow<WebsiteLookup> = lookUpWebsite(url, incognito)
+
+  /**
+   * Reads the website from the cache, history and the network, and writes no history row; a
+   * network result is still stored in the cache. Not for a page that must leave no trace.
+   */
+  fun getWebsiteWithoutHistory(url: String): Flow<Website>
+
+  /**
+   * Reads the website from the cache, history and the network, and writes neither a history
+   * row nor a cache entry, for a page that must leave no trace (an incognito page).
+   */
+  fun getWebsiteWithoutSaving(url: String): Flow<Website>
 
   fun getWebsiteColorSync(url: String): Int
 

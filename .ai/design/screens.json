@@ -1,0 +1,718 @@
+{
+  "schema": "sdlc/design-screens/v1",
+  "viewports": {
+    "phone": "375x812",
+    "tablet": "768x1024",
+    "desktop": "1280x800"
+  },
+  "areas": [
+    "home",
+    "history",
+    "tabs",
+    "settings",
+    "bubbles",
+    "web-heads",
+    "shared"
+  ],
+  "screens": {
+    "bubble-notification": {
+      "title": "Native bubble and its notification",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 10,
+      "workflows": [
+        "native-bubble-privacy-lifecycle",
+        "bubble-registry-overflow"
+      ],
+      "slices": [
+        "bubble-dismiss-cleanup",
+        "bubble-parallel-fast-posting",
+        "bubble-conversation-features",
+        "bubble-notification-guard"
+      ],
+      "created-at": "2026-10-31T20:41:39Z",
+      "updated-at": "2026-11-03T21:28:50Z",
+      "approvals": [
+        {
+          "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
+          "at": "2026-10-31T21:05:44Z",
+          "workflow": "native-bubble-privacy-lifecycle"
+        },
+        {
+          "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
+          "at": "2026-11-03T21:07:40Z",
+          "workflow": "bubble-registry-overflow"
+        }
+      ]
+    },
+    "incognito-bubble": {
+      "title": "Incognito native bubble",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 20,
+      "workflows": [
+        "native-bubble-privacy-lifecycle"
+      ],
+      "slices": [
+        "incognito-bubble-neutral-identity",
+        "incognito-screen-share-guard"
+      ],
+      "created-at": "2026-10-31T20:41:39Z",
+      "updated-at": "2026-10-31T22:24:58Z",
+      "approvals": [
+        {
+          "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
+          "at": "2026-10-31T21:05:44Z",
+          "workflow": "native-bubble-privacy-lifecycle"
+        }
+      ]
+    },
+    "bubble-lock-screen": {
+      "title": "Bubble notification on the lock screen",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 30,
+      "workflows": [
+        "native-bubble-privacy-lifecycle"
+      ],
+      "slices": [
+        "bubble-lock-screen-privacy"
+      ],
+      "created-at": "2026-10-31T20:41:40Z",
+      "updated-at": "2026-10-31T22:24:58Z",
+      "approvals": [
+        {
+          "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
+          "at": "2026-10-31T21:05:44Z",
+          "workflow": "native-bubble-privacy-lifecycle"
+        }
+      ]
+    },
+    "bubble-refused-message": {
+      "title": "Bubble refused message",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 40,
+      "workflows": [
+        "native-bubble-privacy-lifecycle"
+      ],
+      "slices": [
+        "bubble-refused-edge-to-edge"
+      ],
+      "created-at": "2026-10-31T20:41:41Z",
+      "updated-at": "2026-10-31T22:24:59Z",
+      "approvals": [
+        {
+          "commit": "226d75026626ed77d7263eeb4ad52c35d4395d28",
+          "at": "2026-10-31T21:05:44Z",
+          "workflow": "native-bubble-privacy-lifecycle"
+        }
+      ]
+    },
+    "web-heads-refused-message": {
+      "title": "Web heads refused message",
+      "area": "web-heads",
+      "flow": "open-link",
+      "order": 10,
+      "workflows": [
+        "web-heads-reliability"
+      ],
+      "slices": [
+        "overlay-refusal-path",
+        "refused-tab-message",
+        "service-intent-guard"
+      ],
+      "created-at": "2026-11-01T20:27:52Z",
+      "updated-at": "2026-11-01T21:50:13Z",
+      "approvals": [
+        {
+          "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
+          "at": "2026-11-01T20:59:19Z",
+          "workflow": "web-heads-reliability"
+        }
+      ]
+    },
+    "web-heads-rotation": {
+      "title": "Web heads after a rotation",
+      "area": "web-heads",
+      "flow": "rearrange",
+      "order": 20,
+      "workflows": [
+        "web-heads-reliability"
+      ],
+      "slices": [
+        "empty-restart-stop",
+        "stack-anchor",
+        "rotation-resnap"
+      ],
+      "created-at": "2026-11-01T20:27:52Z",
+      "updated-at": "2026-11-01T21:50:14Z",
+      "approvals": [
+        {
+          "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
+          "at": "2026-11-01T20:59:19Z",
+          "workflow": "web-heads-reliability"
+        }
+      ]
+    },
+    "web-heads-wide-fling": {
+      "title": "Web head fling on a wide window",
+      "area": "web-heads",
+      "flow": "rearrange",
+      "order": 30,
+      "workflows": [
+        "web-heads-reliability"
+      ],
+      "slices": [
+        "wide-fling-cap"
+      ],
+      "created-at": "2026-11-01T20:27:53Z",
+      "updated-at": "2026-11-01T21:50:14Z",
+      "approvals": [
+        {
+          "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
+          "at": "2026-11-01T20:59:19Z",
+          "workflow": "web-heads-reliability"
+        }
+      ]
+    },
+    "web-heads-trash": {
+      "title": "Web head trash lock",
+      "area": "web-heads",
+      "flow": "close",
+      "order": 40,
+      "workflows": [
+        "web-heads-reliability"
+      ],
+      "slices": [
+        "empty-restart-stop",
+        "head-talkback-position",
+        "trash-talkback-lock",
+        "trash-haptics"
+      ],
+      "created-at": "2026-11-01T20:27:53Z",
+      "updated-at": "2026-11-01T21:50:14Z",
+      "approvals": [
+        {
+          "commit": "40fa37ed9a5aa63de55872dfdf6dc419da2c9f8b",
+          "at": "2026-11-01T20:59:19Z",
+          "workflow": "web-heads-reliability"
+        }
+      ]
+    },
+    "browsing-mode-settings": {
+      "title": "Browsing mode settings",
+      "area": "settings",
+      "flow": "choose-mode",
+      "order": 10,
+      "workflows": [
+        "one-browsing-mode",
+        "custom-tabs-modes",
+        "native-bubbles-beta-exit"
+      ],
+      "slices": [
+        "mode-switch-flow",
+        "sheet-settings"
+      ],
+      "created-at": "2026-11-02T19:45:13Z",
+      "updated-at": "2026-11-08T17:40:56Z",
+      "approvals": [
+        {
+          "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
+          "at": "2026-11-02T20:26:31Z",
+          "workflow": "one-browsing-mode"
+        },
+        {
+          "commit": "a3eb206bb8175014eed06339425ed7ce8ca37433",
+          "version": "v1",
+          "at": "2026-11-08T10:33:21Z",
+          "workflow": "custom-tabs-modes"
+        },
+        {
+          "commit": "39e1d43fc7aca7d3ef8644840fdaf5b902fbc7c6",
+          "version": "v2",
+          "at": "2026-11-08T15:54:18Z",
+          "workflow": "custom-tabs-modes"
+        },
+        {
+          "commit": "55fedfdb3752569ee1ef0e213fd5b9fce0e4054e",
+          "version": "v1",
+          "at": "2026-11-08T17:52:52Z",
+          "workflow": "native-bubbles-beta-exit"
+        }
+      ]
+    },
+    "look-and-feel-settings": {
+      "title": "Look and feel settings",
+      "area": "settings",
+      "flow": "choose-mode",
+      "order": 20,
+      "workflows": [
+        "one-browsing-mode"
+      ],
+      "slices": [
+        "web-head-groups-note",
+        "mode-switch-flow"
+      ],
+      "created-at": "2026-11-02T19:45:13Z",
+      "updated-at": "2026-11-02T22:35:33Z",
+      "approvals": [
+        {
+          "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
+          "at": "2026-11-02T20:26:31Z",
+          "workflow": "one-browsing-mode"
+        }
+      ]
+    },
+    "browsing-options-settings": {
+      "title": "Browsing options settings",
+      "area": "settings",
+      "flow": "choose-mode",
+      "order": 30,
+      "workflows": [
+        "one-browsing-mode"
+      ],
+      "slices": [
+        "web-head-groups-note",
+        "minimize-row-native-summary",
+        "mode-switch-flow"
+      ],
+      "created-at": "2026-11-02T19:45:13Z",
+      "updated-at": "2026-11-02T22:35:33Z",
+      "approvals": [
+        {
+          "commit": "bf5f2617050633cc6b4d22969e90f4523d41160c",
+          "at": "2026-11-02T20:26:31Z",
+          "workflow": "one-browsing-mode"
+        }
+      ]
+    },
+    "bubble-page-count": {
+      "title": "Bubble page with its count",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 15,
+      "workflows": [
+        "bubble-registry-overflow",
+        "bubble-page-state"
+      ],
+      "slices": [
+        "bubble-page-count",
+        "bubble-site-colour",
+        "open-in-full-window",
+        "bubble-menu-audit"
+      ],
+      "created-at": "2026-11-03T21:03:23Z",
+      "updated-at": "2026-11-07T10:26:50Z",
+      "approvals": [
+        {
+          "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
+          "at": "2026-11-03T21:07:40Z",
+          "workflow": "bubble-registry-overflow"
+        },
+        {
+          "commit": "d7d9d71791417225fcb84241d72646aabf858651",
+          "at": "2026-11-07T10:12:48Z",
+          "workflow": "bubble-page-state"
+        }
+      ]
+    },
+    "bubble-overflow-return": {
+      "title": "Overflow bubble returns to the stack",
+      "area": "bubbles",
+      "flow": "close",
+      "order": 50,
+      "workflows": [
+        "bubble-registry-overflow"
+      ],
+      "slices": [
+        "bubble-overflow-return"
+      ],
+      "created-at": "2026-11-03T21:03:23Z",
+      "updated-at": "2026-11-03T21:28:50Z",
+      "approvals": [
+        {
+          "commit": "d7ec39d166e14a6fa1436c2fe1f75031f1da204d",
+          "at": "2026-11-03T21:07:40Z",
+          "workflow": "bubble-registry-overflow"
+        }
+      ]
+    },
+    "web-page-error": {
+      "title": "Page that did not load",
+      "area": "bubbles",
+      "flow": "open-link",
+      "order": 17,
+      "workflows": [
+        "bubble-page-state"
+      ],
+      "slices": [
+        "error-page",
+        "error-retry"
+      ],
+      "created-at": "2026-11-07T08:41:22Z",
+      "updated-at": "2026-11-07T10:26:50Z",
+      "approvals": [
+        {
+          "commit": "d7d9d71791417225fcb84241d72646aabf858651",
+          "at": "2026-11-07T10:12:48Z",
+          "workflow": "bubble-page-state"
+        }
+      ]
+    },
+    "web-head-page-state": {
+      "title": "Web head page state",
+      "area": "web-heads",
+      "flow": "open-link",
+      "order": 15,
+      "workflows": [
+        "bubble-page-state"
+      ],
+      "slices": [
+        "head-state-ring",
+        "head-state-talkback"
+      ],
+      "created-at": "2026-11-07T08:41:22Z",
+      "updated-at": "2026-11-07T10:26:50Z",
+      "approvals": [
+        {
+          "commit": "d7d9d71791417225fcb84241d72646aabf858651",
+          "at": "2026-11-07T10:12:48Z",
+          "workflow": "bubble-page-state"
+        }
+      ]
+    },
+    "custom-tab-sheet": {
+      "title": "Custom Tab as a sheet",
+      "area": "settings",
+      "flow": "choose-mode",
+      "order": 15,
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "slices": [
+        "sheet-launch",
+        "ephemeral-incognito"
+      ],
+      "created-at": "2026-11-08T10:27:16Z",
+      "updated-at": "2026-11-08T10:42:14Z",
+      "approvals": [
+        {
+          "commit": "a3eb206bb8175014eed06339425ed7ce8ca37433",
+          "version": "v1",
+          "at": "2026-11-08T10:33:21Z",
+          "workflow": "custom-tabs-modes"
+        },
+        {
+          "commit": "39e1d43fc7aca7d3ef8644840fdaf5b902fbc7c6",
+          "version": "v2",
+          "at": "2026-11-08T15:54:18Z",
+          "workflow": "custom-tabs-modes"
+        }
+      ]
+    },
+    "home": {
+      "title": "Home search",
+      "area": "home",
+      "flow": "search",
+      "order": 10,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:35Z",
+      "updated-at": "2026-11-08T16:46:35Z",
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
+    },
+    "link-open-transition": {
+      "title": "Link opens",
+      "area": "home",
+      "flow": "open-link",
+      "order": 20,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:35Z",
+      "updated-at": "2026-11-08T16:46:35Z",
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
+    },
+    "reader-text-size": {
+      "title": "Reader text size",
+      "area": "home",
+      "flow": "read",
+      "order": 30,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:36Z",
+      "updated-at": "2026-11-08T16:46:36Z",
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
+    },
+    "history": {
+      "title": "History",
+      "area": "history",
+      "flow": "revisit",
+      "order": 10,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:36Z",
+      "updated-at": "2026-11-08T16:46:36Z",
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
+    },
+    "tabs": {
+      "title": "Tabs",
+      "area": "tabs",
+      "flow": "revisit",
+      "order": 10,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:36Z",
+      "updated-at": "2026-11-08T16:46:36Z",
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
+    },
+    "themed-icon": {
+      "title": "Themed icon",
+      "area": "shared",
+      "flow": "launch",
+      "order": 90,
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "slices": [],
+      "created-at": "2026-11-08T16:46:37Z",
+      "updated-at": "2026-11-08T16:46:37Z",
+      "approvals": [
+        {
+          "commit": "c23cf088b2038e11c6ffd911f9ea2cda6d810ea4",
+          "version": "v1",
+          "at": "2026-11-08T17:27:14Z",
+          "workflow": "app-code-modernization"
+        }
+      ]
+    }
+  },
+  "explore": {},
+  "components": {
+    "settings-row": {
+      "title": "Settings row",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/settings/components/SettingsRow.kt",
+      "name": "SettingsRow",
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "created-at": "2026-11-08T10:26:22Z",
+      "updated-at": "2026-11-08T10:26:22Z"
+    },
+    "settings-group": {
+      "title": "Settings group",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/settings/components/SettingsGroup.kt",
+      "name": "SettingsGroup",
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "created-at": "2026-11-08T10:26:22Z",
+      "updated-at": "2026-11-08T10:26:22Z"
+    },
+    "settings-top-bar": {
+      "title": "Settings top bar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/settings/components/SettingsGroup.kt",
+      "name": "SettingsScaffold",
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "created-at": "2026-11-08T10:26:22Z",
+      "updated-at": "2026-11-08T10:26:22Z"
+    },
+    "settings-dialog": {
+      "title": "Settings dialog",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/settings/SettingsDialogs.kt",
+      "name": "SettingsDialogContent",
+      "workflows": [
+        "custom-tabs-modes"
+      ],
+      "created-at": "2026-11-08T10:28:00Z",
+      "updated-at": "2026-11-08T10:28:00Z"
+    },
+    "large-top-bar": {
+      "title": "Large top app bar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/ScreenTitle.kt",
+      "name": "ScreenTitle",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:47Z",
+      "updated-at": "2026-11-08T16:28:47Z"
+    },
+    "site-avatar": {
+      "title": "Site avatar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/SiteAvatar.kt",
+      "name": "SiteAvatar",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:47Z",
+      "updated-at": "2026-11-08T16:28:47Z"
+    },
+    "day-label": {
+      "title": "Day label",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt",
+      "name": "DayLabel",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:49Z",
+      "updated-at": "2026-11-08T16:28:49Z"
+    },
+    "history-row": {
+      "title": "History row",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt",
+      "name": "HistoryRow",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:54Z",
+      "updated-at": "2026-11-08T16:28:54Z"
+    },
+    "tab-row": {
+      "title": "Tab row",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/tabs/TabsScreen.kt",
+      "name": "TabRow",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:54Z",
+      "updated-at": "2026-11-08T16:28:54Z"
+    },
+    "empty-state": {
+      "title": "Empty state",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/EmptyState.kt",
+      "name": "EmptyState",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:55Z",
+      "updated-at": "2026-11-08T16:28:55Z"
+    },
+    "error-state": {
+      "title": "Error state",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/ErrorState.kt",
+      "name": "ErrorState",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:55Z",
+      "updated-at": "2026-11-08T16:28:55Z"
+    },
+    "loading-list": {
+      "title": "Loading list",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/components/LoadingList.kt",
+      "name": "LoadingList",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:55Z",
+      "updated-at": "2026-11-08T16:28:55Z"
+    },
+    "home-search-bar": {
+      "title": "Home search bar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/home/HomeSearchBar.kt",
+      "name": "HomeSearchBar",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:56Z",
+      "updated-at": "2026-11-08T16:28:56Z"
+    },
+    "text-size-card": {
+      "title": "Text size card",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/reader/ReaderScreen.kt",
+      "name": "TextSizeCard",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:56Z",
+      "updated-at": "2026-11-08T16:28:56Z"
+    },
+    "browsing-bottom-bar": {
+      "title": "Browsing bottom bar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/browsing/BrowsingBars.kt",
+      "name": "BrowsingBottomBar",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:28:57Z",
+      "updated-at": "2026-11-08T16:28:57Z"
+    },
+    "fab": {
+      "title": "fab",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt",
+      "name": "FloatingActionButton",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:29:11Z",
+      "updated-at": "2026-11-08T16:29:11Z"
+    },
+    "snackbar": {
+      "title": "snackbar",
+      "code": "android-app/lynket/src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt",
+      "name": "SnackbarHost",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:29:12Z",
+      "updated-at": "2026-11-08T16:29:12Z"
+    },
+    "launcher-icon": {
+      "title": "launcher-icon",
+      "code": "android-app/lynket/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "name": "ic_launcher",
+      "workflows": [
+        "app-code-modernization"
+      ],
+      "created-at": "2026-11-08T16:29:12Z",
+      "updated-at": "2026-11-08T16:29:12Z"
+    }
+  }
+}

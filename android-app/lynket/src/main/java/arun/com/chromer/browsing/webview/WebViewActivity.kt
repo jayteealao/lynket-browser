@@ -22,12 +22,17 @@ package arun.com.chromer.browsing.webview
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.net.http.SslError
 import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.RenderProcessGoneDetail
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -50,14 +55,18 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import arun.com.chromer.R
 import arun.com.chromer.browsing.BrowsingActivity
 import arun.com.chromer.browsing.menu.MenuDelegate
+import arun.com.chromer.bubbles.BubblePageCount
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.shared.Constants
 import arun.com.chromer.util.WebUrl
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
+import arun.com.chromer.ui.webview.PageLoad
 import arun.com.chromer.ui.webview.WebViewBarsState
+import arun.com.chromer.ui.webview.siteOf
 import arun.com.chromer.ui.webview.WebViewPage
 import arun.com.chromer.ui.webview.WebViewScreen
 import arun.com.chromer.util.ColorUtil
+import arun.com.chromer.util.network.NetworkMonitor
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -74,11 +83,40 @@ open class WebViewActivity : BrowsingActivity() {
   @Inject
   lateinit var menuDelegate: MenuDelegate
 
+  @Inject
+  lateinit var networkMonitor: NetworkMonitor
+
   private var webView: WebView? = null
   private var swipeRefresh: SwipeRefreshLayout? = null
   private val bars = WebViewBarsState()
   private var page by mutableStateOf(WebViewPage(title = "", address = "", progress = 0))
-  private var toolbarColour by mutableIntStateOf(0)
+  /** The bar's colour now: the site's once its details load. */
+  protected var toolbarColour by mutableIntStateOf(0)
+    private set
+
+  // The address the page itself is loading, after redirects. A certificate error at any other
+  // address belongs to an image, a script or a frame, and leaves the page as it is.
+  private var mainFrameAddress = ""
+
+  /** Follows the page from its load start to loaded or failed, for both the tab and the bubble. */
+  private val loadTracker by lazy {
+    PageLoadTracker(isOnline = { networkMonitor.isOnlineNow() }, onChange = {
+      // A failed page is titled with its site, as the WebView's own error page has no real title.
+      page = page.copy(load = it, title = if (it is PageLoad.Failed && !it.retrying) siteOf(it.address) else page.title)
+    })
+  }
+
+  /** Whether the page failed and no retry runs, so what the WebView shows is its own error page. */
+  private val showsFailure: Boolean
+    get() = (loadTracker.state as? PageLoad.Failed)?.retrying == false
+
+  // Retry loads the address that failed again, so the WebView's own error page is never reloaded.
+  private fun retryFailedPage() {
+    val address = loadTracker.retry() ?: return
+    page = page.copy(progress = 0)
+    mainFrameAddress = address
+    webView?.loadUrl(address)
+  }
 
   // Back goes through the page history first; with predictive back (targetSdk 36) the system no
   // longer calls onBackPressed, so the callback is enabled only while the page can go back.
@@ -110,8 +148,10 @@ open class WebViewActivity : BrowsingActivity() {
     }
     Timber.d("WebView created")
     webView = view
+    hideFromScreenShareWhenIncognito(view)
     setupWebView(view)
     val restored = savedInstanceState?.getBundle(KEY_WEB_VIEW_STATE)?.let { view.restoreState(it) } != null
+    mainFrameAddress = url
     if (!restored) view.loadUrl(url)
     onBackPressedDispatcher.addCallback(this, webBackCallback)
 
@@ -127,6 +167,7 @@ open class WebViewActivity : BrowsingActivity() {
           bars = bars,
           onClose = ::finish,
           onMenuItem = { menuDelegate.handleItemSelected(it.id) },
+          onRetry = ::retryFailedPage,
           modifier = Modifier.semantics { testTagsAsResourceId = true },
         ) { modifier ->
           AndroidView(
@@ -150,13 +191,21 @@ open class WebViewActivity : BrowsingActivity() {
     }
   }
 
+  /** On Android 15 and later, an incognito page is hidden from a screen share; normal pages are not. */
+  private fun hideFromScreenShareWhenIncognito(view: WebView) {
+    if (!incognito || Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return
+    view.contentSensitivity = View.CONTENT_SENSITIVITY_SENSITIVE
+  }
+
   @SuppressLint("SetJavaScriptEnabled")
   private fun setupWebView(view: WebView) {
     view.webViewClient = object : WebViewClient() {
       override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
         url?.let {
+          mainFrameAddress = it
           page = page.copy(address = it)
+          loadTracker.started(it)
           loadWebsiteDetails(it)
         }
       }
@@ -164,6 +213,33 @@ open class WebViewActivity : BrowsingActivity() {
       override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
         swipeRefresh?.isRefreshing = false
+        loadTracker.finished(url.orEmpty())
+        // A debug log line with no address; the link-open timing check reads the first one.
+        Timber.d("Page finished")
+      }
+
+      // Only the page itself can fail the page: an image, a frame or a script that does not load
+      // leaves the page as it is. An HTTP error, such as a site's own 404 page, is the site's page.
+      override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+        super.onReceivedError(view, request, error)
+        if (request?.isForMainFrame != true) return
+        loadTracker.mainFrameError(error?.errorCode ?: ERROR_UNKNOWN, request.url.toString())
+      }
+
+      // A link the page follows, or a redirect of the page, is the page's own address from now on.
+      override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        if (request?.isForMainFrame == true) mainFrameAddress = request.url.toString()
+        return super.shouldOverrideUrlLoading(view, request)
+      }
+
+      // A page whose certificate is not trusted never loads, and there is no way to continue past
+      // it: the load is cancelled and the page fails. An image, a script or a frame with such a
+      // certificate is only not loaded; the page stays.
+      override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+        handler?.cancel()
+        val url = error?.url ?: mainFrameAddress
+        if (!sameAddress(url, mainFrameAddress)) return
+        loadTracker.certificateError(url)
       }
 
       override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
@@ -185,6 +261,8 @@ open class WebViewActivity : BrowsingActivity() {
     view.webChromeClient = object : WebChromeClient() {
       override fun onReceivedTitle(view: WebView?, title: String?) {
         super.onReceivedTitle(view, title)
+        // The title of the WebView's own error page never reaches the bar.
+        if (showsFailure) return
         if (!title.isNullOrEmpty()) page = page.copy(title = title)
       }
 
@@ -225,8 +303,16 @@ open class WebViewActivity : BrowsingActivity() {
 
   override fun getCurrentUrl(): String = webView?.url ?: super.getCurrentUrl()
 
+  /** Shows the place of this page among the open bubbles, or nothing when [count] is null. */
+  protected fun showPageCount(count: BubblePageCount?) {
+    page = page.copy(count = count)
+  }
+
   override fun onWebsiteLoaded(website: Website) {
-    page = page.copy(title = website.safeLabel(), address = website.url)
+    // Site details with no title, as for a page that did not load, keep the title the bar has: the
+    // page's own, or the site of a failed page. Only a page with no title yet takes the address.
+    val title = website.title?.takeIf { it.isNotEmpty() && !showsFailure } ?: page.title.ifEmpty { website.safeLabel() }
+    page = page.copy(title = title, address = website.url)
   }
 
   override fun onToolbarColorSet(websiteThemeColor: Int) {
@@ -264,4 +350,17 @@ open class WebViewActivity : BrowsingActivity() {
     const val EXTRA_RENDERER_RECOVERIES = "arun.com.chromer.extra.RENDERER_RECOVERIES"
     const val MAX_RENDERER_RECOVERIES = 2
   }
+}
+
+/**
+ * Whether [a] and [b] name the same page: the fragment does not count, and an address with no path
+ * is the same as the one with the root path ("https://site" and "https://site/").
+ */
+internal fun sameAddress(a: String, b: String): Boolean {
+  fun normal(address: String): String {
+    val noFragment = address.substringBefore('#')
+    val afterScheme = noFragment.indexOf("://").takeIf { it >= 0 }?.plus(3) ?: return noFragment
+    return if (noFragment.indexOf('/', afterScheme) < 0) "$noFragment/" else noFragment
+  }
+  return normal(a) == normal(b)
 }

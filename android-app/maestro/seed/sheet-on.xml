@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  A settings file with "open as a sheet" on (the side sheet option at its default, on), the
+  browsing mode at its default, Slide over, and the intro already passed. The app imports it at
+  its next start, so a link opens as a bottom sheet on a phone and a side sheet on a wide window.
+-->
+<map>
+    <boolean name="custom_tab_sheet" value="true" />
+    <boolean name="firstrun_3" value="false" />
+</map>

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Large top app bar</title><link rel="stylesheet" href="../tokens.css"><link rel="stylesheet" href="../components.css">
+<style>body { margin: 0; padding: 24px; font: 14px/1.45 Roboto, system-ui, sans-serif; background: var(--surface); color: var(--on-surface); }
+h2 { font-size: 14px; margin: 20px 0 8px; } .frame { max-width: 360px; position: relative; } .frame.tall { min-height: 140px; }
+svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.dark { background: var(--surface-dark); color: var(--on-surface-dark); padding: 12px; border-radius: 16px; }</style>
+</head><body><h1 style="font-size:20px">Large top app bar</h1><h2>Back, search and title</h2><div class="frame"><div data-component="large-top-bar"><div class="lt-top"><span class="ib" role="button" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg></span><span class="grow"></span><span class="ib" role="button" aria-label="Search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span></div><div class="lt-title">History</div></div></div><h2>Close instead of back (Tabs from a web head)</h2><div class="frame"><div data-component="large-top-bar"><div class="lt-top"><span class="ib" role="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div><div class="lt-title">Tabs</div></div></div>
+<script>
+function midEllipsis(){document.querySelectorAll('.u[data-full]').forEach(function(el){var f=el.dataset.full;el.textContent=f;if(!el.clientWidth||el.scrollWidth<=el.clientWidth)return;var lo=1,hi=f.length;function put(n){el.textContent=f.slice(0,Math.ceil(n/2))+'\u2026'+f.slice(f.length-Math.floor(n/2));}while(lo<hi){var m=(lo+hi+1)>>1;put(m);if(el.scrollWidth<=el.clientWidth)lo=m;else hi=m-1;}put(lo);});}
+addEventListener('load',midEllipsis);addEventListener('resize',midEllipsis);
+</script></body></html>

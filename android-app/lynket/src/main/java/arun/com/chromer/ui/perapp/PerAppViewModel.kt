@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -82,8 +81,8 @@ class PerAppViewModel(
     debugHooks: Optional<DebugHooks>,
   ) : this(context, appRepository, preferencesRepository, Dispatchers.IO, DebugHooks.of(debugHooks))
 
-  private val state = MutableStateFlow(PerAppState())
-  val uiState: StateFlow<PerAppState> = state.asStateFlow()
+  val uiState: StateFlow<PerAppState>
+    field = MutableStateFlow(PerAppState())
 
   val perAppEnabled: StateFlow<Boolean> = preferencesRepository.snapshot
     .filterNotNull()
@@ -100,22 +99,22 @@ class PerAppViewModel(
   /** Loads the apps; a refresh keeps the current list on screen until the new one is ready. */
   fun load() {
     viewModelScope.launch {
-      state.update { it.copy(refreshing = true) }
+      uiState.update { it.copy(refreshing = true) }
       try {
         val apps = withContext(io) {
           debugHooks.perAppLoadDelayMs(context).takeIf { it > 0 }?.let { delay(it) }
           appRepository.allApps().map { it.toRow() }
         }
         Timber.d("Per-app list: %d apps", apps.size)
-        state.update { it.copy(apps = apps, refreshing = false) }
+        uiState.update { it.copy(apps = apps, refreshing = false) }
       } catch (e: Exception) {
         Timber.e(e, "Per-app list did not load")
-        state.update { it.copy(apps = it.apps ?: emptyList(), refreshing = false) }
+        uiState.update { it.copy(apps = it.apps ?: emptyList(), refreshing = false) }
       }
     }
   }
 
-  fun search(query: String) = state.update { it.copy(query = query) }
+  fun search(query: String) = uiState.update { it.copy(query = query) }
 
   fun setBlacklisted(packageName: String, on: Boolean) = update(packageName) {
     if (on) appRepository.setPackageBlacklisted(packageName) else appRepository.removeBlacklist(packageName)
@@ -148,7 +147,7 @@ class PerAppViewModel(
     viewModelScope.launch {
       try {
         val saved = withContext(io) { write() }.toRow()
-        state.update { current ->
+        uiState.update { current ->
           current.copy(apps = current.apps?.map { if (it.packageName == packageName) saved.copy(appName = it.appName) else it })
         }
       } catch (e: Exception) {

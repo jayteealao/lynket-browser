@@ -14,25 +14,38 @@ package arun.com.chromer.data.history
 import androidx.paging.PagingConfig
 import arun.com.chromer.data.database.HistoryDatabase
 import arun.com.chromer.data.database.entity.WebsiteEntity
-import arun.com.chromer.data.database.entity.toEntity
 import arun.com.chromer.data.database.entity.toWebsite
 import arun.com.chromer.data.website.model.Website
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Clock
 
 @Singleton
 class RoomHistoryStore
 @Inject
-constructor(private val historyDatabase: HistoryDatabase) : HistoryStore {
+constructor(
+  private val historyDatabase: HistoryDatabase,
+  private val clock: Clock
+) : HistoryStore {
 
   override suspend fun get(website: Website): Website? =
     historyDatabase.dao().getByUrl(website.url)?.toWebsite()
 
-  override suspend fun insert(website: Website): Website {
-    val visited = historyDatabase.dao().recordVisit(website.toEntity(), System.currentTimeMillis())
-    Timber.d("Recorded a visit to %s", visited.url)
-    return visited.toWebsite()
+  override suspend fun insert(website: Website) {
+    with(website) {
+      historyDatabase.dao().recordVisit(
+        url = url,
+        title = title,
+        faviconUrl = faviconUrl,
+        canonicalUrl = canonicalUrl,
+        themeColor = themeColor,
+        ampUrl = ampUrl,
+        bookmarked = bookmarked,
+        now = clock.now().toEpochMilliseconds()
+      )
+    }
+    Timber.d("Recorded a visit to %s", website.url)
   }
 
   override suspend fun search(text: String): List<Website> =

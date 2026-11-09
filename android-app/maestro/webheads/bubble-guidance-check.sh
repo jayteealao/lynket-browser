@@ -12,13 +12,20 @@
 #                  the bubble page; after the choice, the Browsing mode row shows the new setting
 #   talkback       the message window's accessibility events (without TalkBack); then TalkBack on:
 #                  the message stays past 15 s and Back closes it
+#   overlay        web heads chosen and the overlay permission denied: a link opens in a tab with
+#                  "Web heads need Display over other apps"; Open Settings opens "Display over other apps"
+#   service        the same, with the link sent straight to the web heads service after the permission
+#                  is denied, as when Android takes the permission away between the bubble check and
+#                  the service start; no head shows and the service stops
 #
-# Restores the bubble setting (all), the device switch, the notification permission and TalkBack
-# at exit. Usage (from android-app/):
+# In every refused mode no settings page may open before the tap on Open Settings.
+#
+# Restores the bubble setting (all), the device switch, the notification permission, the overlay
+# permission and TalkBack at exit. Usage (from android-app/):
 #   maestro/webheads/bubble-guidance-check.sh <serial> <evidence-dir> <mode>
 set -euo pipefail
 
-USAGE="usage: bubble-guidance-check.sh <serial> <evidence-dir> <selected|none|device|notifications|all|setup|talkback>"
+USAGE="usage: bubble-guidance-check.sh <serial> <evidence-dir> <selected|none|device|notifications|all|setup|talkback|overlay|service>"
 SERIAL="${1:?$USAGE}"
 OUT_ROOT="${2:?$USAGE}"
 WHICH="${3:?$USAGE}"
@@ -42,6 +49,7 @@ restore() {
   a shell cmd notification set_bubbles "$PKG" 1 >/dev/null 2>&1 || true
   a shell settings put secure notification_bubbles 1 >/dev/null 2>&1 || true
   a shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
+  a shell appops set "$PKG" SYSTEM_ALERT_WINDOW allow >/dev/null 2>&1 || true
   if [ "$TALKBACK_BEFORE" = "none" ]; then
     a shell settings delete secure enabled_accessibility_services >/dev/null 2>&1 || true
     a shell settings put secure accessibility_enabled 0 >/dev/null 2>&1 || true
@@ -87,6 +95,33 @@ native_bubbles_mode() {
   sleep 1
 }
 
+# Web heads chosen (the overlay permission is allowed for the choice, so no explainer stays), the
+# notification ask declined, then the overlay permission denied.
+web_heads_denied() {
+  a shell am force-stop "$PKG"
+  a shell appops set "$PKG" SYSTEM_ALERT_WINDOW allow
+  choose_mode "Web heads"
+  tap_text "Not now" || true
+  a shell input keyevent HOME
+  sleep 1
+  a shell appops set "$PKG" SYSTEM_ALERT_WINDOW deny
+}
+
+# The number of Android settings activities in the activity stack.
+settings_records() {  # $1 = output name
+  a shell dumpsys activity activities | tr -d '\r' > "$OUT/$1.txt"
+  grep -c "com.android.settings/" "$OUT/$1.txt" || true
+}
+
+# The link sent straight to the web heads service (the debug build exports it to the shell). The
+# app's main activity comes to the front first, so Android lets the service start in the
+# foreground and start the tab, as it does when the link comes from the app in front.
+start_service_link() {  # $1 = link
+  a shell am start -W -n "$PKG/$MAIN" >/dev/null
+  sleep 2
+  log "am start-foreground-service: $(a shell am start-foreground-service -n "$PKG/$WEB_HEAD_SERVICE" -d "$1" 2>&1 | tr -d '\r' | tr '\n' ' ')"
+}
+
 # A refused link: the message over the tab, the tab under it, no bubble left, a tap above the
 # message reaches the page, Open Settings opens $2 and Back returns to the page.
 check_refused() {  # $1 = expected message, $2 = expected settings text
@@ -95,7 +130,9 @@ check_refused() {  # $1 = expected message, $2 = expected settings text
   ACTION_TIMEOUT_BEFORE="$(a shell settings get secure accessibility_interactive_ui_timeout_ms | tr -d '\r')"
   a shell settings put secure accessibility_interactive_ui_timeout_ms 60000
   a logcat -c
-  open_link "https://example.com/?refused=$WHICH"
+  local settings_before
+  settings_before="$(settings_records before-link-activities)"
+  "${FIRST_LINK:-open_link}" "https://example.com/?refused=$WHICH"
   wait_top "$MESSAGE" || { shot no-message; top_activity | tee -a "$OUT/$WHICH.txt"; fail "no message window on top"; }
   # The message times out after 10 s on screen: dump, capture on the device and tap first, and
   # copy the capture and read the stacks afterwards.
@@ -106,7 +143,21 @@ check_refused() {  # $1 = expected message, $2 = expected settings text
   done
   grep -qF "$1" "$OUT/message.xml" || fail "the message does not say \"$1\""
   grep -qF 'text="Open Settings"' "$OUT/message.xml" || fail "no Open Settings action"
+  if [ "$WHICH" = service ]; then
+    a shell dumpsys activity services "$WEB_HEAD_SERVICE" | tr -d '\r' > "$OUT/service-after.txt"
+    if grep -qF "ServiceRecord" "$OUT/service-after.txt" && grep -qF "$PKG/" "$OUT/service-after.txt"; then
+      fail "the web heads service is still running (see service-after.txt)"
+    fi
+    [ "$(overlay_count)" = 0 ] || fail "a head showed"
+    log "no web heads service and no head after the refused link"
+  fi
   a shell screencap -p /sdcard/bubble-message.png >/dev/null 2>&1 || true
+  # No cause opens a settings page by itself: only the tap below may.
+  local settings_before_tap
+  settings_before_tap="$(settings_records before-tap-activities)"
+  [ "$settings_before_tap" -le "$settings_before" ] ||
+    fail "a settings page opened before the tap (see before-link-activities.txt and before-tap-activities.txt)"
+  log "no settings page before the tap ($settings_before_tap settings records, $settings_before before the link)"
   local action
   action="$(tr '>' '\n' < "$OUT/message.xml" | grep -F 'text="Open Settings"' | head -1 |
     sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
@@ -127,6 +178,8 @@ check_refused() {  # $1 = expected message, $2 = expected settings text
   dump_ui settings
   grep -qF "$2" "$OUT/settings.xml" || fail "the settings page does not show \"$2\""
   log "settings page shows: $2"
+  # From Android 11 the overlay page is the list of apps; before, it is Lynket's own page.
+  if grep -qF 'text="Lynket' "$OUT/settings.xml"; then log "settings page lists Lynket"; else log "settings page does not list Lynket on screen"; fi
   a shell input keyevent BACK
   sleep 2
   top_activity | tee -a "$OUT/$WHICH.txt"
@@ -284,5 +337,7 @@ case "$WHICH" in
   all) native_bubbles_mode; check_all ;;
   setup) check_setup ;;
   talkback) native_bubbles_mode; check_talkback ;;
+  overlay) web_heads_denied; check_refused "Web heads need Display over other apps" "Display over other apps" ;;
+  service) web_heads_denied; FIRST_LINK=start_service_link; check_refused "Web heads need Display over other apps" "Display over other apps" ;;
   *) echo "$USAGE" >&2; exit 2 ;;
 esac

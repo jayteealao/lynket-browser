@@ -36,7 +36,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.request.transformations
-import coil3.size.Size
+import coil3.size.Precision
 import coil3.toBitmap
 import coil3.transform.CircleCropTransformation
 import timber.log.Timber
@@ -45,12 +45,22 @@ import java.util.Locale
 /**
  * Website favicons as bitmaps for bubbles, task descriptions and shortcuts.
  *
- * A favicon loads at its own size with software bitmaps (bitmaps are read by Palette and drawn
- * on a Canvas). When a website has no usable favicon, [iconWithPlaceholder] draws a letter
+ * A favicon decodes at no more than its largest use ([LARGEST_ICON_DP]), and a smaller favicon keeps
+ * its own size; bitmaps are software (they are read by Palette and drawn on a Canvas). When a website has no usable favicon, [iconWithPlaceholder] draws a letter
  * placeholder: a 56 dp circle in the website theme colour (or one of seven fixed colours) with
  * the first letter of the address.
  */
 object WebsiteIconLoader {
+
+  /**
+   * The largest use of a favicon in dp: the 108 dp adaptive bitmap of a native bubble and its
+   * shortcut. A web head (76 dp), a task description and a home screen shortcut are smaller.
+   */
+  const val LARGEST_ICON_DP = 108
+
+  /** [LARGEST_ICON_DP] in pixels at the density of [context]. */
+  fun largestIconPx(context: Context): Int =
+    (LARGEST_ICON_DP * context.resources.displayMetrics.density + 0.5f).toInt()
 
   private val placeholderColors = intArrayOf(
     Color.parseColor("#3891A6"),
@@ -65,7 +75,8 @@ object WebsiteIconLoader {
   private fun request(context: Context, url: String, circleCrop: Boolean): ImageRequest =
     ImageRequest.Builder(context)
       .data(url)
-      .size(Size.ORIGINAL)
+      .size(largestIconPx(context))
+      .precision(Precision.INEXACT)
       .allowHardware(false)
       .apply { if (circleCrop) transformations(CircleCropTransformation()) }
       .build()

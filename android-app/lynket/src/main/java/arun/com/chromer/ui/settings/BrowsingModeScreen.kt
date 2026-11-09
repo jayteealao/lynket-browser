@@ -35,9 +35,12 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arun.com.chromer.R
 import arun.com.chromer.bubbles.system.BubbleSetting
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.ui.navigation.LynketNavigator
 import arun.com.chromer.ui.settings.SettingsKeyTable.AMP_MODE
 import arun.com.chromer.ui.settings.SettingsKeyTable.ARTICLE_MODE
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SHEET
+import arun.com.chromer.ui.settings.SettingsKeyTable.CUSTOM_TAB_SIDE_SHEET
 import arun.com.chromer.ui.settings.components.RowControl
 import arun.com.chromer.ui.settings.components.RowIcon
 import arun.com.chromer.ui.settings.components.SettingsGroup
@@ -46,8 +49,12 @@ import arun.com.chromer.ui.settings.components.SettingsScaffold
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
 import timber.log.Timber
+import androidx.lifecycle.compose.dropUnlessResumed
 
-/** Browsing mode: slide over, web heads, native bubbles (Android 10+), then load pages faster. */
+/**
+ * Browsing mode: slide over with its sheet options, web heads, native bubbles (Android 10+), then
+ * load pages faster.
+ */
 @Composable
 fun BrowsingModeScreen(navigator: LynketNavigator, viewModel: SettingsViewModel = hiltViewModel()) {
   val context = LocalContext.current
@@ -61,7 +68,7 @@ fun BrowsingModeScreen(navigator: LynketNavigator, viewModel: SettingsViewModel 
   BrowsingModeContent(
     values = values,
     showNativeBubbles = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q,
-    onBack = { navigator.back() },
+    onBack = dropUnlessResumed { navigator.back() },
     onMode = { mode -> viewModel.chooseMode(mode, Utils.isOverlayGranted(context), notificationsAllowed(context)) },
     onSet = viewModel::set,
     bubbleSetting = bubbleSetting,
@@ -104,6 +111,17 @@ fun BrowsingModeContent(
             modifier = Modifier.testTag("mode-slide-over"),
             onClick = { onMode(BrowsingMode.SlideOver) },
           )
+        }
+        // The sheet options of slide over, as the bubble setting sits under native bubbles.
+        if (SettingsRules.isVisible(CUSTOM_TAB_SHEET, values)) {
+          row {
+            SwitchRow(CUSTOM_TAB_SHEET, R.string.custom_tab_sheet_title, R.string.custom_tab_sheet_summary, values, onSet, indent = true)
+          }
+        }
+        if (SettingsRules.isVisible(CUSTOM_TAB_SIDE_SHEET, values)) {
+          row {
+            SwitchRow(CUSTOM_TAB_SIDE_SHEET, R.string.custom_tab_side_sheet_title, R.string.custom_tab_side_sheet_summary, values, onSet, indent = true)
+          }
         }
         row {
           SettingsRow(

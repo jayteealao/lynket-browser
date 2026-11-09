@@ -19,12 +19,13 @@ import android.net.Uri
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.browsing.customtabs.CustomTabActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
+import arun.com.chromer.bubbles.bubbleConversationId
 import arun.com.chromer.bubbles.system.BubbleGate
 import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
-import arun.com.chromer.bubbles.system.bubbleConversationId
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
+import arun.com.chromer.data.preferences.BrowsingMode
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -33,7 +34,6 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.junit.Test
 import org.robolectric.Shadows.shadowOf
-import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAppTask
 import javax.inject.Inject
 
@@ -42,7 +42,6 @@ import javax.inject.Inject
  * carries the cause, and no bubble notification posts. Web heads mode never asks.
  */
 @HiltAndroidTest
-@Config(sdk = [36])
 class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @BindValue
@@ -62,7 +61,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @Test
   fun eachCauseOpensATabThatCarriesIt() {
-    settings.nativeBubbles(true)
+    settings.browsingMode(BrowsingMode.NativeBubbles)
     for (refusal in listOf(BubbleRefusal.NOTIFICATIONS_OFF, BubbleRefusal.BUBBLES_OFF)) {
       every { bubbleGate.refusal(bubbleConversationId(url)) } returns refusal
 
@@ -78,7 +77,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @Test
   fun noCauseShowsTheBubble() {
-    settings.nativeBubbles(true)
+    settings.browsingMode(BrowsingMode.NativeBubbles)
     every { bubbleGate.refusal(any()) } returns null
 
     tabsManager.openWebHeads(application, Website(url))
@@ -89,7 +88,7 @@ class RefusedBubbleTabTest : LynketRobolectricSuite() {
 
   @Test
   fun webHeadsModeDoesNotAsk() {
-    settings.nativeBubbles(false)
+    settings.browsingMode(BrowsingMode.WebHeads)
 
     tabsManager.openWebHeads(application, Website(url))
 

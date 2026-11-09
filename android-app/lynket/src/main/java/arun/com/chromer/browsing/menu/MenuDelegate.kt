@@ -38,6 +38,7 @@ import arun.com.chromer.browsing.customtabs.callbacks.CopyToClipboardReceiver
 import arun.com.chromer.browsing.customtabs.callbacks.FavShareBroadcastReceiver
 import arun.com.chromer.browsing.customtabs.callbacks.SecondaryBrowserReceiver
 import arun.com.chromer.browsing.openwith.OpenIntentWithActivity
+import arun.com.chromer.browsing.webview.EmbeddableWebViewActivity
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.history.HistoryActivity
 import arun.com.chromer.settings.Preferences
@@ -73,10 +74,24 @@ data class ActionButton(val title: String, @DrawableRes val iconRes: Int? = null
 enum class BrowsingScreen { Article, WebView }
 
 /**
+ * The items a page in a native bubble leaves out of its menu and its bottom bar. Each item was
+ * tapped in an expanded bubble on Android 14 and Android 11, and these misbehaved there (the table
+ * of that device check is `src/test/resources/bubble-menu-audit.tsv`, and a test keeps this set
+ * equal to it):
+ * - History opens its full app screen inside the bubble's small window.
+ * - Minimize does nothing a person can see: the page is already a bubble.
+ *
+ * Outside a bubble every item stays.
+ */
+internal val HIDDEN_IN_A_BUBBLE: Set<Int> = setOf(R.id.menu_history, R.id.bottom_bar_minimize_tab)
+
+/**
  * The menu in the old order and with the old rules: Open full page (article, always), the
  * preferred-action button (always, left out when its app is gone), Text size (article, if room),
  * then Copy link, Open with, Share, Share with <app> (only with a favourite share app), History,
- * Add to Home Screen, and with the bottom bar off Tabs and (web view) Article mode.
+ * Add to Home Screen, and with the bottom bar off Tabs and (web view) Article mode. A page in a
+ * bubble starts with Open in full window and leaves out the items of [HIDDEN_IN_A_BUBBLE]; outside
+ * a bubble every item stays.
  */
 fun browsingMenuItems(
   screen: BrowsingScreen,
@@ -84,8 +99,12 @@ fun browsingMenuItems(
   actionButton: ActionButton?,
   shareWithApp: String?,
   text: (Int) -> String,
+  inBubble: Boolean = false,
 ): List<BrowsingMenuItem> = buildList {
   val article = screen == BrowsingScreen.Article
+  if (inBubble) {
+    add(BrowsingMenuItem(R.id.menu_open_in_full_window, text(R.string.open_in_full_window)))
+  }
   if (article) {
     add(BrowsingMenuItem(R.id.menu_open_full_page, text(R.string.open_full_page), MenuPlacement.Always, R.drawable.ic_open_in_browser_24dp))
   }
@@ -107,13 +126,19 @@ fun browsingMenuItems(
     add(BrowsingMenuItem(R.id.tabs, text(R.string.title_tabs)))
     if (!article) add(BrowsingMenuItem(R.id.bottom_bar_article_view, text(R.string.article_mode)))
   }
-}
+}.filter { !inBubble || it.id !in HIDDEN_IN_A_BUBBLE }
 
 /**
  * The bottom bar in the old order (New tab, Share, Tabs, Minimize, and Article mode in the web
- * view); empty with the setting off.
+ * view); empty with the setting off. A page in a bubble leaves out the items of
+ * [HIDDEN_IN_A_BUBBLE]; outside a bubble every item stays.
  */
-fun browsingBottomBarItems(screen: BrowsingScreen, bottomBar: Boolean, text: (Int) -> String): List<BrowsingMenuItem> {
+fun browsingBottomBarItems(
+  screen: BrowsingScreen,
+  bottomBar: Boolean,
+  text: (Int) -> String,
+  inBubble: Boolean = false,
+): List<BrowsingMenuItem> {
   if (!bottomBar) return emptyList()
   return buildList {
     add(BrowsingMenuItem(R.id.bottom_bar_open_in_new_tab, text(R.string.new_tab_text), iconRes = R.drawable.ic_plus_24dp))
@@ -123,7 +148,7 @@ fun browsingBottomBarItems(screen: BrowsingScreen, bottomBar: Boolean, text: (In
     if (screen == BrowsingScreen.WebView) {
       add(BrowsingMenuItem(R.id.bottom_bar_article_view, text(R.string.article_mode), iconRes = R.drawable.ic_article_24dp))
     }
-  }
+  }.filter { !inBubble || it.id !in HIDDEN_IN_A_BUBBLE }
 }
 
 /**
@@ -173,6 +198,10 @@ class MenuDelegate @Inject constructor(
 
   private val text = { id: Int -> activity.getString(id) }
 
+  /** A page that its native bubble opened; the menu and the bottom bar leave out what a bubble hides. */
+  private val inBubble: Boolean
+    get() = (activity as? EmbeddableWebViewActivity)?.inBubble == true
+
   /** The top-bar and overflow items in the old order. */
   fun menuItems(): List<BrowsingMenuItem> {
     val action = preferredActionButton(
@@ -185,11 +214,11 @@ class MenuDelegate @Inject constructor(
       text = text,
     )
     val shareWith = preferences.favSharePackage()?.let { Utils.getAppNameWithPackage(activity, it) }
-    return browsingMenuItems(screen, preferences.bottomBar(), action, shareWith, text)
+    return browsingMenuItems(screen, preferences.bottomBar(), action, shareWith, text, inBubble)
   }
 
   /** The bottom-bar items, empty when the bottom bar setting is off. */
-  fun bottomBarItems(): List<BrowsingMenuItem> = browsingBottomBarItems(screen, preferences.bottomBar(), text)
+  fun bottomBarItems(): List<BrowsingMenuItem> = browsingBottomBarItems(screen, preferences.bottomBar(), text, inBubble)
 
   private fun activityIcon(component: String): ImageBitmap? = try {
     ComponentName.unflattenFromString(component)
@@ -213,6 +242,7 @@ class MenuDelegate @Inject constructor(
         activityNames = listOf(CustomTabActivity::class.java.name),
         incognito = incognito
       )
+      R.id.menu_open_in_full_window -> (activity as? EmbeddableWebViewActivity)?.openInFullWindow()
       android.R.id.home -> activity.finish()
       R.id.bottom_bar_open_in_new_tab -> tabsManager.openNewTab(activity, currentUrl)
       R.id.bottom_bar_share -> shareUrl()

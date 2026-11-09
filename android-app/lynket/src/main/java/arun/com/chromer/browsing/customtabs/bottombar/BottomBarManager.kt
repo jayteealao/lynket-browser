@@ -90,9 +90,10 @@ object BottomBarManager {
    * The PendingIntent the provider sends when one of [getClickableIDs] is tapped. It is mutable and
    * names [BottomBarReceiver], so the provider can add the page address and the clicked view id.
    */
-  fun getOnClickPendingIntent(context: Context, url: String): PendingIntent {
+  fun getOnClickPendingIntent(context: Context, url: String, incognito: Boolean = false): PendingIntent {
     val broadcastIntent = Intent(context, BottomBarReceiver::class.java)
       .putExtra(Constants.EXTRA_KEY_ORIGINAL_URL, url)
+      .putExtra(Constants.EXTRA_KEY_INCOGNITO, incognito)
     return callbackBroadcast(context, Random().nextInt(), broadcastIntent)
   }
 }

@@ -49,7 +49,7 @@ import org.robolectric.annotation.Config
 /** The AMP lookup, New tab and shortcut view models (Robolectric for the Android types they carry). */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class BrowsingDialogViewModelsTest {
 
   private val dispatcher = StandardTestDispatcher()
@@ -120,12 +120,14 @@ class BrowsingDialogViewModelsTest {
   }
 
   @Test
-  fun anIncognitoLookupDoesNotWriteHistory() = runTest(dispatcher) {
-    val repo = mockk<WebsiteRepository> { every { getWebsiteReadOnly(url) } returns flowOf(site()) }
+  fun anIncognitoLookupStoresNothing() = runTest(dispatcher) {
+    val repo = mockk<WebsiteRepository> { every { getWebsiteWithoutSaving(url) } returns flowOf(site()) }
     val vm = AmpResolverViewModel(repo, FakeNetwork(online = true))
     vm.start(url, incognito = true)
     advanceUntilIdle()
+    verify(exactly = 1) { repo.getWebsiteWithoutSaving(url) }
     verify(exactly = 0) { repo.getWebsite(any()) }
+    verify(exactly = 0) { repo.getWebsiteWithoutHistory(any()) }
     assertThat(vm.state.value).isInstanceOf(AmpState.NotFound::class.java)
   }
 

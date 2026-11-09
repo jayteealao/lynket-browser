@@ -165,10 +165,30 @@ interface TabsManager {
   )
 
   /**
-   * Opens [website] in a browsing tab after Android refused its native bubble, and shows the
-   * message that names [refusal] above the tab.
+   * Opens [website] in a browsing tab after Android refused its native bubble or web head, and shows
+   * the message that names [refusal] above the tab. [linkSource] is the app the link came from, for
+   * the toolbar colour.
    */
-  fun openRefusedBubble(context: Context, website: Website, refusal: BubbleRefusal, incognito: Boolean = false)
+  fun openRefusedBubble(
+    context: Context,
+    website: Website,
+    refusal: BubbleRefusal,
+    incognito: Boolean = false,
+    linkSource: LinkSource = LinkSource.NONE,
+  )
+
+  /**
+   * Opens [website] in a browsing tab because the overlay permission ("Display over other apps") is
+   * off, keeping its incognito flag; the tab then shows the message that names the setting, with
+   * Open Settings. Every web heads entry that finds the permission off hands its link here. This
+   * never opens the overlay settings page: that page opens only when a person taps Open Settings.
+   */
+  fun openOverlayRefused(
+    context: Context,
+    website: Website,
+    incognito: Boolean = false,
+    linkSource: LinkSource = LinkSource.NONE,
+  )
 
   /**
    * Opens new tab activity.
@@ -199,5 +219,15 @@ interface TabsManager {
     incognito: Boolean = false
   )
 
+  /**
+   * Whether a link that opens in a tab shows in the app's web view rather than a Custom Tab: when
+   * the person chose the web view or no browser supports Custom Tabs; and for an incognito link
+   * (or any link in full incognito mode) when the person's browser cannot open an ephemeral tab,
+   * one that keeps no cookies or history. A browser that can opens the incognito link itself.
+   *
+   * The answer is for a link the person opened in a tab. An incognito link that a web head opens
+   * keeps the web view whatever the browser can do, as web heads keep their web view; that case is
+   * decided inside the tabs manager, not by this method.
+   */
   fun shouldUseWebView(incognito: Boolean): Boolean
 }

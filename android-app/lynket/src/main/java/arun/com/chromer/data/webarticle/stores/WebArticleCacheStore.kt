@@ -48,7 +48,7 @@ class WebArticleCacheStore @Inject constructor(
         try {
             webSiteDiskCache = ParcelDiskCache.open(
                 application,
-                WebArticle::class.java.classLoader,
+                WebArticle::class.java,
                 WebArticle::class.java.name,
                 DISK_CACHE_SIZE
             )

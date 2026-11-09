@@ -22,7 +22,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,18 +37,19 @@ sealed interface ShortcutState {
 /** Loads the site and its icon for the home screen shortcut, and keeps the typed name. */
 @HiltViewModel
 class ShortcutCreatorViewModel @Inject constructor(
-  private val savedState: SavedStateHandle,
+  savedState: SavedStateHandle,
   private val websiteRepository: WebsiteRepository,
 ) : ViewModel() {
 
   /** Where the icon is loaded; tests replace it. */
   internal var ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
-  private val _state = MutableStateFlow<ShortcutState>(ShortcutState.Loading)
-  val state: StateFlow<ShortcutState> = _state.asStateFlow()
+  val state: StateFlow<ShortcutState>
+    field = MutableStateFlow<ShortcutState>(ShortcutState.Loading)
 
   /** The name in the field; null until the person or the loaded site sets it. */
-  val name: StateFlow<String?> = savedState.getStateFlow(NAME, null)
+  val name: StateFlow<String?>
+    field = savedState.getMutableStateFlow<String?>(NAME, null)
 
   private var started = false
 
@@ -61,13 +61,13 @@ class ShortcutCreatorViewModel @Inject constructor(
         .onFailure { Timber.e(it, "Shortcut site lookup failed for %s", url) }
         .getOrNull() ?: Website(url)
       val icon = withContext(ioDispatcher) { websiteRepository.getWebsiteIconWithPlaceholderAndColor(website).first }
-      if (savedState.get<String>(NAME) == null) savedState[NAME] = website.safeLabel()
-      _state.value = ShortcutState.Ready(website, icon)
+      name.compareAndSet(null, website.safeLabel())
+      state.value = ShortcutState.Ready(website, icon)
     }
   }
 
   fun onNameChange(text: String) {
-    savedState[NAME] = text
+    name.value = text
   }
 
   /** Create is allowed once the icon is loaded and the name is not blank. */

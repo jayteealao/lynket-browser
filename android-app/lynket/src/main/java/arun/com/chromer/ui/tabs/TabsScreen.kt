@@ -57,7 +57,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -80,6 +84,8 @@ import arun.com.chromer.ui.components.LoadingList
 import arun.com.chromer.ui.components.SiteAvatar
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.ui.components.ScreenTitle
+import arun.com.chromer.util.displayAddress
+import arun.com.chromer.util.rowTitle
 
 /** What a person can do on the Tabs screen. */
 class TabsActions(
@@ -163,7 +169,7 @@ fun TabsContent(state: TabsUiState, closeIcon: Boolean, actions: TabsActions) {
       ) {
         when (state) {
           TabsUiState.Loading -> item(key = "loading") {
-            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.settingsColumn()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.animateItem().settingsColumn()) {
               LoadingList(modifier = Modifier.padding(vertical = 12.dp), rows = 4, loadingLabel = stringResource(R.string.loading))
             }
           }
@@ -173,7 +179,7 @@ fun TabsContent(state: TabsUiState, closeIcon: Boolean, actions: TabsActions) {
               body = state.message,
               retryLabel = stringResource(R.string.retry),
               onRetry = actions.onRefresh,
-              modifier = Modifier.settingsColumn(),
+              modifier = Modifier.animateItem().settingsColumn(),
             )
           }
           is TabsUiState.Loaded -> if (tabs.isEmpty()) {
@@ -182,19 +188,20 @@ fun TabsContent(state: TabsUiState, closeIcon: Boolean, actions: TabsActions) {
                 icon = Icons.Outlined.Tab,
                 title = stringResource(R.string.tabs_empty_title),
                 body = stringResource(R.string.tabs_empty_body),
-                modifier = Modifier.settingsColumn(),
+                modifier = Modifier.animateItem().settingsColumn(),
               )
             }
           } else {
             itemsIndexed(tabs, key = { _, tab -> "${tab.type}-${tab.url}" }) { index, tab ->
-              TabRow(tab, first = index == 0, last = index == tabs.lastIndex, actions)
+              // Closed and reordered rows fade and slide into place (spring, no bounce).
+              TabRow(tab, first = index == 0, last = index == tabs.lastIndex, actions, Modifier.animateItem())
             }
             item(key = "hint") {
               Text(
                 stringResource(R.string.tabs_swipe_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.settingsColumn().padding(start = 4.dp, top = 16.dp),
+                modifier = Modifier.animateItem().settingsColumn().padding(start = 4.dp, top = 16.dp),
               )
             }
           }
@@ -233,17 +240,17 @@ private fun typeLabel(tab: Tab): String = stringResource(
   },
 )
 
-/** One open tab: favicon or first letter, title, "type · address" and a close icon. */
+/** One open tab: favicon or first letter, title, the type label and the address, and a close icon. */
 @Composable
-private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions) {
+private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions, modifier: Modifier = Modifier) {
   val top = if (first) 16.dp else 0.dp
   val bottom = if (last) 16.dp else 0.dp
   val shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
-  val title = tab.website?.safeLabel() ?: tab.url
+  val title = rowTitle(tab.website?.title, tab.url)
   val dismissState = rememberSwipeToDismissBoxState()
   SwipeToDismissBox(
     state = dismissState,
-    modifier = Modifier.settingsColumn().testTag("tab-row"),
+    modifier = modifier.settingsColumn().testTag("tab-row"),
     backgroundContent = {
       Box(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer, shape).padding(horizontal = 24.dp),
@@ -269,18 +276,62 @@ private fun TabRow(tab: Tab, first: Boolean, last: Boolean, actions: TabsActions
           SiteAvatar(title, tab.website?.faviconUrl)
           Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-              "${typeLabel(tab)} · ${tab.url}",
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-            )
+            TabAddressLine(typeLabel(tab), displayAddress(tab.url))
           }
           IconButton(onClick = { actions.onClose(tab) }, modifier = Modifier.testTag("tab-close")) {
             Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close_website, title))
           }
         }
+      }
+    }
+  }
+}
+
+/**
+ * True when the address would get under a third of the line after the type label and its dot:
+ * then the address goes under the label (the largest font sizes).
+ */
+internal fun stackTabAddress(lineWidth: Int, labelWidth: Int): Boolean = lineWidth - labelWidth < lineWidth / 3
+
+/**
+ * The second line of a tab row: the type label and " · " whole, then the address cut in the middle,
+ * so the host and the end of the path show. When the address would get under a third of the line,
+ * it goes under the label at the full width and the dot is not drawn. The dot is decoration: screen
+ * readers read the label, then the address.
+ */
+@Composable
+private fun TabAddressLine(label: String, address: String) {
+  val style = MaterialTheme.typography.bodyMedium
+  val color = MaterialTheme.colorScheme.onSurfaceVariant
+  Layout(
+    modifier = Modifier.testTag("tab-address-line"),
+    content = {
+      Text(label, style = style, color = color, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("tab-type"))
+      Text(" · ", style = style, color = color, maxLines = 1, softWrap = false, modifier = Modifier.clearAndSetSemantics { testTag = "tab-dot" })
+      Text(address, style = style, color = color, maxLines = 1, overflow = TextOverflow.MiddleEllipsis, modifier = Modifier.testTag("tab-address"))
+    },
+  ) { measurables, constraints ->
+    val loose = constraints.copy(minWidth = 0, minHeight = 0)
+    val labelPlaceable = measurables[0].measure(loose)
+    val dotPlaceable = measurables[1].measure(loose)
+    val bounded = constraints.hasBoundedWidth
+    val stacked = bounded && stackTabAddress(constraints.maxWidth, labelPlaceable.width + dotPlaceable.width)
+    if (stacked) {
+      val addressPlaceable = measurables[2].measure(Constraints.fixedWidth(constraints.maxWidth))
+      layout(constraints.maxWidth, labelPlaceable.height + addressPlaceable.height) {
+        labelPlaceable.placeRelative(0, 0)
+        addressPlaceable.placeRelative(0, labelPlaceable.height)
+      }
+    } else {
+      val inline = labelPlaceable.width + dotPlaceable.width
+      val addressMax = if (bounded) (constraints.maxWidth - inline).coerceAtLeast(0) else Constraints.Infinity
+      val addressPlaceable = measurables[2].measure(loose.copy(maxWidth = addressMax))
+      val width = if (bounded) constraints.maxWidth else inline + addressPlaceable.width
+      val height = maxOf(labelPlaceable.height, dotPlaceable.height, addressPlaceable.height)
+      layout(width, height) {
+        labelPlaceable.placeRelative(0, 0)
+        dotPlaceable.placeRelative(labelPlaceable.width, 0)
+        addressPlaceable.placeRelative(inline, 0)
       }
     }
   }

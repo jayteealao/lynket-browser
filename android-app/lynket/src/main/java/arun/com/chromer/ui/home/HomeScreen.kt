@@ -11,7 +11,9 @@
 
 package arun.com.chromer.ui.home
 
+import android.content.Context
 import androidx.compose.ui.res.pluralStringResource
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -59,7 +61,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberSearchBarState
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -104,6 +110,7 @@ import arun.com.chromer.ui.components.ErrorState
 import arun.com.chromer.ui.components.LoadingTiles
 import arun.com.chromer.ui.components.showTransientError
 import arun.com.chromer.ui.navigation.LynketNavigator
+import arun.com.chromer.ui.navigation.dropUnlessResumedWith
 import arun.com.chromer.ui.navigation.navigateToAbout
 import arun.com.chromer.ui.navigation.navigateToHistory
 import arun.com.chromer.ui.navigation.navigateToIntro
@@ -148,8 +155,46 @@ data class HomeActions(
   val onDrawerItem: (DrawerItem) -> Unit = {},
 )
 
+/**
+ * The moves of the home that open another screen. Each one is dropped while a screen transition
+ * runs, so a second tap (on the same control or on another one) pushes no second screen.
+ */
+@Composable
+internal fun HomeActions.navigatingWith(navigator: LynketNavigator, context: Context): HomeActions = copy(
+  onHistory = dropUnlessResumed { navigator.navigateToHistory() },
+  onTabs = dropUnlessResumed { navigator.navigateToTabs() },
+  onChangeProvider = dropUnlessResumed { navigator.navigateToProviderSelection() },
+  onTips = dropUnlessResumed { navigator.navigateToTips() },
+  onDrawerItem = dropUnlessResumedWith { item: DrawerItem ->
+    when (item) {
+      DrawerItem.Home -> Unit
+      DrawerItem.History -> navigator.navigateToHistory()
+      DrawerItem.Tabs -> navigator.navigateToTabs()
+      DrawerItem.Settings -> navigator.navigateToSettings()
+      DrawerItem.Tips -> navigator.navigateToTips()
+      DrawerItem.Intro -> navigator.navigateToIntro()
+      DrawerItem.Feedback -> HomeDrawerIntents.feedback(context)
+      DrawerItem.Rate -> HomeDrawerIntents.rate(context)
+      DrawerItem.Beta -> HomeDrawerIntents.beta(context)
+      DrawerItem.Share -> HomeDrawerIntents.share(context)
+      DrawerItem.About -> navigator.navigateToAbout()
+    }
+  },
+)
+
+/**
+ * The home search opens over 600 ms after 100 ms on the emphasized decelerate curve, and closes
+ * over 350 ms after 100 ms: the Material motion tokens long 4, short 2 and medium 3 that the
+ * search bar has always used.
+ */
+internal val SearchOpenSpec = tween<Float>(durationMillis = 600, delayMillis = 100, easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f))
+internal val SearchCloseSpec = tween<Float>(durationMillis = 350, delayMillis = 100, easing = CubicBezierEasing(0f, 1f, 0f, 1f))
+
 /** Window width at which the home uses 8 recents columns and a centred column (medium size class). */
 private const val MEDIUM_WIDTH_DP = 600
+
+/** The widest the home column grows on a wide window; the open search fills the same width. */
+internal val HomeColumnMaxWidth = 680.dp
 
 @Composable
 fun HomeScreen(
@@ -194,29 +239,10 @@ fun HomeScreen(
     onOpenWebsite = { viewModel.openWebsite(context, it) },
     onToggleBookmark = viewModel::toggleBookmark,
     onRemoveWebsite = viewModel::deleteWebsite,
-    onHistory = { navigator.navigateToHistory() },
-    onTabs = { navigator.navigateToTabs() },
-    onChangeProvider = { navigator.navigateToProviderSelection() },
     onRetryProvider = viewModel::rescanProviders,
     onRetryRecents = viewModel::refreshRecents,
     onRetryConnection = viewModel::retryConnection,
-    onTips = { navigator.navigateToTips() },
-    onDrawerItem = { item ->
-      when (item) {
-        DrawerItem.Home -> Unit
-        DrawerItem.History -> navigator.navigateToHistory()
-        DrawerItem.Tabs -> navigator.navigateToTabs()
-        DrawerItem.Settings -> navigator.navigateToSettings()
-        DrawerItem.Tips -> navigator.navigateToTips()
-        DrawerItem.Intro -> navigator.navigateToIntro()
-        DrawerItem.Feedback -> HomeDrawerIntents.feedback(context)
-        DrawerItem.Rate -> HomeDrawerIntents.rate(context)
-        DrawerItem.Beta -> HomeDrawerIntents.beta(context)
-        DrawerItem.Share -> HomeDrawerIntents.share(context)
-        DrawerItem.About -> navigator.navigateToAbout()
-      }
-    },
-  )
+  ).navigatingWith(navigator, context)
   HomeScreenContent(state = state, actions = actions, snackbarHostState = snackbarHostState)
 }
 
@@ -235,7 +261,11 @@ fun HomeScreenContent(
   searchExpanded: Boolean = false,
 ) {
   val scope = rememberCoroutineScope()
-  var expanded by rememberSaveable { mutableStateOf(searchExpanded) }
+  val searchBar = rememberSearchBarState(
+    initialValue = if (searchExpanded) SearchBarValue.Expanded else SearchBarValue.Collapsed,
+    animationSpecForExpand = SearchOpenSpec,
+    animationSpecForCollapse = SearchCloseSpec,
+  )
   val offlineMessage = stringResource(R.string.offline_message)
   val retry = stringResource(R.string.retry)
 
@@ -291,23 +321,30 @@ fun HomeScreenContent(
           // The cap comes first: after fillMaxSize the minimum width is the window's, which
           // widthIn cannot lower.
           modifier = Modifier
-            .widthIn(max = 680.dp)
+            .widthIn(max = HomeColumnMaxWidth)
             .fillMaxSize(),
         ) {
           HomeSearchBar(
             query = state.query,
             onQueryChange = actions.onQueryChange,
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
+            searchBarState = searchBar,
             suggestions = state.suggestions,
             searchEngines = state.searchEngines,
             selectedEngine = state.selectedEngine,
             onSelectEngine = actions.onSelectEngine,
-            onSubmit = { expanded = false; actions.onSubmit(it) },
-            onSuggestion = { expanded = false; actions.onSuggestion(it) },
+            onSubmit = {
+              scope.launch { searchBar.animateToCollapsed() }
+              actions.onSubmit(it)
+            },
+            onSuggestion = {
+              scope.launch { searchBar.animateToCollapsed() }
+              actions.onSuggestion(it)
+            },
             onMenu = { scope.launch { drawerState.open() } },
             onVoiceUnavailable = actions.onVoiceUnavailable,
-            modifier = Modifier.padding(horizontal = if (expanded) 0.dp else gutter),
+            snackbarHostState = snackbarHostState,
+            // The open search is its own layer over the screen, so the closed bar keeps its margins.
+            modifier = Modifier.padding(horizontal = gutter),
           )
           LazyVerticalGrid(
             columns = GridCells.Fixed(columns),

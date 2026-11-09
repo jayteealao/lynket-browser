@@ -75,6 +75,7 @@ import arun.com.chromer.ui.navigation.navigateToProviderSelection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.lifecycle.compose.dropUnlessResumed
 
 /** The action button a page carries, as the old intro pages had them. */
 enum class IntroAction(@StringRes val label: Int) {
@@ -129,12 +130,13 @@ fun IntroScreen(navigator: LynketNavigator, viewModel: IntroViewModel = hiltView
   val context = LocalContext.current
   val close = { navigator.remove(LynketKey.Intro) }
   val requestDefaultBrowser = rememberDefaultBrowserRequest(onDone = close)
+  val chooseProvider = dropUnlessResumed { navigator.navigateToProviderSelection() }
   IntroContent(
     onClose = close,
     onAction = { action ->
       when (action) {
         IntroAction.TrySlideOver -> viewModel.trySlideOver(context)
-        IntroAction.ChooseProvider -> navigator.navigateToProviderSelection()
+        IntroAction.ChooseProvider -> chooseProvider()
         IntroAction.WatchDemo -> context.startActivity(
           Intent(Intent.ACTION_VIEW, "https://www.youtube.com/watch?v=3gbz8PI8BVI&feature=youtu.be".toUri()),
         )

@@ -24,7 +24,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -36,6 +39,7 @@ import arun.com.chromer.browsing.menu.BrowsingMenuItem
 import arun.com.chromer.browsing.menu.BrowsingScreen
 import arun.com.chromer.browsing.menu.browsingBottomBarItems
 import arun.com.chromer.browsing.menu.browsingMenuItems
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
 import com.google.common.truth.Truth.assertThat
@@ -73,20 +77,25 @@ internal fun readerMenu(text: (Int) -> String, bottomBar: Boolean = true) = brow
 )
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class ReaderScreenTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val context = ApplicationProvider.getApplicationContext<Application>()
   private val text = { id: Int -> context.getString(id) }
 
   private val events = mutableListOf<String>()
 
+  /** The size the reader shows; a test may change it from outside, as a stored change would. */
+  private var increment by mutableIntStateOf(0)
+
   @Composable
   private fun Reader(state: ReaderState, saved: Int = 0, bottomBar: Boolean = true) {
-    var increment by androidx.compose.runtime.remember { mutableIntStateOf(saved) }
     ReaderScreen(
       state = state,
       menuItems = readerMenu(text, bottomBar),
@@ -109,6 +118,7 @@ class ReaderScreenTest {
   }
 
   private fun show(state: ReaderState, saved: Int = 0, bottomBar: Boolean = true) {
+    increment = saved
     composeRule.setContent { ChromerTheme(themeMode = ThemeMode.Light) { Reader(state, saved, bottomBar) } }
   }
 
@@ -189,6 +199,57 @@ class ReaderScreenTest {
     assertThat(events).containsExactly("size:5", "save:5").inOrder()
   }
 
+  private fun openTextSize(saved: Int = 0) {
+    show(ReaderState.Content(sampleReaderArticle()), saved = saved)
+    composeRule.onNodeWithTag("menu-menu_text_size").performClick()
+  }
+
+  private fun sliderProgress() = composeRule.onNodeWithTag("text-size-slider").fetchSemanticsNode()
+    .config[androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo]
+
+  @Test
+  fun theSliderRunsFrom0To15InWholeStepsAndSaysTheSize() {
+    openTextSize(saved = 4)
+    val range = sliderProgress()
+    assertThat(range.range).isEqualTo(0f..15f)
+    assertThat(range.steps).isEqualTo(14)
+    assertThat(range.current).isEqualTo(4f)
+    composeRule.onNodeWithTag("text-size-slider").assert(
+      androidx.compose.ui.test.SemanticsMatcher.expectValue(
+        androidx.compose.ui.semantics.SemanticsProperties.StateDescription,
+        context.getString(R.string.text_size_state, 4),
+      )
+    )
+  }
+
+  @Test
+  fun everyOneOfThe16PositionsGivesItsSize() {
+    openTextSize()
+    (1..15).forEach { composeRule.onNodeWithTag("text-size-slider").performSemanticsActionSetProgress(it.toFloat()) }
+    composeRule.onNodeWithTag("text-size-slider").performSemanticsActionSetProgress(0f)
+    composeRule.waitForIdle()
+    assertThat(events).containsExactlyElementsIn((1..15).map { "size:$it" } + "size:0").inOrder()
+  }
+
+  @Test
+  fun aDragToEitherEndGivesTheLargestAndTheSmallestSize() {
+    openTextSize()
+    composeRule.onNodeWithTag("text-size-slider").performTouchInput { drag(from = centerX, to = width + 40.dp.toPx()) }
+    composeRule.waitForIdle()
+    assertThat(events.last()).isEqualTo("size:15")
+    composeRule.onNodeWithTag("text-size-slider").performTouchInput { drag(from = centerX, to = -40.dp.toPx()) }
+    composeRule.waitForIdle()
+    assertThat(events.last()).isEqualTo("size:0")
+  }
+
+  @Test
+  fun theSliderFollowsTheStoredSizeWhenItChangesFromOutside() {
+    openTextSize()
+    composeRule.runOnIdle { increment = 7 }
+    composeRule.waitForIdle()
+    assertThat(sliderProgress().current).isEqualTo(7f)
+  }
+
   @Test
   fun anUnchangedSizeClosesWithoutAsking() {
     show(ReaderState.Content(sampleReaderArticle()), saved = 2)
@@ -197,6 +258,16 @@ class ReaderScreenTest {
     composeRule.onNodeWithTag("save-size-dialog").assertDoesNotExist()
     composeRule.onNodeWithTag("text-size-card").assertDoesNotExist()
   }
+}
+
+/**
+ * A finger drag along the slider's middle line. It starts at the centre, because the close
+ * button's touch area reaches a few dp over the slider's right end, and runs past the end.
+ */
+private fun androidx.compose.ui.test.TouchInjectionScope.drag(from: Float, to: Float) {
+  down(androidx.compose.ui.geometry.Offset(from, centerY))
+  repeat(10) { moveBy(androidx.compose.ui.geometry.Offset((to - from) / 10f, 0f)) }
+  up()
 }
 
 private fun androidx.compose.ui.test.SemanticsNodeInteraction.performSemanticsActionSetProgress(value: Float) =

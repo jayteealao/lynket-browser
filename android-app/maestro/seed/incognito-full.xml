@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  A settings file with full incognito mode on (the incognito tile's setting), the browsing mode at
+  its default, Slide over, and the intro already passed. The app imports it at its next start, so
+  every link opens incognito: in an ephemeral tab of the browser when it supports one.
+-->
+<map>
+    <boolean name="full_incognito_mode" value="true" />
+    <boolean name="firstrun_3" value="false" />
+</map>

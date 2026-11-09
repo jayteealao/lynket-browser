@@ -24,6 +24,7 @@ import android.content.Intent
 import arun.com.chromer.LynketRobolectricSuite
 import arun.com.chromer.browsing.customtabs.bottombar.BottomBarReceiver
 import arun.com.chromer.browsing.customtabs.callbacks.MinimizeBroadcastReceiver
+import arun.com.chromer.bubbles.system.BubbleDismissReceiver
 import arun.com.chromer.bubbles.webheads.WebHeadService
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertTrue
@@ -53,6 +54,15 @@ class HiltEntryPointsTest : LynketRobolectricSuite() {
     receiver.onReceive(application, Intent())
 
     assertTrue(runCatching { receiver.tabsManager }.isSuccess)
+  }
+
+  @Test
+  fun bubbleDismissReceiverIsInjectedOnReceive() {
+    val receiver = BubbleDismissReceiver()
+
+    receiver.onReceive(application, Intent())
+
+    assertTrue(runCatching { receiver.bubbleCloser }.isSuccess)
   }
 
   @Test

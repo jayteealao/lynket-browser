@@ -12,101 +12,158 @@
 package arun.com.chromer.data.apps
 
 import android.app.Application
-import android.app.job.JobScheduler
-import android.content.Context
-import android.content.Intent
-import androidx.core.app.JobIntentService
-import arun.com.chromer.browsing.customtabs.dynamictoolbar.AppColorExtractorJob
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.TestStore
-import arun.com.chromer.shared.Constants
+import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.util.MAIN_THREAD_WAIT_TAG
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
+import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLog
 
 /**
- * The synchronous app-colour read on the link path returns the stored colour from the in-memory
- * rules without a main-thread wait, and a missing colour still starts the colour extraction once.
+ * The app-colour reads on the link path return the stored colour at once, without a main-thread
+ * wait. A missing colour starts one extraction on the app's own scope, which stores the colour it
+ * finds; a package whose extraction is pending, found no colour or failed starts no second one in the
+ * same process.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class DefaultAppRepositoryColorTest {
   private val application: Application get() = RuntimeEnvironment.getApplication()
-  private val jobScheduler: JobScheduler
-    get() = application.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
 
   private lateinit var store: TestStore
   private lateinit var diskStore: AppDiskStore
+  private lateinit var testScope: TestScope
+  private lateinit var extractor: AppColorExtractor
   private lateinit var repository: DefaultAppRepository
 
   @Before
   fun setUp() {
     store = TestStore()
     diskStore = AppDiskStore(application, store.dataStore, store.scope)
+    testScope = TestScope()
+    extractor = mockk()
+    every { extractor.extract(any()) } returns NO_COLOR
     // The system store is not used by the colour getters.
-    repository = DefaultAppRepository(application, diskStore, diskStore)
-    // Every enqueue still runs for real, so the scheduler shadow holds the job; the mock counts calls.
-    mockkStatic(JobIntentService::class)
-    every {
-      JobIntentService.enqueueWork(any<Context>(), any<Class<*>>(), any(), any())
-    } answers { callOriginal() }
+    repository = DefaultAppRepository(
+      diskStore,
+      diskStore,
+      testScope,
+      StandardTestDispatcher(testScope.testScheduler),
+      extractor,
+    )
+    runBlocking { diskStore.snapshot.first { it != null } }
   }
 
   @After
   fun tearDown() {
-    unmockkStatic(JobIntentService::class)
+    testScope.cancel()
     runBlocking { store.close() }
   }
 
   @Test
-  fun aStoredColourIsReadOnTheMainThreadWithoutAWait() {
+  fun aStoredColourIsReadOnTheMainThreadWithoutAWaitAndStartsNoExtraction() {
     runBlocking { repository.setPackageColor(PKG, COLOR) }
     ShadowLog.clear()
 
     val colour = repository.getPackageColorSync(PKG)
+    testScope.testScheduler.advanceUntilIdle()
 
     assertThat(colour).isEqualTo(COLOR)
     assertThat(ShadowLog.getLogsForTag(MAIN_THREAD_WAIT_TAG)).isEmpty()
-    assertThat(shadowOf(jobScheduler).getPendingJob(AppColorExtractorJob.JOB_ID)).isNull()
-    verify(exactly = 0) {
-      JobIntentService.enqueueWork(any<Context>(), any<Class<*>>(), any(), any())
-    }
+    verify(exactly = 0) { extractor.extract(any()) }
   }
 
   @Test
-  fun aMissingColourReturnsNoColourAndStartsTheExtractionOnce() {
-    runBlocking { diskStore.snapshot.first { it != null } }
+  fun aMissingColourReturnsNoColourAtOnceThenTheExtractedColourIsStoredAndReadByBothReads() {
+    every { extractor.extract(OTHER_PKG) } returns COLOR
     ShadowLog.clear()
 
-    val colour = repository.getPackageColorSync(OTHER_PKG)
+    val first = repository.getPackageColorSync(OTHER_PKG)
 
-    assertThat(colour).isEqualTo(Constants.NO_COLOR)
+    assertThat(first).isEqualTo(NO_COLOR)
     assertThat(ShadowLog.getLogsForTag(MAIN_THREAD_WAIT_TAG)).isEmpty()
-    val job = shadowOf(jobScheduler).getPendingJob(AppColorExtractorJob.JOB_ID)
-    assertThat(job).isNotNull()
-    assertThat(job!!.service.className).isEqualTo(AppColorExtractorJob::class.java.name)
-    verify(exactly = 1) {
-      JobIntentService.enqueueWork(
-        any<Context>(),
-        AppColorExtractorJob::class.java,
-        AppColorExtractorJob.JOB_ID,
-        match<Intent> { it.getStringExtra(Constants.EXTRA_PACKAGE_NAME) == OTHER_PKG },
-      )
+    verify(exactly = 0) { extractor.extract(any()) }
+
+    awaitStoredColour(OTHER_PKG, COLOR)
+
+    verify(exactly = 1) { extractor.extract(OTHER_PKG) }
+    assertThat(repository.getPackageColorSync(OTHER_PKG)).isEqualTo(COLOR)
+    assertThat(runBlocking { repository.getPackageColor(OTHER_PKG) }).isEqualTo(COLOR)
+    testScope.testScheduler.advanceUntilIdle()
+    verify(exactly = 1) { extractor.extract(OTHER_PKG) }
+  }
+
+  @Test
+  fun fiveLinksFromAnAppWithNoColourRunOneExtractionAndStoreNothing() {
+    repeat(5) {
+      assertThat(repository.getPackageColorSync(OTHER_PKG)).isEqualTo(NO_COLOR)
+      testScope.testScheduler.advanceUntilIdle()
     }
+    assertThat(runBlocking { repository.getPackageColor(OTHER_PKG) }).isEqualTo(NO_COLOR)
+    testScope.testScheduler.advanceUntilIdle()
+
+    verify(exactly = 1) { extractor.extract(OTHER_PKG) }
+    assertThat(diskStore.getPackageColorSync(OTHER_PKG)).isEqualTo(NO_COLOR)
+  }
+
+  @Test
+  fun fiveLinksWhileTheFirstExtractionIsPendingRunItOnce() {
+    repeat(5) { repository.getPackageColorSync(OTHER_PKG) }
+    verify(exactly = 0) { extractor.extract(any()) }
+
+    testScope.testScheduler.advanceUntilIdle()
+
+    verify(exactly = 1) { extractor.extract(OTHER_PKG) }
+  }
+
+  @Test
+  fun twoPackagesEachRunOneExtraction() {
+    repeat(3) {
+      repository.getPackageColorSync(PKG)
+      repository.getPackageColorSync(OTHER_PKG)
+    }
+    testScope.testScheduler.advanceUntilIdle()
+
+    verify(exactly = 1) { extractor.extract(PKG) }
+    verify(exactly = 1) { extractor.extract(OTHER_PKG) }
+  }
+
+  @Test
+  fun aFailedExtractionKeepsTheScopeRunningStoresNothingAndIsNotRetried() {
+    every { extractor.extract(OTHER_PKG) } throws IllegalStateException("icon unreadable")
+
+    repository.getPackageColorSync(OTHER_PKG)
+    testScope.testScheduler.advanceUntilIdle()
+    repository.getPackageColorSync(OTHER_PKG)
+    testScope.testScheduler.advanceUntilIdle()
+
+    verify(exactly = 1) { extractor.extract(OTHER_PKG) }
+    assertThat(testScope.coroutineContext[Job]!!.isActive).isTrue()
+    assertThat(diskStore.getPackageColorSync(OTHER_PKG)).isEqualTo(NO_COLOR)
+
+    // The scope still runs the extraction of another package.
+    every { extractor.extract(PKG) } returns COLOR
+    repository.getPackageColorSync(PKG)
+    awaitStoredColour(PKG, COLOR)
   }
 
   @Test
@@ -118,6 +175,22 @@ class DefaultAppRepositoryColorTest {
 
     assertThat(sync).isEqualTo(suspended)
     assertThat(sync).isEqualTo(COLOR)
+  }
+
+  /**
+   * Runs the extraction and waits for the store: the write goes through the store's own thread and
+   * resumes on the test scheduler, so the scheduler is advanced while waiting.
+   */
+  private fun awaitStoredColour(packageName: String, colour: Int) {
+    runBlocking {
+      withTimeout(5_000) {
+        while (diskStore.getPackageColorSync(packageName) != colour) {
+          testScope.testScheduler.advanceUntilIdle()
+          kotlinx.coroutines.delay(10)
+        }
+      }
+    }
+    testScope.testScheduler.advanceUntilIdle()
   }
 
   private companion object {

@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], application = HiltTestApplication::class)
+@Config(application = HiltTestApplication::class)
 class WebViewActivitySchemeTest {
   @get:Rule
   val hiltRule = HiltAndroidRule(this)

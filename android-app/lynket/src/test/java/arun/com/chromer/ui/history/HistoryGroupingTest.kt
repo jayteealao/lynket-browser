@@ -20,6 +20,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
@@ -30,7 +31,7 @@ import java.util.TimeZone
 
 /** Day headers of the History list: where they go and what they say. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class HistoryGroupingTest {
 
   @get:Rule(order = 0)
@@ -38,6 +39,9 @@ class HistoryGroupingTest {
 
   @get:Rule(order = 1)
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val context: Application get() = ApplicationProvider.getApplicationContext()
   private val day = 86_400_000L

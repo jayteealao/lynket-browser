@@ -38,6 +38,7 @@ import android.text.TextUtils
 import android.view.ViewConfiguration
 import android.widget.Toast
 import androidx.annotation.VisibleForTesting
+import androidx.browser.customtabs.CustomTabsCallback
 import androidx.browser.customtabs.CustomTabsSession
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
@@ -52,6 +53,11 @@ import arun.com.chromer.R
 import arun.com.chromer.browsing.article.ArticlePreloader
 import arun.com.chromer.browsing.customtabs.CustomTabManager
 import arun.com.chromer.browsing.newtab.NewTabDialogActivity
+import arun.com.chromer.bubbles.BubbleKey
+import arun.com.chromer.bubbles.BubbleRegistry
+import arun.com.chromer.bubbles.webheads.motion.HeadPageTracker
+import arun.com.chromer.bubbles.webheads.motion.PageSignal
+import arun.com.chromer.bubbles.webheads.motion.TrashTick
 import arun.com.chromer.bubbles.webheads.motion.WebHeadHost
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadState
@@ -61,6 +67,7 @@ import arun.com.chromer.bubbles.webheads.ui.TrashTarget
 import arun.com.chromer.bubbles.webheads.ui.WebHeadBubble
 import arun.com.chromer.bubbles.webheads.ui.WebHeadGestures
 import arun.com.chromer.bubbles.webheads.ui.context.WebHeadContextActivity
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.website.WebsiteRepository
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.settings.Preferences
@@ -73,12 +80,12 @@ import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_MINIMIZE
 import arun.com.chromer.shared.Constants.EXTRA_KEY_WEBSITE
 import arun.com.chromer.shared.Constants.NO_COLOR
-import arun.com.chromer.tabs.TabsManager
 import arun.com.chromer.ui.theme.ChromerThemeFromSettings
 import arun.com.chromer.util.Utils
 import arun.com.chromer.util.events.Event
 import arun.com.chromer.util.events.EventBus
 import dagger.hilt.android.AndroidEntryPoint
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -87,7 +94,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -107,15 +114,18 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   lateinit var websiteRepository: WebsiteRepository
 
   @Inject
-  lateinit var tabsManager: TabsManager
-
-  @Inject
   lateinit var articlePreloader: ArticlePreloader
 
   @Inject
   lateinit var eventBus: EventBus
 
+  @Inject
+  lateinit var bubbleRegistry: BubbleRegistry
+
   private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+  /** The page state of each head; its limits run on [serviceScope], so they end with the service. */
+  private val pageTracker = HeadPageTracker(serviceScope)
   private var motionScope: CoroutineScope? = null
 
   private val headWindows = HashMap<String, OverlayWindow>()
@@ -145,6 +155,12 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   private var customTabConnected = false
+
+  /**
+   * The head whose page the Custom Tab shows last: a navigation event of the shared tab session
+   * names no address, so it belongs to the head opened last.
+   */
+  private var lastOpenedHeadUrl: String? = null
 
   override fun onBind(intent: Intent): IBinder? = null
 
@@ -264,6 +280,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   private fun removeOverlay() {
     controller?.removeAll()
+    bubbleRegistry.list(BrowsingMode.WebHeads).forEach { bubbleRegistry.remove(it.key) }
     headWindows.values.forEach { it.remove() }
     headWindows.clear()
     trashWindow?.remove()
@@ -285,14 +302,25 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     controller?.let { trashWindow?.move(it.trashX, it.trashY) }
   }
 
-  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+  /**
+   * The web heads notification lives only while a head does. A start that leaves no head, as when
+   * Android restarts the service with no link after its process was killed, stops the service,
+   * removes the notification and asks Android not to restart it.
+   */
+  override fun onStartOverlay(intent: Intent?, flags: Int, startId: Int): Int {
+    // The base service already ran the overlay check: with the permission off, its message names
+    // the cause that Open Settings fixes, and no head is added over a refused overlay.
     if (!foregroundStarted) {
       openInTabInstead(intent)
       stopSelf()
       return START_NOT_STICKY
     }
-    checkForOverlayPermission()
     processIntent(intent)
+    if ((controller?.size ?: 0) == 0) {
+      Timber.d("Web heads started with no head; stopping")
+      stopService()
+      return START_NOT_STICKY
+    }
     return START_STICKY
   }
 
@@ -332,12 +360,14 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   private fun addWebHead(controller: WebHeadsController, url: String, isFromAmp: Boolean, isIncognito: Boolean) {
     val head = controller.add(url, isFromAmp, isIncognito)
+    pageTracker.start(head)
+    bubbleRegistry.add(BrowsingMode.WebHeads, url, isIncognito)
     val userColour = Preferences.get(this).webHeadColor()
     if (userColour != ContextCompat.getColor(this, R.color.web_head_color)) {
       head.colour = Color(userColour)
     }
     preLoadForArticle(url)
-    doExtraction(url, isIncognito)
+    doExtraction(head, isIncognito)
   }
 
   // region Windows
@@ -358,6 +388,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   override fun removeHeadWindow(head: WebHeadState) {
+    pageTracker.drop(head)
     headWindows.remove(head.url)?.remove()
   }
 
@@ -392,6 +423,7 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   override fun onHeadClick(head: WebHeadState) {
+    lastOpenedHeadUrl = head.url
     tabsManager.openUrl(this, head.website, true, true, false, head.fromAmp, head.incognito)
     if (Preferences.get(this).webHeadsCloseOnOpen()) {
       controller?.destroy(head, receiveCallback = true)
@@ -403,7 +435,19 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     openContextActivity()
   }
 
+  override fun onTrashShown(shown: Boolean) {
+    trashWindow?.touchable = shown
+  }
+
+  override fun onTrashTick(head: WebHeadState, tick: TrashTick) {
+    headWindows[head.url]?.view?.performHapticFeedback(tick.feedbackConstant())
+  }
+
+  /** Only a close by the person gets here: a service stop removes its heads with no callback. */
   override fun onHeadDestroyed(head: WebHeadState, isLastHead: Boolean) {
+    val key = BubbleKey.of(BrowsingMode.WebHeads, head.url, head.incognito)
+    bubbleRegistry.markClosedOnPurpose(key)
+    bubbleRegistry.remove(key)
     if (isLastHead) {
       controller?.exitTrash { stopService() } ?: stopService()
     } else if (!Preferences.get(this).articleMode()) {
@@ -414,31 +458,57 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
 
   // endregion
 
-  private fun doExtraction(webHeadUrl: String, isIncognito: Boolean) {
-    val websiteFlow = if (!isIncognito) {
-      websiteRepository.getWebsite(webHeadUrl)
-    } else {
-      websiteRepository.getWebsiteReadOnly(webHeadUrl)
+  /**
+   * Reads the details of the site of [head]: its title, icon and colour. The end of the page fetch
+   * also finishes the head's page state: a fetched page is loaded, a fetch that failed is failed.
+   */
+  private fun finishFromTheNetwork(head: WebHeadState, isIncognito: Boolean) {
+    serviceScope.launch {
+      val fetched = try {
+        websiteRepository.fetchWebsite(head.url, isIncognito).flowOn(Dispatchers.IO).first()
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Timber.e(e)
+        null
+      }
+      pageTracker.finish(head, PageSignal.SiteDetails, fetched?.fetchFailed ?: true)
     }
+  }
+
+  private fun doExtraction(head: WebHeadState, isIncognito: Boolean) {
+    val webHeadUrl = head.url
+    val lookups = websiteRepository.lookUpWebsite(webHeadUrl, isIncognito)
     serviceScope.launch {
       try {
-        websiteFlow
-          .filter { it != null }
+        lookups
           .flowOn(Dispatchers.IO)
           // The heads and their map belong to the main thread.
-          .onEach { website -> withContext(Dispatchers.Main) { onSiteLoaded(webHeadUrl, website) } }
-          .map { website -> websiteRepository.getWebsiteRoundIconAndColor(website) }
+          .onEach { lookup ->
+            withContext(Dispatchers.Main) {
+              onSiteLoaded(webHeadUrl, lookup.website)
+              if (lookup.fromNetwork) pageTracker.finish(head, PageSignal.SiteDetails, lookup.fetchFailed)
+            }
+            // Details already known say nothing of the page: the head stays loading until the
+            // page is read from the network.
+            if (!lookup.fromNetwork) finishFromTheNetwork(head, isIncognito)
+          }
+          .map { lookup -> websiteRepository.getWebsiteRoundIconAndColor(lookup.website) }
           .flowOn(Dispatchers.IO)
-          .catch { error -> Timber.e(error) }
+          .catch { error ->
+            Timber.e(error)
+            pageTracker.finish(head, PageSignal.SiteDetails, failed = true)
+          }
           .collect { iconAndColor ->
-            controller?.get(webHeadUrl)?.let { head ->
+            controller?.get(webHeadUrl)?.let { shown ->
               // A site without an icon gives no drawable; the head keeps the first letter.
-              iconAndColor.first?.let { head.favicon = it.toBitmap().asImageBitmap() }
-              if (iconAndColor.second != Constants.NO_COLOR) head.colour = Color(iconAndColor.second)
+              iconAndColor.first?.let { shown.favicon = it.toBitmap().asImageBitmap() }
+              if (iconAndColor.second != Constants.NO_COLOR) shown.colour = Color(iconAndColor.second)
             }
           }
       } catch (e: Exception) {
         Timber.e(e)
+        pageTracker.finish(head, PageSignal.SiteDetails, failed = true)
       }
     }
   }
@@ -466,11 +536,19 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     }
   }
 
+  /**
+   * Whether the head's page is hinted to the browser ahead of a tap. An incognito head never is:
+   * the hint would reach the browser's normal profile. With aggressive loading on, the page already
+   * loads in a background tab.
+   */
+  @VisibleForTesting
+  internal fun preloads(head: WebHeadState): Boolean =
+    !head.incognito && !Preferences.get(this).aggressiveLoading()
+
   private fun warmUp(head: WebHeadState) {
-    if (!Preferences.get(this).aggressiveLoading()) {
-      val url = head.website.preferredUrl()
-      if (customTabConnected) preLoadUrl(url) else deferPreload(url)
-    }
+    if (!preloads(head)) return
+    val url = head.website.preferredUrl()
+    if (customTabConnected) preLoadUrl(url) else deferPreload(url)
   }
 
   private fun preLoadUrl(url: String) {
@@ -495,7 +573,8 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
   }
 
   private fun openContextActivity() {
-    val websites = ArrayList(controller?.all.orEmpty().asReversed().map { it.website })
+    val openOrder = bubbleRegistry.list(BrowsingMode.WebHeads).asReversed()
+    val websites = ArrayList(openOrder.mapNotNull { controller?.get(it.url)?.website })
     ContextActivityHelper.open(this, websites)
   }
 
@@ -539,12 +618,25 @@ class WebHeadService : OverlayService(), CustomTabManager.ConnectionCallback, We
     }
   }
 
-  private class WebHeadNavigationCallback : CustomTabManager.NavigationCallback() {
+  /**
+   * The Custom Tab opened from a head finished or failed its navigation: that head's page is loaded
+   * or failed, unless another signal finished it first. Other events change nothing.
+   */
+  @VisibleForTesting
+  internal fun onTabNavigation(navigationEvent: Int) {
+    val failed = when (navigationEvent) {
+      CustomTabsCallback.NAVIGATION_FINISHED -> false
+      CustomTabsCallback.NAVIGATION_FAILED -> true
+      else -> return
+    }
+    val head = lastOpenedHeadUrl?.let { controller?.get(it) } ?: return
+    pageTracker.finish(head, PageSignal.Navigation, failed)
+  }
+
+  /** The tab session calls it on the main thread. */
+  private inner class WebHeadNavigationCallback : CustomTabManager.NavigationCallback() {
     override fun onNavigationEvent(navigationEvent: Int, extras: Bundle?) {
-      when (navigationEvent) {
-        TAB_SHOWN -> {}
-        TAB_HIDDEN -> {}
-      }
+      onTabNavigation(navigationEvent)
     }
   }
 

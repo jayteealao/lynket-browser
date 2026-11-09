@@ -11,6 +11,7 @@
 
 package arun.com.chromer.data.history
 
+import arun.com.chromer.util.TestClock
 import android.content.Context
 import arun.com.chromer.data.database.ChromerDatabase
 import arun.com.chromer.data.database.HistoryDatabase
@@ -28,13 +29,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import timber.log.Timber
 import kotlin.random.Random
 
 /** The history file of release 2.1.3 comes into the Room database once, merged by URL. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class LegacyHistoryImportTest {
 
   private val context: Context = RuntimeEnvironment.getApplication()
@@ -50,8 +49,10 @@ class LegacyHistoryImportTest {
     opened.forEach { it.close() }
   }
 
+  private val clock = TestClock(4_321L)
+
   private fun historyDatabase() =
-    HistoryDatabase(context, LegacyHistoryImport(context)) { ChromerDatabase.create(context).also { opened += it } }
+    HistoryDatabase(context, LegacyHistoryImport(context, clock), clock) { ChromerDatabase.create(context).also { opened += it } }
 
   @Test
   fun theReleaseFileComesInWithItsTimesAndVisitsAndIsKept() = runTest {
@@ -120,7 +121,7 @@ class LegacyHistoryImportTest {
       LegacyRow("https://b.example/", "B", created = 3_000, visited = 0)
     )
     val db = ChromerDatabase.create(context).also { opened += it }
-    val import = LegacyHistoryImport(context)
+    val import = LegacyHistoryImport(context, clock)
 
     writeLegacyHistory(context, legacyRows)
     import.runOnce(db)
@@ -146,6 +147,7 @@ class LegacyHistoryImportTest {
     assertThat(context.getDatabasePath(HistoryTable.TABLE_NAME).exists()).isFalse()
     val kept = migrationFolder(context).listFiles { f -> f.name.startsWith("History-unreadable-") }!!
     assertThat(kept).hasLength(1)
+    assertThat(kept[0].name).isEqualTo("History-unreadable-4321")
     assertThat(kept[0].readBytes()).isEqualTo(garbage)
     assertThat(migrationFolder(context).resolve(LegacyHistoryImport.REPORT).readText()).contains("unreadable")
     assertThat(tree.errors).isNotEmpty()

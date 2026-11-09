@@ -1,0 +1,106 @@
+# A settings file restored with both web heads and native bubbles on: the Browsing mode screen
+# shows one mode, Web heads, selected, with no Android bubble setting row, and Look & feel and
+# Browsing options agree with it: every web head row on, no note, and Minimize behavior showing
+# the restored choice. The settings screen is in front (mode-switch-check.sh opens it).
+appId: arun.com.chromer.debug
+# A busy emulator can show an "isn't responding" dialog; Wait keeps the app running.
+---
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "row-browsing-mode"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    id: "row-browsing-mode"
+- extendedWaitUntil:
+    visible:
+      id: "mode-web-heads"
+    timeout: 10000
+- assertVisible:
+    id: "mode-web-heads"
+    checked: true
+- assertVisible:
+    id: "mode-slide-over"
+    checked: false
+- assertVisible:
+    id: "mode-native-bubbles"
+    checked: false
+- assertNotVisible:
+    id: "bubble-setting"
+- takeScreenshot: ${OUT}/restored-browsing-mode
+- back
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    id: "row-look-and-feel"
+- extendedWaitUntil:
+    visible:
+      id: "settings-list"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "row-webhead_size_preference"
+    direction: DOWN
+    timeout: 15000
+- assertNotVisible:
+    id: "group-note"
+- assertVisible:
+    id: "row-webhead_color"
+    enabled: true
+- assertVisible:
+    id: "row-webhead_spawn_preference"
+    enabled: true
+- assertVisible:
+    id: "row-webhead_size_preference"
+    enabled: true
+- takeScreenshot: ${OUT}/restored-look-and-feel
+- back
+- runFlow:
+    when:
+      visible: "Wait"
+    commands:
+      - tapOn: "Wait"
+- tapOn:
+    id: "row-browsing-options"
+- extendedWaitUntil:
+    visible:
+      id: "settings-list"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "row-webhead_close_onclick_pref"
+    direction: DOWN
+    timeout: 15000
+- assertNotVisible:
+    id: "group-note"
+- assertVisible:
+    id: "row-aggressive_loading"
+    enabled: true
+- assertVisible:
+    id: "row-webhead_close_onclick_pref"
+    enabled: true
+- takeScreenshot: ${OUT}/restored-browsing-options
+- scrollUntilVisible:
+    element:
+      id: "row-minimize_behavior_preference"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: "row-minimize_behavior_preference"
+    enabled: true
+- assertVisible: "Minimize and open Web Head always"
+- assertNotVisible: "Minimize always opens a bubble"
+- takeScreenshot: ${OUT}/restored-browsing-options-minimize
+- back

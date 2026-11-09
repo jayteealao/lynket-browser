@@ -11,6 +11,7 @@
 
 package arun.com.chromer.ui.browser
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import arun.com.chromer.browsing.customtabs.CustomTabActivity
+import arun.com.chromer.settings.Preferences
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.ui.navigation.LynketNavigator
 import timber.log.Timber
 
@@ -35,12 +38,7 @@ fun BrowserScreen(
   val context = LocalContext.current
   LaunchedEffect(url) {
     try {
-      context.startActivity(
-        Intent(context, CustomTabActivity::class.java).apply {
-          data = Uri.parse(url)
-          flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-      )
+      context.startActivity(browserIntent(context, url))
     } catch (e: Exception) {
       Timber.e(e, "Could not open %s", url)
     }
@@ -48,3 +46,15 @@ fun BrowserScreen(
   }
   Box(Modifier.fillMaxSize())
 }
+
+/**
+ * The intent that opens [url] from the Browser key. In full incognito mode it carries the
+ * incognito flag, so the page opens in an ephemeral tab or the incognito web view, never in the
+ * browser's normal profile.
+ */
+internal fun browserIntent(context: Context, url: String): Intent =
+  Intent(context, CustomTabActivity::class.java).apply {
+    data = Uri.parse(url)
+    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    if (Preferences.get(context).fullIncognitoMode()) putExtra(EXTRA_KEY_INCOGNITO, true)
+  }

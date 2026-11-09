@@ -29,6 +29,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.data.apps.AppRepository
 import arun.com.chromer.data.common.App
 import arun.com.chromer.data.preferences.UserPreferencesRepository
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.settings.SettingsKeyTable
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.ui.theme.ThemeMode
@@ -60,11 +61,14 @@ import org.robolectric.annotation.Config
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class PerAppScreenTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val context: Application get() = ApplicationProvider.getApplicationContext()
 
@@ -167,7 +171,7 @@ class PerAppScreenTest {
 /** The view model saves each toggle in the per-app rule store and keeps the row in step. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class PerAppViewModelTest {
 
   private val dispatcher = StandardTestDispatcher()

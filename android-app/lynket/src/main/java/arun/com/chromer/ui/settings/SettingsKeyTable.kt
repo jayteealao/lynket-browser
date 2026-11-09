@@ -13,6 +13,7 @@ package arun.com.chromer.ui.settings
 
 import androidx.annotation.StringRes
 import arun.com.chromer.R
+import arun.com.chromer.data.preferences.BrowsingMode
 import arun.com.chromer.data.preferences.SettingsSchema
 
 /** The screen that shows a setting; [None] for a setting with no control on a settings screen. */
@@ -73,8 +74,10 @@ object SettingsKeyTable {
   const val PREFERRED_ACTION = "preferred_action_preference"
   const val ANIMATION_TYPE = "animation_preference"
   const val ANIMATION_SPEED = "animation_speed_preference"
-  const val WEB_HEAD_ENABLED = "webhead_enabled_pref"
-  const val NATIVE_BUBBLES = "native_bubbles_preference"
+  const val WEB_HEAD_ENABLED = SettingsSchema.WEB_HEADS_SWITCH
+  const val NATIVE_BUBBLES = SettingsSchema.NATIVE_BUBBLES_SWITCH
+  const val CUSTOM_TAB_SHEET = SettingsSchema.CUSTOM_TAB_SHEET
+  const val CUSTOM_TAB_SIDE_SHEET = SettingsSchema.CUSTOM_TAB_SIDE_SHEET
   const val WEB_HEADS_COLOR = "webhead_color"
   const val WEB_HEAD_SPAWN = "webhead_spawn_preference"
   const val WEB_HEAD_SIZE = "webhead_size_preference"
@@ -98,11 +101,14 @@ object SettingsKeyTable {
     SettingsEntry(key, SettingsScreenId.BrowsingMode, 0, position, ControlKind.Radio)
 
   val entries: List<SettingsEntry> = listOf(
-    // Browsing mode: the mode list (slide over is "neither key on"), then the load faster group.
-    mode(WEB_HEAD_ENABLED, 1),
-    mode(NATIVE_BUBBLES, 2),
-    SettingsEntry(AMP_MODE, SettingsScreenId.BrowsingMode, R.string.load_faster_heading, 3, ControlKind.Switch),
-    SettingsEntry(ARTICLE_MODE, SettingsScreenId.BrowsingMode, R.string.load_faster_heading, 4, ControlKind.Switch),
+    // Browsing mode: the mode list (slide over is "neither key on") with the sheet options under
+    // slide over, then the load faster group.
+    SettingsEntry(CUSTOM_TAB_SHEET, SettingsScreenId.BrowsingMode, 0, 1, ControlKind.Switch),
+    SettingsEntry(CUSTOM_TAB_SIDE_SHEET, SettingsScreenId.BrowsingMode, 0, 2, ControlKind.Switch, dependsOn = CUSTOM_TAB_SHEET),
+    mode(WEB_HEAD_ENABLED, 3),
+    mode(NATIVE_BUBBLES, 4),
+    SettingsEntry(AMP_MODE, SettingsScreenId.BrowsingMode, R.string.load_faster_heading, 5, ControlKind.Switch),
+    SettingsEntry(ARTICLE_MODE, SettingsScreenId.BrowsingMode, R.string.load_faster_heading, 6, ControlKind.Switch),
 
     // Look and feel: the new theme group first, then the legacy groups in their order.
     SettingsEntry(THEME_MODE, SettingsScreenId.LookAndFeel, R.string.settings_theme, 1, ControlKind.Chips),

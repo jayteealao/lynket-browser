@@ -20,6 +20,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.R
 import arun.com.chromer.extenstions.StringResource
 import arun.com.chromer.home.CustomTabProviderInfo
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.util.appicon.ApplicationIcon
 import com.google.common.truth.Truth.assertThat
@@ -30,11 +31,14 @@ import org.robolectric.annotation.Config
 
 /** On a wide window the home is one centred column of at most 680 dp. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class, qualifiers = "w841dp-h701dp-xxhdpi")
+@Config(application = Application::class, qualifiers = "w841dp-h701dp-xxhdpi")
 class HomeFoldWidthTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   @Test
   fun theFeedIsAtMost680DpWideOnAFold() {

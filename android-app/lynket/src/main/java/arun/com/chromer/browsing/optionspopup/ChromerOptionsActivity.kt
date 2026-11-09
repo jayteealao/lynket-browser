@@ -22,6 +22,7 @@ import arun.com.chromer.browsing.openwith.OpenIntentWithActivity
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.history.HistoryActivity
 import arun.com.chromer.shared.Constants.EXTRA_KEY_FROM_ARTICLE
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_ORIGINAL_URL
 import arun.com.chromer.shared.base.activity.BaseActivity
 import arun.com.chromer.shortcuts.HomeScreenShortcutCreatorActivity
@@ -78,7 +79,9 @@ class ChromerOptionsActivity : BaseActivity() {
             .putExtra(EXTRA_KEY_ORIGINAL_URL, it),
         )
       }
-      OptionItem.ArticleView -> url?.let { tabsManager.openArticle(this, Website(it)) }
+      OptionItem.ArticleView -> url?.let {
+        tabsManager.openArticle(this, Website(it), incognito = intent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false))
+      }
     }
     finish()
   }

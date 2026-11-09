@@ -34,6 +34,7 @@ import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.ColorInt
+import androidx.browser.customtabs.CustomTabsClient
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.CustomTabsSession
 import androidx.core.content.ContextCompat
@@ -55,6 +56,7 @@ import arun.com.chromer.browsing.optionspopup.ChromerOptionsActivity
 import arun.com.chromer.browsing.webview.WebViewActivity
 import arun.com.chromer.bubbles.webheads.WebHeadService
 import arun.com.chromer.settings.Preferences
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import arun.com.chromer.shared.Constants.EXTRA_KEY_ORIGINAL_URL
 import arun.com.chromer.shared.Constants.NO_COLOR
 import arun.com.chromer.util.Utils
@@ -91,6 +93,15 @@ class CustomTabs @Inject constructor(
     private var toolbarColor = NO_COLOR
     private var noAnimation = false
 
+    /** Whether the last [prepare] added the sheet options, so the tab opens as a sheet. */
+    private var sheetLaunch = false
+
+    /** The sheet options the last [prepare] read, which the launch log names. */
+    private var sheetOptions: SheetOptions? = null
+
+    /** Whether the tab opens ephemeral: the browser keeps no cookies or history of it. */
+    private var incognito = false
+
     init {
         noAnimation = false
     }
@@ -98,26 +109,54 @@ class CustomTabs @Inject constructor(
     /**
      * Opens the URL on a Custom Tab if possible. Otherwise fallsback to opening it on a WebView.
      */
-    private fun openCustomTab() {
+    private fun openCustomTab(customTabsIntent: CustomTabsIntent) {
         val act = activity ?: return
-        val packageName = getCustomTabPackage(act)
-        val customTabsIntent = builder!!.build()
+        val packageName = customTabPackage(act)
         val uri = Uri.parse(url)
+        if (packageName != null && incognito && !isEphemeralSupported(act, packageName)) {
+            // A browser that cannot open an ephemeral tab would keep the page in its normal
+            // profile, so the incognito link opens in the incognito web view, with no message.
+            openIncognitoWebView(act, uri)
+            return
+        }
         if (packageName != null) {
             customTabsIntent.intent.setPackage(packageName)
             val keepAliveIntent = Intent()
             keepAliveIntent.setClassName(act.packageName, KeepAliveService::class.java.canonicalName!!)
             customTabsIntent.intent.putExtra(EXTRA_CUSTOM_TABS_KEEP_ALIVE, keepAliveIntent)
+            // The form of the launch, without the address, for the device checks (debug builds log it).
+            Timber.d(
+                "Custom Tab launch: sheet=%s sideSheet=%s ephemeral=%s",
+                sheetLaunch,
+                sheetOptions?.sideSheet,
+                incognito,
+            )
             try {
-                customTabsIntent.launchUrl(act, uri)
+                if (sheetLaunch) {
+                    // A browser opens a sheet only for a launch with a session or for a result.
+                    customTabsIntent.intent.data = uri
+                    act.startActivityForResult(customTabsIntent.intent, SHEET_REQUEST, customTabsIntent.startAnimationBundle)
+                } else {
+                    customTabsIntent.launchUrl(act, uri)
+                }
                 Timber.d("Launched url: %s", uri.toString())
             } catch (e: Exception) {
-                CUSTOM_TABS_FALLBACK.openUri(act, uri)
+                CUSTOM_TABS_FALLBACK.openUri(act, uri, incognito)
                 Timber.e("Called fallback even though a package was found, weird Exception : %s", e.toString())
             }
         } else {
             Timber.e("Called fallback since no package found!")
-            CUSTOM_TABS_FALLBACK.openUri(act, uri)
+            CUSTOM_TABS_FALLBACK.openUri(act, uri, incognito)
+        }
+    }
+
+    private fun openIncognitoWebView(act: Activity, uri: Uri) {
+        try {
+            act.startActivity(
+                Intent(act, WebViewActivity::class.java).setData(uri).putExtra(EXTRA_KEY_INCOGNITO, true)
+            )
+        } catch (e: ActivityNotFoundException) {
+            Timber.e(e, "No web view to open an incognito link in")
         }
     }
 
@@ -138,6 +177,15 @@ class CustomTabs @Inject constructor(
         return this
     }
 
+    /**
+     * Opens the page in an ephemeral tab, for an incognito link: the browser keeps no cookies or
+     * history of it, and the tab is not tied to a session that preloaded links.
+     */
+    fun incognito(on: Boolean): CustomTabs {
+        incognito = on
+        return this
+    }
+
     fun toolbarColor(@ColorInt overrideColor: Int): CustomTabs {
         toolbarColor = ColorUtils.setAlphaComponent(overrideColor, 0xFF)
         return this
@@ -149,7 +197,8 @@ class CustomTabs @Inject constructor(
      * @return Instance of this class
      */
     private fun prepare(): CustomTabs {
-        builder = CustomTabsIntent.Builder(getSession())
+        // An incognito tab gets no session: a session's preloaded links live in the normal profile.
+        builder = CustomTabsIntent.Builder(if (incognito) null else getSession())
         // set defaults
         builder!!.setShowTitle(true)
         builder!!.enableUrlBarHiding()
@@ -163,20 +212,42 @@ class CustomTabs @Inject constructor(
         prepareActionButton()
         prepareMenuItems()
         prepareBottomBar()
+        sheetOptions = activity?.let { SheetLaunch.options(Preferences.get(it)) }
+        sheetLaunch = activity?.let {
+            SheetLaunch.applyTo(
+                builder!!,
+                sheetOptions!!,
+                SheetLaunch.windowHeightPx(it),
+                SheetLaunch.windowWidthPx(it),
+            )
+        } ?: false
+        if (incognito) {
+            builder!!.setEphemeralBrowsingEnabled(true)
+        }
         return this
+    }
+
+    /** Builds the Custom Tab intent from the person's settings, as [launch] opens it. */
+    internal fun buildIntent(): CustomTabsIntent {
+        prepare()
+        assertBuilderInitialized()
+        return builder!!.build()
     }
 
     /**
      * Builds custom tab intent from the builder we created so far and launches the custom tab.
+     *
+     * @return whether the tab was opened as a sheet over the app the link came from
      */
-    fun launch() {
-        prepare()
-        assertBuilderInitialized()
-        openCustomTab()
+    fun launch(): Boolean {
+        openCustomTab(buildIntent())
+        val sheet = sheetLaunch
 
         // Dispose reference
         activity = null
         customTabsSession = null
+        incognito = false
+        return sheet
     }
 
     /**
@@ -302,6 +373,8 @@ class CustomTabs @Inject constructor(
         moreMenuActivity.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
         moreMenuActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
         moreMenuActivity.putExtra(EXTRA_KEY_ORIGINAL_URL, url)
+        // The options of an incognito tab keep the page incognito (article view).
+        moreMenuActivity.putExtra(EXTRA_KEY_INCOGNITO, incognito)
         val moreMenuPending = callbackActivity(act, 0, moreMenuActivity)
         builder!!.addMenuItem(act.getString(R.string.chromer_options), moreMenuPending)
     }
@@ -314,7 +387,10 @@ class CustomTabs @Inject constructor(
         val act = activity ?: return
         if (!Preferences.get(act).bottomBar() && Utils.ANDROID_LOLLIPOP) {
             val minimizeIntent = Intent(act, MinimizeBroadcastReceiver::class.java)
-            val pendingMin = callbackBroadcast(act, Random().nextInt(), minimizeIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url))
+            minimizeIntent.putExtra(EXTRA_KEY_ORIGINAL_URL, url)
+            // A minimized incognito tab stays incognito: no normal web head preloads it.
+            minimizeIntent.putExtra(EXTRA_KEY_INCOGNITO, incognito)
+            val pendingMin = callbackBroadcast(act, Random().nextInt(), minimizeIntent)
             builder!!.addMenuItem(act.getString(R.string.minimize), pendingMin)
         }
     }
@@ -401,7 +477,7 @@ class CustomTabs @Inject constructor(
         builder!!.setSecondaryToolbarViews(
             createBottomBarRemoteViews(act),
             getClickableIDs(),
-            getOnClickPendingIntent(act, url!!)
+            getOnClickPendingIntent(act, url!!, incognito)
         )
     }
 
@@ -438,11 +514,14 @@ class CustomTabs @Inject constructor(
         /**
          * @param activity The Activity that wants to open the Uri.
          * @param uri      The uri to be opened by the fallback.
+         * @param incognito Whether the page must open incognito.
          */
-        fun openUri(activity: Activity, uri: Uri)
+        fun openUri(activity: Activity, uri: Uri, incognito: Boolean)
     }
 
     companion object {
+        /** The request code of a Custom Tab opened as a sheet. */
+        internal const val SHEET_REQUEST = 7101
         private const val ACTION_CUSTOM_TABS_CONNECTION = "android.support.customtabs.action.CustomTabsService"
         private const val EXTRA_CUSTOM_TABS_KEEP_ALIVE = "android.support.customtabs.extra.KEEP_ALIVE"
         private const val LOCAL_PACKAGE = "com.google.android.apps.chrome"
@@ -453,12 +532,13 @@ class CustomTabs @Inject constructor(
         /**
          * Fallback in case there was en error launching custom tabs
          */
-        private val CUSTOM_TABS_FALLBACK = CustomTabsFallback { activity, uri ->
+        private val CUSTOM_TABS_FALLBACK = CustomTabsFallback { activity, uri, incognito ->
             val string = activity.getString(R.string.fallback_msg)
             Toast.makeText(activity, string, Toast.LENGTH_SHORT).show()
             try {
                 val intent = Intent(activity, WebViewActivity::class.java)
                 intent.data = uri
+                if (incognito) intent.putExtra(EXTRA_KEY_INCOGNITO, true)
                 activity.startActivity(intent)
             } catch (e: ActivityNotFoundException) {
                 Toast.makeText(activity, activity.getString(R.string.unxp_err), Toast.LENGTH_SHORT).show()
@@ -467,11 +547,18 @@ class CustomTabs @Inject constructor(
 
 
         /**
-         * Attempts to find the custom the best custom tab package to use.
+         * The browser a Custom Tab opens in: the person's chosen provider, else Chrome, else the
+         * first installed browser that supports Custom Tabs.
          *
          * @return A package that supports custom tab, null if not present
          */
-        private fun getCustomTabPackage(context: Context): String? {
+        internal fun customTabPackage(context: Context): String? = customTabPackageAmong(context, null)
+
+        /**
+         * [customTabPackage], with the [supporting] browsers a caller already listed, so the
+         * installed browsers are not listed a second time.
+         */
+        internal fun customTabPackageAmong(context: Context, supporting: List<String>?): String? {
             val userPackage = Preferences.get(context).customTabPackage()
             if (!userPackage.isNullOrEmpty()) {
                 return userPackage
@@ -481,13 +568,20 @@ class CustomTabs @Inject constructor(
             if (isPackageSupportCustomTabs(context, LOCAL_PACKAGE))
                 return LOCAL_PACKAGE
 
-            val supportingPackages = getCustomTabSupportingPackages(context)
+            val supportingPackages = supporting ?: getCustomTabSupportingPackages(context)
             return if (supportingPackages.isNotEmpty()) {
                 supportingPackages[0]
             } else {
                 null
             }
         }
+
+        /**
+         * Whether the browser [packageName] can open a Custom Tab that keeps no cookies, history or
+         * other site data once it closes (an ephemeral tab). A local package query, no connection.
+         */
+        fun isEphemeralSupported(context: Context, packageName: String?): Boolean =
+            packageName != null && CustomTabsClient.isEphemeralBrowsingSupported(context, packageName)
 
         /**
          * Returns all valid custom tab supporting browser packages on the system. Does not respect if

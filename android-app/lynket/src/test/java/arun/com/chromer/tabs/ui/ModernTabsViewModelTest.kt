@@ -57,8 +57,8 @@ class ModernTabsViewModelTest {
   @Before
   fun setUp() {
     coEvery { tabsManager.getActiveTabs() } returns listOf(custom, webView)
-    every { websites.getWebsiteReadOnly(custom.url) } returns flowOf(Website("Example", custom.url, null, null, null, null, false, 0, 1))
-    every { websites.getWebsiteReadOnly(webView.url) } returns flow { throw IllegalStateException("not stored") }
+    every { websites.getWebsiteWithoutSaving(custom.url) } returns flowOf(Website("Example", custom.url, null, null, null, null, false, 0, 1))
+    every { websites.getWebsiteWithoutSaving(webView.url) } returns flow { throw IllegalStateException("not stored") }
   }
 
   private fun viewModel() = ModernTabsViewModel(tabsManager, websites)
@@ -158,7 +158,7 @@ class ModernTabsViewModelTest {
 
   @Test
   fun cancelledSiteLookupLeavesStateUnchanged() = runTest(dispatcher) {
-    every { websites.getWebsiteReadOnly(custom.url) } returns flow { awaitCancellation() }
+    every { websites.getWebsiteWithoutSaving(custom.url) } returns flow { awaitCancellation() }
     val vm = viewModel()
     vm.load()
     advanceUntilIdle()

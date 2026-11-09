@@ -40,12 +40,17 @@ class BottomBarReceiver : BroadcastReceiver() {
   @Inject
   lateinit var tabsManager: TabsManager
 
+  /** Whether the tab that sent the click is incognito. */
+  private var incognito = false
+
   override fun onReceive(context: Context, intent: Intent) {
 
     val clickedId = intent.getIntExtra(CustomTabsIntent.EXTRA_REMOTEVIEWS_CLICKED_ID, -1)
     // The provider fills in the page's current address; the address the tab opened with is the fallback.
     val url = intent.browsingUrl()
     val orgUrl = intent.getStringExtra(Constants.EXTRA_KEY_ORIGINAL_URL)
+    // An incognito tab's actions keep the page incognito.
+    incognito = intent.getBooleanExtra(Constants.EXTRA_KEY_INCOGNITO, false)
     if (url == null || clickedId == -1) {
       Timber.d("Skipped bottom bar callback")
       return
@@ -84,7 +89,7 @@ class BottomBarReceiver : BroadcastReceiver() {
       if (!performCalled) {
         throw IllegalStateException("Should call perform() instead of onPerform()")
       }
-      tabsManager.openArticle(context!!, Website(url), true)
+      tabsManager.openArticle(context!!, Website(url), true, incognito)
     }
   }
 
@@ -111,7 +116,7 @@ class BottomBarReceiver : BroadcastReceiver() {
     Command(context, orgUrl) {
 
     override fun onPerform() {
-      tabsManager.minimizeTabByUrl(url, CustomTabActivity::class.java.name)
+      tabsManager.minimizeTabByUrl(url, CustomTabActivity::class.java.name, incognito)
     }
   }
 

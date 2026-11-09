@@ -19,6 +19,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
+import kotlin.time.Clock
 
 /**
  * Moves the settings that earlier releases kept in the default SharedPreferences file into
@@ -35,7 +36,7 @@ import java.io.IOException
  */
 class LegacySettingsMigration(
   private val context: Context,
-  private val clock: () -> Long = System::currentTimeMillis,
+  private val clock: Clock,
 ) : DataMigration<Preferences> {
 
   private val prefsName get() = "${context.packageName}_preferences"
@@ -46,7 +47,7 @@ class LegacySettingsMigration(
   val migrationDir: File get() = File(context.filesDir, "settings-migration")
 
   override suspend fun shouldMigrate(currentData: Preferences): Boolean =
-    (currentData.raw(SettingsSchema.MIGRATION_VERSION.name) as? Int ?: 0) < VERSION
+    (currentData.storedValue(SettingsSchema.MIGRATION_VERSION) as? Int ?: 0) < VERSION
 
   override suspend fun migrate(currentData: Preferences): Preferences {
     val out = currentData.toMutablePreferences()
@@ -106,7 +107,7 @@ class LegacySettingsMigration(
 
   private fun backUpOldFile() {
     migrationDir.mkdirs()
-    val backup = File(migrationDir, "$prefsName-${clock()}.xml")
+    val backup = File(migrationDir, "$prefsName-${clock.now().toEpochMilliseconds()}.xml")
     // A failed copy throws; DataStore then writes nothing and runs the migration again on the
     // next read.
     oldFile.copyTo(backup, overwrite = true)

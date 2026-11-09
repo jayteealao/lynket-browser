@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<!--
+  A settings file for the app colour check: links open in a Custom Tab with the intro already
+  passed, and the toolbar takes the colour of the app the link came from (coloured toolbar, dynamic
+  colour and "based on app" on, "based on web" off), so an app with no colour shows the chosen
+  toolbar colour.
+-->
+<map>
+    <boolean name="webhead_enabled_pref" value="false" />
+    <boolean name="native_bubbles_preference" value="false" />
+    <boolean name="firstrun_3" value="false" />
+    <boolean name="toolbar_color_pref" value="true" />
+    <boolean name="dynamic_color" value="true" />
+    <boolean name="dynamic_color_app" value="true" />
+    <boolean name="dynamic_color_web" value="false" />
+</map>

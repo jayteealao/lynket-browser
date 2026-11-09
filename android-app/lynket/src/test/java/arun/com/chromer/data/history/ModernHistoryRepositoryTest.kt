@@ -11,6 +11,7 @@
 
 package arun.com.chromer.data.history
 
+import arun.com.chromer.util.TestClock
 import android.content.Context
 import androidx.paging.PagingSource
 import androidx.room3.Room
@@ -35,7 +36,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
@@ -44,7 +44,6 @@ import kotlin.time.Duration.Companion.seconds
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30])
 class ModernHistoryRepositoryTest {
 
     private lateinit var context: Context
@@ -66,7 +65,7 @@ class ModernHistoryRepositoryTest {
             .build()
         websiteDao = database.websiteDao()
         repository = ModernHistoryRepository(
-            historyDatabase = HistoryDatabase(context, legacyImport = null) { database },
+            historyDatabase = HistoryDatabase(context, legacyImport = null, clock = TestClock()) { database },
             ioDispatcher = testDispatcher
         )
     }

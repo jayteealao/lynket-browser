@@ -27,7 +27,7 @@ import java.io.File
 
 /** Article elements become reader blocks by the legacy tag rules; the fixture article extracts. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class)
+@Config(application = Application::class)
 class ArticleBlocksTest {
 
   private fun blocks(html: String) = articleBlocks(Jsoup.parse(html).body().children())

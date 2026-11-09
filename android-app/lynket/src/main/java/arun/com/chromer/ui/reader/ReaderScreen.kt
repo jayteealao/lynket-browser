@@ -49,6 +49,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
@@ -377,11 +378,16 @@ private fun TextSizeCard(increment: Int, onChange: (Int) -> Unit, onDismiss: () 
       val label = stringResource(R.string.text_size)
       val value = stringResource(R.string.text_size_state, increment)
       Icon(Icons.Outlined.FormatSize, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-      Slider(
+      val slider = rememberSliderState(
         value = increment.toFloat(),
-        onValueChange = { onChange(it.toInt()) },
-        valueRange = 0f..BrowsingArticleViewModel.MAX_TEXT_SIZE_INCREMENT.toFloat(),
         steps = BrowsingArticleViewModel.MAX_TEXT_SIZE_INCREMENT - 1,
+        valueRange = 0f..BrowsingArticleViewModel.MAX_TEXT_SIZE_INCREMENT.toFloat(),
+      )
+      // The stored size stays the source: the slider shows it and hands each move to it.
+      slider.value = increment.toFloat()
+      slider.onValueChange = { onChange(it.toInt()) }
+      Slider(
+        state = slider,
         modifier = Modifier
           .weight(1f)
           .padding(horizontal = 8.dp)

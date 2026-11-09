@@ -1,0 +1,18 @@
+# Two taps on History inside one screen transition push one History screen: after the taps, one
+# Back returns to home. Run by link-slide-check.sh double-tap, with recents on the home (the
+# script opens a page first, so the home shows the History button).
+appId: ${APP_ID}
+---
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: { id: "home-history" }
+    timeout: 30000
+- tapOn:
+    id: "home-history"
+    repeat: 2
+    delay: 40
+- waitForAnimationToEnd
+- back
+- waitForAnimationToEnd
+- assertVisible: { id: "home-history" }

@@ -228,9 +228,8 @@
   <string name="article_theme">Tema članka</string>
   <string name="article_mode_summary">Učitajte način za čitanje bez dodatnih stvari fokusirajući se samo na sadržaj.</string>
   <string name="amp_warning_title">AMP Upozorenje</string>
-  <string name="amp_warning_content"><![CDATA[U načinu <b>klizanja</b>, dohvaćanje AMP veze stranice može potrajati. Možda će te vidjeti dijalog kada se to dogodi.]]></string>
+  <string name="amp_warning_content"><![CDATA[Izvan načina <b>Web krugovi</b>, dohvaćanje AMP veze stranice može potrajati. Možda ćete vidjeti dijalog kada se to dogodi.]]></string>
   <string name="title_activity_look_and_feel">Izgled i osjećaj</string>
-  <string name="not_available_in_slide_mode">Nije dostupno kod načina klizanja</string>
   <string name="title_activity_browsing_options">Postavke pregledavanja</string>
   <string name="grabbing_amp_link">Dohvaćanje AMP veze</string>
   <string name="link_found">Veza je pronađena!</string>
@@ -315,4 +314,6 @@
   <string name="tips_article_mode">Dodirom na ključne riječi u načinu za članke će ih automatski pretražiti</string>
   <string name="quick_settings">Brze postavke</string>
   <string name="quick_settings_tip">Možete koristiti Lynketove brze postavke na statusnoj traci kako bi brzinski promjenili vaše postavke pregledavanja.</string>
+  <string name="only_used_in_web_heads_mode">Koristi se samo u načinu Web krugovi</string>
+  <string name="minimize_always_opens_bubble">Minimiziranje uvijek otvara mjehurić</string>
 </resources>

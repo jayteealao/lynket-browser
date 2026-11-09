@@ -11,13 +11,12 @@
 
 package arun.com.chromer.ui.theme
 
-import android.app.Activity
 import android.content.Context
-import android.content.ContextWrapper
 import android.graphics.Color as AndroidColor
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -287,7 +286,7 @@ fun ChromerThemeFromSettings(
       ThemeMode.Light -> false
       ThemeMode.Dark, ThemeMode.Black -> true
     }
-    val activity = remember(context) { context.findComponentActivity() }
+    val activity = LocalActivity.current as? ComponentActivity
     // The bar icons follow the app's theme, not the system's, and again when the theme changes.
     LaunchedEffect(activity, dark) { activity?.applySystemBars(dark) }
   }
@@ -299,7 +298,7 @@ fun ChromerThemeFromSettings(
     if (applySystemBars) {
       // The window behind the content (resize, fold, the first frame of the next start) takes the
       // app's background, so a Dark or Black theme never shows a light window.
-      val activity = remember(context) { context.findComponentActivity() }
+      val activity = LocalActivity.current as? ComponentActivity
       val background = MaterialTheme.colorScheme.background
       LaunchedEffect(activity, background) { activity?.colourOpaqueWindow(background.toArgb()) }
     }
@@ -325,10 +324,3 @@ fun ComponentActivity.applySystemBars(dark: Boolean) {
 // The scrims androidx.activity uses behind three-button navigation.
 private val NAV_LIGHT_SCRIM = AndroidColor.argb(0xe6, 0xFF, 0xFF, 0xFF)
 private val NAV_DARK_SCRIM = AndroidColor.argb(0x80, 0x1b, 0x1b, 0x1b)
-
-private tailrec fun Context.findComponentActivity(): ComponentActivity? = when (this) {
-  is ComponentActivity -> this
-  is Activity -> null
-  is ContextWrapper -> baseContext.findComponentActivity()
-  else -> null
-}

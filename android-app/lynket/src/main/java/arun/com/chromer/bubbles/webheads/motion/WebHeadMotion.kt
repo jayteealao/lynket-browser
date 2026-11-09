@@ -13,9 +13,12 @@ package arun.com.chromer.bubbles.webheads.motion
 
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.calculateTargetValue
 import androidx.compose.animation.core.exponentialDecay
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
@@ -45,14 +48,33 @@ object WebHeadMotion {
   private fun spring(origamiTension: Double, origamiFriction: Double): SpringSpec<Float> {
     val k = tension(origamiTension)
     val c = friction(origamiFriction)
-    return SpringSpec(dampingRatio = dampingRatio(k, c), stiffness = k.toFloat(), visibilityThreshold = 0.5f)
+    return SpringSpec(dampingRatio = dampingRatio(k, c), stiffness = k.toFloat(), visibilityThreshold = VISIBILITY_THRESHOLD_PX)
   }
+
+  /** A spring of [stiffness] that settles without a bounce. */
+  private fun criticallyDamped(stiffness: Float): SpringSpec<Float> =
+    SpringSpec(dampingRatio = 1f, stiffness = stiffness, visibilityThreshold = VISIBILITY_THRESHOLD_PX)
+
+  /** A window position within half a pixel of its target has arrived. */
+  private const val VISIBILITY_THRESHOLD_PX = 0.5f
 
   /** Release towards an edge, the return of a new master, and every bound correction. */
   val Fling: SpringSpec<Float> = spring(50.0, 5.0)
 
+  /**
+   * Carries a fling that would stop short of its edge on a wide window there: the fling spring's
+   * stiffness with no bounce.
+   */
+  val FlingToEdge: SpringSpec<Float> = criticallyDamped(Fling.stiffness)
+
   /** Lock onto the trash. */
   val Snap: SpringSpec<Float> = spring(100.0, 7.0)
+
+  /**
+   * Moves the heads to their place after a rotation, a fold or a resize: the lock spring's
+   * stiffness with no bounce.
+   */
+  val Resnap: SpringSpec<Float> = criticallyDamped(tension(100.0).toFloat())
 
   /** Trash target scale. */
   val TrashScale: SpringSpec<Float> = spring(100.0, 9.0)
@@ -76,6 +98,12 @@ object WebHeadMotion {
 
   /** Distance from the trash centre, in dp, inside which a dragged head locks to the trash. */
   const val MAGNETISM_DP = 120f
+
+  /**
+   * A locked head lets go of the trash only this many times [MAGNETISM_DP] away, so a finger
+   * resting at the edge of the magnet does not lock and unlock (and tick) over and over.
+   */
+  const val TRASH_RELEASE_FACTOR = 1.2f
 
   /** Offsets of each follower behind the master, per follower, in dp. */
   const val CHAIN_X_DP = 4f
@@ -118,6 +146,32 @@ object WebHeadMotion {
     }
   }
 
+  /**
+   * The place of the stack as a screen edge and a share of the height a head can rest in, so it
+   * means the same place after a rotation, a fold or a resize.
+   */
+  data class StackAnchor(val side: Side, val ratio: Float) {
+    enum class Side { LEFT, RIGHT }
+
+    /** The rest position on the anchor's edge, inside [bounds]. */
+    fun position(bounds: ScreenBounds): Pair<Int, Int> {
+      val x = if (side == Side.RIGHT) bounds.right else bounds.left
+      val range = max(0, bounds.bottom - bounds.top)
+      val y = bounds.top + (ratio * range).roundToInt()
+      return x to y.coerceIn(bounds.top, bounds.top + range)
+    }
+
+    companion object {
+      /** The anchor of a head window at ([x], [y]) on a display [dispWidth] wide. */
+      fun of(x: Int, y: Int, bounds: ScreenBounds, dispWidth: Int): StackAnchor {
+        val side = if (x > dispWidth / 2) Side.RIGHT else Side.LEFT
+        val range = bounds.bottom - bounds.top
+        val ratio = if (range <= 0) 0f else ((y - bounds.top).toFloat() / range).coerceIn(0f, 1f)
+        return StackAnchor(side, ratio)
+      }
+    }
+  }
+
   /** True when the head at this queue index (count down from the total, oldest first) hides. */
   fun isQueued(index: Int): Boolean = index > MAX_VISIBLE_WEB_HEADS
 
@@ -147,8 +201,28 @@ object WebHeadMotion {
     }
   }
 
-  /** Minimum horizontal fling velocity: ten times the screen width in dp, as pixels per second. */
-  fun minHorizontalFlingVelocity(screenWidthDp: Int, density: Float): Float = screenWidthDp * 10 * density
+  /**
+   * True when a head window at [x], flung at [velocityX] px per second, slows down past the point
+   * where the bound correction takes it to the edge it points to: the right edge when the window
+   * reaches the display's right side, the left edge when it reaches the left side.
+   */
+  fun flingReachesEdge(x: Float, velocityX: Float, headWidth: Int, dispWidth: Int): Boolean {
+    val end = FlingDecay.calculateTargetValue(x, velocityX)
+    return if (velocityX > 0) end + headWidth >= dispWidth else end - headWidth <= 0
+  }
+
+  /**
+   * The fling floor stops growing at a 600 dp window, so a wider window moves a flung head no
+   * faster than a tablet does, in dp per second.
+   */
+  const val MAX_MIN_FLING_DP_PER_S = 6_000f
+
+  /**
+   * Minimum horizontal fling velocity: ten times the window width in dp per second, at most
+   * [MAX_MIN_FLING_DP_PER_S], as px per second.
+   */
+  fun minHorizontalFlingVelocity(screenWidthDp: Int, density: Float): Float =
+    min(screenWidthDp * 10f, MAX_MIN_FLING_DP_PER_S) * density
 
   /** Offset of follower [n] (1 = right behind the master) from the master, in px. */
   fun chainOffset(n: Int, masterOnRight: Boolean, density: Float): Pair<Int, Int> {

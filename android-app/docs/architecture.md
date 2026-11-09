@@ -85,6 +85,9 @@ follower chain and the queue beyond five heads. `motion/WebHeadMotion.kt` holds 
 converted from the earlier spring values so the heads feel the same. When the system refuses the
 foreground start, the link opens in a browsing tab with a message.
 
+The service keeps each open head in `bubbles/BubbleRegistry.kt`, the one list of open bubbles, and
+the web head list takes its order from it; the controller keeps the on-screen state of each head.
+
 The service, the web head list (`WebHeadContextActivity`) and settings talk through the app's
 event bus (`util/events/EventBus`, `Event.WebHeadEvent`): the list sends `CloseRequested`, settings
 send `ColourChanged`, and the service sends `Closed` and `WebsiteUpdated`. The bus keeps no replay,
@@ -96,9 +99,22 @@ per site and a bubble notification that opens the page in `EmbeddableWebViewActi
 bubble posts, `BubbleGate` reads the notification switch, the app's bubble setting, the device
 switch and the conversation's channel; after it posts, the app checks that Android set the bubble
 flag on it. A refused bubble opens its page in a tab, and `BubbleRefusedActivity` shows a snackbar
-above the tab that names the cause and opens the matching Android settings page. Browsing mode
-explains the choice "All conversations can bubble" and shows the current setting under the Native
-Bubbles row.
+above the tab that names the cause and opens the matching Android settings page. `BubbleReconciler`
+checks the list of open bubbles against Android's active notifications when a bubble opens, when one
+is closed and at each activity start, because Android sends nothing when a bubble ages into the
+overflow or a full overflow drops it.
+A person closes a bubble by a drag, by Dismiss bubble or by the X of its page. Android sends a delete
+intent only for the first two, so a page in a bubble calls `BubbleCloser` itself when it finishes.
+When the person closes a bubble in a folded stack, the newest overflow bubble posts again from the
+data its registry entry holds, with no alert (`NativeFloatingBubble.returnNewestOverflowBubble`).
+A close in an open stack waits, and the places it left free fill when the stack folds
+(`BubbleStackWatcher`, `NativeFloatingBubble.fillFreePlaces`). The X of the last bubble in an open
+stack keeps it open on the next overflow bubble (`BubbleCloser.closePage`);
+`docs/native-bubble-overflow.md` says how.
+
+Browsing mode explains the choice "All conversations can bubble" and shows the current setting under
+the Native Bubbles row. Native bubbles keep the "(Beta)" label until the criteria in
+`docs/native-bubbles-beta-exit.md` hold.
 
 ## Images: Coil 3
 

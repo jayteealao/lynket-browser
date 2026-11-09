@@ -19,10 +19,7 @@ import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Until
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.uiAutomator
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -43,9 +40,6 @@ class WebHeadDragBenchmark {
   @get:Rule
   val benchmarkRule = MacrobenchmarkRule()
 
-  private val shell: UiDevice
-    get() = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-
   /**
    * A web head rests partly off screen at a side edge, inside the zone where gesture navigation
    * reads a swipe as Back. Three-button navigation is used for the run, so the drag reaches the
@@ -53,13 +47,13 @@ class WebHeadDragBenchmark {
    */
   @Before
   fun useButtonNavigation() {
-    shell.executeShellCommand("cmd overlay enable-exclusive --category $NAV_THREE_BUTTON")
+    uiAutomator { device.executeShellCommand("cmd overlay enable-exclusive --category $NAV_THREE_BUTTON") }
     Thread.sleep(TILE_BIND_MS)
   }
 
   @After
   fun restoreGestureNavigation() {
-    shell.executeShellCommand("cmd overlay enable-exclusive --category $NAV_GESTURAL")
+    uiAutomator { device.executeShellCommand("cmd overlay enable-exclusive --category $NAV_GESTURAL") }
   }
 
   @Test
@@ -145,7 +139,7 @@ class WebHeadDragBenchmark {
       addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
     startActivityAndWait(intent)
-    device.wait(Until.hasObject(By.pkg(TARGET_PACKAGE)), HEAD_WAIT_MS)
+    waitForAppToBeVisible(TARGET_PACKAGE, HEAD_WAIT_MS)
     Thread.sleep(SPAWN_SETTLE_MS)
   }
 

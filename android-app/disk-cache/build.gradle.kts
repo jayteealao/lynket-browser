@@ -35,10 +35,23 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all {
+                // Robolectric's API 36 sandbox sets up shared memory through these JDK internals.
+                it.jvmArgs("--add-exports", "java.base/jdk.internal.access=ALL-UNNAMED")
+                it.jvmArgs("--add-opens", "java.base/java.io=ALL-UNNAMED")
+            }
+        }
+    }
 }
 
 dependencies {
+    implementation(libs.androidx.core)
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
 }
 
 // Resolved versions are pinned in gradle.lockfile; refresh with --write-locks after a dependency change.

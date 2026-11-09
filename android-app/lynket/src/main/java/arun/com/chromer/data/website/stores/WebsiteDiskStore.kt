@@ -63,7 +63,7 @@ class WebsiteDiskStore @Inject constructor(
         try {
             webSiteDiskCache = ParcelDiskCache.open(
                 context,
-                Website::class.java.classLoader,
+                Website::class.java,
                 "WebSiteCache",
                 DISK_CACHE_SIZE
             )

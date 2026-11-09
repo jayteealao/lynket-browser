@@ -44,3 +44,6 @@ values.properties
 _sandbox
 
 .idea/
+
+# Workflow records live in the records repo.
+.ai/workflows/

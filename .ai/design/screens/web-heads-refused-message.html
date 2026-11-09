@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="wf:screen" content="web-heads-refused-message">
+<title>Web heads refused message</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+:root { color-scheme: light dark; }
+body { margin: 0; font: 14px/1.45 Roboto, "Google Sans Flex", system-ui, sans-serif;
+  background: var(--surface-container); color: var(--on-surface); }
+body [data-state] { display: none; }
+html[data-state="default"] [data-state~="default"], html[data-state="empty"] [data-state~="empty"],
+html[data-state="loading"] [data-state~="loading"], html[data-state="error"] [data-state~="error"],
+html[data-state="worst"] [data-state~="worst"] { display: block; }
+header.page { max-width: 1180px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--on-surface-variant); max-width: 70ch; }
+nav.flow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+nav.flow a { display: inline-flex; align-items: center; min-height: 48px; padding: 0 16px; border-radius: 24px;
+  border: 1px solid var(--outline-variant); color: var(--primary); text-decoration: none; font-weight: 600; }
+nav.flow a[aria-current] { background: var(--primary-container); color: var(--on-primary-container); border-color: transparent; }
+.board { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;
+  max-width: 1180px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
+.board.one { grid-template-columns: minmax(0, 1fr); }
+.panel { min-width: 0; }
+.panel h2 { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+.panel p.note { margin: 0 0 12px; color: var(--on-surface-variant); font-size: 13px; max-width: 46ch; }
+.phone { position: relative; width: 100%; max-width: 340px; height: 640px; border-radius: 28px; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--outline-variant); box-sizing: border-box; }
+.phone.land { max-width: 640px; height: 320px; }
+.phone.wide { max-width: 1000px; height: 560px; border-radius: 16px; }
+.status { display: flex; justify-content: space-between; align-items: center; height: 32px; padding: 0 20px;
+  font-size: 13px; font-weight: 600; }
+.status svg { width: 40px; height: 12px; fill: currentColor; }
+.appbar { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-container); color: var(--on-primary-container);
+  display: grid; place-items: center; font-weight: 600; flex: none; }
+.chat { padding: 8px 80px 8px 16px; display: grid; gap: 8px; }
+.msg { max-width: 78%; padding: 10px 14px; border-radius: 18px; background: var(--surface-container-high); }
+.msg.me { justify-self: end; background: var(--primary-container); color: var(--on-primary-container); }
+.msg a { color: var(--primary); overflow-wrap: anywhere; }
+.head { position: absolute; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface); border: 3px solid var(--primary); box-sizing: border-box; box-shadow: 0 2px 6px color-mix(in srgb, var(--scrim) 30%, transparent); }
+.head .site { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 18px;
+  background: var(--primary-container); color: var(--on-primary-container); }
+.head.follow { width: 46px; height: 46px; }
+.head.follow .site { width: 34px; height: 34px; font-size: 15px; }
+.head.focus { outline: 3px solid var(--primary); outline-offset: 4px; }
+.ghost { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 2px dashed var(--primary); box-sizing: border-box; }
+.path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.path path { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-dasharray: 6 6; stroke-linecap: round; }
+.path .tip { fill: var(--primary); stroke: none; }
+.finger { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: var(--on-surface); opacity: .18; }
+.trash { position: absolute; left: 50%; bottom: 56px; width: 72px; height: 72px; margin-left: -36px; border-radius: 36px;
+  display: grid; place-items: center; background: var(--surface-container-highest); color: var(--on-surface-variant); }
+.trash.locked { border-radius: 24px; background: var(--error); color: var(--on-error); }
+.trash.focus { outline: 3px solid var(--primary); outline-offset: 4px; }
+.trash svg { width: 28px; height: 28px; fill: currentColor; }
+.chip { position: absolute; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  background: var(--inverse-surface); color: var(--inverse-on-surface); white-space: nowrap; }
+.chip svg { width: 16px; height: 16px; fill: currentColor; }
+.speak { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; max-width: 340px; padding: 10px 12px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--outline-variant); box-sizing: border-box; }
+.speak svg { width: 20px; height: 20px; flex: none; fill: var(--primary); margin-top: 1px; }
+.speak q { font-weight: 500; overflow-wrap: anywhere; }
+.gesture { position: absolute; left: 50%; bottom: 8px; width: 108px; height: 4px; margin-left: -54px; border-radius: 2px; background: var(--on-surface); }
+.shade { position: absolute; inset: 0; background: var(--surface-container); padding: 0 8px; }
+.shade .status { padding: 0 12px; }
+.qs { display: flex; gap: 8px; padding: 8px 4px 12px; }
+.qs span { flex: 1; height: 48px; border-radius: 24px; background: var(--surface-container-high); }
+.tab { position: absolute; inset: 0; background: var(--surface); }
+.tab .bar { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; background: var(--surface-container); }
+.tab .bar .url { flex: 1; min-width: 0; height: 40px; border-radius: 20px; background: var(--surface-container-high);
+  display: flex; align-items: center; padding: 0 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tab article { padding: 16px; }
+.tab article h3 { font-size: 22px; line-height: 1.25; margin: 0 0 8px; }
+.tab article p { margin: 0 0 12px; }
+.progress { height: 4px; background: var(--primary-container); }
+.progress i { display: block; width: 40%; height: 4px; background: var(--primary); }
+.snack { position: absolute; left: 12px; right: 12px; bottom: 28px; background: var(--inverse-surface); color: var(--inverse-on-surface);
+  border-radius: 8px; padding: 6px 8px 6px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; }
+.snack span { flex: 1 1 180px; padding: 8px 0; }
+.snack button { min-height: 48px; min-width: 48px; padding: 0 12px; border: 0; background: transparent; color: var(--inverse-primary);
+  font: inherit; font-weight: 600; border-radius: 20px; margin-left: auto; }
+.snack.big { font-size: 22px; line-height: 1.3; }
+.snack.big span { flex-basis: 100%; }
+.settings { position: absolute; inset: 0; background: var(--surface); }
+.settings h3 { font-size: 22px; font-weight: 400; margin: 16px 16px 8px; }
+.settings .row { display: flex; align-items: center; gap: 16px; min-height: 72px; padding: 0 16px; }
+.settings .row div { flex: 1; min-width: 0; }
+.settings .row small { display: block; color: var(--on-surface-variant); }
+.switch { width: 52px; height: 32px; border-radius: 16px; border: 2px solid var(--outline-variant); box-sizing: border-box; position: relative; flex: none;
+  background: var(--surface-container-highest); }
+.switch::after { content: ""; position: absolute; left: 6px; top: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--on-surface-variant); }
+.lynket { width: 40px; height: 40px; }
+.dark { background: var(--surface-dark); color: var(--on-surface-dark); }
+.dark .tab, .dark .settings { background: var(--surface-dark); }
+.dark .tab .bar { background: var(--surface-container-dark); }
+.dark .tab .bar .url, .dark .msg { background: var(--surface-container-high-dark); }
+.dark .msg.me { background: var(--primary-dark); color: var(--surface-dark); }
+.dark .msg a { color: var(--primary-dark); }
+.dark .snack { background: var(--inverse-surface-dark); color: var(--inverse-on-surface-dark); }
+.dark .snack button { color: var(--inverse-primary-dark); }
+.dark .gesture { background: var(--on-surface-dark); }
+.dark .progress i { background: var(--primary-dark); }
+.dark .head { background: var(--surface-dark); border-color: var(--primary-dark); }
+.dark .head .site, .dark .avatar { background: var(--surface-container-highest-dark); color: var(--on-surface-dark); }
+.dark .trash { background: var(--surface-container-highest-dark); color: var(--on-surface-variant-dark); }
+.dark .trash.locked { background: var(--error-dark); color: var(--on-error-dark); }
+@media (prefers-color-scheme: dark) {
+  body { background: var(--surface-container-dark); color: var(--on-surface-dark); }
+  header.page p, .panel p.note { color: var(--on-surface-variant-dark); }
+  nav.flow a { color: var(--primary-dark); }
+  .speak { background: var(--surface-dark); }
+}
+</style>
+<script>
+  // The canvas and the checks open a state with ?state=<name>.
+  document.documentElement.dataset.state = new URLSearchParams(location.search).get('state') || 'default';
+</script>
+</head>
+<body>
+<header class="page"><h1>Web heads refused message</h1><p>With the overlay permission off, a web head link opens in a browsing tab, and the message names the setting (AC-1). The overlay settings page opens only when the person taps Open Settings (AC-2). Same pattern as the bubble refused message.</p><nav class="flow" aria-label="Flow: open a link as a web head"><a href="web-heads-refused-message.html" aria-current="page">Refused</a><a href="web-heads-rotation.html">Rotation</a><a href="web-heads-wide-fling.html">Wide fling</a><a href="web-heads-trash.html">Trash</a></nav></header>
+<main>
+<section data-state="default"><div class="board"><div class="panel"><h2>Light theme</h2><p class="note">The link opens in a tab at once. The message sits above the gesture bar.</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">theverge.com/2026/10/31/android-17-beta</span></div>
+<article><h3>Android 17 beta: what changes for floating apps</h3><p>Google is changing how apps draw over other apps. Here is what that means for chat heads and bubbles.</p><p>The beta is out today for Pixel phones.</p></article>
+<div class="snack" role="status"><span>Web heads need Display over other apps, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div><div class="panel"><h2>Dark theme</h2><p class="note">Same message in the dark theme.</p><div class="phone dark"><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">theverge.com/2026/10/31/android-17-beta</span></div>
+<article><h3>Android 17 beta: what changes for floating apps</h3><p>Google is changing how apps draw over other apps. Here is what that means for chat heads and bubbles.</p><p>The beta is out today for Pixel phones.</p></article>
+<div class="snack" role="status"><span>Web heads need Display over other apps, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div><div class="panel"><h2>After Open Settings</h2><p class="note">Only a tap on Open Settings opens the Android page for Lynket.</p><div class="phone "><div class="settings"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><h3>Display over other apps</h3><div class="row"><span class="lynket" style="width:40px;height:40px;border-radius:50%;background:var(--brand)"></span><div><b>Lynket</b><small>Allow display over other apps</small></div><span class="switch"></span></div></div><span class="gesture"></span></div></div></div></section>
+<section data-state="loading"><div class="board"><div class="panel"><h2>Page still loading</h2><p class="note">The message shows while the tab loads; the link is never held back.</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">theverge.com/2026/10/31/android-17-beta</span></div><div class="progress"><i></i></div>
+<article><h3>Android 17 beta: what changes for floating apps</h3><p>Google is changing how apps draw over other apps. Here is what that means for chat heads and bubbles.</p><p>The beta is out today for Pixel phones.</p></article>
+<div class="snack" role="status"><span>Web heads need Display over other apps, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div></div></section>
+<section data-state="empty"><div class="board"><div class="panel"><h2>Message gone</h2><p class="note">After its timeout, only the tab stays. No settings page opens by itself, and no web heads notification stays (AC-2, AC-3).</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">theverge.com/2026/10/31/android-17-beta</span></div>
+<article><h3>Android 17 beta: what changes for floating apps</h3><p>Google is changing how apps draw over other apps. Here is what that means for chat heads and bubbles.</p><p>The beta is out today for Pixel phones.</p></article>
+</div><span class="gesture"></span></div></div></div></section>
+<section data-state="error"><div class="board"><div class="panel"><h2>Permission taken away while heads are open</h2><p class="note">The heads close. The next link opens in a tab with the same message.</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">theverge.com/2026/10/31/android-17-beta</span></div>
+<article><h3>Android 17 beta: what changes for floating apps</h3><p>Google is changing how apps draw over other apps. Here is what that means for chat heads and bubbles.</p><p>The beta is out today for Pixel phones.</p></article>
+<div class="snack" role="status"><span>Web heads need Display over other apps, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div></div></section>
+<section data-state="worst"><div class="board"><div class="panel"><h2>Largest font size</h2><p class="note">At 200% font size the sentence takes the full width; Open Settings moves to its own line and stays a 48 dp target.</p><div class="phone "><div class="tab"><div class="status"><span>9:41</span><svg viewBox="0 0 40 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4"/><rect x="5" y="5" width="3" height="7"/><rect x="10" y="2" width="3" height="10"/><rect x="20" y="1" width="18" height="10" rx="2"/></svg></div><div class="bar"><span class="url">theverge.com/2026/10/31/android-17-beta</span></div>
+<article><h3>Android 17 beta: what changes for floating apps</h3><p>Google is changing how apps draw over other apps. Here is what that means for chat heads and bubbles.</p><p>The beta is out today for Pixel phones.</p></article>
+<div class="snack big" role="status"><span>Web heads need Display over other apps, so the page opened in a tab.</span><button>Open Settings</button></div></div><span class="gesture"></span></div></div></div></section>
+</main>
+</body>
+</html>

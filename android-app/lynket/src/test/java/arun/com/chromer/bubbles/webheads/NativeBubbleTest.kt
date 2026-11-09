@@ -18,14 +18,16 @@ import android.content.Intent
 import android.content.pm.ShortcutManager
 import android.os.Looper
 import arun.com.chromer.LynketRobolectricSuite
+import arun.com.chromer.bubbles.BubbleLoadData
+import arun.com.chromer.bubbles.bubbleConversationId
 import arun.com.chromer.bubbles.system.BubbleGate
-import arun.com.chromer.bubbles.system.BubbleLoadData
 import arun.com.chromer.bubbles.system.BubbleNotificationManager
 import arun.com.chromer.bubbles.system.BubbleRefusal
 import arun.com.chromer.bubbles.system.BubbleRefusedActivity
 import arun.com.chromer.bubbles.system.NativeFloatingBubble
-import arun.com.chromer.bubbles.system.bubbleConversationId
+import arun.com.chromer.bubbles.system.bubbleIdsOf
 import arun.com.chromer.data.website.model.Website
+import arun.com.chromer.shared.Constants.EXTRA_KEY_INCOGNITO
 import com.google.common.truth.Truth.assertThat
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -59,7 +61,7 @@ class NativeBubbleTest : LynketRobolectricSuite() {
   private val url = "https://a.example"
 
   private fun bubbleNotification(): Notification? =
-    shadowOf(notificationManager).allNotifications.singleOrNull { it.shortcutId == bubbleConversationId(url) }
+    shadowOf(notificationManager).allNotifications.singleOrNull { it.shortcutId in bubbleIdsOf(url) }
 
   @Test
   fun a_refused_bubble_posts_nothing_and_shows_no_toast() {
@@ -106,11 +108,45 @@ class NativeBubbleTest : LynketRobolectricSuite() {
     awaitCondition("the bubble notification") { bubbleNotification() != null }
     bubbleNotification()!!.flags = bubbleNotification()!!.flags or Notification.FLAG_BUBBLE
 
-    // Past the 1 s pause and the three flag reads, and the second post with the icon.
+    // Past the flag reads and the in-place update with the icon.
     Thread.sleep(2_500)
     shadowOf(Looper.getMainLooper()).idle()
     assertThat(bubbleNotification()).isNotNull()
     assertThat(shadowOf(application).nextStartedActivity).isNull()
+  }
+
+  @Test
+  fun an_incognito_bubble_intent_and_shortcut_carry_the_flag() {
+    val incognitoUrl = "https://incognito.example"
+    runBlocking {
+      bubbleNotificationManager.showBubbles(BubbleLoadData(Website(incognitoUrl), false, false, incognito = true))
+    }
+
+    val (bubbleFlag, shortcutFlag) = incognitoFlagsOf(incognitoUrl)
+    assertThat(bubbleFlag).isTrue()
+    assertThat(shortcutFlag).isTrue()
+  }
+
+  @Test
+  fun a_normal_bubble_intent_carries_no_incognito_flag() {
+    val normalUrl = "https://normal.example"
+    runBlocking {
+      bubbleNotificationManager.showBubbles(BubbleLoadData(Website(normalUrl), false, false, incognito = false))
+    }
+
+    val (bubbleFlag, shortcutFlag) = incognitoFlagsOf(normalUrl)
+    assertThat(bubbleFlag).isFalse()
+    assertThat(shortcutFlag).isFalse()
+  }
+
+  /** The incognito extra of the bubble's page intent and of its conversation shortcut's intent. */
+  private fun incognitoFlagsOf(pageUrl: String): Pair<Boolean, Boolean> {
+    val notification = shadowOf(notificationManager).allNotifications.single { it.shortcutId in bubbleIdsOf(pageUrl) }
+    val id = notification.shortcutId
+    val bubbleIntent = shadowOf(notification.bubbleMetadata!!.intent).savedIntent
+    val shortcut = application.getSystemService(ShortcutManager::class.java).dynamicShortcuts.single { it.id == id }
+    return bubbleIntent.getBooleanExtra(EXTRA_KEY_INCOGNITO, false) to
+      shortcut.intent!!.getBooleanExtra(EXTRA_KEY_INCOGNITO, false)
   }
 
   private fun awaitStartedActivity(): Intent {
@@ -122,7 +158,7 @@ class NativeBubbleTest : LynketRobolectricSuite() {
     return started!!
   }
 
-  /** The bubble posts and is checked on background threads, with a 1 s pause between. */
+  /** The bubble posts and is checked on background threads. */
   private fun awaitCondition(what: String, condition: () -> Boolean) {
     repeat(500) {
       shadowOf(Looper.getMainLooper()).idle()

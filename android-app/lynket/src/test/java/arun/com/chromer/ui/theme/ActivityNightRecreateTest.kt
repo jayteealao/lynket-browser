@@ -37,7 +37,7 @@ import org.robolectric.annotation.Config
  * goes idle in Robolectric (see DialogActivitiesRecreateTest).
  */
 @HiltAndroidTest
-@Config(sdk = [36], qualifiers = "notnight")
+@Config(qualifiers = "notnight")
 class ActivityNightRecreateTest : LynketRobolectricSuite() {
 
   @After

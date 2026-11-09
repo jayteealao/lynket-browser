@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="wf:screen" content="web-head-page-state">
+<title>Web head page state</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+:root { color-scheme: light dark; }
+body { margin: 0; font: 14px/1.45 Roboto, "Google Sans Flex", system-ui, sans-serif; background: var(--surface-container); color: var(--on-surface); }
+body [data-state] { display: none; }
+html[data-state="default"] [data-state~="default"], html[data-state="empty"] [data-state~="empty"],
+html[data-state="loading"] [data-state~="loading"], html[data-state="error"] [data-state~="error"],
+html[data-state="worst"] [data-state~="worst"] { display: block; }
+header.page { max-width: 1180px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--on-surface-variant); max-width: 70ch; }
+nav.flow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+nav.flow a { display: inline-flex; align-items: center; min-height: 48px; padding: 0 16px; border-radius: 24px; border: 1px solid var(--outline-variant); color: var(--primary); text-decoration: none; font-weight: 600; }
+nav.flow a[aria-current] { background: var(--primary-container); color: var(--on-primary-container); border-color: transparent; }
+.board { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; max-width: 1180px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
+.panel h2 { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+.panel p.note { margin: 0 0 12px; color: var(--on-surface-variant); font-size: 13px; max-width: 46ch; }
+.phone { position: relative; width: 100%; max-width: 340px; height: 640px; border-radius: 28px; overflow: hidden; background: var(--inverse-surface); color: var(--on-surface); border: 1px solid var(--outline-variant); box-sizing: border-box; }
+.status { display: flex; align-items: center; height: 32px; padding: 0 20px; font-size: 13px; font-weight: 600; color: var(--inverse-on-surface); }
+.stack { display: flex; gap: 6px; padding: 4px 10px 10px; }
+.bhead { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 17px; background: var(--primary-container); color: var(--on-primary-container); box-sizing: border-box; }
+.bhead.on { outline: 2px solid var(--inverse-on-surface); outline-offset: 1px; }
+.window { position: absolute; left: 8px; right: 8px; top: 96px; bottom: 28px; border-radius: 20px; overflow: hidden; background: var(--surface); display: flex; flex-direction: column; }
+.window.full { left: 0; right: 0; top: 32px; bottom: 0; border-radius: 0; }
+.bar { display: flex; align-items: center; gap: 4px; min-height: 64px; padding: 0 4px; background: var(--primary); color: var(--on-primary); flex: none; }
+.bar.site { background: var(--brand); color: var(--on-primary); }
+.bar.light { background: var(--primary-container); color: var(--on-primary-container); }
+.bar .icon { width: 48px; height: 48px; flex: none; display: grid; place-items: center; padding: 0; border: 0; background: none; color: inherit; }
+.bar svg { width: 24px; height: 24px; fill: currentColor; }
+.bar .lines { flex: 1; min-width: 0; }
+.bar .title { font-size: 16px; font-weight: 500; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .sub { display: flex; gap: 4px; font-size: 12px; line-height: 16px; min-width: 0; }
+.bar .addr { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .count { flex: none; font-variant-numeric: tabular-nums; font-weight: 600; }
+.bar .addr + .count::before { content: "· "; font-weight: 400; }
+.progress { height: 4px; background: var(--primary); flex: none; }
+.progress i { display: block; width: 40%; height: 4px; background: var(--on-primary); }
+.err { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; box-sizing: border-box; min-height: 0; }
+.blob { width: 96px; height: 96px; border-radius: 38% 62% 55% 45% / 48% 42% 58% 52%; display: grid; place-items: center; background: var(--error-container); color: var(--on-error-container); }
+.blob svg { width: 40px; height: 40px; fill: currentColor; }
+.err h3 { margin: 0; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--on-surface); }
+.err p { margin: 0; color: var(--on-surface-variant); max-width: 36ch; overflow-wrap: anywhere; }
+.btn { min-height: 48px; padding: 0 24px; border-radius: 24px; border: 1px solid var(--outline-variant); background: none; color: var(--primary); font: 600 14px/1 Roboto, system-ui, sans-serif; }
+.btn[disabled] { color: var(--on-surface-variant); }
+.facts { margin: 8px 0 0; padding: 0; list-style: none; max-width: 340px; font-size: 13px; color: var(--on-surface-variant); }
+.facts b { color: var(--on-surface); font-weight: 600; }
+article { padding: 16px; }
+article h3 { font-size: 22px; line-height: 1.25; margin: 0 0 8px; }
+article p { margin: 0 0 12px; }
+.wall { position: absolute; inset: 32px 0 0; background: var(--surface); padding: 16px; display: grid; gap: 8px; align-content: start; }
+.msg { max-width: 70%; padding: 10px 14px; border-radius: 18px; background: var(--surface-container-high); }
+.heads { position: absolute; right: 16px; top: 180px; display: grid; gap: 18px; justify-items: center; }
+.head { position: relative; width: 56px; height: 56px; }
+.head svg.ring { position: absolute; inset: 0; width: 56px; height: 56px; transform: rotate(-90deg); }
+.head .fill { position: absolute; inset: 6px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 22px; background: var(--primary); color: var(--on-primary); box-shadow: 0 2px 6px color-mix(in srgb, var(--scrim) 30%, transparent); }
+.head .badge { position: absolute; top: -4px; left: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--tertiary); color: var(--on-tertiary); font-size: 11px; font-weight: 600; display: grid; place-items: center; padding: 0 2px; box-sizing: border-box;  font-variant-numeric: tabular-nums;}
+.head .dot { position: absolute; right: -2px; bottom: -2px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-container-lowest); color: var(--primary); box-shadow: 0 1px 3px color-mix(in srgb, var(--scrim) 30%, transparent); }
+.head .dot svg { width: 14px; height: 14px; fill: currentColor; }
+.head .dot.warn { color: var(--error); }
+.head.faded .fill { background: color-mix(in srgb, var(--primary) 45%, var(--surface-container-lowest)); color: var(--on-surface); }
+.tag { font-size: 12px; color: var(--on-surface-variant); text-align: center; max-width: 84px; }
+.pairs { display: flex; gap: 20px; justify-content: center; padding: 16px; flex-wrap: wrap; background: var(--surface); border-radius: 16px; max-width: 340px; box-sizing: border-box; }
+.pair { display: grid; justify-items: center; gap: 8px; }
+@media (prefers-color-scheme: dark) {
+  body { background: var(--surface-container-dark); color: var(--on-surface-dark); }
+  header.page p, .panel p.note, .facts, .tag { color: var(--on-surface-variant-dark); }
+  .facts b { color: var(--on-surface-dark); }
+  nav.flow a { color: var(--primary-dark); }
+  .pairs { background: var(--surface-dark); }
+}
+@media (prefers-reduced-motion: no-preference) { .spin { animation: spin 1.1s linear infinite; } @keyframes spin { to { rotate: 360deg; } } }
+</style>
+<script>
+  // The canvas and the checks open a state with ?state=<name>.
+  document.documentElement.dataset.state = new URLSearchParams(location.search).get('state') || 'default';
+</script>
+</head>
+<body>
+<header class="page"><h1>Web head page state</h1><p>A person with several heads open sees which page is ready. A loading head turns its ring and stays faded; a ready head is full with the solid ring of today.</p><nav class="flow"><a href="web-page-error.html">Page that did not load</a><a href="bubble-page-count.html">Bubble page</a><a href="web-head-page-state.html" aria-current="page">Web head state</a></nav></header>
+<main>
+<section data-state="default"><div class="board"><div class="panel"><h2>Loading, then loaded</h2><p class="note">While the page loads, the ring turns and the head is faded. When the page is ready, the ring closes to the solid ring of today and the head is full. Two signals, motion and fill, so colour is not the only one.</p><div class="pairs"><div class="pair"><div class="head faded"><svg class="ring spin" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--outline)" stroke-width="3"/><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-dasharray="46 121"/></svg><span class="fill">L</span></div><span class="tag">Loading</span></div><div class="pair"><div class="head"><svg class="ring" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3"/></svg><span class="fill">L</span></div><span class="tag">Loaded</span></div></div></div><div class="panel"><h2>On a page</h2><p class="note">Only the front head shows the state in the stack; the heads behind it are covered. The badge stays full, so the count reads at once.</p><div class="phone"><div class="status"><span>9:41</span></div><div class="wall"><div class="msg">Have you read this one?</div><div class="msg">lemire.me/blog</div></div><div class="heads"><div class="head faded"><svg class="ring spin" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--outline)" stroke-width="3"/><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-dasharray="46 121"/></svg><span class="fill">L</span><span class="badge">3</span></div></div></div></div></div></section><section data-state="empty"><div class="board"><div class="panel"><h2>No state to show</h2><p class="note">A head with no known page state looks as it does today: the solid ring, the full head, the badge.</p><div class="phone"><div class="status"><span>9:41</span></div><div class="wall"><div class="msg">Have you read this one?</div><div class="msg">lemire.me/blog</div></div><div class="heads"><div class="head"><svg class="ring" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3"/></svg><span class="fill">L</span><span class="badge">1</span></div></div></div></div></div></section><section data-state="loading"><div class="board"><div class="panel"><h2>Three heads, one ready</h2><p class="note">The stack rests. A person who opens the list sees each head with its own state.</p><div class="pairs"><div class="pair"><div class="head faded"><svg class="ring spin" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--outline)" stroke-width="3"/><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-dasharray="46 121"/></svg><span class="fill">L</span></div><span class="tag">Loading</span></div><div class="pair"><div class="head"><svg class="ring" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3"/></svg><span class="fill">W</span></div><span class="tag">Loaded</span></div><div class="pair"><div class="head faded"><svg class="ring spin" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--outline)" stroke-width="3"/><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-dasharray="46 121"/></svg><span class="fill">S</span></div><span class="tag">Loading</span></div></div></div><div class="panel"><h2>What TalkBack reads</h2><p class="note">The state joins the existing description.</p><ul class="facts"><li><b>Loading:</b> "Web head: Lemire, 1 of 3, loading"</li><li><b>Loaded:</b> "Web head: Lemire, 1 of 3, loaded"</li><li><b>Failed:</b> "Web head: Lemire, 1 of 3, page did not load"</li></ul></div></div></section><section data-state="error"><div class="board"><div class="panel"><h2>Page did not load</h2><p class="note">The ring stops, the head turns full, and a warning mark stays on it, so shape carries the state. A tap opens the page, which shows the cause and Retry.</p><div class="pairs"><div class="pair"><div class="head"><svg class="ring" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--outline)" stroke-width="3"/></svg><span class="fill">L</span><span class="dot warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L1 21h22zM11 10h2v5h-2zm0 6h2v2h-2z"/></svg></span></div><span class="tag">Did not load</span></div><div class="pair"><div class="head"><svg class="ring" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3"/></svg><span class="fill">W</span></div><span class="tag">Loaded</span></div></div></div></div></section><section data-state="worst"><div class="board"><div class="panel"><h2>Ten heads loading</h2><p class="note">Only the front head animates at rest, so ten links do not cost ten animations. A head behind it updates when it comes to the front.</p><div class="phone"><div class="status"><span>9:41</span></div><div class="wall"><div class="msg">Have you read this one?</div><div class="msg">lemire.me/blog</div></div><div class="heads"><div class="head faded"><svg class="ring spin" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--outline)" stroke-width="3"/><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-dasharray="46 121"/></svg><span class="fill">L</span><span class="badge">99</span></div></div></div></div><div class="panel"><h2>Reduced motion</h2><p class="note">The ring does not turn. The faded head and the still arc carry the loading state, then both turn solid.</p><div class="pairs"><div class="pair"><div class="head faded"><svg class="ring" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--outline)" stroke-width="3"/><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-dasharray="46 121"/></svg><span class="fill">L</span></div><span class="tag">Loading</span></div><div class="pair"><div class="head"><svg class="ring" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3"/></svg><span class="fill">L</span></div><span class="tag">Loaded</span></div></div></div><div class="panel"><h2>Page never finishes</h2><p class="note">The ring stops after 30 s of no change and the head reads as loaded, so a slow advert does not keep a head moving for ever. This limit is illustrative.</p><div class="pairs"><div class="pair"><div class="head"><svg class="ring" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26.5" fill="none" stroke="var(--primary)" stroke-width="3"/></svg><span class="fill">L</span></div><span class="tag">After the limit</span></div></div></div></div></section>
+</main>
+</body>
+</html>

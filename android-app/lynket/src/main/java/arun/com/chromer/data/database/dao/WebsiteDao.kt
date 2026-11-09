@@ -174,18 +174,6 @@ interface WebsiteDao {
     suspend fun deleteOlderThan(timestamp: Long)
 
     /**
-     * Increment visit count for a URL.
-     * Updates the created_at timestamp to mark it as recently visited.
-     */
-    @Query("""
-        UPDATE history
-        SET visit_count = visit_count + 1,
-            created_at = :timestamp
-        WHERE url = :url
-    """)
-    suspend fun incrementVisitCount(url: String, timestamp: Long = System.currentTimeMillis())
-
-    /**
      * Toggle bookmark status for a URL.
      */
     @Query("UPDATE history SET bookmarked = NOT bookmarked WHERE url = :url")
@@ -210,23 +198,41 @@ interface WebsiteDao {
     suspend fun getBookmarkCount(): Int
 
     /**
-     * Records one visit to [website] at [now], in one transaction: a new row with one visit, or
-     * one more visit and the new visit time for a stored URL (its title and other details stay).
-     * Two visits to the same new page at the same moment give one row with two visits.
+     * Records one visit to [url] at [now], in one SQL statement: a new row with one visit and the
+     * given details, or, for a stored URL, one more visit and the new visit time. A stored row keeps
+     * its id, its title and its other details. Two visits to the same new page at the same moment
+     * give one row with two visits, because one statement runs under SQLite's write lock.
      *
-     * @return the row as stored.
+     * The statement rewrites a stored row with its own id (`INSERT OR REPLACE` of the row read in
+     * the same statement), so the id never changes. It is not `@Upsert`, which can replace the row
+     * on the unique `url` index and give it a new id, and not `ON CONFLICT ... DO UPDATE`, which
+     * needs SQLite 3.24: the platform SQLite on Android 7 to 10 is 3.9 to 3.22.
      */
-    @Transaction
-    suspend fun recordVisit(website: WebsiteEntity, now: Long): WebsiteEntity {
-        val stored = getByUrl(website.url)
-        val visited = if (stored != null) {
-            stored.copy(visitCount = stored.visitCount + 1, createdAt = now)
-        } else {
-            website.copy(id = 0, createdAt = now, visitCount = 1)
-        }
-        if (stored != null) update(visited) else insert(visited)
-        return visited
-    }
+    @Query("""
+        INSERT OR REPLACE INTO history
+            (id, url, title, favicon_url, canonical_url, theme_color, amp_url, bookmarked, created_at, visit_count)
+        SELECT seen.id,
+               :url,
+               CASE WHEN seen.id IS NULL THEN :title ELSE seen.title END,
+               CASE WHEN seen.id IS NULL THEN :faviconUrl ELSE seen.favicon_url END,
+               CASE WHEN seen.id IS NULL THEN :canonicalUrl ELSE seen.canonical_url END,
+               CASE WHEN seen.id IS NULL THEN :themeColor ELSE seen.theme_color END,
+               CASE WHEN seen.id IS NULL THEN :ampUrl ELSE seen.amp_url END,
+               CASE WHEN seen.id IS NULL THEN :bookmarked ELSE seen.bookmarked END,
+               :now,
+               IFNULL(seen.visit_count, 0) + 1
+        FROM (SELECT 1) LEFT JOIN history AS seen ON seen.url = :url
+    """)
+    suspend fun recordVisit(
+        url: String,
+        title: String?,
+        faviconUrl: String?,
+        canonicalUrl: String?,
+        themeColor: String?,
+        ampUrl: String?,
+        bookmarked: Boolean,
+        now: Long
+    )
 
     /**
      * Merges rows read from an older history store, in one transaction.

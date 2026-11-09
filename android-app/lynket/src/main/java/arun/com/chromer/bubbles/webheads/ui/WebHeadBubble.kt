@@ -15,6 +15,11 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -32,7 +37,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -41,6 +52,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -51,8 +63,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
@@ -63,10 +77,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import arun.com.chromer.R
+import arun.com.chromer.bubbles.webheads.motion.PageState
 import arun.com.chromer.bubbles.webheads.motion.WebHeadMotion
 import arun.com.chromer.bubbles.webheads.motion.WebHeadState
 import arun.com.chromer.util.Utils
 import arun.com.chromer.ui.theme.readableContentColor
+import kotlinx.coroutines.delay
 
 /** What a head forwards from the finger; positions are raw screen coordinates. */
 interface WebHeadGestures {
@@ -84,10 +100,15 @@ interface WebHeadGestures {
 
 const val WEB_HEAD_TEST_TAG = "web_head"
 
+/** How long a head stays a live region after its page finishes, so a screen reader says the finish once. */
+internal const val PAGE_CHANGE_ANNOUNCE_MS = 2_000L
+
 /**
  * A web head: a circle with a primary ring, the favicon or the first letter of the site on the
  * site colour, and a count badge on the side towards the screen. [headSize] is 56 dp, or 48 dp for
- * the small size setting; the window around it has room for the badge and the shadow.
+ * the small size setting; the window around it has room for the badge and the shadow. Screen
+ * readers hear the page state in words too ("loading", "loaded", "page did not load"), so the ring
+ * and the fade are never the only sign of it.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -98,7 +119,26 @@ fun WebHeadBubble(
   modifier: Modifier = Modifier,
 ) {
   val inset = WebHeadMotion.HEAD_WINDOW_INSET_DP.dp
-  val description = stringResource(R.string.web_head_content_description, head.website.safeLabel())
+  val stateWord = when (head.pageState) {
+    PageState.Loading -> R.string.web_head_state_loading
+    PageState.Loaded -> R.string.web_head_state_loaded
+    PageState.Failed -> R.string.web_head_state_failed
+    PageState.Unknown -> null
+  }
+  val label = head.website.safeLabel()
+  val description = if (stateWord != null) {
+    stringResource(R.string.web_head_content_description_with_state, label, head.stackPosition, head.badgeCount, stringResource(stateWord))
+  } else {
+    stringResource(R.string.web_head_content_description, label, head.stackPosition, head.badgeCount)
+  }
+  // The model marks a finish; the head is a live region until it has said it once.
+  LaunchedEffect(head, head.announcingFinish) {
+    if (head.announcingFinish) {
+      delay(PAGE_CHANGE_ANNOUNCE_MS)
+      head.announcingFinish = false
+    }
+  }
+  val announcing = head.announcingFinish
   val openLabel = stringResource(R.string.web_head_action_open)
   val listLabel = stringResource(R.string.web_head_action_list)
   val closeLabel = stringResource(R.string.web_head_action_close)
@@ -124,12 +164,39 @@ fun WebHeadBubble(
   )
   val xRotation by animateFloatAsState(if (head.closing) 180f else 0f, tween(250), label = "closeRotation")
 
+  // The animator duration scale of the window; 0 is the person's reduced motion setting.
+  val motionScale = rememberCoroutineScope().coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
+  val look = headLook(head.pageState, isFront = head.isMaster, reducedMotion = motionScale == 0f, closing = head.closing)
+  val sweep by animateFloatAsState(
+    targetValue = when (look.ring) {
+      Ring.Arc -> RING_ARC_SWEEP
+      Ring.Track -> 0f
+      Ring.Solid -> 360f
+    },
+    // One curve in every direction, on the fill's clock, so a change mid-way turns back smoothly;
+    // with reduced motion the window's scale of 0 makes it instant.
+    animationSpec = tween(RING_CLOSE_MS, easing = RingEaseOut),
+    label = "headRingSweep",
+  )
+  val fillAlpha by animateFloatAsState(
+    if (look.faded) LOADING_FILL_ALPHA else 1f,
+    tween(RING_CLOSE_MS, easing = RingEaseOut),
+    label = "headFillAlpha",
+  )
+  // The border of today draws the ring at rest; the ring layer draws it only while it shows a state.
+  // Derived, so a frame of the ring's close changes nothing here until the ring is whole.
+  val currentLook by rememberUpdatedState(look)
+  val ringAtRest by remember { derivedStateOf { currentLook.ring == Ring.Solid && sweep == 360f } }
+
   Box(
     modifier = modifier
       .size(headSize + inset * 2)
       .semantics {
         testTagsAsResourceId = true
         contentDescription = description
+        // The head is a live region only just after its page finishes, so a screen reader says the
+        // finish once; always on, it would also say every new title and every renumbering of the stack.
+        if (announcing && !head.closing) liveRegion = LiveRegionMode.Polite
         // Every gesture has a non-drag way in: open, the list of heads, and close.
         if (gestures != null) {
           role = Role.Button
@@ -153,32 +220,47 @@ fun WebHeadBubble(
         .size(headSize)
         .shadow(if (head.closing) 0.dp else 6.dp, CircleShape)
         .background(colours.surfaceContainerLowest, CircleShape)
-        .border(3.dp, if (head.closing) colours.error else colours.primary, CircleShape)
-        .padding(5.dp)
-        .clip(CircleShape)
-        .background(fill),
+        .then(if (ringAtRest) Modifier.border(RingStroke, if (head.closing) colours.error else colours.primary, CircleShape) else Modifier),
       contentAlignment = Alignment.Center,
     ) {
-      val favicon = head.favicon
-      when {
-        head.closing -> Icon(
-          Icons.Filled.Close,
-          contentDescription = null,
-          tint = colours.onError,
-          modifier = Modifier.size(18.dp).rotate(xRotation),
+      // Only the fill fades while the page loads, and the favicon with it; the first letter stays
+      // whole, in the colour that reads on the faded fill, so a loading head still names its site.
+      val shownFill = fill.copy(alpha = fill.alpha * fillAlpha).compositeOver(colours.surfaceContainerLowest)
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(5.dp)
+          .clip(CircleShape)
+          .background(shownFill),
+        contentAlignment = Alignment.Center,
+      ) {
+        HeadContent(head, headSize, shownFill, xRotation, faviconAlpha = { fillAlpha })
+      }
+      if (!ringAtRest) {
+        HeadRing(
+          look,
+          sweep = { sweep },
+          trackAlpha = { if (look.ring == Ring.Solid) ((360f - sweep) / (360f - RING_ARC_SWEEP)).coerceIn(0f, 1f) else 1f },
         )
-        favicon != null -> Image(
-          bitmap = favicon,
-          contentDescription = null,
-          contentScale = ContentScale.Crop,
-          modifier = Modifier.size(headSize - 10.dp).background(colours.surfaceContainerLowest),
-        )
-        else -> Text(
-          text = Utils.getFirstLetter(head.url),
-          color = fill.readableContentColor(),
-          fontSize = if (headSize >= WebHeadMotion.HEAD_DP.dp) 22.sp else 18.sp,
-          fontWeight = FontWeight.SemiBold,
-        )
+      }
+    }
+    if (look.warning) {
+      // The mark sits on the bottom corner of the head away from the badge, a little outside it.
+      val markOffset = headSize / 2 - WARNING_MARK_DP.dp / 2 + 2.dp
+      Surface(
+        color = colours.surfaceContainerLowest,
+        contentColor = colours.error,
+        shape = CircleShape,
+        shadowElevation = 1.dp,
+        modifier = Modifier
+          .align(Alignment.Center)
+          .offset(x = if (head.badgeOnLeft) markOffset else -markOffset, y = markOffset)
+          .graphicsLayer { scaleX = scale; scaleY = scale }
+          .size(WARNING_MARK_DP.dp),
+      ) {
+        Box(contentAlignment = Alignment.Center) {
+          Icon(Icons.Filled.Warning, contentDescription = null, modifier = Modifier.size(14.dp))
+        }
       }
     }
     if (head.isMaster && !head.lockedToTrash && !head.closing) {
@@ -192,11 +274,45 @@ fun WebHeadBubble(
       ) {
         Text(
           text = head.badgeCount.toString(),
-          style = MaterialTheme.typography.labelSmall,
+          // Figures of one width, so the badge keeps its size as the count changes.
+          style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
           modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
         )
       }
     }
+  }
+}
+
+/** The size of the warning mark on a head whose page did not load. */
+private const val WARNING_MARK_DP = 20
+
+/** The favicon, the first letter of the site, or the close cross of a head closing to the trash. */
+@Composable
+private fun HeadContent(head: WebHeadState, headSize: Dp, fill: Color, xRotation: Float, faviconAlpha: () -> Float) {
+  val colours = MaterialTheme.colorScheme
+  val favicon = head.favicon
+  when {
+    head.closing -> Icon(
+      Icons.Filled.Close,
+      contentDescription = null,
+      tint = colours.onError,
+      modifier = Modifier.size(18.dp).rotate(xRotation),
+    )
+    favicon != null -> Image(
+      bitmap = favicon,
+      contentDescription = null,
+      contentScale = ContentScale.Crop,
+      modifier = Modifier
+        .size(headSize - 10.dp)
+        .graphicsLayer { alpha = faviconAlpha() }
+        .background(colours.surfaceContainerLowest),
+    )
+    else -> Text(
+      text = Utils.getFirstLetter(head.url),
+      color = fill.readableContentColor(),
+      fontSize = if (headSize >= WebHeadMotion.HEAD_DP.dp) 22.sp else 18.sp,
+      fontWeight = FontWeight.SemiBold,
+    )
   }
 }
 

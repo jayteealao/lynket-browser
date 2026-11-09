@@ -1,0 +1,35 @@
+# Row motion on a device (history-tabs-check.sh motion and motion-off start the screen and set the
+# animation scale). With HISTORY=1, History is in front with rows over two days: the second row is
+# swiped away, Undo puts it back. With TABS=1, Tabs is in front with three tabs: the second closes.
+# The script takes frames with the Android CLI while this runs.
+# Run: maestro --device <serial> test -e OUT=<dir> -e HISTORY=1 -e ROW2=<title> maestro/history-tabs/row-motion.yaml
+appId: arun.com.chromer.debug
+---
+- runFlow:
+    when:
+      true: ${HISTORY == "1"}
+    commands:
+      - extendedWaitUntil:
+          visible: { id: "history-row" }
+          timeout: 30000
+      - extendedWaitUntil:
+          visible: '.*${ROW2}.*'
+          timeout: 10000
+      - swipe:
+          from: { id: "history-row", index: 1 }
+          direction: LEFT
+      - takeScreenshot: ${OUT}/motion-history-deleted
+      - tapOn: "Undo"
+      - extendedWaitUntil:
+          visible: '.*${ROW2}.*'
+          timeout: 20000
+      - takeScreenshot: ${OUT}/motion-history-undone
+- runFlow:
+    when:
+      true: ${TABS == "1"}
+    commands:
+      - extendedWaitUntil:
+          visible: { id: "tab-close", index: 2 }
+          timeout: 30000
+      - tapOn: { id: "tab-close", index: 1 }
+      - takeScreenshot: ${OUT}/motion-tab-closed

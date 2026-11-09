@@ -25,6 +25,7 @@ import arun.com.chromer.R
 import arun.com.chromer.data.website.model.Website
 import arun.com.chromer.extenstions.StringResource
 import arun.com.chromer.home.CustomTabProviderInfo
+import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.util.appicon.ApplicationIcon
 import com.google.common.truth.Truth.assertThat
@@ -35,11 +36,14 @@ import org.robolectric.annotation.Config
 
 /** The home's designed states: empty recents, no provider, offline, loading, and the drawer order. */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = Application::class, qualifiers = "w411dp-h891dp-xxhdpi")
 class HomeStatesTest {
 
   @get:Rule
   val composeRule = createComposeRule()
+
+  @get:Rule(order = 99)
+  val accessibilityChecks = AccessibilityChecksRule(composeRule)
 
   private val chrome = CustomTabProviderInfo(
     iconUri = ApplicationIcon.createUri("com.android.chrome"),

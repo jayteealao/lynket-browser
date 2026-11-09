@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -63,97 +63,68 @@ internal constructor(
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-  override fun getWebsite(url: String): Flow<Website> = flow {
-    // Try cache first
-    val cacheResult = cacheStore.getWebsite(url)
-      .onEach { webSite ->
-        if (webSite != null) {
-          scope.launch {
-            historyRepository.insert(webSite)
-          }
-        }
-      }
-      .filterNotNull()
-      .firstOrNull()
+  override fun getWebsite(url: String): Flow<Website> = lookUpWebsite(url, incognito = false).map { it.website }
 
-    if (cacheResult != null) {
-      emit(cacheResult)
+  override fun lookUpWebsite(url: String, incognito: Boolean): Flow<WebsiteLookup> =
+    lookup(url, if (incognito) Saves.NOTHING else Saves.ALL)
+
+  override fun fetchWebsite(url: String, incognito: Boolean): Flow<WebsiteLookup> =
+    lookup(url, if (incognito) Saves.NOTHING else Saves.ALL, readsStores = false)
+
+  override fun getWebsiteWithoutHistory(url: String): Flow<Website> =
+    lookup(url, Saves.CACHE_ONLY).map { it.website }
+
+  override fun getWebsiteWithoutSaving(url: String): Flow<Website> =
+    lookUpWebsite(url, incognito = true).map { it.website }
+
+  /** What one read of a website may store. */
+  private enum class Saves {
+    /** The visit goes to history, and a page read from the network to the cache too. */
+    ALL,
+
+    /** Only a page read from the network goes to the cache; nothing goes to history. */
+    CACHE_ONLY,
+
+    /** Nothing: an incognito read. */
+    NOTHING,
+  }
+
+  /**
+   * The one chain of a website read: the cache, then history, then the network, and the bare
+   * address when nothing answers, which is a failed fetch. [saves] says what the read stores;
+   * with [readsStores] false it skips the cache and history and reads the network only.
+   */
+  private fun lookup(url: String, saves: Saves, readsStores: Boolean = true): Flow<WebsiteLookup> = flow {
+    val known = if (readsStores) {
+      cacheStore.getWebsite(url).filterNotNull().firstOrNull() ?: historyRepository.get(Website(url))
+    } else {
+      null
+    }
+    if (known != null) {
+      if (saves == Saves.ALL) scope.launch { historyRepository.insert(known) }
+      emit(WebsiteLookup(known, fetchFailed = false, fromNetwork = false))
       return@flow
     }
 
-    // Try history
-    val historyResult = historyRepository.get(Website(url))
-
-    if (historyResult != null) {
-      scope.launch {
-        historyRepository.insert(historyResult)
-      }
-      emit(historyResult)
-      return@flow
-    }
-
-    // Try remote
-    val remoteResult = webNetworkStore.getWebsite(url)
-      .filterNotNull()
-      .onEach { webSite ->
+    val remote = webNetworkStore.getWebsite(url).filterNotNull().firstOrNull()
+    if (remote != null) {
+      if (saves != Saves.NOTHING) {
         scope.launch {
-          cacheStore.saveWebsite(webSite)
-          historyRepository.insert(webSite)
+          cacheStore.saveWebsite(remote)
+          if (saves == Saves.ALL) historyRepository.insert(remote)
         }
       }
-      .firstOrNull()
-
-    if (remoteResult != null) {
-      emit(remoteResult)
+      emit(WebsiteLookup(remote, fetchFailed = false))
       return@flow
     }
 
-    // If nothing found, emit default
-    emit(Website(url))
+    // Nothing found: the page could not be fetched. The visit still goes to history, but the
+    // bare address is not cached, so a later lookup fetches the page again.
+    if (saves == Saves.ALL) scope.launch { historyRepository.insert(Website(url)) }
+    emit(WebsiteLookup(Website(url), fetchFailed = true))
   }.catch { throwable ->
     Timber.e(throwable)
-    emit(Website(url))
-  }.flowOn(Dispatchers.IO)
-
-  override fun getWebsiteReadOnly(url: String): Flow<Website> = flow {
-    // Try cache first
-    val cacheResult = cacheStore.getWebsite(url)
-      .filterNotNull()
-      .firstOrNull()
-
-    if (cacheResult != null) {
-      emit(cacheResult)
-      return@flow
-    }
-
-    // Try history
-    val historyResult = historyRepository.get(Website(url))
-
-    if (historyResult != null) {
-      emit(historyResult)
-      return@flow
-    }
-
-    // Try remote
-    val remoteResult = webNetworkStore.getWebsite(url)
-      .filterNotNull()
-      .onEach { webSite ->
-        scope.launch {
-          cacheStore.saveWebsite(webSite)
-        }
-      }
-      .firstOrNull()
-
-    if (remoteResult != null) {
-      emit(remoteResult)
-      return@flow
-    }
-
-    // If nothing found, emit default
-    emit(Website(url))
-  }.catch { throwable ->
-    Timber.e(throwable)
-    emit(Website(url))
+    emit(WebsiteLookup(Website(url), fetchFailed = true))
   }.flowOn(Dispatchers.IO)
 
   override fun getWebsiteColorSync(url: String): Int {
@@ -169,7 +140,7 @@ internal constructor(
   }
 
   override suspend fun saveWebColor(url: String): WebColor {
-    val webSite = getWebsiteReadOnly(url).first()
+    val webSite = getWebsiteWithoutHistory(url).first()
     val host = Uri.parse(webSite.url).host ?: ""
 
     return if (webSite.themeColor() != NO_COLOR) {

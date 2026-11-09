@@ -23,7 +23,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -47,23 +46,24 @@ class ModernTabsViewModel @Inject constructor(
   private val websiteRepository: WebsiteRepository,
 ) : ViewModel() {
 
-  private val _uiState = MutableStateFlow<TabsUiState>(TabsUiState.Loading)
-  val uiState: StateFlow<TabsUiState> = _uiState.asStateFlow()
+  val uiState: StateFlow<TabsUiState>
+    field = MutableStateFlow<TabsUiState>(TabsUiState.Loading)
 
   private var loadJob: Job? = null
 
   /**
-   * Reads the open tasks, with the stored site of each page when there is one. A new load cancels
+   * Reads the open tasks, with the stored site of each page when there is one, and stores nothing,
+   * since the list cannot tell an incognito tab from a normal one. A new load cancels
    * the one in progress, so an older, slower read never replaces a newer list.
    */
   fun load() {
-    _uiState.update { if (it is TabsUiState.Loaded) it.copy(refreshing = true) else it }
+    uiState.update { if (it is TabsUiState.Loaded) it.copy(refreshing = true) else it }
     loadJob?.cancel()
     loadJob = viewModelScope.launch {
       try {
         val tabs = tabsManager.getActiveTabs().map { tab ->
           tab.website = try {
-            websiteRepository.getWebsiteReadOnly(tab.url).first()
+            websiteRepository.getWebsiteWithoutSaving(tab.url).first()
           } catch (e: CancellationException) {
             throw e
           } catch (e: Exception) {
@@ -72,12 +72,12 @@ class ModernTabsViewModel @Inject constructor(
           }
           tab
         }
-        _uiState.update { TabsUiState.Loaded(tabs, confirmCloseAll = (it as? TabsUiState.Loaded)?.confirmCloseAll == true && tabs.isNotEmpty()) }
+        uiState.update { TabsUiState.Loaded(tabs, confirmCloseAll = (it as? TabsUiState.Loaded)?.confirmCloseAll == true && tabs.isNotEmpty()) }
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
         Timber.e(e, "Error loading tabs")
-        _uiState.value = TabsUiState.Error(e.message ?: "")
+        uiState.value = TabsUiState.Error(e.message ?: "")
       }
     }
   }
@@ -93,9 +93,9 @@ class ModernTabsViewModel @Inject constructor(
     load()
   }
 
-  fun requestCloseAll() = _uiState.update { if (it is TabsUiState.Loaded) it.copy(confirmCloseAll = true) else it }
+  fun requestCloseAll() = uiState.update { if (it is TabsUiState.Loaded) it.copy(confirmCloseAll = true) else it }
 
-  fun dismissCloseAll() = _uiState.update { if (it is TabsUiState.Loaded) it.copy(confirmCloseAll = false) else it }
+  fun dismissCloseAll() = uiState.update { if (it is TabsUiState.Loaded) it.copy(confirmCloseAll = false) else it }
 
   fun confirmCloseAll() {
     dismissCloseAll()
