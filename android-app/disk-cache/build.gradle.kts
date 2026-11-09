@@ -49,6 +49,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.core)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
 }

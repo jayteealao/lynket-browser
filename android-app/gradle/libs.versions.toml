@@ -58,6 +58,7 @@ palette = "1.1.0"
 [libraries]
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core = { group = "androidx.core", name = "core", version.ref = "coreKtx" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 
