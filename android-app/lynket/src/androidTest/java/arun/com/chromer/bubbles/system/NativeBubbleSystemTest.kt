@@ -71,6 +71,7 @@ class NativeBubbleSystemTest {
   @Inject lateinit var preferences: Preferences
 
   private var deviceSwitch = ""
+  private var appBubbles: Int? = null
 
   @Before
   fun setUp() {
@@ -78,6 +79,7 @@ class NativeBubbleSystemTest {
     grantNotifications()
     deviceSwitch = deviceBubbles()
     setDeviceBubbles("1")
+    appBubbles = bubbleGate.preference().shellValue()
     cancelAppNotifications()
   }
 
@@ -86,7 +88,8 @@ class NativeBubbleSystemTest {
     cancelAppNotifications()
     // A switch that was never stored reads "null"; Android treats it as on.
     setDeviceBubbles(if (deviceSwitch == "0") "0" else "1")
-    setAppBubbles(1)
+    // Put back the app's bubble setting found before the test; all when it could not be read.
+    setAppBubbles(appBubbles ?: 1)
   }
 
   @Test

@@ -52,6 +52,14 @@ internal fun setAppBubbles(preference: Int) {
   shell("cmd notification set_bubbles $pkg $preference")
 }
 
+/** The shell value of an app bubble setting, or null when the setting has no shell value. */
+internal fun BubbleSetting.shellValue(): Int? = when (this) {
+  BubbleSetting.NONE -> 0
+  BubbleSetting.ALL -> 1
+  BubbleSetting.SELECTED -> 2
+  else -> null
+}
+
 /** The device's bubble switch as stored, "1" on and "0" off ("null" when never set). */
 internal fun deviceBubbles(): String = shell("settings get secure notification_bubbles").trim()
 
