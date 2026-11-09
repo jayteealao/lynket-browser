@@ -130,3 +130,52 @@ script gives the setup of the other modes.
 `BubbleMenuAuditTest` keeps the items a bubble hides in line with
 `lynket/src/test/resources/bubble-menu-audit.tsv`; see
 [The known issues of the warning](#the-known-issues-of-the-warning).
+
+## The known issues of the warning
+
+The warning shown when a person picks Native Bubbles (Beta) lists four known issues
+(`browsing_mode_native_bubbles_issue_*` in `lynket/src/main/res/values/strings.xml`):
+
+1. Pages in a bubble open in Lynket's web view, not in your browser.
+2. Android shows five bubbles at a time; more go to its overflow.
+3. Some menu items are hidden in a bubble.
+4. When Android does not show a bubble, the page opens in a tab.
+
+| Criterion | Check | Where |
+|---|---|---|
+| Each of the four issues is either fixed, and its line leaves the warning, or kept as how native bubbles work and reworded as such outside a "Known issues" list | A read of the four strings against the code; `NativeBubblesWarningTest` updated to the new text and green | JVM, review |
+| What a bubble hides from its menu and bottom bar is the list the device audit found, and no more | `BubbleMenuAuditTest`; `maestro/browsing/bubble-menu-check.sh` `audit-menu`, `audit-action`, `audit-bar` and `hidden` | JVM, emulator |
+| The warning keeps naming the bubble setting "All conversations can bubble" for as long as Android needs it | `NativeBubblesWarningTest` (`theLeadNamesTheBubbleSettingInQuotes`) | JVM |
+
+## A real phone
+
+Emulator bubbles can differ from a phone's: phone makers change the bubble stack, its overflow and
+its settings. The emulator tests run on Google's API 34 image only.
+
+| Criterion | Check | Where |
+|---|---|---|
+| The bubble flow of [The bubble flow on an emulator](#the-bubble-flow-on-an-emulator) holds on a real phone on Android 11 or later that is named as the test phone | `NativeBubbleSystemTest` with `ANDROID_SERIAL` set to the phone (it changes the phone's bubble settings, so use a phone set aside for testing); or by hand: a link in native bubble mode shows a bubble, and `dumpsys notification` shows the bubble flag (`0x1000`) on its notification | Real phone |
+| A refused bubble opens its link in a tab with the right message, and Open Settings opens the matching Android page, on that phone | `bash maestro/webheads/bubble-guidance-check.sh <serial> <dir> <mode>` with `all`, `selected` and `none` | Real phone |
+| The same flow holds on one phone maker's build on the newest Android version available | The two rows above on that phone; the Samsung phone on Android 17 in [native-bubble-overflow.md](native-bubble-overflow.md#a-samsung-phone-on-android-17) is the example so far | Real phone |
+| The phone checks of the earlier sections pass: TalkBack heard saying "Release to close", "loading" and "loaded", the trash ticks signed in `maestro/webheads/feel-checklist.md`, and the frame time of loading heads within one refresh interval | See [Web heads, the other bubble mode](#web-heads-the-other-bubble-mode) and [Page state](#page-state) | Real phone |
+
+## CI
+
+Today CI runs no check: every job in `.github/workflows/android.yml` is commented out, and the
+emulator tests run by hand. An emulator test can fail for reasons of the emulator, such as a slow
+boot or a busy host, so a CI gate on it can block work that is fine.
+
+| Criterion | Check | Where |
+|---|---|---|
+| This document records how the emulator bubble tests run before each release, chosen from the two options below | This section names the option taken and links its evidence | This document |
+
+The two options, and the evidence each needs before the label goes:
+
+- **A CI job runs the emulator tests.** Evidence: a CI job that boots an emulator and runs
+  `NativeBubbleSystemTest` on each change to the bubble code, with a record of repeated green runs
+  (for example 20 runs in a row with no failure that the code did not cause).
+- **The release checklist runs them.** Evidence: a release checklist step that runs the command of
+  [The bubble flow on an emulator](#the-bubble-flow-on-an-emulator) before each release, with its
+  result kept with the release.
+
+The choice is open.
