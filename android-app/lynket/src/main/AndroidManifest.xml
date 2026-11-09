@@ -50,10 +50,6 @@
     tools:ignore="GoogleAppIndexingWarning"
     tools:targetApi="n">
     <service
-      android:name=".browsing.customtabs.dynamictoolbar.AppColorExtractorJob"
-      android:exported="false"
-      android:permission="android.permission.BIND_JOB_SERVICE" />
-    <service
       android:name="arun.com.chromer.bubbles.webheads.WebHeadService"
       android:enabled="true"
       android:exported="false"
