@@ -193,7 +193,7 @@ fun Preferences.raw(name: String): Any? = asMap()[stringPreferencesKey(name)]
 internal fun Preferences.storedValue(key: Preferences.Key<*>): Any? = this[key as Preferences.Key<Any>]
 
 fun Preferences.readBoolean(name: String, default: Boolean): Boolean =
-  when (val value = raw(name)) {
+  when (val value = storedValue(SettingsSchema[name]?.preferenceKey ?: booleanPreferencesKey(name))) {
     null -> default
     is Boolean -> value
     else -> mistyped(name, value, default)
@@ -201,7 +201,7 @@ fun Preferences.readBoolean(name: String, default: Boolean): Boolean =
 
 /** Accepts an int or numeric text, so a value the earlier migration stored as text still reads. */
 fun Preferences.readInt(name: String, default: Int): Int =
-  when (val value = raw(name)) {
+  when (val value = storedValue(SettingsSchema[name]?.preferenceKey ?: intPreferencesKey(name))) {
     null -> default
     is Int -> value
     is String -> value.trim().toIntOrNull() ?: mistyped(name, value, default)
@@ -209,7 +209,7 @@ fun Preferences.readInt(name: String, default: Int): Int =
   }
 
 fun Preferences.readString(name: String, default: String?): String? =
-  when (val value = raw(name)) {
+  when (val value = storedValue(SettingsSchema[name]?.preferenceKey ?: stringPreferencesKey(name))) {
     null -> default
     is String -> value
     else -> mistyped(name, value, default)
