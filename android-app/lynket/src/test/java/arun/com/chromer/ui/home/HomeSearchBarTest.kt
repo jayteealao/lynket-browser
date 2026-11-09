@@ -14,6 +14,9 @@ package arun.com.chromer.ui.home
 import android.app.Activity
 import android.app.Application
 import android.view.View
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.material3.SearchBarState
+import androidx.compose.material3.rememberSearchBarState
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -53,6 +56,7 @@ import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
 import arun.com.chromer.util.appicon.ApplicationIcon
 import androidx.core.net.toUri
+import com.google.common.collect.Range
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -256,5 +260,80 @@ class HomeSearchBarTest {
     restoration.emulateSavedInstanceStateRestore()
     composeRule.waitForIdle()
     assertThat(isOpen()).isTrue()
+  }
+
+  /** The bar alone, around a search state with the home's timing held here. */
+  private fun showBarOnly(): SearchBarState {
+    lateinit var state: SearchBarState
+    composeRule.setContent {
+      state = rememberSearchBarState(
+        animationSpecForExpand = SearchOpenSpec,
+        animationSpecForCollapse = SearchCloseSpec,
+      )
+      ChromerTheme {
+        HomeSearchBar(
+          query = "",
+          onQueryChange = {},
+          searchBarState = state,
+          suggestions = HomeSearchSamples.kotlin(),
+          searchEngines = HomeSearchSamples.engines,
+          selectedEngine = SearchProviders.GOOGLE_SEARCH_PROVIDER,
+          onSelectEngine = {},
+          onSubmit = {},
+          onSuggestion = {},
+          onMenu = {},
+          onVoiceUnavailable = {},
+        )
+      }
+    }
+    touchMode()
+    composeRule.waitForIdle()
+    return state
+  }
+
+  private fun progressAt(state: SearchBarState, millis: Long, from: Long): Float {
+    composeRule.mainClock.advanceTimeBy(millis - (composeRule.mainClock.currentTime - from))
+    return state.progress
+  }
+
+  @Test
+  fun searchOpensOver600MsAfter100MsAndClosesOver350MsAfter100Ms() {
+    val state = showBarOnly()
+    composeRule.mainClock.autoAdvance = false
+    val tap = composeRule.mainClock.currentTime
+    field().performClick()
+    assertThat(progressAt(state, 100, tap)).isWithin(0.01f).of(0f)
+    val decelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+    // An animation starts on the frame after its trigger, so each point may sit one frame (16 ms) late.
+    assertThat(progressAt(state, 400, tap)).isIn(Range.closed(decelerate.transform(284f / 600f) - 0.01f, decelerate.transform(300f / 600f) + 0.01f))
+    assertThat(progressAt(state, 700, tap)).isWithin(0.01f).of(1f)
+    composeRule.mainClock.advanceTimeBy(100)
+
+    val close = composeRule.mainClock.currentTime
+    val back = composeRule.onAllNodesWithContentDescription(composeRule.activity.getString(R.string.back))
+    back[back.fetchSemanticsNodes().size - 1].performClick()
+    val exit = CubicBezierEasing(0f, 1f, 0f, 1f)
+    assertThat(progressAt(state, 275, close)).isIn(Range.closed(1f - exit.transform(175f / 350f) - 0.01f, 1f - exit.transform(159f / 350f) + 0.01f))
+    assertThat(progressAt(state, 450, close)).isWithin(0.01f).of(0f)
+  }
+
+  @Config(qualifiers = "w841dp-h701dp-xxhdpi")
+  @Test
+  fun onAFoldTheOpenSearchStartsAtTheBarAndSettlesInTheCentredColumn() {
+    show()
+    val density = composeRule.activity.resources.displayMetrics.density
+    val barLeft = field().fetchSemanticsNode().boundsInWindow.left / density
+    composeRule.mainClock.autoAdvance = false
+    val tap = composeRule.mainClock.currentTime
+    field().performClick()
+    composeRule.mainClock.advanceTimeBy(116 - (composeRule.mainClock.currentTime - tap))
+    val openLeft = field().fetchSemanticsNode().boundsInWindow.left / density
+    assertThat(openLeft).isWithin(1f).of(barLeft)
+
+    composeRule.mainClock.autoAdvance = true
+    composeRule.waitForIdle()
+    val settled = field().fetchSemanticsNode().boundsInWindow
+    assertThat(settled.width / density).isWithin(1f).of(680f)
+    assertThat(settled.left / density).isWithin(1f).of((841f - 680f) / 2f)
   }
 }

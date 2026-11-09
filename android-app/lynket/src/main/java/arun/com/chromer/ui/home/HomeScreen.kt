@@ -187,8 +187,8 @@ internal fun HomeActions.navigatingWith(navigator: LynketNavigator, context: Con
  * over 350 ms after 100 ms: the Material motion tokens long 4, short 2 and medium 3 that the
  * search bar has always used.
  */
-private val SearchOpenSpec = tween<Float>(durationMillis = 600, delayMillis = 100, easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f))
-private val SearchCloseSpec = tween<Float>(durationMillis = 350, delayMillis = 100, easing = CubicBezierEasing(0f, 1f, 0f, 1f))
+internal val SearchOpenSpec = tween<Float>(durationMillis = 600, delayMillis = 100, easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f))
+internal val SearchCloseSpec = tween<Float>(durationMillis = 350, delayMillis = 100, easing = CubicBezierEasing(0f, 1f, 0f, 1f))
 
 /** Window width at which the home uses 8 recents columns and a centred column (medium size class). */
 private const val MEDIUM_WIDTH_DP = 600
