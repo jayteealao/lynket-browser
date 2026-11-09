@@ -92,6 +92,7 @@ import arun.com.chromer.util.Utils
 import arun.com.chromer.util.appicon.ApplicationIcon
 import arun.com.chromer.ui.components.ScreenTitle
 import timber.log.Timber
+import androidx.lifecycle.compose.dropUnlessResumed
 
 /** Per-app settings: the master switch, then every app with its secondary browser and incognito rules. */
 @Composable
@@ -118,7 +119,7 @@ fun PerAppScreen(navigator: LynketNavigator, viewModel: PerAppViewModel = hiltVi
     state = state,
     enabled = enabled,
     snackbarHostState = snackbar,
-    onBack = { navigator.back() },
+    onBack = dropUnlessResumed { navigator.back() },
     onSearch = viewModel::search,
     onRefresh = viewModel::load,
     onMaster = { viewModel.setPerAppEnabled(it, Utils.canReadUsageStats(context)) },

@@ -59,6 +59,8 @@ import arun.com.chromer.ui.settings.components.SettingsScaffold
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
 import timber.log.Timber
+import androidx.lifecycle.compose.dropUnlessResumed
+import arun.com.chromer.ui.navigation.dropUnlessResumedWith
 
 /** The settings root: the default browser card, the three groups and About, in the legacy order. */
 @Composable
@@ -72,9 +74,9 @@ fun SettingsScreen(navigator: LynketNavigator) {
   SettingsRootContent(
     showDefaultBrowserCard = !isDefault,
     version = BuildConfig.VERSION_NAME,
-    onBack = { navigator.back() },
+    onBack = dropUnlessResumed { navigator.back() },
     onSetDefault = { openDefaultBrowserSettings(context) },
-    onOpen = { navigator.navigate(it) },
+    onOpen = dropUnlessResumedWith { key: LynketKey -> navigator.navigate(key) },
   )
 }
 

@@ -65,6 +65,7 @@ import arun.com.chromer.ui.settings.BrowsingOptionsScreen
 import arun.com.chromer.ui.settings.LookAndFeelScreen
 import arun.com.chromer.ui.settings.SettingsScreen
 import arun.com.chromer.ui.tabs.TabsScreen
+import androidx.lifecycle.compose.dropUnlessResumed
 
 /**
  * The single navigation display of [arun.com.chromer.MainActivity]: one back stack of [LynketKey]s,
@@ -107,7 +108,7 @@ fun LynketNavDisplay(
       entry<LynketKey.Changelog>(metadata = DialogSceneStrategy.dialog()) { entries.changelog(navigator) }
       entry<LynketKey.Browser>(metadata = linkScreenSlide()) { key ->
         if (WebUrl.parseOrNull(key.url) == null) {
-          LinkErrorScreen(url = key.url, onBack = { navigator.back() })
+          LinkErrorScreen(url = key.url, onBack = dropUnlessResumed { navigator.back() })
         } else {
           BrowserScreen(url = key.url, navigator = navigator)
         }
@@ -168,8 +169,8 @@ class LynketEntries(
   companion object {
     val Default = LynketEntries(
       home = { navigator -> HomeScreen(navigator = navigator) },
-      history = { navigator -> HistoryScreen(onBack = { navigator.back() }) },
-      tabs = { navigator -> TabsScreen(onBack = { navigator.back() }, closeIcon = false) },
+      history = { navigator -> HistoryScreen(onBack = dropUnlessResumed { navigator.back() }) },
+      tabs = { navigator -> TabsScreen(onBack = dropUnlessResumed { navigator.back() }, closeIcon = false) },
       intro = { navigator -> IntroScreen(navigator = navigator) },
     )
   }

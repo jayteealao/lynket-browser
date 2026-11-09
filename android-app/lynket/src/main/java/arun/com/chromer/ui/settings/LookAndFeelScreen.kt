@@ -74,6 +74,7 @@ import arun.com.chromer.ui.settings.components.SettingsScaffold
 import arun.com.chromer.ui.settings.components.hexOf
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.ui.theme.ThemeMode
+import androidx.lifecycle.compose.dropUnlessResumed
 
 /** Look and feel: theme first, then personalization, web heads and the article theme as before. */
 @Composable
@@ -83,7 +84,7 @@ fun LookAndFeelScreen(navigator: LynketNavigator, viewModel: SettingsViewModel =
   LookAndFeelContent(
     values = values,
     showWallpaperColours = wallpaperColoursAvailable(),
-    onBack = { navigator.back() },
+    onBack = dropUnlessResumed { navigator.back() },
     onSet = viewModel::set,
   )
   SettingsDialogHost(dialogs.firstOrNull(), viewModel)

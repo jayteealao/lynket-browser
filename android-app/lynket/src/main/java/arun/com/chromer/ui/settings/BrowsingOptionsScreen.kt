@@ -82,6 +82,8 @@ import arun.com.chromer.ui.settings.components.SettingsRow
 import arun.com.chromer.ui.settings.components.SettingsScaffold
 import arun.com.chromer.ui.settings.components.settingsColumn
 import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.dropUnlessResumed
+import arun.com.chromer.ui.navigation.dropUnlessResumedWith
 
 /**
  * Browsing options: app preferences, behaviour, web head options and the bottom bar with the
@@ -104,9 +106,9 @@ fun BrowsingOptionsScreen(navigator: LynketNavigator, viewModel: SettingsViewMod
     values = values,
     labels = labels,
     snackbarHostState = snackbar,
-    onBack = { navigator.back() },
+    onBack = dropUnlessResumed { navigator.back() },
     onSet = viewModel::set,
-    onOpen = { navigator.navigate(it) },
+    onOpen = dropUnlessResumedWith { key: LynketKey -> navigator.navigate(key) },
     onPickApp = { picker = it },
   )
   picker?.let { key ->

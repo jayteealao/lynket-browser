@@ -49,6 +49,7 @@ import arun.com.chromer.ui.settings.components.SettingsScaffold
 import arun.com.chromer.ui.settings.components.settingsColumn
 import arun.com.chromer.util.Utils
 import timber.log.Timber
+import androidx.lifecycle.compose.dropUnlessResumed
 
 /**
  * Browsing mode: slide over with its sheet options, web heads, native bubbles (Android 10+), then
@@ -67,7 +68,7 @@ fun BrowsingModeScreen(navigator: LynketNavigator, viewModel: SettingsViewModel 
   BrowsingModeContent(
     values = values,
     showNativeBubbles = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q,
-    onBack = { navigator.back() },
+    onBack = dropUnlessResumed { navigator.back() },
     onMode = { mode -> viewModel.chooseMode(mode, Utils.isOverlayGranted(context), notificationsAllowed(context)) },
     onSet = viewModel::set,
     bubbleSetting = bubbleSetting,
