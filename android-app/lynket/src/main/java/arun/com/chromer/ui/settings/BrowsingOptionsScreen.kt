@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -91,7 +92,7 @@ import arun.com.chromer.ui.navigation.dropUnlessResumedWith
  */
 @Composable
 fun BrowsingOptionsScreen(navigator: LynketNavigator, viewModel: SettingsViewModel = hiltViewModel()) {
-  val context = LocalContext.current
+  val resources = LocalResources.current
   val values by viewModel.values.collectAsStateWithLifecycle()
   val dialogs by viewModel.dialogs.collectAsStateWithLifecycle()
   val labels by viewModel.appLabels.collectAsStateWithLifecycle()
@@ -123,7 +124,7 @@ fun BrowsingOptionsScreen(navigator: LynketNavigator, viewModel: SettingsViewMod
       onPick = { app ->
         picker = null
         viewModel.setApp(key, app.component)
-        val message = context.getString(if (secondary) R.string.secondary_browser_success else R.string.fav_share_success, app.label)
+        val message = resources.getString(if (secondary) R.string.secondary_browser_success else R.string.fav_share_success, app.label)
         scope.launch { snackbar.showSnackbar(message) }
       },
       onDismiss = { picker = null },

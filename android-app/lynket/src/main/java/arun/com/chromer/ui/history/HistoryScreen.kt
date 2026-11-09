@@ -78,6 +78,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -142,6 +143,7 @@ class HistoryActions(
 @Composable
 fun HistoryScreen(onBack: () -> Unit, viewModel: ModernHistoryViewModel = hiltViewModel()) {
   val context = LocalContext.current
+  val resources = LocalResources.current
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val items = viewModel.items.collectAsLazyPagingItems()
   val snackbar = remember { SnackbarHostState() }
@@ -157,13 +159,13 @@ fun HistoryScreen(onBack: () -> Unit, viewModel: ModernHistoryViewModel = hiltVi
         when (event) {
           is HistoryEvent.Deleted -> {
             val result = snackbar.showSnackbar(
-              message = context.getString(R.string.history_removed),
-              actionLabel = context.getString(R.string.undo),
+              message = resources.getString(R.string.history_removed),
+              actionLabel = resources.getString(R.string.undo),
               duration = SnackbarDuration.Short,
             )
             if (result == SnackbarResult.ActionPerformed) viewModel.undo(event.website)
           }
-          is HistoryEvent.Cleared -> snackbar.showSnackbar(context.getString(R.string.deleted_items, event.count))
+          is HistoryEvent.Cleared -> snackbar.showSnackbar(resources.getString(R.string.deleted_items, event.count))
         }
       }
     }

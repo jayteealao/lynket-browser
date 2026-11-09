@@ -67,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -98,6 +99,7 @@ import androidx.lifecycle.compose.dropUnlessResumed
 @Composable
 fun PerAppScreen(navigator: LynketNavigator, viewModel: PerAppViewModel = hiltViewModel()) {
   val context = LocalContext.current
+  val resources = LocalResources.current
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val enabled by viewModel.perAppEnabled.collectAsStateWithLifecycle()
   val snackbar = remember { SnackbarHostState() }
@@ -111,7 +113,7 @@ fun PerAppScreen(navigator: LynketNavigator, viewModel: PerAppViewModel = hiltVi
       when (event) {
         PerAppEvent.NeedsUsageAccess -> askUsage = true
         is PerAppEvent.MasterSwitched ->
-          snackbar.showSnackbar(context.getString(if (event.on) R.string.per_apps_on else R.string.per_apps_off))
+          snackbar.showSnackbar(resources.getString(if (event.on) R.string.per_apps_on else R.string.per_apps_off))
       }
     }
   }
