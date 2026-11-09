@@ -39,3 +39,28 @@ Fall back to `-gpu swiftshader_indirect` only when a host GPU boot fails. The te
 or later (`@SdkSuppress`). They change the device's bubble switch and the app's bubble setting
 through the shell, so run them on an emulator, not on a phone someone uses. Stop the emulator when
 the run ends.
+
+## Privacy and lifecycle
+
+| Criterion | Check | Where |
+|---|---|---|
+| An incognito link opened as a native bubble adds no row to History | `NativeBubbleIncognitoReadTest` (`an_incognito_bubble_reads_nothing_about_its_site`: the bubble uses the read that saves nothing) | JVM |
+| An incognito bubble writes no website cache entry and loads no site icon | `NativeBubbleIncognitoReadTest` (`an_incognito_bubble_reads_nothing_about_its_site`, `an_incognito_bubble_never_loads_the_site_icon`) | JVM |
+| No launcher shortcut shows the title or address of an incognito bubble page | `NativeBubbleIdentityTest` (`an_incognito_shortcut_carries_only_the_neutral_label_and_the_lynket_icon`, `an_incognito_bubble_id_cannot_be_matched_against_its_address`) | JVM |
+| On a locked phone an incognito bubble never shows, and a normal bubble and the group summary show only the generic public text when the phone hides sensitive content | `NativeBubbleLockScreenTest` | JVM |
+| Normal bubbles keep their History row, site icon and shortcut title | `NativeBubbleIncognitoReadTest` (`a_normal_bubble_keeps_the_read_that_saves`), `NativeBubbleIdentityTest` (`a_normal_bubble_keeps_its_title_address_and_site_icon`) | JVM |
+| Dismissing a bubble removes its notification and its shortcut | `NativeBubbleDismissTest` (`dismissing_a_bubble_cancels_its_notification_and_removes_its_shortcut`) | JVM |
+| The group summary goes with the last bubble, and not before | `NativeBubbleDismissTest` (`the_summary_stays_until_the_last_bubble_is_dismissed`) | JVM |
+| A shared link shows its bubble with no fixed 1 second wait: a slow site icon does not hold the first post past 300 ms | `NativeBubblePostingTest` (`a_slow_icon_does_not_hold_the_first_post_past_300_ms`) | JVM |
+| Three links shared quickly post three bubbles without each waiting for the one before | `NativeBubblePostingTest` (`three_links_post_without_waiting_for_each_other`) | JVM |
+| The bubble notification is a message (`CATEGORY_MESSAGE`) with the locus id of its shortcut | `NativeBubbleConversationTest` (`a_bubble_is_a_message_with_the_locus_id_of_its_shortcut`) | JVM |
+| The expanded bubble height follows the window, so it is right in split screen | `NativeBubbleConversationTest` (`the_desired_height_follows_the_window_not_the_display`, `the_desired_height_follows_the_window_on_android_11`) | JVM |
+| A favicon for a bubble or a web head decodes at no more than the pixel size of its largest use | `FaviconDecodeSizeTest` | JVM |
+| The image loader limits its memory cache while the app is in the background | `ImageLoaderBackgroundLimitTest` | JVM |
+| The message of a refused bubble draws edge to edge, with bar icons readable in the light, dark and black themes | `BubbleRefusedEdgeToEdgeTest` | JVM |
+| On Android 15 and later, a screen share does not show an incognito page | `WebViewActivitySensitiveContentTest` (API 35 and 36) | JVM |
+
+The bubble flag itself, which the JVM tests can only fake, is the emulator check of
+[The bubble flow on an emulator](#the-bubble-flow-on-an-emulator) and the phone check of
+[A real phone](#a-real-phone). `NativeBubbleTest` covers what the app does after Android answers:
+a bubble Android shows stays, and a plain notification is removed and its page opens in a tab.
