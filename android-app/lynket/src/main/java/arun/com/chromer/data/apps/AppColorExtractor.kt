@@ -17,7 +17,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package arun.com.chromer.browsing.customtabs.dynamictoolbar
+package arun.com.chromer.data.apps
 
 import android.annotation.SuppressLint
 import android.app.Application

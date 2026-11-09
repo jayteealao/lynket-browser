@@ -186,7 +186,7 @@ The app supports multiple browsing modes:
 
 ### Services
 
-- No job service: the colour of the app a link came from is looked for once per process on the app's coroutine scope (`browsing/customtabs/dynamictoolbar/AppColorExtractor`, started by `DefaultAppRepository`)
+- No job service: the colour of the app a link came from is looked for once per process on the app's coroutine scope (`data/apps/AppColorExtractor`, started by `DefaultAppRepository`)
 - `WebHeadService` - Manages floating web head bubbles
 - `KeepAliveService` - Keeps custom tabs connection alive
 

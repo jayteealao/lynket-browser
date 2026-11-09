@@ -12,7 +12,6 @@
 package arun.com.chromer.data.apps
 
 import android.app.Application
-import arun.com.chromer.browsing.customtabs.dynamictoolbar.AppColorExtractor
 import arun.com.chromer.data.apps.store.AppDiskStore
 import arun.com.chromer.data.preferences.TestStore
 import arun.com.chromer.shared.Constants.NO_COLOR

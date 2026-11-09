@@ -21,7 +21,6 @@
 
 package arun.com.chromer.data.apps
 
-import arun.com.chromer.browsing.customtabs.dynamictoolbar.AppColorExtractor
 import arun.com.chromer.data.apps.qualifiers.System
 import arun.com.chromer.data.apps.store.AppStore
 import arun.com.chromer.data.common.App

@@ -9,7 +9,7 @@
  *  (at your option) any later version.
  */
 
-package arun.com.chromer.browsing.customtabs.dynamictoolbar
+package arun.com.chromer.data.apps
 
 import android.app.Application
 import android.content.pm.ApplicationInfo
