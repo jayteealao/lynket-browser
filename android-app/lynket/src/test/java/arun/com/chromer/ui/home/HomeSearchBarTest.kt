@@ -16,6 +16,8 @@ import android.app.Application
 import android.view.View
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.material3.SearchBarState
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsPropertiesAndroid
 import androidx.compose.material3.rememberSearchBarState
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.DrawerState
@@ -335,5 +337,19 @@ class HomeSearchBarTest {
     val settled = field().fetchSemanticsNode().boundsInWindow
     assertThat(settled.width / density).isWithin(1f).of(680f)
     assertThat(settled.left / density).isWithin(1f).of((841f - 680f) / 2f)
+  }
+
+  /** The open search is a window of its own; device checks find its field by the same id. */
+  @Test
+  fun theOpenSearchKeepsItsTestTagsAsResourceIds() {
+    show()
+    open()
+    var node: SemanticsNode? = composeRule.searchField().fetchSemanticsNode()
+    var exposed = false
+    while (node != null && !exposed) {
+      exposed = node.config.getOrElseNullable(SemanticsPropertiesAndroid.TestTagsAsResourceId) { null } == true
+      node = node.parent
+    }
+    assertThat(exposed).isTrue()
   }
 }
