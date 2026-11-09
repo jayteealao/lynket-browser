@@ -116,7 +116,7 @@ class RowMotionTest {
 
   /**
    * Robolectric draws only when asked. A row that fades out is drawn from what it last drew, so the
-   * list is drawn once before a change, as a device does on every frame.
+   * list is drawn before a change and on each sampled frame, as a device draws every frame.
    */
   private fun drawOnce() {
     composeRule.onRoot().captureToImage()
@@ -136,10 +136,16 @@ class RowMotionTest {
     error("nothing moved in 10 frames")
   }
 
-  /** The top of [text] now and every 16 ms after, for one second. */
-  private fun samples(text: String): List<Float> = listOf(top(text)) + List(60) {
+  /**
+   * The top of [text] now and every 16 ms after, for one second. With [frame], the screen is
+   * recorded under that name 64 ms in: about 120 ms after the change, which the list shows from
+   * its third frame.
+   */
+  private fun samples(text: String, frame: String? = null): List<Float> = listOf(top(text)) + List(60) { i ->
     clock.advanceTimeBy(16)
     composeRule.waitForIdle()
+    drawOnce()
+    if (frame != null && i == 3) capture(frame)
     top(text)
   }
 
@@ -192,7 +198,7 @@ class RowMotionTest {
     assertThat(inkIn(removed.copy(bottom = removed.top + removed.height / 2))).isGreaterThan(0)
     assertThat(top("r/androiddev")).isGreaterThan(removed.top)
     assertThat(top("r/androiddev")).isLessThan(thirdTop)
-    val final = assertMovesWithoutBounce(samples("r/androiddev"), down = false)
+    val final = assertMovesWithoutBounce(samples("r/androiddev", "history_delete_mid_phone"), down = false)
     assertThat(final).isWithin(0.5f).of(removed.top)
     assertThat(exists("Navigation 3")).isFalse()
   }
@@ -208,6 +214,9 @@ class RowMotionTest {
     assertThat(exists("lynket-browser")).isFalse()
     assertThat(inkIn(header)).isGreaterThan(0)
     assertThat(inkIn(row)).isGreaterThan(0)
+    clock.advanceTimeBy(120)
+    composeRule.waitForIdle()
+    capture("history_day_leaves_mid_phone")
     clock.advanceTimeBy(1_000)
     composeRule.waitForIdle()
     assertThat(inkIn(header)).isEqualTo(0)
@@ -220,7 +229,7 @@ class RowMotionTest {
     val thirdBefore = top("r/androiddev")
     data.value = loaded(twoDaySites)
     framesUntil { exists("Navigation 3") }
-    val final = assertMovesWithoutBounce(samples("r/androiddev"), down = true)
+    val final = assertMovesWithoutBounce(samples("r/androiddev", "history_undo_mid_phone"), down = true)
     assertThat(final).isGreaterThan(thirdBefore)
     assertThat(top("Navigation 3")).isWithin(0.5f).of(thirdBefore)
   }
@@ -239,7 +248,7 @@ class RowMotionTest {
     framesUntil { top("Tab three") < thirdTop - 0.5f }
     assertThat(inkIn(removed.copy(bottom = removed.top + removed.height / 2))).isGreaterThan(0)
     assertThat(top("Tab three")).isGreaterThan(removed.top)
-    val final = assertMovesWithoutBounce(samples("Tab three"), down = false)
+    val final = assertMovesWithoutBounce(samples("Tab three", "tabs_close_mid_phone"), down = false)
     assertThat(final).isWithin(0.5f).of(removed.top)
     assertThat(exists("Tab two")).isFalse()
   }
