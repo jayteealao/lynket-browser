@@ -595,71 +595,11 @@
             column="15"/>
     </issue>
 
-    <issue
-        id="LocalContextGetResourceValueCall"
-        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
-        errorLine1="        val message = context.getString(if (secondary) R.string.secondary_browser_success else R.string.fav_share_success, app.label)"
-        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/arun/com/chromer/ui/settings/BrowsingOptionsScreen.kt"
-            line="120"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="LocalContextGetResourceValueCall"
-        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
-        errorLine1="              message = context.getString(R.string.history_removed),"
-        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt"
-            line="154"
-            column="25"/>
-    </issue>
 
-    <issue
-        id="LocalContextGetResourceValueCall"
-        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
-        errorLine1="              actionLabel = context.getString(R.string.undo),"
-        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt"
-            line="155"
-            column="29"/>
-    </issue>
 
-    <issue
-        id="LocalContextGetResourceValueCall"
-        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
-        errorLine1="          is HistoryEvent.Cleared -> snackbar.showSnackbar(context.getString(R.string.deleted_items, event.count))"
-        errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/arun/com/chromer/ui/history/HistoryScreen.kt"
-            line="160"
-            column="60"/>
-    </issue>
 
-    <issue
-        id="LocalContextGetResourceValueCall"
-        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
-        errorLine1="          snackbar.showSnackbar(context.getString(if (event.on) R.string.per_apps_on else R.string.per_apps_off))"
-        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/arun/com/chromer/ui/perapp/PerAppScreen.kt"
-            line="113"
-            column="33"/>
-    </issue>
 
-    <issue
-        id="LocalContextResourcesRead"
-        message="Reading Resources using LocalContext.current.resources is not configuration-aware and may return stale values if the Configuration changes"
-        errorLine1="  val resources = LocalContext.current.resources"
-        errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/arun/com/chromer/ui/browsing/BrowsingBars.kt"
-            line="72"
-            column="19"/>
-    </issue>
 
     <issue
         id="PrivateResource"
