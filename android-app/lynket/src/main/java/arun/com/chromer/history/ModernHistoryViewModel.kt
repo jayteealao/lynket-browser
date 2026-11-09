@@ -78,7 +78,10 @@ class ModernHistoryViewModel @Inject constructor(
   private val clock: Clock,
 ) : ViewModel() {
 
-  /** The current time of the app clock, in milliseconds; the day headers are named from it. */
+  /**
+   * The current time of the app clock, in milliseconds; the day headers are named from it. A plain
+   * read, not state: a caller that reads it in composition sees a new day only when it recomposes.
+   */
   fun now(): Long = clock.now().toEpochMilliseconds()
 
   val uiState: StateFlow<HistoryUiState>
