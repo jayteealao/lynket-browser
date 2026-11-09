@@ -27,6 +27,14 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.navigation3.runtime.NavKey
+import arun.com.chromer.R
+import arun.com.chromer.extenstions.StringResource
+import arun.com.chromer.home.CustomTabProviderInfo
+import arun.com.chromer.ui.home.HomeActions
+import arun.com.chromer.ui.home.HomeContentState
+import arun.com.chromer.ui.home.HomeScreenContent
+import arun.com.chromer.util.appicon.ApplicationIcon
+import com.github.takahirom.roborazzi.captureRoboImage
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import arun.com.chromer.ui.accessibility.AccessibilityChecksRule
 import arun.com.chromer.ui.theme.ChromerTheme
@@ -43,7 +51,8 @@ import org.robolectric.annotation.GraphicsMode
  * The screen a link opens slides up from the bottom edge with no fade over a home that stays as it
  * is, and back slides it down the same way; another screen keeps the fade-through. The main clock
  * is paused and the frames are sampled every 16 ms. A refused address keeps the link error screen,
- * which is what the person sees of the slide.
+ * which is what the person sees of the slide. Mid-motion frames over the real home are recorded
+ * as screenshots.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -197,5 +206,69 @@ class EntryTransitionTest {
     clock.autoAdvance = true
     composeRule.waitForIdle()
     assertThat(pixel(200, 600)).isEqualTo(historyColour.toArgb())
+  }
+
+  private val chrome = CustomTabProviderInfo(
+    iconUri = ApplicationIcon.createUri("com.android.chrome"),
+    providerDescription = StringResource(R.string.tab_provider_status_message_home, listOf("Chrome")),
+    providerReason = StringResource(0),
+  )
+
+  private val realHome = LynketEntries(
+    home = {
+      HomeScreenContent(state = HomeContentState(recents = emptyList(), providerInfo = chrome), actions = HomeActions())
+    },
+    history = {},
+    tabs = {},
+    intro = {},
+    changelog = {},
+  )
+
+  private fun showRealHome(themeMode: ThemeMode): LynketNavigator {
+    val navigator = LynketNavigator(mutableStateListOf(LynketKey.Home))
+    composeRule.setContent {
+      ChromerTheme(themeMode = themeMode) { LynketNavDisplay(navigator = navigator, entries = realHome) }
+    }
+    composeRule.waitForIdle()
+    clock.autoAdvance = false
+    return navigator
+  }
+
+  private fun capture(name: String) {
+    composeRule.onRoot().captureRoboImage("src/test/screenshots/arun.com.chromer.ui.navigation.EntryTransitionTest.$name.png")
+  }
+
+  /** About 100 ms into the change: the first drawn frame and five more. */
+  private fun toTheMiddle() {
+    framesUntilShown()
+    repeat(5) { frame() }
+  }
+
+  @Test
+  fun framesOfTheSlideOverTheHome() {
+    val navigator = showRealHome(ThemeMode.Light)
+
+    composeRule.runOnUiThread { navigator.navigate(LynketKey.Browser("https://")) }
+    toTheMiddle()
+    capture("link_slide_mid_light_phone")
+
+    clock.autoAdvance = true
+    composeRule.waitForIdle()
+    clock.autoAdvance = false
+    capture("link_slide_settled_light_phone")
+
+    composeRule.runOnUiThread { navigator.back() }
+    repeat(6) { frame() }
+    assertThat(errorShown()).isTrue()
+    capture("link_back_mid_light_phone")
+  }
+
+  @Test
+  fun aFrameOfTheSlideInTheDarkTheme() {
+    val navigator = showRealHome(ThemeMode.Dark)
+
+    composeRule.runOnUiThread { navigator.navigate(LynketKey.Browser("https://")) }
+    toTheMiddle()
+    capture("link_slide_mid_dark_phone")
   }
 }
