@@ -63,8 +63,10 @@ import org.robolectric.annotation.GraphicsMode
  * black. The Look and feel and Browsing options goldens of each browsing mode are scrolled to the
  * Web heads group, and the Browsing options goldens of the Minimize behavior row to that row. The
  * Browsing mode sheet goldens show slide over with "Open as a sheet" off, and on with "Side sheet on
- * wide screens" under it, light and dark, at 200 % font on the phone and on a 320 dp window. Record
- * with `./gradlew :lynket:recordRoborazziDebug`.
+ * wide screens" under it, light and dark, at 200 % font on the phone and on a 320 dp window. The
+ * Native Bubbles (Beta) warning shows over Browsing mode with web heads chosen, light, dark and at
+ * 200 % font, where its text scrolls under the title and above the buttons. Record with
+ * `./gradlew :lynket:recordRoborazziDebug`.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -193,6 +195,20 @@ class SettingsGoldenTest {
   @Test fun browsing_mode_permission_phone() = capture(dialog = true) {
     BrowsingModeContent(values.with(SettingsKeyTable.WEB_HEAD_ENABLED to false), showNativeBubbles = true, onBack = {}, onMode = {}, onSet = { _, _ -> })
     SettingsDialogContent(SettingsDialog.OverlayPermission, noActions)
+  }
+
+  private fun nativeBubblesWarning(theme: ThemeMode = ThemeMode.Light) = capture(theme, dialog = true) {
+    BrowsingModeContent(values, showNativeBubbles = true, onBack = {}, onMode = {}, onSet = { _, _ -> })
+    SettingsDialogContent(SettingsDialog.NativeBubblesWarning, noActions)
+  }
+
+  @Test fun browsing_mode_native_bubbles_warning_phone() = nativeBubblesWarning()
+
+  @Test fun browsing_mode_native_bubbles_warning_dark_phone() = nativeBubblesWarning(ThemeMode.Dark)
+
+  @Test fun browsing_mode_native_bubbles_warning_font_200_phone() {
+    RuntimeEnvironment.setFontScale(2f)
+    nativeBubblesWarning()
   }
 
   @Test fun look_and_feel_default_phone() = capture {
