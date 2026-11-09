@@ -299,11 +299,13 @@ class ModeSwitchFlowTest {
 
     composeRule.onNodeWithTag("mode-native-bubbles").performClick()
     composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles_warning)).assertExists()
+    composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles_known_issues)).assertExists()
     awaitStore { it.bool(NATIVE_BUBBLES) == true }
     composeRule.onNodeWithText(string(android.R.string.ok)).performClick()
     composeRule.waitForIdle()
 
     composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles_warning)).assertDoesNotExist()
+    composeRule.onNodeWithText(string(R.string.browsing_mode_native_bubbles_known_issues)).assertDoesNotExist()
     composeRule.onNodeWithText(string(R.string.bubbles_notification_explainer_title)).assertDoesNotExist()
     composeRule.onNodeWithText(string(R.string.bubble_setting_explainer_title)).assertDoesNotExist()
     assertThat(viewModel.dialogs.value).isEmpty()
