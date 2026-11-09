@@ -115,12 +115,15 @@ PID_BEFORE="$(a shell pidof "$PKG" | tr -d '\r')"
 [ -n "$PID_BEFORE" ] || fail "the app is not running after a cold start"
 log "cold start: pid $PID_BEFORE"
 
-# 3. Five links from the white app.
+# 3. Five links from the white app. Chrome's first-run screen would cover the Custom Tab of the still.
+trap chrome_restore EXIT
+chrome_without_first_run
 SOURCE_LINES=0
 for i in 1 2 3 4 5; do
   a shell am start -W -n "$SOURCE/android.app.Activity" >/dev/null
   sleep 2
-  a shell am start -a android.intent.action.VIEW -d "https://example.com/?from=app-colour-check&n=$i" \
+  # The device shell reads the command line again, so the address is quoted for it (its "&").
+  a shell am start -a android.intent.action.VIEW -d "'https://example.com/?from=app-colour-check&n=$i'" \
     -n "$PKG/$INTERCEPT" >/dev/null
   seen=""
   for _ in $(seq 1 20); do
