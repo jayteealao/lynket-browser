@@ -22,11 +22,21 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BubbleChart
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,8 +44,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.fromHtml
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import arun.com.chromer.R
 import arun.com.chromer.ui.permission.PermissionExplainerDialog
@@ -170,12 +185,51 @@ fun SettingsDialogContent(dialog: SettingsDialog?, actions: SettingsDialogAction
       onDismissRequest = actions.onDismiss,
       modifier = Modifier.testTag("settings-dialog"),
       title = { Text(stringResource(R.string.browsing_mode_native_bubbles)) },
-      text = { Text(stringResource(R.string.browsing_mode_native_bubbles_warning)) },
+      text = { NativeBubblesWarningText() },
       confirmButton = {
         TextButton(onClick = actions.onBubblesGuide) { Text(stringResource(R.string.browsing_mode_native_bubbles_guide)) }
       },
       dismissButton = { TextButton(onClick = actions.onDismiss) { Text(stringResource(android.R.string.ok)) } },
     )
+  }
+}
+
+/** The known issues of native bubbles, in the order the warning lists them. */
+private val nativeBubblesIssues = listOf(
+  R.string.browsing_mode_native_bubbles_issue_web_view,
+  R.string.browsing_mode_native_bubbles_issue_limit,
+  R.string.browsing_mode_native_bubbles_issue_menu,
+  R.string.browsing_mode_native_bubbles_issue_refused,
+)
+
+/**
+ * The body of the Native Bubbles (Beta) warning: a lead line that names Android's bubble setting,
+ * a "Known issues" heading and one row per issue. The body scrolls on its own, so at the largest
+ * font the dialog keeps its title and its buttons in view.
+ */
+@Composable
+private fun NativeBubblesWarningText() {
+  val colours = MaterialTheme.colorScheme
+  val body = MaterialTheme.typography.bodyMedium
+  Column(Modifier.verticalScroll(rememberScrollState()).testTag("native-bubbles-warning-text")) {
+    Text(stringResource(R.string.browsing_mode_native_bubbles_warning), style = body, color = colours.onSurface)
+    Spacer(Modifier.height(16.dp))
+    Text(
+      stringResource(R.string.browsing_mode_native_bubbles_known_issues),
+      style = body,
+      fontWeight = FontWeight.SemiBold,
+      color = colours.onSurface,
+      modifier = Modifier.semantics { heading() },
+    )
+    Spacer(Modifier.height(8.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+      nativeBubblesIssues.forEach { issue ->
+        Row(Modifier.padding(start = 20.dp)) {
+          Text("•", style = body, color = colours.onSurfaceVariant, modifier = Modifier.width(16.dp).clearAndSetSemantics { })
+          Text(stringResource(issue), style = body, color = colours.onSurfaceVariant)
+        }
+      }
+    }
   }
 }
 
