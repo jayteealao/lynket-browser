@@ -337,7 +337,12 @@
   <string name="bubble_notification_channel_description">Channel for showing bubbles</string>
   <string name="browsing_mode_native_bubbles_explanation">Use Android 10\'s native bubbles to load multiple links in floating windows.</string>
   <string name="browsing_mode_native_bubbles">Native Bubbles (Beta)</string>
-  <string name="browsing_mode_native_bubbles_warning">Native bubbles integration is in beta and requires extra steps to be enabled. Please note that current implementation is not final and may change in the future. \n\nKnown issues:\nOnly the Web View provider works with floating window.</string>
+  <string name="browsing_mode_native_bubbles_warning">Native bubbles are in beta. Android shows them only when Lynket\'s bubble setting is \"All conversations can bubble\".</string>
+  <string name="browsing_mode_native_bubbles_known_issues">Known issues</string>
+  <string name="browsing_mode_native_bubbles_issue_web_view">Pages in a bubble open in Lynket\'s web view, not in your browser.</string>
+  <string name="browsing_mode_native_bubbles_issue_limit">Android shows five bubbles at a time; more go to its overflow.</string>
+  <string name="browsing_mode_native_bubbles_issue_menu">Some menu items are hidden in a bubble.</string>
+  <string name="browsing_mode_native_bubbles_issue_refused">When Android does not show a bubble, the page opens in a tab.</string>
   <string name="browsing_mode_native_bubbles_guide">Guide</string>
   <string name="bubble_notification_group_title">Active bubbles</string>
   <string name="bubble_notification_group_description">Showing bubble notifications, swipe to expand</string>
