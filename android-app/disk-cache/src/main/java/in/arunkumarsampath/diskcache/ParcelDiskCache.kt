@@ -40,14 +40,17 @@ import java.security.MessageDigest
  * Implementation modified from https://gist.github.com/VladSumtsov/c4af1f4b8fe5099ca809
  *
  * @param T Parcelable type.
+ * @param itemClass the class of the cached values; reads check each value against it and load it
+ * with its class loader.
  */
 class ParcelDiskCache<T : Parcelable> private constructor(
   context: Context,
-  private val classLoader: ClassLoader?,
+  private val itemClass: Class<T>,
   name: String,
   maxSize: Long,
 ) : DiskCache<T> {
 
+  private val classLoader: ClassLoader? = itemClass.classLoader
   private val storeExecutor: Executor = Executors.newSingleThreadExecutor()
   private val cache: DiskLruCache
   private var saveInUI = true
@@ -134,8 +137,7 @@ class ParcelDiskCache<T : Parcelable> private constructor(
    */
   private fun validateKey(key: String): String = cacheKey(key)
 
-  @JvmOverloads
-  fun getList(key: String, itemClass: Class<*>? = null): List<T> {
+  fun getList(key: String): List<T> {
     val res = ArrayList<T>()
     val parcel = getParcel(validateKey(key)) ?: return res
     try {
@@ -146,7 +148,7 @@ class ParcelDiskCache<T : Parcelable> private constructor(
       if (type != LIST) {
         throw IllegalAccessError("Parcel doesn't contain list data")
       }
-      readList(parcel, res, itemClass?.classLoader ?: ArrayList::class.java.classLoader)
+      readList(parcel, res, classLoader)
     } catch (e: Exception) {
       e.printStackTrace()
     } finally {
@@ -226,10 +228,10 @@ class ParcelDiskCache<T : Parcelable> private constructor(
     @Throws(IOException::class)
     fun <T : Parcelable> open(
       context: Context,
-      classLoader: ClassLoader?,
+      itemClass: Class<T>,
       name: String,
       maxSize: Long,
-    ): ParcelDiskCache<T> = ParcelDiskCache(context, classLoader, name, maxSize)
+    ): ParcelDiskCache<T> = ParcelDiskCache(context, itemClass, name, maxSize)
 
     private fun saveValue(cache: DiskLruCache, value: Parcel, key: String) {
       val lowerKey = key.lowercase()

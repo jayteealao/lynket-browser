@@ -58,11 +58,11 @@ class ParcelDiskCacheCompatTest {
   private fun folderVersion() = ParcelDiskCache.getVersionCode(context) + Build.VERSION.SDK_INT
 
   private fun openCache(): ParcelDiskCache<TestItem> =
-    ParcelDiskCache.open<TestItem>(context, TestItem::class.java.classLoader, name, MAX_SIZE)
+    ParcelDiskCache.open(context, TestItem::class.java, name, MAX_SIZE)
       .also { opened += it }
 
   private fun readList(cache: ParcelDiskCache<TestItem>, key: String): List<TestItem> =
-    cache.getList(key, TestItem::class.java)
+    cache.getList(key)
 
   private fun setVersionCode(code: Int) {
     val info = shadowOf(context.packageManager).getInternalMutablePackageInfo(context.packageName)
