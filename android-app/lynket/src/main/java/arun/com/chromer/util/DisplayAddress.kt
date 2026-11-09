@@ -14,8 +14,8 @@ package arun.com.chromer.util
 private val WEB_PREFIXES = listOf("https://", "http://")
 
 /**
- * The address line of a History or Tabs row: the address without `https://`, `http://` or a leading
- * `www.`, so the host and the end of the path are what the person reads. Every other scheme
+ * The address line of a History or Tabs row: the address without `https://`, `http://`, a
+ * `user@` part or a leading `www.`, so the host and the end of the path are what the person reads. Every other scheme
  * (`file:`, `content:`, `about:`) is kept as given, because there the scheme is the information.
  * A host-only, long-host or IP address comes back whole; the row's text layout cuts it in the
  * middle. Plain string work: never throws, and a blank address gives `""`.
@@ -24,7 +24,8 @@ fun displayAddress(url: String): String {
   val trimmed = url.trim()
   val rest = stripWebScheme(trimmed) ?: return trimmed
   val authorityEnd = authorityEnd(rest)
-  val authority = dropWww(rest.substring(0, authorityEnd))
+  // A `user[:password]@` part is not shown: the row names the host the way its title does.
+  val authority = dropWww(rest.substring(0, authorityEnd).substringAfterLast('@'))
   val tail = rest.substring(authorityEnd)
   return authority + if (tail == "/") "" else tail
 }

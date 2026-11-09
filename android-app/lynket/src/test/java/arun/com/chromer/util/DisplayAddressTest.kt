@@ -31,6 +31,13 @@ class DisplayAddressTest {
   }
 
   @Test
+  fun userInfoIsDroppedLikeTheTitleHost() {
+    val url = "https://user:pw@www.example.com/a"
+    assertThat(displayAddress(url)).isEqualTo("example.com/a")
+    assertThat(displayHost(url)).isEqualTo("example.com")
+  }
+
+  @Test
   fun wwwAloneIsAHost() {
     assertThat(displayAddress("http://www/")).isEqualTo("www")
   }
