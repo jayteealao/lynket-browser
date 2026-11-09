@@ -138,6 +138,7 @@ class ArticleActivity : BrowsingActivity() {
    * same edge; the screen behind does not move. With system animations off, there is no slide.
    */
   private fun slideInFromTheBottom() {
+    slidIn = true
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
       overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, R.anim.reader_slide_up, 0)
       overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, R.anim.reader_slide_down)
@@ -147,9 +148,12 @@ class ArticleActivity : BrowsingActivity() {
     }
   }
 
+  /** True once the reader rose with the slide; a reader that closes before that leaves as the system does. */
+  private var slidIn = false
+
   override fun finish() {
     super.finish()
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+    if (slidIn && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
       @Suppress("DEPRECATION") // sdlc-debt: the call API 34 replaced with overrideActivityTransition, kept for older Android; drop it with minSdk 34
       overridePendingTransition(0, R.anim.reader_slide_down)
     }
