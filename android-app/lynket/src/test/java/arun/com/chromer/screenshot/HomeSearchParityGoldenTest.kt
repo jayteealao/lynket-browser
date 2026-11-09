@@ -12,6 +12,7 @@
 package arun.com.chromer.screenshot
 
 import android.app.Application
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +71,7 @@ class HomeSearchParityGoldenTest {
     online: Boolean = true,
     tap: Boolean = true,
     type: String = "",
+    hold: Long = 1_000,
   ) {
     composeRule.setContent {
       var query by remember { mutableStateOf("") }
@@ -97,9 +99,38 @@ class HomeSearchParityGoldenTest {
       composeRule.searchField().performTextInput(type)
       composeRule.waitForIdle()
     }
+    focusTopWindow()
     composeRule.mainClock.autoAdvance = false
-    composeRule.mainClock.advanceTimeBy(1_000)
+    composeRule.mainClock.advanceTimeBy(hold)
     captureScreenRoboImage()
+  }
+
+  /**
+   * Gives window focus to the window on top, as a device does when a layer opens in its own
+   * window; Robolectric leaves it with the activity, and a text field draws its cursor only in a
+   * focused window.
+   */
+  private fun focusTopWindow() {
+    val global = Class.forName("android.view.WindowManagerGlobal")
+    val instance = global.getMethod("getInstance").invoke(null)
+    @Suppress("UNCHECKED_CAST")
+    val roots = global.getDeclaredField("mViews").apply { isAccessible = true }.get(instance) as List<View>
+    val top = roots.last()
+    if (top !== composeRule.activity.window.decorView) {
+      composeRule.runOnUiThread {
+        setWindowFocus(composeRule.activity.window.decorView, false)
+        setWindowFocus(top, true)
+      }
+      org.robolectric.shadows.ShadowLooper.idleMainLooper()
+      composeRule.waitForIdle()
+    }
+  }
+
+  private fun setWindowFocus(root: View, focused: Boolean) {
+    val viewRoot = View::class.java.getMethod("getViewRootImpl").invoke(root)
+    val method = viewRoot.javaClass.declaredMethods.first { it.name == "windowFocusChanged" }
+    method.isAccessible = true
+    if (method.parameterCount == 1) method.invoke(viewRoot, focused) else method.invoke(viewRoot, focused, true)
   }
 
   @Test fun homeSearch_collapsed_light_phone() = capture(tap = false)
@@ -108,8 +139,14 @@ class HomeSearchParityGoldenTest {
   @Test fun homeSearch_typed_light_phone() = capture(suggestions = HomeSearchSamples.kotlin(), type = "kotlin")
   @Test fun homeSearch_typed_dark_phone() = capture(ThemeMode.Dark, HomeSearchSamples.kotlin(), type = "kotlin")
 
-  /** Opened with nothing typed: the engine chips only. */
-  @Test fun homeSearch_openedEmpty_light_phone() = capture()
+  /**
+   * Opened with nothing typed: the engine chips only. The cursor of an empty field blinks from the
+   * moment the field takes focus, and the open search's field takes it as the search opens, a
+   * half-second blink apart from the field that took it at the tap; 700 ms is inside the same
+   * hidden half-second as the recorded picture. Typed cases blink from the last key, the same
+   * moment for any field.
+   */
+  @Test fun homeSearch_openedEmpty_light_phone() = capture(hold = 700)
 
   /** Typed while the web suggestions are still on the way: one history row. */
   @Test fun homeSearch_historyOnly_light_phone() = capture(
