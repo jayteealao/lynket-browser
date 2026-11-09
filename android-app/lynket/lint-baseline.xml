@@ -624,28 +624,6 @@
     </issue>
 
     <issue
-        id="DiscouragedApi"
-        message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
-        errorLine1="            val appCompatId = resources.getIdentifier(&quot;colorPrimary&quot;, &quot;attr&quot;, packageName)"
-        errorLine2="                                        ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/arun/com/chromer/browsing/customtabs/dynamictoolbar/AppColorExtractorJob.kt"
-            line="64"
-            column="41"/>
-    </issue>
-
-    <issue
-        id="DiscouragedApi"
-        message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
-        errorLine1="            val lollipopAttrId = resources.getIdentifier(&quot;android:colorPrimary&quot;, &quot;attr&quot;, packageName)"
-        errorLine2="                                           ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/arun/com/chromer/browsing/customtabs/dynamictoolbar/AppColorExtractorJob.kt"
-            line="74"
-            column="44"/>
-    </issue>
-
-    <issue
         id="UseRequiresApi"
         message="Use `@RequiresApi(Build.VERSION_CODES.LOLLIPOP)` instead of `@TargetApi` to propagate the requirement to users of `BrowsingViewModel`"
         errorLine1="@TargetApi(Build.VERSION_CODES.LOLLIPOP)"
