@@ -34,6 +34,9 @@ import kotlin.time.Clock
  * Each Hilt test component of the instrumented tests gets its own DataStore files in the app's
  * cache, with the real migrations: DataStore refuses two active instances on one file in a process,
  * and Hilt builds a component per test. The app's own settings on the device stay untouched.
+ *
+ * The JVM tests replace the same module with `TestDataStoreModule` (src/test). Only the place of the
+ * files differs, so a store, qualifier or migration added to `DataStoreModule` goes in both.
  */
 @Module
 @TestInstallIn(components = [SingletonComponent::class], replaces = [DataStoreModule::class])
